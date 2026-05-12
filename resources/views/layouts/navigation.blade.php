@@ -24,7 +24,7 @@
                         <span>Profile</span>
                     </a>
                 </li>
-                    @canany(['prefixes.view', 'designations.view', 'countries.view', 'nationalities.view', 'states.view',
+                    @canany(['prefixes.view', 'designations.view', 'countries.view', 'nationalities.view', 'states.view', 'districts.view',
                     'locations.view', 'degree-levels.view', 'field-of-studies.view', 'study-modes.view', 'currencies.view',
                     'universities.view', 'university-types.view', 'intakes.view', 'program-types.view',
                     'program-levels.view', 'study-areas.view', 'discipline-areas.view', 'requirements.view',
@@ -32,7 +32,7 @@
                     'application-statuses.view', 'biller-profiles.view', 'payment-types.view', 'payment-methods.view', 'lead-sources.view',
                     'lead-types.view', 'lead-statuses.view', 'action-plans.view', 'relations.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('prefixes.*') ? '': 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*') ? '': 'collapsed' }}"
                             data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                             <i class="fa-solid fa-align-center"></i>
@@ -40,7 +40,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*') ? 'show': '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*') ? 'show': '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -48,6 +48,33 @@
                                         class="{{ request()->routeIs('prefixes.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span> Prefix Management    </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('states.view')
+                                <li>
+                                    <a href="{{ route('states.index') }}"
+                                        class="{{ request()->routeIs('states.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> State Management </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('districts.view')
+                                <li>
+                                    <a href="{{ route('districts.index') }}"
+                                        class="{{ request()->routeIs('districts.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> District Management </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('locations.view')
+                                <li>
+                                    <a href="{{ route('locations.index') }}"
+                                        class="{{ request()->routeIs('locations.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Location Management </span>
                                     </a>
                                 </li>
                             @endcan

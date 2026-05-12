@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class PermissionSeeder extends Seeder
 {
@@ -25,6 +26,24 @@ class PermissionSeeder extends Seeder
                 'prefixes.delete',
                 'prefixes.view',
             ],
+            'State' => [
+                'states.create',
+                'states.edit',
+                'states.delete',
+                'states.view',
+            ],
+            'District' => [
+                'districts.create',
+                'districts.edit',
+                'districts.delete',
+                'districts.view',
+            ],
+            'Location' => [
+                'locations.create',
+                'locations.edit',
+                'locations.delete',
+                'locations.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {
@@ -35,5 +54,10 @@ class PermissionSeeder extends Seeder
                 );
             }
         }
+
+        Role::where('name', 'Super Admin')
+            ->where('guard_name', 'web')
+            ->first()
+            ?->syncPermissions(Permission::all());
     }
 }

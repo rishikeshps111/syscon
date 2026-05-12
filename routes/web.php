@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DistrictController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StateController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +21,23 @@ Route::middleware('auth')->group(function () {
     Route::post('/prefixes/export', [PrefixController::class, 'export'])
         ->name('prefixes.export');
     Route::resource('prefixes', PrefixController::class)->except(['edit', 'show']);
+
+    Route::post('/states/status', [StateController::class, 'status'])->name('states.status');
+    Route::post('/states/export', [StateController::class, 'export'])
+        ->name('states.export');
+    Route::resource('states', StateController::class)->except(['edit', 'show']);
+
+    Route::post('/districts/status', [DistrictController::class, 'status'])->name('districts.status');
+    Route::post('/districts/export', [DistrictController::class, 'export'])
+        ->name('districts.export');
+    Route::resource('districts', DistrictController::class)->except(['edit', 'show']);
+
+    Route::get('/locations/districts-by-state', [LocationController::class, 'districtsByState'])
+        ->name('locations.districts-by-state');
+    Route::post('/locations/status', [LocationController::class, 'status'])->name('locations.status');
+    Route::post('/locations/export', [LocationController::class, 'export'])
+        ->name('locations.export');
+    Route::resource('locations', LocationController::class)->except(['edit', 'show']);
 });
 
 Route::get('/storage-link', function () {

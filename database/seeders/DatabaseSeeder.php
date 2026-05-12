@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             PrefixSeeder::class,
+            StateSeeder::class,
+            DistrictSeeder::class,
+            LocationSeeder::class,
         ]);
 
         // Create Super Admin user
