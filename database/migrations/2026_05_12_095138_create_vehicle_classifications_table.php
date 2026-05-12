@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('vehicle_classifications', function (Blueprint $table) {
+            $table->id();
+            $table->string('code')->nullable()->unique();
+            $table->string('name');
+            $table->integer('capacity')->nullable();
+            $table->enum('fuel_type', ['petrol', 'diesel', 'ev', 'hybrid'])->nullable();
+            $table->longText('description')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('vehicle_classifications');
+    }
+};

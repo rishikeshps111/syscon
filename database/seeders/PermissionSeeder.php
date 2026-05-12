@@ -44,6 +44,42 @@ class PermissionSeeder extends Seeder
                 'locations.delete',
                 'locations.view',
             ],
+            'Service Type' => [
+                'service-types.create',
+                'service-types.edit',
+                'service-types.delete',
+                'service-types.view',
+            ],
+            'Vehicle Classification' => [
+                'vehicle-classifications.create',
+                'vehicle-classifications.edit',
+                'vehicle-classifications.delete',
+                'vehicle-classifications.view',
+            ],
+            'Document Type' => [
+                'document-types.create',
+                'document-types.edit',
+                'document-types.delete',
+                'document-types.view',
+            ],
+            'Depot' => [
+                'depots.create',
+                'depots.edit',
+                'depots.delete',
+                'depots.view',
+            ],
+            'Route' => [
+                'routes.create',
+                'routes.edit',
+                'routes.delete',
+                'routes.view',
+            ],
+            'Trip Setup' => [
+                'trip-setups.create',
+                'trip-setups.edit',
+                'trip-setups.delete',
+                'trip-setups.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

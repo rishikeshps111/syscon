@@ -1,11 +1,18 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepotController;
 use App\Http\Controllers\DistrictController;
+use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RouteController;
+use App\Http\Controllers\RouteStopController;
+use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\StateController;
+use App\Http\Controllers\TripSetupController;
+use App\Http\Controllers\VehicleClassificationController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +45,45 @@ Route::middleware('auth')->group(function () {
     Route::post('/locations/export', [LocationController::class, 'export'])
         ->name('locations.export');
     Route::resource('locations', LocationController::class)->except(['edit', 'show']);
+
+    Route::post('/service-types/status', [ServiceTypeController::class, 'status'])->name('service-types.status');
+    Route::post('/service-types/export', [ServiceTypeController::class, 'export'])
+        ->name('service-types.export');
+    Route::resource('service-types', ServiceTypeController::class)->except(['edit', 'show']);
+
+    Route::post('/vehicle-classifications/status', [VehicleClassificationController::class, 'status'])->name('vehicle-classifications.status');
+    Route::post('/vehicle-classifications/export', [VehicleClassificationController::class, 'export'])
+        ->name('vehicle-classifications.export');
+    Route::resource('vehicle-classifications', VehicleClassificationController::class)->except(['edit', 'show']);
+
+    Route::post('/document-types/status', [DocumentTypeController::class, 'status'])->name('document-types.status');
+    Route::post('/document-types/export', [DocumentTypeController::class, 'export'])
+        ->name('document-types.export');
+    Route::resource('document-types', DocumentTypeController::class)->except(['edit', 'show']);
+
+    Route::post('/depots/status', [DepotController::class, 'status'])->name('depots.status');
+    Route::post('/depots/export', [DepotController::class, 'export'])
+        ->name('depots.export');
+    Route::resource('depots', DepotController::class)->except(['edit', 'show']);
+
+    Route::post('/routes/status', [RouteController::class, 'status'])->name('routes.status');
+    Route::post('/routes/export', [RouteController::class, 'export'])
+        ->name('routes.export');
+    Route::get('/routes/{route}/preview', [RouteController::class, 'preview'])->name('routes.preview');
+    Route::get('/routes/{route}/preview/export', [RouteController::class, 'previewExport'])->name('routes.preview.export');
+    Route::get('/routes/{route}/stops', [RouteStopController::class, 'index'])->name('routes.stops.index');
+    Route::get('/routes/{route}/stops/create', [RouteStopController::class, 'create'])->name('routes.stops.create');
+    Route::post('/routes/{route}/stops', [RouteStopController::class, 'store'])->name('routes.stops.store');
+    Route::post('/routes/{route}/stops/export', [RouteStopController::class, 'export'])->name('routes.stops.export');
+    Route::put('/route-stops/{route_stop}', [RouteStopController::class, 'update'])->name('route-stops.update');
+    Route::patch('/route-stops/{route_stop}', [RouteStopController::class, 'update']);
+    Route::delete('/route-stops/{route_stop}', [RouteStopController::class, 'destroy'])->name('route-stops.destroy');
+    Route::resource('routes', RouteController::class)->except(['edit', 'show']);
+
+    Route::post('/trip-setups/status', [TripSetupController::class, 'status'])->name('trip-setups.status');
+    Route::post('/trip-setups/export', [TripSetupController::class, 'export'])
+        ->name('trip-setups.export');
+    Route::resource('trip-setups', TripSetupController::class)->except(['edit', 'show']);
 });
 
 Route::get('/storage-link', function () {

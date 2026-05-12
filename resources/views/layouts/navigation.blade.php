@@ -24,7 +24,7 @@
                         <span>Profile</span>
                     </a>
                 </li>
-                    @canany(['prefixes.view', 'designations.view', 'countries.view', 'nationalities.view', 'states.view', 'districts.view',
+                    @canany(['prefixes.view', 'service-types.view', 'vehicle-classifications.view', 'document-types.view', 'depots.view', 'routes.view', 'trip-setups.view', 'designations.view', 'countries.view', 'nationalities.view', 'states.view', 'districts.view',
                     'locations.view', 'degree-levels.view', 'field-of-studies.view', 'study-modes.view', 'currencies.view',
                     'universities.view', 'university-types.view', 'intakes.view', 'program-types.view',
                     'program-levels.view', 'study-areas.view', 'discipline-areas.view', 'requirements.view',
@@ -32,7 +32,7 @@
                     'application-statuses.view', 'biller-profiles.view', 'payment-types.view', 'payment-methods.view', 'lead-sources.view',
                     'lead-types.view', 'lead-statuses.view', 'action-plans.view', 'relations.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*') ? '': 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'vehicle-classifications.*', 'document-types.*', 'depots.*', 'routes.*', 'trip-setups.*') ? '': 'collapsed' }}"
                             data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                             <i class="fa-solid fa-align-center"></i>
@@ -40,7 +40,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*') ? 'show': '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'vehicle-classifications.*', 'document-types.*', 'depots.*', 'routes.*', 'trip-setups.*') ? 'show': '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -78,6 +78,61 @@
                                     </a>
                                 </li>
                             @endcan
+                            @can('service-types.view')
+                                <li>
+                                    <a href="{{ route('service-types.index') }}"
+                                        class="{{ request()->routeIs('service-types.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Service Type Master </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('depots.view')
+                                <li>
+                                    <a href="{{ route('depots.index') }}"
+                                        class="{{ request()->routeIs('depots.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Depot Management</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('routes.view')
+                                <li>
+                                    <a href="{{ route('routes.index') }}"
+                                        class="{{ request()->routeIs('routes.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Route Master</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('trip-setups.view')
+                                <li>
+                                    <a href="{{ route('trip-setups.index') }}"
+                                        class="{{ request()->routeIs('trip-setups.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Trip Setup Master</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('vehicle-classifications.view')
+                                <li>
+                                    <a href="{{ route('vehicle-classifications.index') }}"
+                                        class="{{ request()->routeIs('vehicle-classifications.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Vehicle Classification </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('document-types.view')
+                                <li>
+                                    <a href="{{ route('document-types.index') }}"
+                                        class="{{ request()->routeIs('document-types.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Document Types </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            
                         </ul>
                     </li>
                 @endcanany
