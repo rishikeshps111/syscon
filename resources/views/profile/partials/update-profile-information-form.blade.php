@@ -1,15 +1,15 @@
 @php
     $countryCodes = [
-        '+91' => 'IN +91',
-        '+1' => 'US +1',
-        '+44' => 'UK +44',
-        '+61' => 'AU +61',
-        '+971' => 'AE +971',
-        '+65' => 'SG +65',
-        '+60' => 'MY +60',
-        '+81' => 'JP +81',
-        '+49' => 'DE +49',
-        '+33' => 'FR +33',
+        '+91' => '+91',
+        '+1' => '+1',
+        '+44' => '+44',
+        '+61' => '+61',
+        '+971' => '+971',
+        '+65' => '+65',
+        '+60' => '+60',
+        '+81' => '+81',
+        '+49' => '+49',
+        '+33' => '+33',
     ];
     $selectedCountryCode = old('country_code', $user->country_code ?? '+91');
 @endphp
@@ -73,8 +73,8 @@
                     Phone
                 </label>
                 <div class="input-group">
-                    <select name="country_code" id="country_code"
-                        class="form-select shadow-none flex-grow-0" style="max-width: 112px;">
+                    <select name="country_code" id="country_code" class="form-select shadow-none flex-grow-1"
+                        style="max-width: 112px;">
                         @foreach ($countryCodes as $code => $label)
                             <option value="{{ $code }}" @selected($selectedCountryCode === $code)>
                                 {{ $label }}

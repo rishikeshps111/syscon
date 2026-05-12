@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -12,6 +13,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/remove-avatar', [ProfileController::class, 'removeAvatar'])->name('profile.remove-avatar');
+
+    Route::post('/prefixes/status', [PrefixController::class, 'status'])->name('prefixes.status');
+    Route::post('/prefixes/export', [PrefixController::class, 'export'])
+        ->name('prefixes.export');
+    Route::resource('prefixes', PrefixController::class)->except(['edit', 'show']);
 });
 
 Route::get('/storage-link', function () {
