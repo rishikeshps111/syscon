@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'code',
@@ -36,6 +37,7 @@ class HrmsDocumentType extends Model
         'driver' => 'Driver',
         'controller' => 'Controller',
         'supervisor' => 'Supervisor',
+        'staff' => 'Staff'
     ];
 
     public const ALLOWED_FILE_TYPES = [
@@ -52,5 +54,10 @@ class HrmsDocumentType extends Model
             'is_mandatory' => 'boolean',
             'is_expiry_required' => 'boolean',
         ];
+    }
+
+    public function staffDocuments(): HasMany
+    {
+        return $this->hasMany(StaffDocument::class);
     }
 }

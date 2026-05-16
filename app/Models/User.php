@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'code', 'phone', 'country_code', 'avatar', 'is_active'])]
@@ -43,5 +45,15 @@ class User extends Authenticatable
     public function getFullPhoneAttribute()
     {
         return trim(($this->country_code ?? '') . ' ' . ($this->phone ?? ''));
+    }
+
+    public function staffProfile(): HasOne
+    {
+        return $this->hasOne(StaffProfile::class);
+    }
+
+    public function staffDocuments(): HasMany
+    {
+        return $this->hasMany(StaffDocument::class);
     }
 }

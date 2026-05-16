@@ -18,6 +18,8 @@ use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteStopController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ShiftSettingController;
+use App\Http\Controllers\StaffDocumentController;
+use App\Http\Controllers\StaffManagementController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\TripSetupController;
 use App\Http\Controllers\VehicleClassificationController;
@@ -148,6 +150,24 @@ Route::middleware('auth')->group(function () {
     Route::post('/holidays/export', [HolidayController::class, 'export'])
         ->name('holidays.export');
     Route::resource('holidays', HolidayController::class);
+
+    Route::post('/staff-management/status', [StaffManagementController::class, 'status'])
+        ->name('staff-management.status');
+    Route::post('/staff-management/export', [StaffManagementController::class, 'export'])
+        ->name('staff-management.export');
+    Route::get('/staff-management/{staff_management}/download-pdf', [StaffManagementController::class, 'downloadPdf'])
+        ->name('staff-management.download-pdf');
+    Route::get('/staff-management/{staff}/documents', [StaffDocumentController::class, 'index'])
+        ->name('staff-management.documents.index');
+    Route::post('/staff-management/{staff}/documents', [StaffDocumentController::class, 'store'])
+        ->name('staff-management.documents.store');
+    Route::get('/staff-documents/{staffDocument}/download', [StaffDocumentController::class, 'download'])
+        ->name('staff-documents.download');
+    Route::get('/staff-documents/{staffDocument}/preview', [StaffDocumentController::class, 'preview'])
+        ->name('staff-documents.preview');
+    Route::delete('/staff-documents/{staffDocument}', [StaffDocumentController::class, 'destroy'])
+        ->name('staff-documents.destroy');
+    Route::resource('staff-management', StaffManagementController::class);
 });
 
 Route::get('/storage-link', function () {

@@ -74,6 +74,26 @@ class HrmsDocumentTypeSeeder extends Seeder
                 'description' => 'Current address proof',
                 'is_active' => false,
             ],
+            [
+                'name' => 'PAN Card',
+                'category' => 'Identity Proof',
+                'applicable_for' => 'all',
+                'allowed_file_types' => 'pdf',
+                'is_mandatory' => true,
+                'is_expiry_required' => false,
+                'description' => 'Permanent Account Number card',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Staff ID Card',
+                'category' => 'Identity Proof',
+                'applicable_for' => 'staff',
+                'allowed_file_types' => 'png',
+                'is_mandatory' => true,
+                'is_expiry_required' => false,
+                'description' => 'Staff identification card',
+                'is_active' => true,
+            ],
         ];
 
         DB::transaction(function () use ($records) {

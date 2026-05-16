@@ -128,6 +128,12 @@ class PermissionSeeder extends Seeder
                 'holidays.delete',
                 'holidays.view',
             ],
+            'Staff Management' => [
+                'staff-management.create',
+                'staff-management.edit',
+                'staff-management.delete',
+                'staff-management.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

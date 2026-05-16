@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('code')->nullable()->unique();
             $table->string('name');
             $table->enum('category', ['Identity Proof', 'Address Proof', 'Financial', 'Educational', 'Legal'])->nullable();
-            $table->enum('applicable_for', ['all', 'driver', 'controller', 'supervisor'])->nullable();
+            $table->enum('applicable_for', ['all', 'driver', 'controller', 'supervisor', 'staff'])->nullable();
             $table->enum('allowed_file_types', ['pdf', 'jpg', 'png', 'doc'])->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_mandatory')->default(false);
