@@ -1,15 +1,23 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\BranchLocationController;
 use App\Http\Controllers\DepotController;
+use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\DocumentTypeController;
+use App\Http\Controllers\HrmsDocumentTypeController;
+use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\LevelController;
+use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteStopController;
 use App\Http\Controllers\ServiceTypeController;
+use App\Http\Controllers\ShiftSettingController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\TripSetupController;
 use App\Http\Controllers\VehicleClassificationController;
@@ -84,6 +92,62 @@ Route::middleware('auth')->group(function () {
     Route::post('/trip-setups/export', [TripSetupController::class, 'export'])
         ->name('trip-setups.export');
     Route::resource('trip-setups', TripSetupController::class)->except(['edit', 'show']);
+
+    Route::get('/branch-locations/districts-by-state', [BranchLocationController::class, 'districtsByState'])
+        ->name('branch-locations.districts-by-state');
+    Route::get('/branch-locations/locations-by-district', [BranchLocationController::class, 'locationsByDistrict'])
+        ->name('branch-locations.locations-by-district');
+    Route::post('/branch-locations/status', [BranchLocationController::class, 'status'])
+        ->name('branch-locations.status');
+    Route::post('/branch-locations/export', [BranchLocationController::class, 'export'])
+        ->name('branch-locations.export');
+    Route::resource('branch-locations', BranchLocationController::class)->except(['edit', 'show']);
+
+    Route::post('/departments/status', [DepartmentController::class, 'status'])
+        ->name('departments.status');
+    Route::post('/departments/export', [DepartmentController::class, 'export'])
+        ->name('departments.export');
+    Route::resource('departments', DepartmentController::class)->except(['edit', 'show']);
+
+    Route::post('/levels/status', [LevelController::class, 'status'])
+        ->name('levels.status');
+    Route::post('/levels/export', [LevelController::class, 'export'])
+        ->name('levels.export');
+    Route::resource('levels', LevelController::class)->except(['edit', 'show']);
+
+    Route::post('/designations/status', [DesignationController::class, 'status'])
+        ->name('designations.status');
+    Route::post('/designations/export', [DesignationController::class, 'export'])
+        ->name('designations.export');
+    Route::resource('designations', DesignationController::class)->except(['edit', 'show']);
+
+    Route::post('/hrms-document-types/status', [HrmsDocumentTypeController::class, 'status'])
+        ->name('hrms-document-types.status');
+    Route::post('/hrms-document-types/export', [HrmsDocumentTypeController::class, 'export'])
+        ->name('hrms-document-types.export');
+    Route::resource('hrms-document-types', HrmsDocumentTypeController::class)->except(['edit', 'show']);
+
+    Route::post('/leave-types/status', [LeaveTypeController::class, 'status'])
+        ->name('leave-types.status');
+    Route::post('/leave-types/export', [LeaveTypeController::class, 'export'])
+        ->name('leave-types.export');
+    Route::resource('leave-types', LeaveTypeController::class);
+
+    Route::post('/shift-settings/status', [ShiftSettingController::class, 'status'])
+        ->name('shift-settings.status');
+    Route::post('/shift-settings/export', [ShiftSettingController::class, 'export'])
+        ->name('shift-settings.export');
+    Route::resource('shift-settings', ShiftSettingController::class)->except(['show']);
+
+    Route::get('/holidays/calendar', [HolidayController::class, 'calendar'])
+        ->name('holidays.calendar');
+    Route::get('/holidays/calendar-view', [HolidayController::class, 'calendarView'])
+        ->name('holidays.calendar-view');
+    Route::post('/holidays/status', [HolidayController::class, 'status'])
+        ->name('holidays.status');
+    Route::post('/holidays/export', [HolidayController::class, 'export'])
+        ->name('holidays.export');
+    Route::resource('holidays', HolidayController::class);
 });
 
 Route::get('/storage-link', function () {

@@ -80,6 +80,54 @@ class PermissionSeeder extends Seeder
                 'trip-setups.delete',
                 'trip-setups.view',
             ],
+            'Branch Location' => [
+                'branch-locations.create',
+                'branch-locations.edit',
+                'branch-locations.delete',
+                'branch-locations.view',
+            ],
+            'Department' => [
+                'departments.create',
+                'departments.edit',
+                'departments.delete',
+                'departments.view',
+            ],
+            'Level' => [
+                'levels.create',
+                'levels.edit',
+                'levels.delete',
+                'levels.view',
+            ],
+            'Designation' => [
+                'designations.create',
+                'designations.edit',
+                'designations.delete',
+                'designations.view',
+            ],
+            'HRMS Document Type' => [
+                'hrms-document-types.create',
+                'hrms-document-types.edit',
+                'hrms-document-types.delete',
+                'hrms-document-types.view',
+            ],
+            'Leave Type' => [
+                'leave-types.create',
+                'leave-types.edit',
+                'leave-types.delete',
+                'leave-types.view',
+            ],
+            'Shift Setting' => [
+                'shift-settings.create',
+                'shift-settings.edit',
+                'shift-settings.delete',
+                'shift-settings.view',
+            ],
+            'Holiday' => [
+                'holidays.create',
+                'holidays.edit',
+                'holidays.delete',
+                'holidays.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

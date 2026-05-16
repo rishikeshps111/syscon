@@ -23,6 +23,14 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'VC', 'module' => 'Vehicle Classification Module', 'is_active' => true],
             ['prefix' => 'DOCT', 'module' => 'Document Type Module', 'is_active' => true],
             ['prefix' => 'DPM', 'module' => 'Depot Module', 'is_active' => true],
+            ['prefix' => 'BL', 'module' => 'Branch Location Module', 'is_active' => true],
+            ['prefix' => 'DPT', 'module' => 'Department Module', 'is_active' => true],
+            ['prefix' => 'LVL', 'module' => 'Level Module', 'is_active' => true],
+            ['prefix' => 'DSG', 'module' => 'Designation Module', 'is_active' => true],
+            ['prefix' => 'HDT', 'module' => 'HRMS Document Type Module', 'is_active' => true],
+            ['prefix' => 'LV', 'module' => 'Leave Type Module', 'is_active' => true],
+            ['prefix' => 'SH', 'module' => 'Shift Setting Module', 'is_active' => true],
+            ['prefix' => 'HOL', 'module' => 'Holiday Module', 'is_active' => true],
         ];
 
         foreach ($records as $record) {

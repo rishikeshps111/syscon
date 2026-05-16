@@ -22,12 +22,20 @@ class DatabaseSeeder extends Seeder
             StateSeeder::class,
             DistrictSeeder::class,
             LocationSeeder::class,
+            BranchLocationSeeder::class,
             DepotSeeder::class,
             ServiceTypeSeeder::class,
             RouteSeeder::class,
             VehicleClassificationSeeder::class,
             DocumentTypeSeeder::class,
             TripSetupSeeder::class,
+            DepartmentSeeder::class,
+            LevelSeeder::class,
+            DesignationSeeder::class,
+            HrmsDocumentTypeSeeder::class,
+            LeaveTypeSeeder::class,
+            ShiftSettingSeeder::class,
+            HolidaySeeder::class,
         ]);
 
         // Create Super Admin user

@@ -1,8 +1,6 @@
-@canany(['routes.edit', 'routes.delete'])
+@canany(['branch-locations.edit', 'branch-locations.delete'])
     <div class="action-btns">
-        @can('routes.edit')
-            <input type="checkbox" class="toggle-btn toggleStatus" data-id="{{ $row->id }}"
-                data-status="{{ $row->is_active ? 1 : 0 }}" {{ $row->is_active ? 'checked' : '' }}>
+        @can('branch-locations.edit')
             <button type="button" class="btn-edit form-btn" data-id="{{ $row->id }}" title="Edit">
                 <i class="fa-solid fa-pen-to-square"></i>
             </button>
@@ -11,12 +9,13 @@
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
                 <ul class="dropdown-menu dromenu-cs">
-                    <li><a class="dropdown-item" href="{{ route('routes.stops.index', $row->id) }}">Add Stops</a></li>
-                    <li><a class="dropdown-item" href="{{ route('routes.preview', $row->id) }}">Route Preview</a></li>
+                    <li><a class="dropdown-item change-status-btn" href="#!" data-id="{{ $row->id }}"
+                            data-status="{{ $row->status }}" data-bs-toggle="modal" data-bs-target="#changeStatus">Change
+                            Status</a></li>
                 </ul>
             </div>
         @endcan
-        @can('routes.delete')
+        @can('branch-locations.delete')
             <button type="button" class="btn-delete" onclick="deleteRow('{{ $row->id }}')" title="Delete">
                 <i class="fa-solid fa-trash"></i>
             </button>
