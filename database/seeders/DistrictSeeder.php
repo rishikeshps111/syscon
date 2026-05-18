@@ -38,7 +38,7 @@ class DistrictSeeder extends Seeder
             'Rajasthan' => ['Jaipur', 'Jodhpur', 'Udaipur'],
             'Sikkim' => ['Gangtok', 'Namchi'],
             'Tamil Nadu' => ['Chennai', 'Coimbatore', 'Madurai'],
-            'Telangana' => ['Hyderabad', 'Rangareddy', 'Warangal'],
+            'Telangana' => ['Hyderabad', 'Rangareddy', 'Warangal', 'Medchal-Malkajgiri', 'Nizamabad', 'Karimnagar'],
             'Tripura' => ['West Tripura', 'South Tripura'],
             'Uttar Pradesh' => ['Lucknow', 'Kanpur Nagar', 'Varanasi'],
             'Uttarakhand' => ['Dehradun', 'Haridwar', 'Nainital'],

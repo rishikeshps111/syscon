@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
@@ -76,6 +77,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         ]);
         $user->code = $this->generateStaffCode($user->id);
         $user->save();
+        $this->storeAvatar($request, $user);
         $user->assignRole('Staff');
         $user->staffProfile()->create($this->profileData($data));
 
@@ -122,6 +124,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             'phone' => $data['phone'],
             'is_active' => $data['is_active'],
         ] + (! empty($data['password']) ? ['password' => $data['password']] : []));
+        $this->storeAvatar($request, $staff_management);
         $staff_management->syncRoles(['Staff']);
         $staff_management->staffProfile()->updateOrCreate(
             ['user_id' => $staff_management->id],
@@ -133,6 +136,10 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     public function destroy(User $staff_management)
     {
+        if ($staff_management->avatar) {
+            Storage::disk('public')->delete($staff_management->avatar);
+        }
+
         $staff_management->delete();
 
         return response()->json([
@@ -223,6 +230,14 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     private function profileData(array $data): array
     {
+        $basic = $this->salaryComponent($data, 'basic');
+        $vda = $this->salaryComponent($data, 'vda');
+        $hra = $this->salaryComponent($data, 'hra');
+        $specialAllowance = $this->salaryComponent($data, 'special_allowance');
+        $conveyanceAllowance = $this->salaryComponent($data, 'conveyance_allowance');
+        $bonus = $this->salaryComponent($data, 'bonus');
+        $basicVda = $basic + $vda;
+
         return collect($data)->only([
             'designation_id',
             'category',
@@ -240,20 +255,45 @@ class StaffManagementController extends Controller implements HasMiddleware
             'location_id',
             'bank_account_number',
             'ifsc_code',
-            'basic',
-            'vda',
-            'basic_vda',
-            'hra',
-            'special_allowance',
-            'conveyance_allowance',
-            'bonus',
-            'gross_salary',
+        ])->merge([
+            'basic' => $basic,
+            'vda' => $vda,
+            'basic_vda' => $basicVda,
+            'hra' => $this->nullableSalaryComponent($data, 'hra'),
+            'special_allowance' => $this->nullableSalaryComponent($data, 'special_allowance'),
+            'conveyance_allowance' => $this->nullableSalaryComponent($data, 'conveyance_allowance'),
+            'bonus' => $this->nullableSalaryComponent($data, 'bonus'),
+            'gross_salary' => $basicVda + $hra + $specialAllowance + $conveyanceAllowance + $bonus,
         ])->all();
+    }
+
+    private function salaryComponent(array $data, string $field): float
+    {
+        return filled($data[$field] ?? null) ? (float) $data[$field] : 0.0;
+    }
+
+    private function nullableSalaryComponent(array $data, string $field): ?float
+    {
+        return filled($data[$field] ?? null) ? (float) $data[$field] : null;
     }
 
     private function generateStaffCode(int $id): string
     {
         return generate_code('Staff Management Module', $id, 3, 'STF');
+    }
+
+    private function storeAvatar(Request $request, User $user): void
+    {
+        if (! $request->hasFile('avatar')) {
+            return;
+        }
+
+        if ($user->avatar) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $user->avatar = $request->file('avatar')->store('avatars', 'public');
+        $user->save();
     }
 
     private function staffRecord(User $staff): User

@@ -26,6 +26,11 @@ class LocationSeeder extends Seeder
             'Bengaluru Urban' => ['Koramangala' => '560034', 'Indiranagar' => '560038', 'Whitefield' => '560066'],
             'Mysuru' => ['Vijayanagar' => '570017', 'Nazarbad' => '570010', 'Kuvempunagar' => '570023'],
             'Hyderabad' => ['Secunderabad' => '500003', 'Banjara Hills' => '500034', 'Madhapur' => '500081'],
+            'Rangareddy' => ['Gachibowli' => '500032', 'Shamshabad' => '501218', 'Ibrahimpatnam' => '501506'],
+            'Warangal' => ['Hanamkonda' => '506001', 'Kazipet' => '506003', 'Warangal Fort' => '506002'],
+            'Medchal-Malkajgiri' => ['Kompally' => '500014', 'Malkajgiri' => '500047', 'Uppal' => '500039'],
+            'Nizamabad' => ['Bodhan' => '503185', 'Armoor' => '503224', 'Dichpally' => '503175'],
+            'Karimnagar' => ['Huzurabad' => '505468', 'Jammikunta' => '505122', 'Manakondur' => '505469'],
             'New Delhi' => ['Connaught Place' => '110001', 'Karol Bagh' => '110005', 'Dwarka' => '110075'],
         ];
 

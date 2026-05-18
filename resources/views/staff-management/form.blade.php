@@ -17,6 +17,7 @@
             '+33' => '+33',
         ];
         $selectedCountryCode = old('country_code', $record->country_code ?? '+91');
+        $avatarUrl = isset($record) ? $record->avatar_url : asset('assets/img/user.png');
     @endphp
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -36,7 +37,7 @@
         <div class="row">
             <div class="col-xl-12">
                 <div class="main-table-container">
-                    <form class="js-loading-form" method="POST" novalidate
+                    <form class="js-loading-form" method="POST" enctype="multipart/form-data" novalidate
                         action="{{ isset($record) ? route('staff-management.update', $record->id) : route('staff-management.store') }}">
                         @csrf
                         @if(isset($record))
@@ -152,6 +153,16 @@
                                             @error('is_active') <span class="text-danger">{{ $message }}</span> @enderror
                                         </div>
                                     </div>
+                                     <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="avatar">Staff Image</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <img id="staffAvatarPreview" src="{{ $avatarUrl }}" alt="Staff image preview"
+                                                width="70" height="70" class="rounded object-fit-cover border">
+                                            <input type="file" class="form-control shadow-none @error('avatar') is-invalid @enderror"
+                                                id="avatar" name="avatar" accept="image/*">
+                                        </div>
+                                        @error('avatar') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
                             </div>
 
@@ -250,18 +261,27 @@
                             <div class="tab-pane fade" id="stf6" role="tabpanel">
                                 <div class="row">
                                     @foreach ([
-                                        'basic' => 'Basic',
-                                        'vda' => 'VDA',
-                                        'basic_vda' => 'Basic + VDA',
-                                        'hra' => 'HRA',
-                                        'special_allowance' => 'Special Allowance',
-                                        'conveyance_allowance' => 'Conveyance Allowance / Incentive',
-                                        'bonus' => 'Bonus',
-                                        'gross_salary' => 'Gross Salary',
-                                    ] as $field => $label)
+                                        'basic' => ['label' => 'Basic', 'required' => true, 'readonly' => false],
+                                        'vda' => ['label' => 'VDA', 'required' => true, 'readonly' => false],
+                                        'basic_vda' => ['label' => 'Basic + VDA', 'required' => false, 'readonly' => true],
+                                        'hra' => ['label' => 'HRA', 'required' => false, 'readonly' => false],
+                                        'special_allowance' => ['label' => 'Special Allowance', 'required' => false, 'readonly' => false],
+                                        'conveyance_allowance' => ['label' => 'Conveyance Allowance / Incentive', 'required' => false, 'readonly' => false],
+                                        'bonus' => ['label' => 'Bonus', 'required' => false, 'readonly' => false],
+                                        'gross_salary' => ['label' => 'Gross Salary', 'required' => false, 'readonly' => true],
+                                    ] as $field => $options)
                                         <div class="col-lg-4 o-f-inp mb-3">
-                                            <label for="{{ $field }}">{{ $label }} <span class="text-danger">*</span></label>
-                                            <input type="number" step="0.01" min="0" id="{{ $field }}" name="{{ $field }}" class="form-control shadow-none" value="{{ old($field, $profile->{$field} ?? '') }}" required>
+                                            <label for="{{ $field }}">
+                                                {{ $options['label'] }}
+                                                @if($options['required'])
+                                                    <span class="text-danger">*</span>
+                                                @endif
+                                            </label>
+                                            <input type="number" step="0.01" min="0" id="{{ $field }}" name="{{ $field }}"
+                                                class="form-control shadow-none js-salary-field"
+                                                value="{{ old($field, $profile->{$field} ?? '') }}"
+                                                @if($options['required']) required @endif
+                                                @if($options['readonly']) readonly @endif>
                                         </div>
                                     @endforeach
                                 </div>
@@ -336,6 +356,71 @@
                 icon.classList.toggle('fa-eye-slash', isHidden);
                 this.title = isHidden ? 'Hide password' : 'Show password';
             });
+
+            var avatarInput = document.getElementById('avatar');
+            var avatarPreview = document.getElementById('staffAvatarPreview');
+
+            if (avatarInput && avatarPreview) {
+                avatarInput.addEventListener('change', function () {
+                    var file = this.files && this.files[0] ? this.files[0] : null;
+
+                    if (! file) {
+                        return;
+                    }
+
+                    avatarPreview.src = URL.createObjectURL(file);
+                    avatarPreview.onload = function () {
+                        URL.revokeObjectURL(avatarPreview.src);
+                    };
+                });
+            }
+
+            var salaryFields = ['basic', 'vda', 'hra', 'special_allowance', 'conveyance_allowance', 'bonus'];
+            var basicVdaInput = document.getElementById('basic_vda');
+            var grossSalaryInput = document.getElementById('gross_salary');
+
+            function salaryValue(field) {
+                var input = document.getElementById(field);
+                var value = input ? parseFloat(input.value) : 0;
+
+                return Number.isFinite(value) ? value : 0;
+            }
+
+            function hasSalaryInput() {
+                return salaryFields.some(function (field) {
+                    var input = document.getElementById(field);
+
+                    return input && input.value !== '';
+                });
+            }
+
+            function calculateSalary() {
+                var basicVda = salaryValue('basic') + salaryValue('vda');
+                var grossSalary = basicVda
+                    + salaryValue('hra')
+                    + salaryValue('special_allowance')
+                    + salaryValue('conveyance_allowance')
+                    + salaryValue('bonus');
+
+                if (! hasSalaryInput()) {
+                    basicVdaInput.value = '';
+                    grossSalaryInput.value = '';
+
+                    return;
+                }
+
+                basicVdaInput.value = basicVda.toFixed(2);
+                grossSalaryInput.value = grossSalary.toFixed(2);
+            }
+
+            salaryFields.forEach(function (field) {
+                var input = document.getElementById(field);
+
+                if (input) {
+                    input.addEventListener('input', calculateSalary);
+                }
+            });
+            calculateSalary();
 
             document.querySelectorAll('.js-loading-form').forEach(function (form) {
                 form.addEventListener('submit', function () {

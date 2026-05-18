@@ -16,7 +16,8 @@ class StateSeeder extends Seeder
         $states = [
             'Kerala',
             'Karnataka',
-            'Maharashtra'
+            'Maharashtra',
+            'Telangana',
         ];
 
         DB::transaction(function () use ($states) {
