@@ -32,6 +32,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'SH', 'module' => 'Shift Setting Module', 'is_active' => true],
             ['prefix' => 'HOL', 'module' => 'Holiday Module', 'is_active' => true],
             ['prefix' => 'STF', 'module' => 'Staff Management Module', 'is_active' => true],
+            ['prefix' => 'DRV', 'module' => 'Driver Management Module', 'is_active' => true],
         ];
 
         foreach ($records as $record) {

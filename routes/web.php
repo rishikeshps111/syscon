@@ -7,6 +7,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\DocumentTypeController;
+use App\Http\Controllers\DriverDocumentController;
+use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\HrmsDocumentTypeController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
@@ -168,6 +170,28 @@ Route::middleware('auth')->group(function () {
     Route::delete('/staff-documents/{staffDocument}', [StaffDocumentController::class, 'destroy'])
         ->name('staff-documents.destroy');
     Route::resource('staff-management', StaffManagementController::class);
+
+    Route::get('/driver-management/districts-by-state', [DriverManagementController::class, 'districtsByState'])
+        ->name('driver-management.districts-by-state');
+    Route::get('/driver-management/locations-by-district', [DriverManagementController::class, 'locationsByDistrict'])
+        ->name('driver-management.locations-by-district');
+    Route::post('/driver-management/status', [DriverManagementController::class, 'status'])
+        ->name('driver-management.status');
+    Route::post('/driver-management/export', [DriverManagementController::class, 'export'])
+        ->name('driver-management.export');
+    Route::get('/driver-management/{driver_management}/download-pdf', [DriverManagementController::class, 'downloadPdf'])
+        ->name('driver-management.download-pdf');
+    Route::get('/driver-management/{driver}/documents', [DriverDocumentController::class, 'index'])
+        ->name('driver-management.documents.index');
+    Route::post('/driver-management/{driver}/documents', [DriverDocumentController::class, 'store'])
+        ->name('driver-management.documents.store');
+    Route::get('/driver-documents/{driverDocument}/download', [DriverDocumentController::class, 'download'])
+        ->name('driver-documents.download');
+    Route::get('/driver-documents/{driverDocument}/preview', [DriverDocumentController::class, 'preview'])
+        ->name('driver-documents.preview');
+    Route::delete('/driver-documents/{driverDocument}', [DriverDocumentController::class, 'destroy'])
+        ->name('driver-documents.destroy');
+    Route::resource('driver-management', DriverManagementController::class);
 });
 
 Route::get('/storage-link', function () {

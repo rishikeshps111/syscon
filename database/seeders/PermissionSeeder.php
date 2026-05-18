@@ -134,6 +134,12 @@ class PermissionSeeder extends Seeder
                 'staff-management.delete',
                 'staff-management.view',
             ],
+            'Driver Management' => [
+                'driver-management.create',
+                'driver-management.edit',
+                'driver-management.delete',
+                'driver-management.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

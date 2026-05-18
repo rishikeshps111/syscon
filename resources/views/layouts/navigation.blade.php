@@ -139,11 +139,11 @@
                     </li>
                 @endcanany
                 <li class="nav-item">
-                    <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'staff-management.*') ? '' : 'collapsed' }}" data-bs-target="#sidebarNav6" data-bs-toggle="collapse"
+                    <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'staff-management.*', 'driver-management.*') ? '' : 'collapsed' }}" data-bs-target="#sidebarNav6" data-bs-toggle="collapse"
                         href="#">
                         <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                     </a>
-                    <ul id="sidebarNav6" class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'staff-management.*') ? 'show' : '' }}" data-bs-parent="#sidebar-nav">
+                    <ul id="sidebarNav6" class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'staff-management.*', 'driver-management.*') ? 'show' : '' }}" data-bs-parent="#sidebar-nav">
                         @can('branch-locations.view')
                         <li>
                             <a class="nav-link {{ request()->routeIs('branch-locations.*') ? '' : 'collapsed' }}" data-bs-target="#sidebarNavInner" data-bs-toggle="collapse"
@@ -240,6 +240,14 @@
                             <a href="{{ route('staff-management.index') }}"
                                 class="{{ request()->routeIs('staff-management.*') ? 'sub-active' : '' }}">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Staff Management</span>
+                            </a>
+                        </li>
+                        @endcan
+                        @can('driver-management.view')
+                        <li>
+                            <a href="{{ route('driver-management.index') }}"
+                                class="{{ request()->routeIs('driver-management.*') ? 'sub-active' : '' }}">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Driver Management</span>
                             </a>
                         </li>
                         @endcan

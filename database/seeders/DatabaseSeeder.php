@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
             ShiftSettingSeeder::class,
             HolidaySeeder::class,
             StaffManagementSeeder::class,
+            DriverManagementSeeder::class,
         ]);
 
         // Create Super Admin user

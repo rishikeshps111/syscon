@@ -52,8 +52,18 @@ class User extends Authenticatable
         return $this->hasOne(StaffProfile::class);
     }
 
+    public function driverProfile(): HasOne
+    {
+        return $this->hasOne(DriverProfile::class);
+    }
+
     public function staffDocuments(): HasMany
     {
         return $this->hasMany(StaffDocument::class);
+    }
+
+    public function driverDocuments(): HasMany
+    {
+        return $this->hasMany(DriverDocument::class);
     }
 }
