@@ -37,6 +37,8 @@ class DatabaseSeeder extends Seeder
             ShiftSettingSeeder::class,
             HolidaySeeder::class,
             StaffManagementSeeder::class,
+            ControllerManagementSeeder::class,
+            SupervisorManagementSeeder::class,
             DriverManagementSeeder::class,
         ]);
 

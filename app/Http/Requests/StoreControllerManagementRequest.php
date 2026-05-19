@@ -2,11 +2,11 @@
 
 namespace App\Http\Requests;
 
-use App\Models\StaffProfile;
+use App\Models\ControllerProfile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreStaffManagementRequest extends FormRequest
+class StoreControllerManagementRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -22,9 +22,8 @@ class StoreStaffManagementRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30'],
             'avatar' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'string', 'min:8'],
-            'designation_id' => ['required', 'integer', 'exists:designations,id'],
-            'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))],
-            'employment_type' => ['required', Rule::in(array_keys(StaffProfile::EMPLOYMENT_TYPES))],
+            'depot_id' => ['required', 'integer', 'exists:depots,id'],
+            'employment_type' => ['required', Rule::in(array_keys(ControllerProfile::EMPLOYMENT_TYPES))],
             'father_name' => ['required', 'string', 'max:255'],
             'date_of_birth' => ['required', 'date'],
             'aadhaar_number' => ['required', 'string', 'max:20'],

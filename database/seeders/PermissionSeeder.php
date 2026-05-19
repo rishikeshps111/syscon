@@ -134,6 +134,18 @@ class PermissionSeeder extends Seeder
                 'staff-management.delete',
                 'staff-management.view',
             ],
+            'Controller Management' => [
+                'controller-management.create',
+                'controller-management.edit',
+                'controller-management.delete',
+                'controller-management.view',
+            ],
+            'Supervisor Management' => [
+                'supervisor-management.create',
+                'supervisor-management.edit',
+                'supervisor-management.delete',
+                'supervisor-management.view',
+            ],
             'Driver Management' => [
                 'driver-management.create',
                 'driver-management.edit',

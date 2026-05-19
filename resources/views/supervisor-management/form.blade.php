@@ -1,9 +1,9 @@
 @section('title')
-    {{ isset($record) ? 'Edit Staff' : 'Add Staff' }}
+    {{ isset($record) ? 'Edit Supervisor' : 'Add Supervisor' }}
 @endsection
 <x-app-layout>
     @php
-        $profile = $record->staffProfile ?? null;
+        $profile = $record->supervisorProfile ?? null;
         $countryCodes = [
             '+91' => '+91',
             '+1' => '+1',
@@ -21,12 +21,12 @@
     @endphp
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>{{ isset($record) ? 'Edit Staff' : 'Add Staff' }}</h3>
+            <h3>{{ isset($record) ? 'Edit Supervisor' : 'Add Supervisor' }}</h3>
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                     <li class="breadcrumb-item active">HRMS</li>
-                    <li class="breadcrumb-item"><a href="{{ route('staff-management.index') }}">Staff Management</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('supervisor-management.index') }}">Supervisor Management</a></li>
                     <li class="breadcrumb-item active">{{ isset($record) ? 'Edit' : 'Add' }}</li>
                 </ol>
             </nav>
@@ -38,7 +38,7 @@
             <div class="col-xl-12">
                 <div class="main-table-container">
                     <form class="js-loading-form" method="POST" enctype="multipart/form-data" novalidate
-                        action="{{ isset($record) ? route('staff-management.update', $record->id) : route('staff-management.store') }}">
+                        action="{{ isset($record) ? route('supervisor-management.update', $record->id) : route('supervisor-management.store') }}">
                         @csrf
                         @if(isset($record))
                             @method('PUT')
@@ -69,12 +69,12 @@
                             <div class="tab-pane fade show active" id="stf1" role="tabpanel">
                                 <div class="row">
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="code">Staff Code <span class="text-danger">*</span></label>
+                                        <label for="code">Supervisor Code <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control shadow-none" id="code"
                                             value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="name">Staff Name <span class="text-danger">*</span></label>
+                                        <label for="name">Supervisor Name <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control shadow-none @error('name') is-invalid @enderror"
                                             id="name" name="name" value="{{ old('name', $record->name ?? '') }}" required>
                                         @error('name') <span class="text-danger">{{ $message }}</span> @enderror
@@ -112,24 +112,14 @@
                                         @error('password') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="designation_id">Designation <span class="text-danger">*</span></label>
-                                        <select name="designation_id" id="designation_id" class="form-select shadow-none select2 @error('designation_id') is-invalid @enderror" required>
+                                        <label for="depot_id">Depot <span class="text-danger">*</span></label>
+                                        <select name="depot_id" id="depot_id" class="form-select shadow-none select2 @error('depot_id') is-invalid @enderror" required>
                                             <option value="">---Select---</option>
-                                            @foreach ($designations as $designation)
-                                                <option value="{{ $designation->id }}" {{ old('designation_id', $profile->designation_id ?? '') == $designation->id ? 'selected' : '' }}>{{ $designation->name }}</option>
+                                            @foreach ($depots as $depot)
+                                                <option value="{{ $depot->id }}" {{ old('depot_id', $profile->depot_id ?? '') == $depot->id ? 'selected' : '' }}>{{ $depot->name }}</option>
                                             @endforeach
                                         </select>
-                                        @error('designation_id') <span class="text-danger">{{ $message }}</span> @enderror
-                                    </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="category">Category <span class="text-danger">*</span></label>
-                                        <select name="category" id="category" class="form-select shadow-none @error('category') is-invalid @enderror" required>
-                                            <option value="">---Select---</option>
-                                            @foreach ($categories as $value => $label)
-                                                <option value="{{ $value }}" {{ old('category', $profile->category ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
-                                            @endforeach
-                                        </select>
-                                        @error('category') <span class="text-danger">{{ $message }}</span> @enderror
+                                        @error('depot_id') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 mb-3">
                                         <div class="o-f-inp">
@@ -154,9 +144,9 @@
                                         </div>
                                     </div>
                                      <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="avatar">Staff Image</label>
+                                        <label for="avatar">Supervisor Image</label>
                                         <div class="d-flex align-items-center gap-3">
-                                            <img id="staffAvatarPreview" src="{{ $avatarUrl }}" alt="Staff image preview"
+                                            <img id="supervisorAvatarPreview" src="{{ $avatarUrl }}" alt="Supervisor image preview"
                                                 width="70" height="70" class="rounded object-fit-cover border">
                                             <input type="file" class="form-control shadow-none @error('avatar') is-invalid @enderror"
                                                 id="avatar" name="avatar" accept="image/*">
@@ -290,7 +280,7 @@
 
                         <div class="col-lg-12 mt-3">
                             <div class="btn-flex">
-                                <a href="{{ route('staff-management.index') }}" class="btn btn-secondary me-2">Cancel</a>
+                                <a href="{{ route('supervisor-management.index') }}" class="btn btn-secondary me-2">Cancel</a>
                                 <button type="button" class="btn btn-secondary me-2" id="wizardPrev">Previous</button>
                                 <button type="button" class="submit-btn" id="wizardNext">Next</button>
                                 <button type="submit" class="submit-btn js-loading-submit" id="wizardSubmit" data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
@@ -358,7 +348,7 @@
             });
 
             var avatarInput = document.getElementById('avatar');
-            var avatarPreview = document.getElementById('staffAvatarPreview');
+            var avatarPreview = document.getElementById('supervisorAvatarPreview');
 
             if (avatarInput && avatarPreview) {
                 avatarInput.addEventListener('change', function () {
@@ -386,7 +376,7 @@
                 }
 
                 $.ajax({
-                    url: "{{ route('staff-management.districts-by-state') }}",
+                    url: "{{ route('supervisor-management.districts-by-state') }}",
                     type: 'GET',
                     data: {
                         state_id: stateId
@@ -416,7 +406,7 @@
                 }
 
                 $.ajax({
-                    url: "{{ route('staff-management.locations-by-district') }}",
+                    url: "{{ route('supervisor-management.locations-by-district') }}",
                     type: 'GET',
                     data: {
                         state_id: stateId,
@@ -504,3 +494,7 @@
         </script>
     @endsection
 </x-app-layout>
+
+
+
+

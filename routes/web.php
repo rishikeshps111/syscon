@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BranchLocationController;
+use App\Http\Controllers\ControllerDocumentController;
+use App\Http\Controllers\ControllerManagementController;
 use App\Http\Controllers\DepotController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
@@ -23,6 +25,8 @@ use App\Http\Controllers\ShiftSettingController;
 use App\Http\Controllers\StaffDocumentController;
 use App\Http\Controllers\StaffManagementController;
 use App\Http\Controllers\StateController;
+use App\Http\Controllers\SupervisorDocumentController;
+use App\Http\Controllers\SupervisorManagementController;
 use App\Http\Controllers\TripSetupController;
 use App\Http\Controllers\VehicleClassificationController;
 use Illuminate\Support\Facades\Artisan;
@@ -157,6 +161,10 @@ Route::middleware('auth')->group(function () {
         ->name('staff-management.status');
     Route::post('/staff-management/export', [StaffManagementController::class, 'export'])
         ->name('staff-management.export');
+    Route::get('/staff-management/districts-by-state', [StaffManagementController::class, 'districtsByState'])
+        ->name('staff-management.districts-by-state');
+    Route::get('/staff-management/locations-by-district', [StaffManagementController::class, 'locationsByDistrict'])
+        ->name('staff-management.locations-by-district');
     Route::get('/staff-management/{staff_management}/download-pdf', [StaffManagementController::class, 'downloadPdf'])
         ->name('staff-management.download-pdf');
     Route::get('/staff-management/{staff}/documents', [StaffDocumentController::class, 'index'])
@@ -170,6 +178,50 @@ Route::middleware('auth')->group(function () {
     Route::delete('/staff-documents/{staffDocument}', [StaffDocumentController::class, 'destroy'])
         ->name('staff-documents.destroy');
     Route::resource('staff-management', StaffManagementController::class);
+
+    Route::post('/controller-management/status', [ControllerManagementController::class, 'status'])
+        ->name('controller-management.status');
+    Route::post('/controller-management/export', [ControllerManagementController::class, 'export'])
+        ->name('controller-management.export');
+    Route::get('/controller-management/districts-by-state', [ControllerManagementController::class, 'districtsByState'])
+        ->name('controller-management.districts-by-state');
+    Route::get('/controller-management/locations-by-district', [ControllerManagementController::class, 'locationsByDistrict'])
+        ->name('controller-management.locations-by-district');
+    Route::get('/controller-management/{controller}/documents', [ControllerDocumentController::class, 'index'])
+        ->name('controller-management.documents.index');
+    Route::post('/controller-management/{controller}/documents', [ControllerDocumentController::class, 'store'])
+        ->name('controller-management.documents.store');
+    Route::get('/controller-management/{controller_management}/download-pdf', [ControllerManagementController::class, 'downloadPdf'])
+        ->name('controller-management.download-pdf');
+    Route::get('/controller-documents/{controllerDocument}/download', [ControllerDocumentController::class, 'download'])
+        ->name('controller-documents.download');
+    Route::get('/controller-documents/{controllerDocument}/preview', [ControllerDocumentController::class, 'preview'])
+        ->name('controller-documents.preview');
+    Route::delete('/controller-documents/{controllerDocument}', [ControllerDocumentController::class, 'destroy'])
+        ->name('controller-documents.destroy');
+    Route::resource('controller-management', ControllerManagementController::class);
+
+    Route::post('/supervisor-management/status', [SupervisorManagementController::class, 'status'])
+        ->name('supervisor-management.status');
+    Route::post('/supervisor-management/export', [SupervisorManagementController::class, 'export'])
+        ->name('supervisor-management.export');
+    Route::get('/supervisor-management/districts-by-state', [SupervisorManagementController::class, 'districtsByState'])
+        ->name('supervisor-management.districts-by-state');
+    Route::get('/supervisor-management/locations-by-district', [SupervisorManagementController::class, 'locationsByDistrict'])
+        ->name('supervisor-management.locations-by-district');
+    Route::get('/supervisor-management/{supervisor}/documents', [SupervisorDocumentController::class, 'index'])
+        ->name('supervisor-management.documents.index');
+    Route::post('/supervisor-management/{supervisor}/documents', [SupervisorDocumentController::class, 'store'])
+        ->name('supervisor-management.documents.store');
+    Route::get('/supervisor-management/{supervisor_management}/download-pdf', [SupervisorManagementController::class, 'downloadPdf'])
+        ->name('supervisor-management.download-pdf');
+    Route::get('/supervisor-documents/{supervisorDocument}/download', [SupervisorDocumentController::class, 'download'])
+        ->name('supervisor-documents.download');
+    Route::get('/supervisor-documents/{supervisorDocument}/preview', [SupervisorDocumentController::class, 'preview'])
+        ->name('supervisor-documents.preview');
+    Route::delete('/supervisor-documents/{supervisorDocument}', [SupervisorDocumentController::class, 'destroy'])
+        ->name('supervisor-documents.destroy');
+    Route::resource('supervisor-management', SupervisorManagementController::class);
 
     Route::get('/driver-management/districts-by-state', [DriverManagementController::class, 'districtsByState'])
         ->name('driver-management.districts-by-state');

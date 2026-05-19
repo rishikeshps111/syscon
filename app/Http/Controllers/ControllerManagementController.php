@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\StaffManagementExport;
-use App\Http\Requests\StoreStaffManagementRequest;
-use App\Http\Requests\UpdateStaffManagementRequest;
-use App\Models\Designation;
+use App\Exports\ControllerManagementExport;
+use App\Http\Requests\StoreControllerManagementRequest;
+use App\Http\Requests\UpdateControllerManagementRequest;
+use App\Models\ControllerProfile;
+use App\Models\Depot;
 use App\Models\District;
 use App\Models\Location;
-use App\Models\StaffProfile;
 use App\Models\State;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -19,16 +19,16 @@ use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
 
-class StaffManagementController extends Controller implements HasMiddleware
+class ControllerManagementController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('staff-management.view'), ['index', 'show', 'export', 'downloadPdf', 'districtsByState', 'locationsByDistrict']),
-            new Middleware(PermissionMiddleware::using('staff-management.create'), ['create', 'store']),
-            new Middleware(PermissionMiddleware::using('staff-management.edit'), ['edit', 'update', 'status']),
-            new Middleware(PermissionMiddleware::using('staff-management.delete'), ['destroy']),
+            new Middleware(PermissionMiddleware::using('controller-management.view'), ['index', 'show', 'export', 'downloadPdf', 'districtsByState', 'locationsByDistrict']),
+            new Middleware(PermissionMiddleware::using('controller-management.create'), ['create', 'store']),
+            new Middleware(PermissionMiddleware::using('controller-management.edit'), ['edit', 'update', 'status']),
+            new Middleware(PermissionMiddleware::using('controller-management.delete'), ['destroy']),
         ];
     }
 
@@ -37,35 +37,31 @@ class StaffManagementController extends Controller implements HasMiddleware
         if (request()->ajax()) {
             return DataTables::of($this->filteredQuery())
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
-                ->addColumn('designation', fn($row) => $row->staffProfile?->designation?->name ?? '-')
-                ->addColumn('employment_type', fn($row) => $row->staffProfile?->employment_type_label ?? '-')
-                ->addColumn('location', fn($row) => $row->staffProfile?->location?->name ?? '-')
-                ->addColumn('date_of_joining', fn($row) => $row->staffProfile?->date_of_joining?->format('d-m-Y') ?? '-')
-                ->addColumn('gross_salary', fn($row) => $row->staffProfile?->gross_salary ?? '-')
-                ->addColumn('status', function ($row) {
-                    return $row->is_active
-                        ? '<span class="status-green">Active</span>'
-                        : '<span class="status-red">Inactive</span>';
-                })
-                ->addColumn('action', fn($row) => view('staff-management.partials.action', compact('row'))->render())
+                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
+                ->addColumn('depot', fn ($row) => $row->controllerProfile?->depot?->name ?? '-')
+                ->addColumn('employment_type', fn ($row) => $row->controllerProfile?->employment_type_label ?? '-')
+                ->addColumn('location', fn ($row) => $row->controllerProfile?->location?->name ?? '-')
+                ->addColumn('date_of_joining', fn ($row) => $row->controllerProfile?->date_of_joining?->format('d-m-Y') ?? '-')
+                ->addColumn('gross_salary', fn ($row) => $row->controllerProfile?->gross_salary ?? '-')
+                ->addColumn('status', fn ($row) => $row->is_active ? '<span class="status-green">Active</span>' : '<span class="status-red">Inactive</span>')
+                ->addColumn('action', fn ($row) => view('controller-management.partials.action', compact('row'))->render())
                 ->rawColumns(['checkbox', 'status', 'action'])
                 ->make(true);
         }
 
-        return view('staff-management.index', $this->formData());
+        return view('controller-management.index', $this->formData());
     }
 
     public function create()
     {
-        return view('staff-management.form', array_merge($this->formData(), [
-            'generatedCode' => $this->generateStaffCode(((int) User::max('id')) + 1),
+        return view('controller-management.form', array_merge($this->formData(), [
+            'generatedCode' => $this->generateControllerCode(((int) User::max('id')) + 1),
             'districts' => collect(),
             'locations' => collect(),
         ]));
     }
 
-    public function store(StoreStaffManagementRequest $request)
+    public function store(StoreControllerManagementRequest $request)
     {
         $data = $request->validated();
         $user = User::create([
@@ -77,31 +73,31 @@ class StaffManagementController extends Controller implements HasMiddleware
             'password' => $data['password'],
             'is_active' => $data['is_active'],
         ]);
-        $user->code = $this->generateStaffCode($user->id);
+        $user->code = $this->generateControllerCode($user->id);
         $user->save();
         $this->storeAvatar($request, $user);
-        $user->assignRole('Staff');
-        $user->staffProfile()->create($this->profileData($data));
+        $user->assignRole('Controller');
+        $user->controllerProfile()->create($this->profileData($data));
 
-        return redirect()->route('staff-management.index')->with('success', 'Staff created successfully.');
+        return redirect()->route('controller-management.index')->with('success', 'Controller created successfully.');
     }
 
-    public function show(User $staff_management)
+    public function show(User $controller_management)
     {
-        abort_unless($staff_management->hasRole('Staff'), 404);
+        abort_unless($controller_management->hasRole('Controller'), 404);
 
-        $record = $this->staffRecord($staff_management);
+        $record = $this->controllerRecord($controller_management);
 
-        return view('staff-management.show', compact('record'));
+        return view('controller-management.show', compact('record'));
     }
 
-    public function downloadPdf(User $staff_management)
+    public function downloadPdf(User $controller_management)
     {
-        abort_unless($staff_management->hasRole('Staff'), 404);
+        abort_unless($controller_management->hasRole('Controller'), 404);
 
-        $record = $this->staffRecord($staff_management);
-        $pdf = $this->buildStaffPdf($record);
-        $fileName = ($record->code ?: 'staff') . '-profile.pdf';
+        $record = $this->controllerRecord($controller_management);
+        $pdf = $this->buildControllerPdf($record);
+        $fileName = ($record->code ?: 'controller') . '-profile.pdf';
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
@@ -109,10 +105,12 @@ class StaffManagementController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function edit(User $staff_management)
+    public function edit(User $controller_management)
     {
-        $record = $staff_management->load('staffProfile');
-        $profile = $record->staffProfile;
+        abort_unless($controller_management->hasRole('Controller'), 404);
+
+        $record = $controller_management->load('controllerProfile');
+        $profile = $record->controllerProfile;
         $districts = $profile?->state_id
             ? District::where('state_id', $profile->state_id)->orderBy('name')->get(['id', 'name'])
             : collect();
@@ -120,41 +118,42 @@ class StaffManagementController extends Controller implements HasMiddleware
             ? Location::where('state_id', $profile->state_id)->where('district_id', $profile->district_id)->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        return view('staff-management.form', array_merge($this->formData(), compact('record', 'districts', 'locations')));
+        return view('controller-management.form', array_merge($this->formData(), compact('record', 'districts', 'locations')));
     }
 
-    public function update(UpdateStaffManagementRequest $request, User $staff_management)
+    public function update(UpdateControllerManagementRequest $request, User $controller_management)
     {
+        abort_unless($controller_management->hasRole('Controller'), 404);
+
         $data = $request->validated();
-        $staff_management->update([
+        $controller_management->update([
             'name' => $data['name'],
             'email' => $data['email'],
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
             'is_active' => $data['is_active'],
         ] + (! empty($data['password']) ? ['password' => $data['password']] : []));
-        $this->storeAvatar($request, $staff_management);
-        $staff_management->syncRoles(['Staff']);
-        $staff_management->staffProfile()->updateOrCreate(
-            ['user_id' => $staff_management->id],
+        $this->storeAvatar($request, $controller_management);
+        $controller_management->syncRoles(['Controller']);
+        $controller_management->controllerProfile()->updateOrCreate(
+            ['user_id' => $controller_management->id],
             $this->profileData($data)
         );
 
-        return redirect()->route('staff-management.index')->with('success', 'Staff updated successfully.');
+        return redirect()->route('controller-management.index')->with('success', 'Controller updated successfully.');
     }
 
-    public function destroy(User $staff_management)
+    public function destroy(User $controller_management)
     {
-        if ($staff_management->avatar) {
-            Storage::disk('public')->delete($staff_management->avatar);
+        abort_unless($controller_management->hasRole('Controller'), 404);
+
+        if ($controller_management->avatar) {
+            Storage::disk('public')->delete($controller_management->avatar);
         }
 
-        $staff_management->delete();
+        $controller_management->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Staff deleted successfully.',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Controller deleted successfully.']);
     }
 
     public function export(Request $request)
@@ -166,7 +165,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             $query->whereIn('users.id', $ids);
         }
 
-        return Excel::download(new StaffManagementExport($query), 'staff-management.xlsx');
+        return Excel::download(new ControllerManagementExport($query), 'controller-management.xlsx');
     }
 
     public function status(Request $request)
@@ -176,9 +175,9 @@ class StaffManagementController extends Controller implements HasMiddleware
             'status' => ['required', 'boolean'],
         ]);
 
-        $staff = User::role('Staff')->findOrFail($request->id);
-        $staff->is_active = $request->status;
-        $staff->save();
+        $controller = User::role('Controller')->findOrFail($request->id);
+        $controller->is_active = $request->status;
+        $controller->save();
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
     }
@@ -221,8 +220,8 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     private function filteredQuery()
     {
-        $query = User::role('Staff')
-            ->with(['roles', 'staffProfile.designation', 'staffProfile.location'])
+        $query = User::role('Controller')
+            ->with(['roles', 'controllerProfile.depot', 'controllerProfile.location'])
             ->select('users.*');
 
         if (request()->filled('search_text')) {
@@ -230,21 +229,21 @@ class StaffManagementController extends Controller implements HasMiddleware
             $query->where(function ($subQuery) use ($search) {
                 $subQuery->where('users.code', 'like', '%' . $search . '%')
                     ->orWhere('users.name', 'like', '%' . $search . '%')
-                    ->orWhereHas('staffProfile', function ($profileQuery) use ($search) {
+                    ->orWhereHas('controllerProfile', function ($profileQuery) use ($search) {
                         $profileQuery->where('aadhaar_number', 'like', '%' . $search . '%')
                             ->orWhere('pan_number', 'like', '%' . $search . '%');
                     });
             });
         }
 
-        foreach (['designation_id', 'employment_type', 'category', 'state_id', 'district_id'] as $field) {
+        foreach (['depot_id', 'employment_type', 'state_id', 'district_id'] as $field) {
             if (request()->filled($field)) {
-                $query->whereHas('staffProfile', fn($profileQuery) => $profileQuery->where($field, request($field)));
+                $query->whereHas('controllerProfile', fn ($profileQuery) => $profileQuery->where($field, request($field)));
             }
         }
 
         if (request()->filled('date_of_joining')) {
-            $query->whereHas('staffProfile', fn($profileQuery) => $profileQuery->whereDate('date_of_joining', request('date_of_joining')));
+            $query->whereHas('controllerProfile', fn ($profileQuery) => $profileQuery->whereDate('date_of_joining', request('date_of_joining')));
         }
 
         if (request()->filled('status') && in_array(request('status'), ['0', '1'], true)) {
@@ -257,19 +256,12 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
-            'designations' => Designation::orderBy('name')->get(['id', 'name']),
-            'categories' => StaffProfile::CATEGORIES,
-            'employmentTypes' => StaffProfile::EMPLOYMENT_TYPES,
+            'depots' => Depot::orderBy('name')->get(['id', 'name']),
+            'employmentTypes' => ControllerProfile::EMPLOYMENT_TYPES,
             'states' => State::orderBy('name')->get(['id', 'name']),
             'districts' => District::orderBy('name')->get(['id', 'name']),
             'locations' => Location::orderBy('name')->get(['id', 'name']),
             'countries' => ['India'],
-            'salaryRanges' => [
-                '0-25000' => '0 - 25,000',
-                '25001-50000' => '25,001 - 50,000',
-                '50001-100000' => '50,001 - 1,00,000',
-                '100001-' => 'Above 1,00,000',
-            ],
         ];
     }
 
@@ -284,8 +276,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $basicVda = $basic + $vda;
 
         return collect($data)->only([
-            'designation_id',
-            'category',
+            'depot_id',
             'employment_type',
             'father_name',
             'date_of_birth',
@@ -322,9 +313,9 @@ class StaffManagementController extends Controller implements HasMiddleware
         return filled($data[$field] ?? null) ? (float) $data[$field] : null;
     }
 
-    private function generateStaffCode(int $id): string
+    private function generateControllerCode(int $id): string
     {
-        return generate_code('Staff Management Module', $id, 3, 'STF');
+        return generate_code('Controller Management Module', $id, 3, 'CTL');
     }
 
     private function storeAvatar(Request $request, User $user): void
@@ -341,26 +332,26 @@ class StaffManagementController extends Controller implements HasMiddleware
         $user->save();
     }
 
-    private function staffRecord(User $staff): User
+    private function controllerRecord(User $controller): User
     {
-        return $staff->load([
+        return $controller->load([
             'roles',
-            'staffProfile.designation',
-            'staffProfile.state',
-            'staffProfile.district',
-            'staffProfile.location',
-            'staffDocuments.documentType',
+            'controllerProfile.depot',
+            'controllerProfile.state',
+            'controllerProfile.district',
+            'controllerProfile.location',
+            'controllerDocuments.documentType',
         ]);
     }
 
-    private function buildStaffPdf(User $record): string
+    private function buildControllerPdf(User $record): string
     {
-        $profile = $record->staffProfile;
+        $profile = $record->controllerProfile;
 
         $content = '';
         $this->pdfFill($content, 0.96, 0.97, 0.99, 0, 0, 595, 842);
         $this->pdfText($content, 'SYSCON', 50, 795, 18, 'F2');
-        $this->pdfText($content, 'Staff Profile', 50, 770, 22, 'F2');
+        $this->pdfText($content, 'Controller Profile', 50, 770, 22, 'F2');
         $this->pdfText($content, 'Generated on ' . now()->format('d-m-Y'), 430, 795, 10);
         $this->pdfStatus($content, $record->is_active ? 'Active' : 'Inactive', 465, 765, $record->is_active);
 
@@ -368,13 +359,13 @@ class StaffManagementController extends Controller implements HasMiddleware
         $this->pdfFill($content, 0.90, 0.94, 1.00, 58, 645, 82, 72);
         $this->pdfText($content, 'PHOTO', 82, 678, 11, 'F2');
         $this->pdfText($content, $record->name ?: '-', 160, 708, 18, 'F2');
-        $this->pdfText($content, 'Staff Code: ' . ($record->code ?: '-'), 160, 686, 11);
+        $this->pdfText($content, 'Controller Code: ' . ($record->code ?: '-'), 160, 686, 11);
         $this->pdfText($content, 'Email: ' . ($record->email ?: '-'), 160, 668, 10);
         $this->pdfText($content, 'Phone: ' . ($record->full_phone ?: '-'), 160, 650, 10);
-        $this->pdfText($content, 'Role: ' . ($record->roles->pluck('name')->implode(', ') ?: 'Staff'), 160, 632, 10);
-        $this->pdfText($content, 'Designation: ' . ($profile?->designation?->name ?: '-'), 340, 686, 10);
+        $this->pdfText($content, 'Role: ' . ($record->roles->pluck('name')->implode(', ') ?: 'Controller'), 160, 632, 10);
+        $this->pdfText($content, 'Depot: ' . ($profile?->depot?->name ?: '-'), 340, 686, 10);
         $this->pdfText($content, 'DOJ: ' . ($profile?->date_of_joining?->format('d-m-Y') ?: '-'), 340, 668, 10);
-        $this->pdfText($content, 'Category: ' . ($profile?->category_label ?: '-'), 340, 650, 10);
+        $this->pdfText($content, 'Employment: ' . ($profile?->employment_type_label ?: '-'), 340, 650, 10);
 
         $this->pdfSection($content, 'Personal Details', 40, 470, 250, [
             "Father's Name" => $profile?->father_name ?: '-',
@@ -415,23 +406,22 @@ class StaffManagementController extends Controller implements HasMiddleware
         ], 170);
 
         $pages = [$content];
-
         $documentContent = '';
         $this->pdfFill($documentContent, 0.96, 0.97, 0.99, 0, 0, 595, 842);
-        $this->pdfText($documentContent, 'Staff Documents', 50, 790, 20, 'F2');
+        $this->pdfText($documentContent, 'Controller Documents', 50, 790, 20, 'F2');
         $y = 735;
 
-        if ($record->staffDocuments->isEmpty()) {
+        if ($record->controllerDocuments->isEmpty()) {
             $this->pdfCard($documentContent, 40, 665, 515, 50);
             $this->pdfText($documentContent, 'No documents uploaded.', 60, 692, 11);
         }
 
-        foreach ($record->staffDocuments as $document) {
+        foreach ($record->controllerDocuments as $document) {
             if ($y < 90) {
                 $pages[] = $documentContent;
                 $documentContent = '';
                 $this->pdfFill($documentContent, 0.96, 0.97, 0.99, 0, 0, 595, 842);
-                $this->pdfText($documentContent, 'Staff Documents', 50, 790, 20, 'F2');
+                $this->pdfText($documentContent, 'Controller Documents', 50, 790, 20, 'F2');
                 $y = 735;
             }
 
@@ -544,5 +534,4 @@ class StaffManagementController extends Controller implements HasMiddleware
 
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
     }
-
 }

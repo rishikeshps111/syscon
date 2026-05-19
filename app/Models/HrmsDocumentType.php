@@ -60,4 +60,14 @@ class HrmsDocumentType extends Model
     {
         return $this->hasMany(StaffDocument::class);
     }
+
+    public function controllerDocuments(): HasMany
+    {
+        return $this->hasMany(ControllerDocument::class);
+    }
+
+    public function supervisorDocuments(): HasMany
+    {
+        return $this->hasMany(SupervisorDocument::class);
+    }
 }

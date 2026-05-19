@@ -57,9 +57,29 @@ class User extends Authenticatable
         return $this->hasOne(DriverProfile::class);
     }
 
+    public function controllerProfile(): HasOne
+    {
+        return $this->hasOne(ControllerProfile::class);
+    }
+
+    public function supervisorProfile(): HasOne
+    {
+        return $this->hasOne(SupervisorProfile::class);
+    }
+
     public function staffDocuments(): HasMany
     {
         return $this->hasMany(StaffDocument::class);
+    }
+
+    public function controllerDocuments(): HasMany
+    {
+        return $this->hasMany(ControllerDocument::class);
+    }
+
+    public function supervisorDocuments(): HasMany
+    {
+        return $this->hasMany(SupervisorDocument::class);
     }
 
     public function driverDocuments(): HasMany
