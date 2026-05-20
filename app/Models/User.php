@@ -97,4 +97,18 @@ class User extends Authenticatable
         return $this->hasMany(Complaint::class, 'against_user_id');
     }
 
+    public function verifiedOems(): HasMany
+    {
+        return $this->hasMany(Oem::class, 'verified_by');
+    }
+
+    public function createdOems(): HasMany
+    {
+        return $this->hasMany(Oem::class, 'created_by');
+    }
+
+    public function updatedOems(): HasMany
+    {
+        return $this->hasMany(Oem::class, 'updated_by');
+    }
 }

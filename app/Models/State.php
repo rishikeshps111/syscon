@@ -31,4 +31,14 @@ class State extends Model
     {
         return $this->hasMany(Location::class);
     }
+
+    public function oems(): HasMany
+    {
+        return $this->hasMany(Oem::class);
+    }
+
+    public function oemAddresses(): HasMany
+    {
+        return $this->hasMany(OemAddress::class);
+    }
 }

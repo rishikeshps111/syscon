@@ -18,6 +18,7 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\OemController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RouteController;
@@ -107,6 +108,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/trip-setups/export', [TripSetupController::class, 'export'])
         ->name('trip-setups.export');
     Route::resource('trip-setups', TripSetupController::class)->except(['edit', 'show']);
+
+    Route::post('/oems/export', [OemController::class, 'export'])
+        ->name('oems.export');
+    Route::resource('oems', OemController::class)->only(['index', 'destroy']);
 
     Route::get('/branch-locations/districts-by-state', [BranchLocationController::class, 'districtsByState'])
         ->name('branch-locations.districts-by-state');

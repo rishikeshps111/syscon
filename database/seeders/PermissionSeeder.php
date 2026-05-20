@@ -86,6 +86,10 @@ class PermissionSeeder extends Seeder
                 'trip-setups.delete',
                 'trip-setups.view',
             ],
+            'OEM' => [
+                'oems.delete',
+                'oems.view',
+            ],
             'Branch Location' => [
                 'branch-locations.create',
                 'branch-locations.edit',

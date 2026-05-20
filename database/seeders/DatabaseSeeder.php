@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             StateSeeder::class,
             DistrictSeeder::class,
             LocationSeeder::class,
+            OemSeeder::class,
             BranchLocationSeeder::class,
             DepotSeeder::class,
             ServiceTypeSeeder::class,

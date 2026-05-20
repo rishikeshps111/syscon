@@ -151,6 +151,25 @@
                         </ul>
                     </li>
                 @endcanany
+                @can('oems.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('oems.*') ? '' : 'collapsed' }}"
+                            data-bs-target="#sidebarNav1" data-bs-toggle="collapse" href="#">
+                            <i class="fa-solid fa-handshake"></i><span>OEM/Vendor Management </span><i
+                                class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <ul id="sidebarNav1"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('oems.*') ? 'show' : '' }}"
+                            data-bs-parent="#sidebar-nav">
+                            <li>
+                                <a href="{{ route('oems.index') }}"
+                                    class="{{ request()->routeIs('oems.*') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i><span>OEM</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endcan
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*') ? '' : 'collapsed' }}"
                         data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
@@ -295,7 +314,7 @@
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('complaints.*') ? '' : 'collapsed' }}"
                             href="{{ route('complaints.index') }}">
-                            <i class="fa-solid fa-clipboard-list"></i>
+                            <i class="fa-solid fa-ticket"></i>
                             <span>Complaint Management</span>
                         </a>
                     </li>

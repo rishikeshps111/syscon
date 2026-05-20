@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Table('locations')]
 #[Fillable(['state_id', 'district_id', 'code', 'name', 'pincode', 'is_active', 'is_default'])]
@@ -32,5 +33,10 @@ class Location extends Model
     public function district(): BelongsTo
     {
         return $this->belongsTo(District::class);
+    }
+
+    public function oemAddresses(): HasMany
+    {
+        return $this->hasMany(OemAddress::class, 'city_id');
     }
 }

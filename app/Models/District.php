@@ -33,4 +33,9 @@ class District extends Model
     {
         return $this->hasMany(Location::class);
     }
+
+    public function oemAddresses(): HasMany
+    {
+        return $this->hasMany(OemAddress::class);
+    }
 }
