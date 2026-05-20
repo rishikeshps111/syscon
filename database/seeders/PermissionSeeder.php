@@ -158,6 +158,12 @@ class PermissionSeeder extends Seeder
                 'driver-management.delete',
                 'driver-management.view',
             ],
+            'Complaints' => [
+                'complaints.create',
+                'complaints.edit',
+                'complaints.delete',
+                'complaints.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

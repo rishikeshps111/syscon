@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             ControllerManagementSeeder::class,
             SupervisorManagementSeeder::class,
             DriverManagementSeeder::class,
+            ComplaintSeeder::class,
         ]);
 
         // Create Super Admin user

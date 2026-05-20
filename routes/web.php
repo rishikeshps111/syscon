@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BranchLocationController;
 use App\Http\Controllers\ComplaintCategoryController;
+use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ControllerDocumentController;
 use App\Http\Controllers\ControllerManagementController;
 use App\Http\Controllers\DepotController;
@@ -250,6 +251,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/driver-documents/{driverDocument}', [DriverDocumentController::class, 'destroy'])
         ->name('driver-documents.destroy');
     Route::resource('driver-management', DriverManagementController::class);
+
+    Route::get('/complaints/users-by-role', [ComplaintController::class, 'usersByRole'])
+        ->name('complaints.users-by-role');
+    Route::post('/complaints/export', [ComplaintController::class, 'export'])
+        ->name('complaints.export');
+    Route::post('/complaints/{complaint}/change-status', [ComplaintController::class, 'changeStatus'])
+        ->name('complaints.change-status');
+    Route::post('/complaints/{complaint}/assign-action', [ComplaintController::class, 'assignAction'])
+        ->name('complaints.assign-action');
+    Route::resource('complaints', ComplaintController::class);
 });
 
 Route::get('/storage-link', function () {

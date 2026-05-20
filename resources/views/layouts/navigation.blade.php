@@ -10,6 +10,10 @@
             </div>
 
             <ul class="sidebar-nav" id="sidebar-nav">
+                @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
+                    'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
+                    'staff-management.view', 'driver-management.view', 'controller-management.view',
+                    'supervisor-management.view'])
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('dashboard') ? '' : 'collapsed' }}"
                         href="{{ route('dashboard') }}">
@@ -286,6 +290,16 @@
                         @endcan
                     </ul>
                 </li>
+                @endcanany
+                @can('complaints.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('complaints.*') ? '' : 'collapsed' }}"
+                            href="{{ route('complaints.index') }}">
+                            <i class="fa-solid fa-clipboard-list"></i>
+                            <span>Complaint Management</span>
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>

@@ -86,4 +86,15 @@ class User extends Authenticatable
     {
         return $this->hasMany(DriverDocument::class);
     }
+
+    public function reportedComplaints(): HasMany
+    {
+        return $this->hasMany(Complaint::class, 'reported_by_user_id');
+    }
+
+    public function complaintsAgainst(): HasMany
+    {
+        return $this->hasMany(Complaint::class, 'against_user_id');
+    }
+
 }
