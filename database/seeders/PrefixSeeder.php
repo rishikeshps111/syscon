@@ -22,6 +22,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'TSU', 'module' => 'Trip Setup Module', 'is_active' => true],
             ['prefix' => 'VC', 'module' => 'Vehicle Classification Module', 'is_active' => true],
             ['prefix' => 'DOCT', 'module' => 'Document Type Module', 'is_active' => true],
+            ['prefix' => 'CC', 'module' => 'Complaint Category Module', 'is_active' => true],
             ['prefix' => 'DPM', 'module' => 'Depot Module', 'is_active' => true],
             ['prefix' => 'BL', 'module' => 'Branch Location Module', 'is_active' => true],
             ['prefix' => 'DPT', 'module' => 'Department Module', 'is_active' => true],

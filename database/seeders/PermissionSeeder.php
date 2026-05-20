@@ -62,6 +62,12 @@ class PermissionSeeder extends Seeder
                 'document-types.delete',
                 'document-types.view',
             ],
+            'Complaint Category' => [
+                'complaint-categories.create',
+                'complaint-categories.edit',
+                'complaint-categories.delete',
+                'complaint-categories.view',
+            ],
             'Depot' => [
                 'depots.create',
                 'depots.edit',

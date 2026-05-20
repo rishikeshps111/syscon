@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BranchLocationController;
+use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ControllerDocumentController;
 use App\Http\Controllers\ControllerManagementController;
 use App\Http\Controllers\DepotController;
@@ -76,6 +77,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/document-types/export', [DocumentTypeController::class, 'export'])
         ->name('document-types.export');
     Route::resource('document-types', DocumentTypeController::class)->except(['edit', 'show']);
+
+    Route::post('/complaint-categories/status', [ComplaintCategoryController::class, 'status'])->name('complaint-categories.status');
+    Route::post('/complaint-categories/export', [ComplaintCategoryController::class, 'export'])
+        ->name('complaint-categories.export');
+    Route::resource('complaint-categories', ComplaintCategoryController::class)->except(['edit', 'show']);
 
     Route::post('/depots/status', [DepotController::class, 'status'])->name('depots.status');
     Route::post('/depots/export', [DepotController::class, 'export'])

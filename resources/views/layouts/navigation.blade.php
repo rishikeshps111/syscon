@@ -25,6 +25,7 @@
                     </a>
                 </li>
                 @canany(['prefixes.view', 'service-types.view', 'vehicle-classifications.view', 'document-types.view',
+                    'complaint-categories.view',
                     'depots.view', 'routes.view', 'trip-setups.view', 'countries.view', 'nationalities.view', 'states.view',
                     'districts.view', 'locations.view', 'degree-levels.view', 'field-of-studies.view', 'study-modes.view',
                     'currencies.view', 'universities.view', 'university-types.view', 'intakes.view', 'program-types.view',
@@ -33,7 +34,7 @@
                     'application-statuses.view', 'biller-profiles.view', 'payment-types.view', 'payment-methods.view',
                     'lead-sources.view', 'lead-types.view', 'lead-statuses.view', 'action-plans.view', 'relations.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'vehicle-classifications.*', 'document-types.*', 'depots.*', 'routes.*', 'trip-setups.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*', 'routes.*', 'trip-setups.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                             <i class="fa-solid fa-align-center"></i>
@@ -41,7 +42,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'vehicle-classifications.*', 'document-types.*', 'depots.*', 'routes.*', 'trip-setups.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*', 'routes.*', 'trip-setups.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -130,6 +131,15 @@
                                         class="{{ request()->routeIs('document-types.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span> Document Types </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('complaint-categories.view')
+                                <li>
+                                    <a href="{{ route('complaint-categories.index') }}"
+                                        class="{{ request()->routeIs('complaint-categories.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Complaint Categories </span>
                                     </a>
                                 </li>
                             @endcan
