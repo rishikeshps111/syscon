@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('state_id')
                 ->constrained('states')
                 ->cascadeOnDelete();
-            $table->string('oem_code', 50);
+            $table->string('oem_code', 50)->nullable();
             $table->string('oem_name', 255);
             $table->string('short_name', 100)->nullable();
             $table->enum('oem_type', [

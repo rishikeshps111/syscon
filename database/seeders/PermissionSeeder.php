@@ -87,6 +87,8 @@ class PermissionSeeder extends Seeder
                 'trip-setups.view',
             ],
             'OEM' => [
+                'oems.create',
+                'oems.edit',
                 'oems.delete',
                 'oems.view',
             ],

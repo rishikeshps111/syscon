@@ -3,11 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Exports\OemExport;
+use App\Http\Requests\StoreOemRequest;
+use App\Http\Requests\UpdateOemRequest;
+use App\Models\District;
+use App\Models\Location;
 use App\Models\Oem;
 use App\Models\State;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
@@ -19,6 +24,8 @@ class OemController extends Controller implements HasMiddleware
         return [
             'auth',
             new Middleware(PermissionMiddleware::using('oems.view'), ['index', 'export']),
+            new Middleware(PermissionMiddleware::using('oems.create'), ['create', 'store']),
+            new Middleware(PermissionMiddleware::using('oems.edit'), ['edit', 'update']),
             new Middleware(PermissionMiddleware::using('oems.delete'), ['destroy']),
         ];
     }
@@ -47,6 +54,59 @@ class OemController extends Controller implements HasMiddleware
         ]);
     }
 
+    public function create()
+    {
+        return view('oem.form', array_merge($this->formData(), [
+            'generatedCode' => $this->generateOemCode(((int) Oem::max('id')) + 1),
+        ]));
+    }
+
+    public function store(StoreOemRequest $request)
+    {
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data) {
+            $oem = Oem::create($this->oemData($data) + [
+                'oem_code' => null,
+                'status' => 'Active',
+                'is_verified' => false,
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+            ]);
+
+            $oem->oem_code = $this->generateOemCode($oem->id);
+            $oem->save();
+
+            $this->syncContacts($oem, $data['contacts']);
+            $this->syncAddresses($oem, $data['addresses']);
+        });
+
+        return redirect()->route('oems.index')->with('success', 'OEM created successfully.');
+    }
+
+    public function edit(Oem $oem)
+    {
+        return view('oem.form', array_merge($this->formData(), [
+            'record' => $oem->load(['contacts', 'addresses']),
+        ]));
+    }
+
+    public function update(UpdateOemRequest $request, Oem $oem)
+    {
+        $data = $request->validated();
+
+        DB::transaction(function () use ($data, $oem) {
+            $oem->update($this->oemData($data) + [
+                'updated_by' => auth()->id(),
+            ]);
+
+            $this->syncContacts($oem, $data['contacts']);
+            $this->syncAddresses($oem, $data['addresses']);
+        });
+
+        return redirect()->route('oems.index')->with('success', 'OEM updated successfully.');
+    }
+
     public function destroy(Oem $oem)
     {
         $oem->delete();
@@ -55,6 +115,58 @@ class OemController extends Controller implements HasMiddleware
             'success' => true,
             'message' => 'OEM deleted successfully.',
         ]);
+    }
+
+    private function formData(): array
+    {
+        return [
+            'states' => State::orderBy('name')->get(['id', 'name']),
+            'districts' => District::orderBy('name')->get(['id', 'state_id', 'name']),
+            'locations' => Location::orderBy('name')->get(['id', 'state_id', 'district_id', 'name', 'pincode']),
+            'oemTypes' => Oem::OEM_TYPES,
+            'registrationTypes' => Oem::REGISTRATION_TYPES,
+            'addressTypes' => \App\Models\OemAddress::ADDRESS_TYPES,
+        ];
+    }
+
+    private function oemData(array $data): array
+    {
+        return collect($data)->only([
+            'state_id',
+            'oem_name',
+            'short_name',
+            'oem_type',
+            'registration_type',
+            'gst_number',
+            'pan_number',
+            'cin_number',
+            'remarks',
+        ])->all();
+    }
+
+    private function syncContacts(Oem $oem, array $contacts): void
+    {
+        $oem->contacts()->delete();
+
+        foreach ($contacts as $index => $contact) {
+            $oem->contacts()->create($contact + [
+                'is_primary' => $index === 0 && ! collect($contacts)->contains('is_primary', true),
+            ]);
+        }
+    }
+
+    private function syncAddresses(Oem $oem, array $addresses): void
+    {
+        $oem->addresses()->delete();
+
+        foreach ($addresses as $address) {
+            $oem->addresses()->create($address);
+        }
+    }
+
+    private function generateOemCode(int $id): string
+    {
+        return generate_code('OEM Module', $id, 3, 'OEM');
     }
 
     public function export(Request $request)

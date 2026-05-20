@@ -37,6 +37,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'SUP', 'module' => 'Supervisor Management Module', 'is_active' => true],
             ['prefix' => 'DRV', 'module' => 'Driver Management Module', 'is_active' => true],
             ['prefix' => 'CMP', 'module' => 'Complaint Module', 'is_active' => true],
+            ['prefix' => 'OEM', 'module' => 'OEM Module', 'is_active' => true],
         ];
 
         foreach ($records as $record) {

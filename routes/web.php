@@ -111,7 +111,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/oems/export', [OemController::class, 'export'])
         ->name('oems.export');
-    Route::resource('oems', OemController::class)->only(['index', 'destroy']);
+    Route::resource('oems', OemController::class)->except(['show']);
 
     Route::get('/branch-locations/districts-by-state', [BranchLocationController::class, 'districtsByState'])
         ->name('branch-locations.districts-by-state');
