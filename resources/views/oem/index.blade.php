@@ -32,6 +32,17 @@
                             </div>
                             <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
+                                    <label for="oemTypeFilter">Filter by OEM Type</label>
+                                    <select id="oemTypeFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">---Select---</option>
+                                        @foreach ($oemTypes as $type)
+                                            <option value="{{ $type->name }}">{{ $type->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
                                     <label for="dateFromFilter">From Date</label>
                                     <input type="date" id="dateFromFilter" class="form-control shadow-none">
                                 </div>
@@ -118,6 +129,33 @@
             </div>
         </div>
     </section>
+
+    <div class="modal fade" id="changeStatusModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="changeStatusForm" class="modal-content">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="o-f-inp">
+                        <label for="modalStatus">Status <span class="text-danger">*</span></label>
+                        <select id="modalStatus" name="status" class="form-select shadow-none">
+                            @foreach ($statuses as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <span class="text-danger error-text status_error"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     @section('scripts')
         @include('oem.partials.js')

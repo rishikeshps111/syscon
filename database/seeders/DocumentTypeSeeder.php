@@ -8,9 +8,6 @@ use Illuminate\Support\Facades\DB;
 
 class DocumentTypeSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $records = [
@@ -27,14 +24,20 @@ class DocumentTypeSeeder extends Seeder
                 'is_expiry_required' => false,
             ],
             [
-                'name' => 'Driving License',
-                'applicable_for' => 'driver',
+                'name' => 'OEM Registration Certificate',
+                'applicable_for' => 'oem',
                 'is_mandatory' => true,
-                'is_expiry_required' => true,
+                'is_expiry_required' => false,
             ],
             [
-                'name' => 'Aadhaar',
-                'applicable_for' => 'driver',
+                'name' => 'GST Certificate',
+                'applicable_for' => 'oem',
+                'is_mandatory' => true,
+                'is_expiry_required' => false,
+            ],
+            [
+                'name' => 'PAN Card',
+                'applicable_for' => 'oem',
                 'is_mandatory' => true,
                 'is_expiry_required' => false,
             ],
@@ -42,7 +45,7 @@ class DocumentTypeSeeder extends Seeder
 
         DB::transaction(function () use ($records) {
             foreach ($records as $record) {
-                $documentType = DocumentType::firstOrCreate(
+                $documentType = DocumentType::updateOrCreate(
                     ['name' => $record['name']],
                     [
                         'applicable_for' => $record['applicable_for'],

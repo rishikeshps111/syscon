@@ -1,6 +1,6 @@
 <script>
     $(function () {
-        $('#stateFilter').select2({
+        $('#stateFilter, #oemTypeFilter').select2({
             placeholder: '---Select---',
             allowClear: true,
             width: '100%'
@@ -45,11 +45,11 @@
         });
 
         $('#searchFilters').on('click', reloadTable);
-        $('#stateFilter, #dateFromFilter, #dateToFilter, #statusFilter').on('change', reloadTable);
+        $('#stateFilter, #oemTypeFilter, #dateFromFilter, #dateToFilter, #statusFilter').on('change', reloadTable);
 
         $('#resetFilters').on('click', function () {
-            $('#stateFilter, #dateFromFilter, #dateToFilter, #statusFilter, #searchFilter').val('');
-            $('#stateFilter').trigger('change.select2');
+            $('#stateFilter, #oemTypeFilter, #dateFromFilter, #dateToFilter, #statusFilter, #searchFilter').val('');
+            $('#stateFilter, #oemTypeFilter').trigger('change.select2');
             $('#checkAll').prop('checked', false);
             $('.row-check').prop('checked', false);
             reloadTable();
@@ -57,6 +57,77 @@
 
         $('#checkAll').on('change', function () {
             $('.row-check').prop('checked', this.checked);
+        });
+
+        $(document).on('click', '.verify-oem-btn', function () {
+            var url = $(this).data('url');
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you really want to verify this OEM?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}"
+                        },
+                        success: function (response) {
+                            table.ajax.reload();
+                            showToast('success', response.message);
+                        },
+                        error: function (xhr) {
+                            showToast('error', xhr.responseJSON?.message || 'Something went wrong');
+                        }
+                    });
+                }
+            });
+        });
+
+        $(document).on('click', '.change-status-btn', function () {
+            $('#changeStatusForm').attr('action', $(this).data('url'));
+            $('#modalStatus').val($(this).data('status'));
+            $('#changeStatusModal').modal('show');
+        });
+
+        $('#changeStatusForm').on('submit', function (e) {
+            e.preventDefault();
+
+            var form = $(this);
+            var submitBtn = form.find('button[type="submit"]');
+            var originalBtnHtml = submitBtn.html();
+            form.find('.error-text').text('');
+            submitBtn.prop('disabled', true).html('Loading...');
+
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: form.serialize(),
+                success: function (response) {
+                    $('#changeStatusModal').modal('hide');
+                    table.ajax.reload();
+                    showToast('success', response.message);
+                },
+                error: function (xhr) {
+                    if (xhr.status === 422 && xhr.responseJSON?.errors) {
+                        $.each(xhr.responseJSON.errors, function (field, messages) {
+                            form.find('.' + field + '_error').text(messages[0]);
+                        });
+                    } else {
+                        showToast('error', xhr.responseJSON?.message || 'Something went wrong');
+                    }
+                },
+                complete: function () {
+                    submitBtn.prop('disabled', false).html(originalBtnHtml);
+                }
+            });
         });
 
         $(document).on('click', '#exportSelected', function () {
@@ -78,6 +149,7 @@
                     ids: selectedIds,
                     search_text: $('#searchFilter').val(),
                     state_id: $('#stateFilter').val(),
+                    oem_type: $('#oemTypeFilter').val(),
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
                     status: $('#statusFilter').val()
@@ -108,6 +180,7 @@
         function filters(data) {
             data.search_text = $('#searchFilter').val();
             data.state_id = $('#stateFilter').val();
+            data.oem_type = $('#oemTypeFilter').val();
             data.date_from = $('#dateFromFilter').val();
             data.date_to = $('#dateToFilter').val();
             data.status = $('#statusFilter').val();

@@ -83,6 +83,31 @@ class Oem extends Model
         return $this->hasMany(OemAddress::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(OemDocument::class);
+    }
+
+    public function bankDetails(): HasMany
+    {
+        return $this->hasMany(OemBankDetail::class);
+    }
+
+    public function primaryBankDetail(): HasOne
+    {
+        return $this->hasOne(OemBankDetail::class)->where('is_primary', true);
+    }
+
+    public function stateMappings(): HasMany
+    {
+        return $this->hasMany(OemStateMapping::class);
+    }
+
+    public function primaryStateMapping(): HasOne
+    {
+        return $this->hasOne(OemStateMapping::class)->where('is_primary', true);
+    }
+
     public function verifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');

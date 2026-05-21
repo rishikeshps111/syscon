@@ -24,7 +24,10 @@ class StoreOemRequest extends FormRequest
             'state_id' => ['required', 'integer', 'exists:states,id'],
             'oem_name' => ['required', 'string', 'max:255'],
             'short_name' => ['nullable', 'string', 'max:100'],
-            'oem_type' => ['required', Rule::in(array_keys(Oem::OEM_TYPES))],
+            'oem_type' => [
+                'required',
+                Rule::exists('oem_types', 'name')->where(fn ($query) => $query->where('is_active', true)),
+            ],
             'registration_type' => ['required', Rule::in(array_keys(Oem::REGISTRATION_TYPES))],
             'gst_number' => ['required', 'string', 'max:20'],
             'pan_number' => ['required', 'string', 'max:15'],

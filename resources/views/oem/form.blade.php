@@ -121,10 +121,10 @@
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="oem_type">OEM Type <span class="text-danger">*</span></label>
                                         <select id="oem_type" name="oem_type"
-                                            class="form-select shadow-none @error('oem_type') is-invalid @enderror">
+                                            class="form-select shadow-none select2 @error('oem_type') is-invalid @enderror">
                                             <option value="">---Select---</option>
-                                            @foreach ($oemTypes as $value => $label)
-                                                <option value="{{ $value }}" {{ old('oem_type', $record->oem_type ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                            @foreach ($oemTypes as $type)
+                                                <option value="{{ $type->name }}" {{ old('oem_type', $record->oem_type ?? '') === $type->name ? 'selected' : '' }}>{{ $type->name }}</option>
                                             @endforeach
                                         </select>
                                         @error('oem_type')<span class="text-danger">{{ $message }}</span>@enderror

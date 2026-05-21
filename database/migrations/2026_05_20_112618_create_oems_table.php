@@ -19,11 +19,7 @@ return new class extends Migration
             $table->string('oem_code', 50)->nullable();
             $table->string('oem_name', 255);
             $table->string('short_name', 100)->nullable();
-            $table->enum('oem_type', [
-                'Manufacturer',
-                'Service Provider',
-                'Dealer'
-            ]);
+            $table->string('oem_type', 100)->nullable();
             $table->enum('registration_type', [
                 'Company',
                 'Partnership',

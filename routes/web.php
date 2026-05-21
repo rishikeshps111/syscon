@@ -18,7 +18,11 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\OemBankDetailController;
 use App\Http\Controllers\OemController;
+use App\Http\Controllers\OemDocumentController;
+use App\Http\Controllers\OemStateMappingController;
+use App\Http\Controllers\OemTypeController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RouteController;
@@ -109,9 +113,50 @@ Route::middleware('auth')->group(function () {
         ->name('trip-setups.export');
     Route::resource('trip-setups', TripSetupController::class)->except(['edit', 'show']);
 
+    Route::post('/oem-types/status', [OemTypeController::class, 'status'])->name('oem-types.status');
+    Route::post('/oem-types/export', [OemTypeController::class, 'export'])
+        ->name('oem-types.export');
+    Route::resource('oem-types', OemTypeController::class)->except(['edit', 'show']);
+
     Route::post('/oems/export', [OemController::class, 'export'])
         ->name('oems.export');
-    Route::resource('oems', OemController::class)->except(['show']);
+    Route::post('/oems/{oem}/verify', [OemController::class, 'verify'])
+        ->name('oems.verify');
+    Route::post('/oems/{oem}/change-status', [OemController::class, 'changeStatus'])
+        ->name('oems.change-status');
+    Route::get('/oems/{oem}/download-pdf', [OemController::class, 'downloadPdf'])
+        ->name('oems.download-pdf');
+    Route::get('/oems/{oem}/documents', [OemDocumentController::class, 'index'])
+        ->name('oems.documents.index');
+    Route::post('/oems/{oem}/documents', [OemDocumentController::class, 'store'])
+        ->name('oems.documents.store');
+    Route::get('/oems/{oem}/bank-details', [OemBankDetailController::class, 'index'])
+        ->name('oems.bank-details.index');
+    Route::post('/oems/{oem}/bank-details', [OemBankDetailController::class, 'store'])
+        ->name('oems.bank-details.store');
+    Route::get('/oems/{oem}/state-mappings', [OemStateMappingController::class, 'index'])
+        ->name('oems.state-mappings.index');
+    Route::post('/oems/{oem}/state-mappings', [OemStateMappingController::class, 'store'])
+        ->name('oems.state-mappings.store');
+    Route::put('/oem-bank-details/{oemBankDetail}', [OemBankDetailController::class, 'update'])
+        ->name('oem-bank-details.update');
+    Route::post('/oem-bank-details/{oemBankDetail}/make-primary', [OemBankDetailController::class, 'makePrimary'])
+        ->name('oem-bank-details.make-primary');
+    Route::delete('/oem-bank-details/{oemBankDetail}', [OemBankDetailController::class, 'destroy'])
+        ->name('oem-bank-details.destroy');
+    Route::put('/oem-state-mappings/{oemStateMapping}', [OemStateMappingController::class, 'update'])
+        ->name('oem-state-mappings.update');
+    Route::post('/oem-state-mappings/{oemStateMapping}/make-primary', [OemStateMappingController::class, 'makePrimary'])
+        ->name('oem-state-mappings.make-primary');
+    Route::delete('/oem-state-mappings/{oemStateMapping}', [OemStateMappingController::class, 'destroy'])
+        ->name('oem-state-mappings.destroy');
+    Route::get('/oem-documents/{oemDocument}/download', [OemDocumentController::class, 'download'])
+        ->name('oem-documents.download');
+    Route::get('/oem-documents/{oemDocument}/preview', [OemDocumentController::class, 'preview'])
+        ->name('oem-documents.preview');
+    Route::delete('/oem-documents/{oemDocument}', [OemDocumentController::class, 'destroy'])
+        ->name('oem-documents.destroy');
+    Route::resource('oems', OemController::class);
 
     Route::get('/branch-locations/districts-by-state', [BranchLocationController::class, 'districtsByState'])
         ->name('branch-locations.districts-by-state');

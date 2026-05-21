@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('code')->nullable()->unique();
             $table->string('name');
-            $table->enum('applicable_for', ['driver', 'vehicle', 'oem', 'supervisor', 'controller'])->nullable();
+            $table->enum('applicable_for', ['vehicle', 'oem'])->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_mandatory')->default(false);
             $table->boolean('is_expiry_required')->default(false);
