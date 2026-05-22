@@ -35,7 +35,12 @@ use App\Http\Controllers\StateController;
 use App\Http\Controllers\SupervisorDocumentController;
 use App\Http\Controllers\SupervisorManagementController;
 use App\Http\Controllers\TripSetupController;
+use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleClassificationController;
+use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\VehicleDocumentController;
+use App\Http\Controllers\VehicleFuelLogController;
+use App\Http\Controllers\VehicleMaintenanceLogController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -107,6 +112,48 @@ Route::middleware('auth')->group(function () {
     Route::patch('/route-stops/{route_stop}', [RouteStopController::class, 'update']);
     Route::delete('/route-stops/{route_stop}', [RouteStopController::class, 'destroy'])->name('route-stops.destroy');
     Route::resource('routes', RouteController::class)->except(['edit', 'show']);
+
+    Route::post('/vehicles/export', [VehicleController::class, 'export'])
+        ->name('vehicles.export');
+    Route::post('/vehicles/{vehicle}/change-status', [VehicleController::class, 'changeStatus'])
+        ->name('vehicles.change-status');
+    Route::get('/vehicles/{vehicle}/download-pdf', [VehicleController::class, 'downloadPdf'])
+        ->name('vehicles.download-pdf');
+    Route::get('/vehicles/{vehicle}/documents', [VehicleDocumentController::class, 'index'])
+        ->name('vehicles.documents.index');
+    Route::post('/vehicles/{vehicle}/documents', [VehicleDocumentController::class, 'store'])
+        ->name('vehicles.documents.store');
+    Route::get('/vehicle-documents/{vehicleDocument}/download', [VehicleDocumentController::class, 'download'])
+        ->name('vehicle-documents.download');
+    Route::get('/vehicle-documents/{vehicleDocument}/preview', [VehicleDocumentController::class, 'preview'])
+        ->name('vehicle-documents.preview');
+    Route::delete('/vehicle-documents/{vehicleDocument}', [VehicleDocumentController::class, 'destroy'])
+        ->name('vehicle-documents.destroy');
+    Route::get('/vehicles/{vehicle}/assignments', [VehicleAssignmentController::class, 'index'])
+        ->name('vehicles.assignments.index');
+    Route::post('/vehicles/{vehicle}/assignments', [VehicleAssignmentController::class, 'store'])
+        ->name('vehicles.assignments.store');
+    Route::put('/vehicle-assignments/{vehicleAssignment}', [VehicleAssignmentController::class, 'update'])
+        ->name('vehicle-assignments.update');
+    Route::delete('/vehicle-assignments/{vehicleAssignment}', [VehicleAssignmentController::class, 'destroy'])
+        ->name('vehicle-assignments.destroy');
+    Route::get('/vehicles/{vehicle}/maintenance-logs', [VehicleMaintenanceLogController::class, 'index'])
+        ->name('vehicles.maintenance-logs.index');
+    Route::post('/vehicles/{vehicle}/maintenance-logs', [VehicleMaintenanceLogController::class, 'store'])
+        ->name('vehicles.maintenance-logs.store');
+    Route::put('/vehicle-maintenance-logs/{vehicleMaintenanceLog}', [VehicleMaintenanceLogController::class, 'update'])
+        ->name('vehicle-maintenance-logs.update');
+    Route::delete('/vehicle-maintenance-logs/{vehicleMaintenanceLog}', [VehicleMaintenanceLogController::class, 'destroy'])
+        ->name('vehicle-maintenance-logs.destroy');
+    Route::get('/vehicles/{vehicle}/fuel-logs', [VehicleFuelLogController::class, 'index'])
+        ->name('vehicles.fuel-logs.index');
+    Route::post('/vehicles/{vehicle}/fuel-logs', [VehicleFuelLogController::class, 'store'])
+        ->name('vehicles.fuel-logs.store');
+    Route::put('/vehicle-fuel-logs/{vehicleFuelLog}', [VehicleFuelLogController::class, 'update'])
+        ->name('vehicle-fuel-logs.update');
+    Route::delete('/vehicle-fuel-logs/{vehicleFuelLog}', [VehicleFuelLogController::class, 'destroy'])
+        ->name('vehicle-fuel-logs.destroy');
+    Route::resource('vehicles', VehicleController::class);
 
     Route::post('/trip-setups/status', [TripSetupController::class, 'status'])->name('trip-setups.status');
     Route::post('/trip-setups/export', [TripSetupController::class, 'export'])

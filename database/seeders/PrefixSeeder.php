@@ -19,6 +19,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'LOC', 'module' => 'Location Module', 'is_active' => true],
             ['prefix' => 'SRT', 'module' => 'Service Type Module', 'is_active' => true],
             ['prefix' => 'RT', 'module' => 'Route Module', 'is_active' => true],
+            ['prefix' => 'VEH', 'module' => 'Vehicle Module', 'is_active' => true],
             ['prefix' => 'TSU', 'module' => 'Trip Setup Module', 'is_active' => true],
             ['prefix' => 'VC', 'module' => 'Vehicle Classification Module', 'is_active' => true],
             ['prefix' => 'DOCT', 'module' => 'Document Type Module', 'is_active' => true],

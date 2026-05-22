@@ -4,12 +4,12 @@
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>Manage Route</h3>
+            <h3>R</h3>
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                     <li class="breadcrumb-item active">Master</li>
-                    <li class="breadcrumb-item active">Manage Route</li>
+                    <li class="breadcrumb-item active">Route Management</li>
                 </ol>
             </nav>
         </div>
@@ -32,7 +32,8 @@
                         <div class="col-lg-3">
                             <div class="o-f-inp">
                                 <label for="startPointFilter">Filter by Start Point</label>
-                                <select name="start_point_id" id="startPointFilter" class="form-select shadow-none multi-select">
+                                <select name="start_point_id" id="startPointFilter"
+                                    class="form-select shadow-none multi-select">
                                     <option value="">--- Select ---</option>
                                     @foreach($depots as $depot)
                                         <option value="{{ $depot->id }}">{{ $depot->name }}</option>
@@ -43,7 +44,8 @@
                         <div class="col-lg-3">
                             <div class="o-f-inp">
                                 <label for="endPointFilter">Filter by End Point</label>
-                                <select name="end_point_id" id="endPointFilter" class="form-select shadow-none multi-select">
+                                <select name="end_point_id" id="endPointFilter"
+                                    class="form-select shadow-none multi-select">
                                     <option value="">--- Select ---</option>
                                     @foreach($depots as $depot)
                                         <option value="{{ $depot->id }}">{{ $depot->name }}</option>

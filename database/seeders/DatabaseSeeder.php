@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             DepotSeeder::class,
             ServiceTypeSeeder::class,
             RouteSeeder::class,
+            VehicleSeeder::class,
             VehicleClassificationSeeder::class,
             DocumentTypeSeeder::class,
             ComplaintCategorySeeder::class,

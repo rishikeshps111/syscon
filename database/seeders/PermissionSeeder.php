@@ -80,6 +80,12 @@ class PermissionSeeder extends Seeder
                 'routes.delete',
                 'routes.view',
             ],
+            'Vehicle Management' => [
+                'vehicles.create',
+                'vehicles.edit',
+                'vehicles.delete',
+                'vehicles.view',
+            ],
             'Trip Setup' => [
                 'trip-setups.create',
                 'trip-setups.edit',

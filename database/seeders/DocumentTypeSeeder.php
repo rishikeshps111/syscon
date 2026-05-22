@@ -10,7 +10,17 @@ class DocumentTypeSeeder extends Seeder
 {
     public function run(): void
     {
+        DocumentType::where('name', 'RC Book')
+            ->where('applicable_for', 'vehicle')
+            ->update(['name' => 'RC']);
+
         $records = [
+            [
+                'name' => 'RC',
+                'applicable_for' => 'vehicle',
+                'is_mandatory' => true,
+                'is_expiry_required' => true,
+            ],
             [
                 'name' => 'Insurance',
                 'applicable_for' => 'vehicle',
@@ -18,10 +28,22 @@ class DocumentTypeSeeder extends Seeder
                 'is_expiry_required' => true,
             ],
             [
-                'name' => 'RC Book',
+                'name' => 'PUC',
                 'applicable_for' => 'vehicle',
                 'is_mandatory' => true,
-                'is_expiry_required' => false,
+                'is_expiry_required' => true,
+            ],
+            [
+                'name' => 'Permit',
+                'applicable_for' => 'vehicle',
+                'is_mandatory' => true,
+                'is_expiry_required' => true,
+            ],
+            [
+                'name' => 'Fitness',
+                'applicable_for' => 'vehicle',
+                'is_mandatory' => true,
+                'is_expiry_required' => true,
             ],
             [
                 'name' => 'OEM Registration Certificate',
