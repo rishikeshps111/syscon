@@ -146,6 +146,12 @@ class PermissionSeeder extends Seeder
                 'shift-settings.delete',
                 'shift-settings.view',
             ],
+            'Leave Management' => [
+                'leaves.create',
+                'leaves.edit',
+                'leaves.delete',
+                'leaves.view',
+            ],
             'Holiday' => [
                 'holidays.create',
                 'holidays.edit',

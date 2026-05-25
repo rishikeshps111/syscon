@@ -17,6 +17,7 @@ use App\Http\Controllers\HrmsDocumentTypeController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LeaveTypeController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OemBankDetailController;
 use App\Http\Controllers\OemController;
@@ -262,6 +263,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/shift-settings/export', [ShiftSettingController::class, 'export'])
         ->name('shift-settings.export');
     Route::resource('shift-settings', ShiftSettingController::class)->except(['show']);
+
+    Route::post('/leaves/export', [LeaveController::class, 'export'])->name('leaves.export');
+    Route::post('/leaves/{leave}/change-status', [LeaveController::class, 'changeStatus'])->name('leaves.change-status');
+    Route::get('/leaves/general/create', [LeaveController::class, 'createGeneral'])->name('leaves.general.create');
+    Route::get('/leaves/driver/create', [LeaveController::class, 'createDriver'])->name('leaves.driver.create');
+    Route::resource('leaves', LeaveController::class)->except(['create', 'show'])->parameters(['leaves' => 'leave']);
 
     Route::get('/holidays/calendar', [HolidayController::class, 'calendar'])
         ->name('holidays.calendar');

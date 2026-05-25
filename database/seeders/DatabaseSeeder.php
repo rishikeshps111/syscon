@@ -44,6 +44,7 @@ class DatabaseSeeder extends Seeder
             ControllerManagementSeeder::class,
             SupervisorManagementSeeder::class,
             DriverManagementSeeder::class,
+            LeaveSeeder::class,
             ComplaintSeeder::class,
         ]);
 
