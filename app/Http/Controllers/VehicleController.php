@@ -334,7 +334,7 @@ class VehicleController extends Controller implements HasMiddleware
 
         foreach ([
             'Documents' => $record->documents->map(fn ($item) => ($item->documentType?->name ?: 'Document') . ' | ' . ($item->is_verified ? 'Verified' : 'Not Verified') . ($item->expiry_date ? ' | Expiry ' . $item->expiry_date->format('d-m-Y') : '')),
-            'Assignments' => $record->assignments->take(8)->map(fn ($item) => ($item->driver?->name ?: '-') . ' | ' . ($item->route?->name ?: '-') . ' | ' . $item->status),
+            'Assignments' => $record->assignments->take(8)->map(fn ($item) => ($item->driver?->name ?: '-') . ' | ' . ($item->route?->route_name ?: '-') . ' | ' . $item->status),
             'Maintenance' => $record->maintenanceLogs->take(8)->map(fn ($item) => $item->maintenance_type . ' | ' . ($item->service_date?->format('d-m-Y') ?: '-') . ' | ' . $item->status),
             'Fuel Logs' => $record->fuelLogs->take(8)->map(fn ($item) => $item->fuel_type . ' | ' . $item->quantity . ' | ' . ($item->date?->format('d-m-Y') ?: '-')),
         ] as $title => $rows) {

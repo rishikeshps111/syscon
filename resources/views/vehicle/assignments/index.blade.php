@@ -77,7 +77,7 @@
                                             <option value="">--- Select ---</option>
                                             @foreach ($routes as $route)
                                                 <option value="{{ $route->id }}">
-                                                    {{ trim(($route->code ? $route->code . ' - ' : '') . $route->name) }}
+                                                    {{ trim(($route->route_code ? $route->route_code . ' - ' : '') . $route->route_name) }}
                                                 </option>
                                             @endforeach
                                         </select>

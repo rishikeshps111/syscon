@@ -3,143 +3,166 @@
         var table = $('#table').DataTable({
             processing: true,
             serverSide: true,
+            searching: false,
             ajax: {
                 url: "{{ route('routes.index') }}",
                 data: function (data) {
                     data.state_id = $('#stateFilter').val();
-                    data.start_point_id = $('#startPointFilter').val();
-                    data.end_point_id = $('#endPointFilter').val();
+                    data.district_id = $('#districtFilter').val();
+                    data.route_type = $('#routeTypeFilter').val();
+                    data.route_category = $('#routeCategoryFilter').val();
                     data.status = $('#statusFilter').val();
+                    data.search.value = $('#searchFilter').val();
                 }
             },
-            columns: [
-                {
-                    data: 'checkbox',
-                    name: 'checkbox',
-                    orderable: false,
-                    searchable: false,
-                    render: function (data, type, row) {
-                        return `<input type="checkbox" class="row-check" value="${row.id}">`;
-                    },
-                    className: 'text-center'
+            columns: [{
+                data: 'checkbox',
+                name: 'checkbox',
+                orderable: false,
+                searchable: false,
+                render: function (data, type, row) {
+                    return `<input type="checkbox" class="row-check" value="${row.id}">`;
                 },
-                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'code', name: 'code', className: 'text-center' },
-                { data: 'name', name: 'name', className: 'text-center' },
-                { data: 'start_point', name: 'startPoint.name', className: 'text-center' },
-                { data: 'end_point', name: 'endPoint.name', className: 'text-center' },
-                { data: 'distance', name: 'distance', className: 'text-center' },
-                { data: 'estimated_duration', name: 'estimated_duration', className: 'text-center' },
-                { data: 'route_type', name: 'route_type', className: 'text-center' },
-                { data: 'state_name', name: 'state.name', className: 'text-center' },
-                { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+                className: 'text-center'
+            },
+            {
+                data: 'DT_RowIndex',
+                name: 'DT_RowIndex',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'route_code',
+                name: 'route_code',
+                className: 'text-center'
+            },
+            {
+                data: 'route_name',
+                name: 'route_name',
+                className: 'text-center'
+            },
+            {
+                data: 'start_end',
+                name: 'start_end',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'total_distance_km',
+                name: 'total_distance_km',
+                className: 'text-center'
+            },
+            {
+                data: 'estimated_duration',
+                name: 'estimated_duration',
+                className: 'text-center'
+            },
+            {
+                data: 'assigned_vehicle',
+                name: 'assigned_vehicle',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'assigned_driver',
+                name: 'assigned_driver',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'status',
+                name: 'status',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            },
+            {
+                data: 'action',
+                name: 'action',
+                orderable: false,
+                searchable: false,
+                className: 'text-center'
+            }
             ]
         });
 
-        $('#stateFilter, #startPointFilter, #endPointFilter, #statusFilter').on('change', function () {
+        $('.select2-filter').select2({
+            width: '100%',
+            placeholder: '---Select---',
+            allowClear: true
+        });
+
+        $('#searchFilters').on('click', function () {
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
         });
 
+        $('#searchFilter').on('keyup', function () {
+            table.ajax.reload();
+        });
+
+        $('#stateFilter').on('change', function () {
+            var stateId = $(this).val();
+            $('#districtFilter option[data-state-id]').each(function () {
+                $(this).prop('disabled', stateId && $(this).data('state-id').toString() !==
+                    stateId);
+            });
+
+            if ($('#districtFilter option:selected').prop('disabled')) {
+                $('#districtFilter').val('').trigger('change.select2');
+            }
+
+            $('#districtFilter').trigger('change.select2');
+        });
+
         $('#resetFilters').on('click', function () {
-            $('#stateFilter').val('').trigger('change.select2');
-            $('#startPointFilter').val('').trigger('change.select2');
-            $('#endPointFilter').val('').trigger('change.select2');
-            $('#statusFilter').val('');
+            $('#stateFilter, #districtFilter, #routeTypeFilter, #routeCategoryFilter, #statusFilter')
+                .val('').trigger('change.select2');
+            $('#searchFilter').val('');
             $('#checkAll').prop('checked', false);
             $('.row-check').prop('checked', false);
             table.ajax.reload();
         });
 
-        $(document).on('click', '.form-btn', function () {
-            var id = $(this).data('id');
-            $.ajax({
-                url: "{{ route('routes.create') }}",
-                type: 'GET',
-                data: { id: id },
-                success: function (response) {
-                    $('#modalBody').html(response.html);
-                    $('#modalTitle').text(response.title);
-                    initSelect();
-                    $('#formModal').modal('show');
-                },
-                error: function (xhr) {
-                    console.log('Error:', xhr.responseText);
-                    showToast('error', 'Failed to load form.');
-                }
-            });
+        $(document).on('click', '.change-status-btn', function () {
+            $('#routeStatusId').val($(this).data('id'));
+            $('#modalStatus').val($(this).data('status'));
+            $('#changeStatusModal').modal('show');
         });
 
-        $(document).on('submit', '#commonForm', function (e) {
+        $('#changeStatusForm').on('submit', function (e) {
             e.preventDefault();
 
             var form = $(this);
-            var url = form.attr('action');
-            var method = form.find('input[name="_method"]').val() || 'POST';
-            var formData = form.serialize();
             var submitBtn = form.find('button[type="submit"]');
             var originalBtnHtml = submitBtn.html();
-
             form.find('.error-text').text('');
-            form.find('.form-control, .form-select').removeClass('is-invalid');
             submitBtn.prop('disabled', true).html('Loading...');
 
             $.ajax({
-                url: url,
-                type: method,
-                data: formData,
+                url: "{{ route('routes.status') }}",
+                type: "POST",
+                data: form.serialize(),
                 success: function (response) {
+                    $('#changeStatusModal').modal('hide');
                     table.ajax.reload();
-                    $('#formModal').modal('hide');
                     showToast('success', response.message);
                 },
                 error: function (xhr) {
-                    if (xhr.status === 422) {
-                        var errors = xhr.responseJSON.errors;
-
-                        if (errors) {
-                            $.each(errors, function (field, messages) {
-                                form.find('.' + field + '_error').text(messages[0]);
-                                form.find('[name="' + field + '"]').addClass('is-invalid');
-                            });
-                        } else {
-                            showToast('error', xhr.responseJSON.message || 'Validation failed.');
-                        }
+                    if (xhr.status === 422 && xhr.responseJSON?.errors) {
+                        $.each(xhr.responseJSON.errors, function (field, messages) {
+                            form.find('.' + field + '_error').text(messages[0]);
+                        });
                     } else {
                         showToast('error', xhr.responseJSON?.message || 'Something went wrong');
                     }
                 },
                 complete: function () {
                     submitBtn.prop('disabled', false).html(originalBtnHtml);
-                }
-            });
-        });
-
-        $(document).on('click', '.toggleStatus', function () {
-            let id = $(this).data('id');
-            let currentStatus = $(this).data('status');
-            let newStatus = currentStatus == 1 ? 0 : 1;
-
-            $.ajax({
-                url: "{{ route('routes.status') }}",
-                type: "POST",
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    id: id,
-                    status: newStatus
-                },
-                success: function (res) {
-                    table.ajax.reload();
-                    showToast('success', res.message);
-                },
-                error: function (xhr) {
-                    table.ajax.reload();
-                    let message = xhr.responseJSON?.message || 'An error occurred. Please try again.';
-                    if (xhr.status === 422 && xhr.responseJSON?.errors) {
-                        message = Object.values(xhr.responseJSON.errors).flat().join('<br>');
-                    }
-                    showToast('error', message);
                 }
             });
         });
@@ -160,12 +183,17 @@
             $.ajax({
                 url: "{{ route('routes.export') }}",
                 type: 'POST',
-                data: { _token: "{{ csrf_token() }}", ids: selectedIds },
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    ids: selectedIds
+                },
                 xhrFields: {
                     responseType: 'blob'
                 },
                 success: function (data) {
-                    let blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    let blob = new Blob([data], {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    });
                     let url = window.URL.createObjectURL(blob);
                     let a = document.createElement('a');
                     a.href = url;
@@ -183,19 +211,9 @@
                 }
             });
         });
-
-        $('.multi-select').select2({});
     });
 
     function deleteRow(id) {
         deleteRecord('/routes/' + id, 'table', 'Do you really want to delete this route?');
-    }
-
-    function initSelect() {
-        $('#formModal .select2').select2({
-            placeholder: "Select an option",
-            dropdownParent: $('#formModal'),
-            allowClear: true
-        });
     }
 </script>

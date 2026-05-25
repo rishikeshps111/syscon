@@ -56,7 +56,7 @@ class TripSetupSeeder extends Seeder
         DB::transaction(function () use ($records) {
             foreach ($records as $record) {
                 $serviceType = ServiceType::where('name', $record['service_type'])->first();
-                $route = Route::where('name', $record['route'])->first();
+                $route = Route::where('route_name', $record['route'])->first();
 
                 if (! $serviceType || ! $route) {
                     continue;

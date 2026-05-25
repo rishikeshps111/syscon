@@ -154,7 +154,7 @@
                                     @forelse ($record->assignments->take(5) as $assignment)
                                         <li>
                                             <label>{{ $assignment->driver?->name ?: '-' }} :</label>
-                                            <span>{{ $assignment->route?->name ?: '-' }} | {{ $assignment->status }}</span>
+                                            <span>{{ $assignment->route?->route_name ?: '-' }} | {{ $assignment->status }}</span>
                                         </li>
                                     @empty
                                         <li><label>Assignments :</label> <span>No records found.</span></li>

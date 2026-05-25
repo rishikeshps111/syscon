@@ -37,7 +37,7 @@
             <option value="">--- Select ---</option>
             @foreach($routes as $route)
                 <option value="{{ $route->id }}" {{ old('route_id', $record->route_id ?? '') == $route->id ? 'selected' : '' }}>
-                    {{ $route->name }}
+                    {{ $route->route_name }}
                 </option>
             @endforeach
         </select>

@@ -4,7 +4,7 @@
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>R</h3>
+            <h3>Route Management</h3>
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
@@ -16,102 +16,161 @@
 
         <div class="row">
             <div class="col-lg-12 mb-3">
-                <div class="main-table-container">
-                    <div class="row">
-                        <div class="col-lg-3">
-                            <div class="o-f-inp">
-                                <label for="stateFilter">Filter by State</label>
-                                <select name="state_id" id="stateFilter" class="form-select shadow-none multi-select">
-                                    <option value="">--- Select ---</option>
-                                    @foreach($states as $state)
-                                        <option value="{{ $state->id }}">{{ $state->name }}</option>
-                                    @endforeach
-                                </select>
+                <div class="collapse" id="filterCollapse">
+                    <div class="main-table-container">
+                        <div class="row">
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="stateFilter">Filter by State</label>
+                                    <select id="stateFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">---Select---</option>
+                                        @foreach($states as $state)
+                                            <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="o-f-inp">
-                                <label for="startPointFilter">Filter by Start Point</label>
-                                <select name="start_point_id" id="startPointFilter"
-                                    class="form-select shadow-none multi-select">
-                                    <option value="">--- Select ---</option>
-                                    @foreach($depots as $depot)
-                                        <option value="{{ $depot->id }}">{{ $depot->name }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="districtFilter">District</label>
+                                    <select id="districtFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">---Select---</option>
+                                        @foreach($districts as $district)
+                                            <option value="{{ $district->id }}" data-state-id="{{ $district->state_id }}">{{ $district->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="o-f-inp">
-                                <label for="endPointFilter">Filter by End Point</label>
-                                <select name="end_point_id" id="endPointFilter"
-                                    class="form-select shadow-none multi-select">
-                                    <option value="">--- Select ---</option>
-                                    @foreach($depots as $depot)
-                                        <option value="{{ $depot->id }}">{{ $depot->name }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="routeTypeFilter">Route Type</label>
+                                    <select id="routeTypeFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">--- Select ---</option>
+                                        @foreach($routeTypes as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="o-f-inp">
-                                <label for="statusFilter">Filter by Status</label>
-                                <select name="status" id="statusFilter" class="form-select shadow-none">
-                                    <option value="">--- Select ---</option>
-                                    <option value="1">Active</option>
-                                    <option value="0">Inactive</option>
-                                </select>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="routeCategoryFilter">Route Category</label>
+                                    <select id="routeCategoryFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">--- Select ---</option>
+                                        @foreach($routeCategories as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="statusFilter">Status</label>
+                                    <select id="statusFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">--- Select ---</option>
+                                        @foreach($statuses as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-12">
+                                <div class="filter-btns-top">
+                                    <a href="#!" class="reset-btn" id="resetFilters">Reset</a>
+                                    <button type="button" class="search-btn" id="searchFilters">Search</button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row mt-2">
-                        <div class="col-lg-2 d-flex align-items-end">
-                            <button type="button" id="resetFilters" class="btn btn-secondary mb-1">
-                                Reset
-                            </button>
-                        </div>
-                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12 mb-3">
+            <div class="main-table-container">
                     <div class="row">
-                        <div class="col-lg-4 ms-auto justify-content-end d-flex">
+                        <div class="col-lg-12 ms-auto">
+                            <div class="btn-flex">
+                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
+                                aria-expanded="true" aria-controls="filterCollapse">Filters</a>
                             @can('routes.create')
-                                <button type="button" id="addNewRoute" class="add-btn form-btn">Add Route</button>
+                                <a href="{{ route('routes.create') }}" class="add-btn">Add Route</a>
                             @endcan
-                            @can('routes.view')
-                                <button id="exportSelected" class="exp-btn ms-1">Export</button>
-                            @endcan
+                            </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-lg-12">
-                            <div class=" mt-3 table-container table-over">
-                                <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
-                                    style="width:100%;">
+                            <div class="mt-3 table-container">
+                                <div class="row justify-content-end">
+                                    <div class="col-lg-8">
+                                        <div class="table-search">
+                                            <label for="searchFilter" class="nowrap">Search</label>
+                                            <input type="text" id="searchFilter" class="form-control shadow-none"
+                                                placeholder="Route code / Route name">
+                                            @can('routes.view')
+                                                <button id="exportSelected" class="exp-btn">Export Data</button>
+                                            @endcan
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-over">
+                                <table id="table" class="align-middle mb-0 table tble-cstm mt-3" style="width:100%;">
                                     <thead>
                                         <tr>
-                                            <th class="text-center">
-                                                <input type="checkbox" id="checkAll">
+                                            <th class="text-center nowrap"><input type="checkbox"
+                                                    class="fieldCheck" id="checkAll">
                                             </th>
-                                            <th class="text-center">Sl No</th>
-                                            <th class="text-center">Route Code</th>
-                                            <th class="text-center">Route Name</th>
-                                            <th class="text-center">Start Point</th>
-                                            <th class="text-center">End Point</th>
+                                            <th class="text-center nowrap">SL NO</th>
+                                            <th class="text-center nowrap">Route Code</th>
+                                            <th class="text-center nowrap">Route Name</th>
+                                            <th class="text-center">Start &rarr; End</th>
                                             <th class="text-center">Distance</th>
-                                            <th class="text-center">Estimate Duration</th>
-                                            <th class="text-center">Route Type</th>
-                                            <th class="text-center">State</th>
+                                            <th class="text-center">Duration</th>
+                                            <th class="text-center">Assigned Vehicle</th>
+                                            <th class="text-center">Assigned Driver</th>
                                             <th class="text-center">Status</th>
-                                            <th class="text-center">Action</th>
+                                            <th class="text-center">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
     </section>
+
+    <div class="modal fade" id="changeStatusModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form id="changeStatusForm" class="modal-content">
+                @csrf
+                <input type="hidden" id="routeStatusId" name="id">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="o-f-inp">
+                        <label for="modalStatus">Status <span class="text-danger">*</span></label>
+                        <select id="modalStatus" name="status" class="form-select shadow-none">
+                            @foreach ($statuses as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <span class="text-danger error-text status_error"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @section('scripts')
         @include('route.partials.js')
     @endsection

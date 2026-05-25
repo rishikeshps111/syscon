@@ -26,6 +26,8 @@ use App\Http\Controllers\OemTypeController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RouteController;
+use App\Http\Controllers\RouteAssignmentController;
+use App\Http\Controllers\RouteScheduleController;
 use App\Http\Controllers\RouteStopController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ShiftSettingController;
@@ -108,10 +110,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/routes/{route}/stops/create', [RouteStopController::class, 'create'])->name('routes.stops.create');
     Route::post('/routes/{route}/stops', [RouteStopController::class, 'store'])->name('routes.stops.store');
     Route::post('/routes/{route}/stops/export', [RouteStopController::class, 'export'])->name('routes.stops.export');
+    Route::get('/routes/{route}/assignments', [RouteAssignmentController::class, 'index'])->name('routes.assignments.index');
+    Route::get('/routes/{route}/assignments/create', [RouteAssignmentController::class, 'create'])->name('routes.assignments.create');
+    Route::post('/routes/{route}/assignments', [RouteAssignmentController::class, 'store'])->name('routes.assignments.store');
+    Route::put('/route-assignments/{routeAssignment}', [RouteAssignmentController::class, 'update'])->name('route-assignments.update');
+    Route::delete('/route-assignments/{routeAssignment}', [RouteAssignmentController::class, 'destroy'])->name('route-assignments.destroy');
+    Route::get('/routes/{route}/schedules', [RouteScheduleController::class, 'index'])->name('routes.schedules.index');
+    Route::get('/routes/{route}/schedules/create', [RouteScheduleController::class, 'create'])->name('routes.schedules.create');
+    Route::post('/routes/{route}/schedules', [RouteScheduleController::class, 'store'])->name('routes.schedules.store');
+    Route::put('/route-schedules/{routeSchedule}', [RouteScheduleController::class, 'update'])->name('route-schedules.update');
+    Route::delete('/route-schedules/{routeSchedule}', [RouteScheduleController::class, 'destroy'])->name('route-schedules.destroy');
     Route::put('/route-stops/{route_stop}', [RouteStopController::class, 'update'])->name('route-stops.update');
     Route::patch('/route-stops/{route_stop}', [RouteStopController::class, 'update']);
     Route::delete('/route-stops/{route_stop}', [RouteStopController::class, 'destroy'])->name('route-stops.destroy');
-    Route::resource('routes', RouteController::class)->except(['edit', 'show']);
+    Route::resource('routes', RouteController::class)->except(['show']);
 
     Route::post('/vehicles/export', [VehicleController::class, 'export'])
         ->name('vehicles.export');

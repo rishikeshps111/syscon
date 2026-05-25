@@ -22,7 +22,7 @@ class TripSetupExport implements FromCollection, WithHeadings
             return [
                 'Code' => $tripSetup->code,
                 'Service Type' => $tripSetup->serviceType?->name,
-                'Route' => $tripSetup->route?->name,
+                'Route' => $tripSetup->route?->route_name,
                 'Schedule Type' => ucfirst($tripSetup->schedule_type),
                 'Start Time' => $tripSetup->start_time ? substr($tripSetup->start_time, 0, 5) : '',
                 'End Time' => $tripSetup->end_time ? substr($tripSetup->end_time, 0, 5) : '',

@@ -48,7 +48,7 @@ class TripSetupController extends Controller implements HasMiddleware
                     return $row->serviceType?->name ?? '';
                 })
                 ->addColumn('route_name', function ($row) {
-                    return $row->route?->name ?? '';
+                    return $row->route?->route_name ?? '';
                 })
                 ->addColumn('status', function ($row) {
                     return $row->is_active
@@ -68,7 +68,7 @@ class TripSetupController extends Controller implements HasMiddleware
     public function create(Request $request)
     {
         $serviceTypes = ServiceType::orderBy('name')->get(['id', 'name']);
-        $routes = RouteModel::orderBy('name')->get(['id', 'name']);
+        $routes = RouteModel::orderBy('route_name')->get(['id', 'route_name']);
 
         if ($request->id) {
             $record = TripSetup::findOrFail($request->id);

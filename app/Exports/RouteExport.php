@@ -12,23 +12,31 @@ class RouteExport implements FromCollection, WithHeadings
 
     public function __construct($query = null)
     {
-        $this->query = $query ?: RouteModel::with(['state', 'startPoint', 'endPoint'])
-            ->select('state_id', 'start_point_id', 'end_point_id', 'code', 'name', 'distance', 'estimated_duration', 'route_type', 'is_active', 'created_at');
+        $this->query = $query ?: RouteModel::with(['state', 'district', 'startPoint', 'endPoint', 'activeRouteAssignments.vehicle', 'activeRouteAssignments.driver'])
+            ->select('routes.*');
     }
 
     public function collection()
     {
         return $this->query->get()->map(function ($route) {
             return [
-                'Route Code' => $route->code,
-                'Route Name' => $route->name,
+                'Route Code' => $route->route_code,
+                'Route Name' => $route->route_name,
+                'State' => $route->state?->name,
+                'District' => $route->district?->name,
                 'Start Point' => $route->startPoint?->name,
                 'End Point' => $route->endPoint?->name,
-                'Distance' => $route->distance,
+                'Distance' => $route->total_distance_km,
                 'Estimated Duration' => $route->estimated_duration ? substr($route->estimated_duration, 0, 5) : '',
                 'Route Type' => $route->route_type,
-                'State' => $route->state?->name,
-                'Status' => $route->is_active ? 'Active' : 'Inactive',
+                'Route Category' => $route->route_category,
+                'Assigned Vehicle' => $route->activeRouteAssignments->pluck('vehicle.vehicle_no')->filter()->unique()->implode(', '),
+                'Assigned Driver' => $route->activeRouteAssignments
+                    ->map(fn ($assignment) => trim(($assignment->driver?->code ? $assignment->driver->code . ' - ' : '') . ($assignment->driver?->name ?? '')))
+                    ->filter()
+                    ->unique()
+                    ->implode(', '),
+                'Status' => $route->status,
                 'Created At' => $route->created_at->format('d M Y'),
             ];
         });
@@ -39,12 +47,16 @@ class RouteExport implements FromCollection, WithHeadings
         return [
             'Route Code',
             'Route Name',
+            'State',
+            'District',
             'Start Point',
             'End Point',
             'Distance',
             'Estimated Duration',
             'Route Type',
-            'State',
+            'Route Category',
+            'Assigned Vehicle',
+            'Assigned Driver',
             'Status',
             'Created At',
         ];

@@ -32,9 +32,9 @@ class VehicleAssignmentController extends Controller implements HasMiddleware
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'code', 'name']);
-        $routes = RouteModel::where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'code', 'name']);
+        $routes = RouteModel::where('status', 'Active')
+            ->orderBy('route_name')
+            ->get(['id', 'route_code', 'route_name']);
         $statuses = VehicleAssignment::STATUSES;
 
         if ($request->ajax()) {
@@ -45,7 +45,7 @@ class VehicleAssignmentController extends Controller implements HasMiddleware
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('driver_name', fn ($row) => trim(($row->driver?->code ? $row->driver->code . ' - ' : '') . ($row->driver?->name ?? '-')))
-                ->addColumn('route_name', fn ($row) => trim(($row->route?->code ? $row->route->code . ' - ' : '') . ($row->route?->name ?? '-')))
+                ->addColumn('route_name', fn ($row) => trim(($row->route?->route_code ? $row->route->route_code . ' - ' : '') . ($row->route?->route_name ?? '-')))
                 ->addColumn('assigned_from_display', fn ($row) => $row->assigned_from?->format('d-m-Y h:i A') ?? '-')
                 ->addColumn('assigned_to_display', fn ($row) => $row->assigned_to?->format('d-m-Y h:i A') ?? '-')
                 ->addColumn('status_badge', fn ($row) => $row->status === 'Active'

@@ -2,7 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Depot;
+use App\Models\District;
+use App\Models\Location;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\State;
@@ -19,12 +20,14 @@ class RouteSeeder extends Seeder
         $records = [
             [
                 'state' => 'Kerala',
-                'start' => 'Kakkanad Main Depot',
-                'end' => 'Aluva Depot',
+                'district' => 'Ernakulam',
+                'start' => 'Kakkanad',
+                'end' => 'Aluva',
                 'name' => 'Kakkanad to Aluva',
-                'distance' => 28,
+                'distance' => 28.00,
                 'estimated_duration' => '01:10',
                 'route_type' => 'Intracity',
+                'route_category' => 'Passenger',
                 'stops' => [
                     ['name' => 'Palarivattom', 'position' => 1, 'expected_reach_time' => '00:20'],
                     ['name' => 'Edappally', 'position' => 2, 'expected_reach_time' => '00:35'],
@@ -33,12 +36,14 @@ class RouteSeeder extends Seeder
             ],
             [
                 'state' => 'Kerala',
-                'start' => 'Aluva Depot',
-                'end' => 'Fort Kochi Depot',
+                'district' => 'Ernakulam',
+                'start' => 'Aluva',
+                'end' => 'Fort Kochi',
                 'name' => 'Aluva to Fort Kochi',
-                'distance' => 34,
+                'distance' => 34.00,
                 'estimated_duration' => '01:35',
                 'route_type' => 'Intracity',
+                'route_category' => 'Passenger',
                 'stops' => [
                     ['name' => 'Kalamassery', 'position' => 1, 'expected_reach_time' => '00:25'],
                     ['name' => 'Vyttila', 'position' => 2, 'expected_reach_time' => '00:55'],
@@ -47,12 +52,14 @@ class RouteSeeder extends Seeder
             ],
             [
                 'state' => 'Tamil Nadu',
-                'start' => 'T. Nagar Depot',
-                'end' => 'Anna Nagar Depot',
+                'district' => 'Chennai',
+                'start' => 'T. Nagar',
+                'end' => 'Anna Nagar',
                 'name' => 'T. Nagar to Anna Nagar',
-                'distance' => 12,
+                'distance' => 12.00,
                 'estimated_duration' => '00:45',
                 'route_type' => 'Intracity',
+                'route_category' => 'Passenger',
                 'stops' => [
                     ['name' => 'Kodambakkam', 'position' => 1, 'expected_reach_time' => '00:15'],
                     ['name' => 'Nungambakkam', 'position' => 2, 'expected_reach_time' => '00:30'],
@@ -60,12 +67,14 @@ class RouteSeeder extends Seeder
             ],
             [
                 'state' => 'Karnataka',
-                'start' => 'Koramangala Depot',
-                'end' => 'Whitefield Depot',
+                'district' => 'Bengaluru Urban',
+                'start' => 'Koramangala',
+                'end' => 'Whitefield',
                 'name' => 'Koramangala to Whitefield',
-                'distance' => 19,
+                'distance' => 19.00,
                 'estimated_duration' => '01:20',
                 'route_type' => 'Intracity',
+                'route_category' => 'Passenger',
                 'stops' => [
                     ['name' => 'Indiranagar', 'position' => 1, 'expected_reach_time' => '00:25'],
                     ['name' => 'Marathahalli', 'position' => 2, 'expected_reach_time' => '00:55'],
@@ -73,12 +82,14 @@ class RouteSeeder extends Seeder
             ],
             [
                 'state' => 'Maharashtra',
-                'start' => 'Colaba Depot',
-                'end' => 'Dadar Depot',
+                'district' => 'Mumbai City',
+                'start' => 'Colaba',
+                'end' => 'Dadar',
                 'name' => 'Colaba to Dadar',
-                'distance' => 14,
+                'distance' => 14.00,
                 'estimated_duration' => '00:55',
                 'route_type' => 'Intracity',
+                'route_category' => 'Cargo',
                 'stops' => [
                     ['name' => 'Marine Lines', 'position' => 1, 'expected_reach_time' => '00:15'],
                     ['name' => 'Worli', 'position' => 2, 'expected_reach_time' => '00:35'],
@@ -89,28 +100,30 @@ class RouteSeeder extends Seeder
         DB::transaction(function () use ($records) {
             foreach ($records as $record) {
                 $state = State::where('name', $record['state'])->first();
-                $startDepot = Depot::where('name', $record['start'])->first();
-                $endDepot = Depot::where('name', $record['end'])->first();
+                $district = District::where('name', $record['district'])->where('state_id', $state?->id)->first();
+                $startLocation = Location::where('name', $record['start'])->where('district_id', $district?->id)->first();
+                $endLocation = Location::where('name', $record['end'])->where('district_id', $district?->id)->first();
 
-                if (! $state || ! $startDepot || ! $endDepot) {
+                if (! $state || ! $district || ! $startLocation || ! $endLocation) {
                     continue;
                 }
 
                 $route = Route::firstOrCreate(
-                    ['name' => $record['name']],
+                    ['state_id' => $state->id, 'route_name' => $record['name']],
                     [
-                        'state_id' => $state->id,
-                        'start_point_id' => $startDepot->id,
-                        'end_point_id' => $endDepot->id,
-                        'distance' => $record['distance'],
+                        'district_id' => $district->id,
+                        'start_point_id' => $startLocation->id,
+                        'end_point_id' => $endLocation->id,
+                        'total_distance_km' => $record['distance'],
                         'estimated_duration' => $record['estimated_duration'],
                         'route_type' => $record['route_type'],
-                        'is_active' => true,
+                        'route_category' => $record['route_category'],
+                        'status' => 'Active',
                     ]
                 );
 
-                if (! $route->code) {
-                    $route->code = generate_code('Route Module', $route->id, 3, 'RT');
+                if (! $route->route_code) {
+                    $route->route_code = generate_code('Route Module', $route->id, 3, 'RT');
                     $route->save();
                 }
 
