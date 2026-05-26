@@ -18,6 +18,10 @@ use Yajra\DataTables\Facades\DataTables;
 
 class LeaveController extends Controller implements HasMiddleware
 {
+    private const GENERAL_LEAVE_ROLES = ['Supervisor', 'Controller', 'Staff'];
+
+    private const FILTER_ROLES = ['Supervisor', 'Controller', 'Staff', 'Driver'];
+
     public static function middleware(): array
     {
         return [
@@ -57,7 +61,7 @@ class LeaveController extends Controller implements HasMiddleware
             'statuses' => Leave::STATUSES,
             'leaveTypes' => LeaveType::where('is_active', true)->orderBy('leave_name')->get(['id', 'leave_name', 'short_name']),
             'driverLeaveTypes' => Leave::DRIVER_LEAVE_TYPES,
-            'filterRoles' => ['Supervisor', 'Controller', 'Driver'],
+            'filterRoles' => self::FILTER_ROLES,
         ]);
     }
 
@@ -176,7 +180,7 @@ class LeaveController extends Controller implements HasMiddleware
             $query->whereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', '%' . $employeeName . '%'));
         }
 
-        if (request()->filled('role') && in_array(request('role'), ['Supervisor', 'Controller', 'Driver'], true)) {
+        if (request()->filled('role') && in_array(request('role'), self::FILTER_ROLES, true)) {
             $query->whereHas('user.roles', fn ($roleQuery) => $roleQuery->where('name', request('role')));
         }
 
@@ -240,8 +244,8 @@ class LeaveController extends Controller implements HasMiddleware
             throw ValidationException::withMessages(['user_id' => 'Please select a valid driver.']);
         }
 
-        if ($leaveFor === 'general' && ! User::role(['Supervisor', 'Controller'])->whereKey($validated['user_id'])->exists()) {
-            throw ValidationException::withMessages(['user_id' => 'Please select a valid supervisor or controller.']);
+        if ($leaveFor === 'general' && ! User::role(self::GENERAL_LEAVE_ROLES)->whereKey($validated['user_id'])->exists()) {
+            throw ValidationException::withMessages(['user_id' => 'Please select a valid supervisor, controller, or staff user.']);
         }
 
         return collect($validated)->except('attachment')->all();
@@ -250,7 +254,7 @@ class LeaveController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
-            'employees' => User::role(['Supervisor', 'Controller'])
+            'employees' => User::role(self::GENERAL_LEAVE_ROLES)
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'code', 'name']),
