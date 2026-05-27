@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Table('leaves')]
 #[Fillable([
+    'code',
     'leave_for',
     'user_id',
     'leave_type_id',

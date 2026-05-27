@@ -152,6 +152,12 @@ class PermissionSeeder extends Seeder
                 'leaves.delete',
                 'leaves.view',
             ],
+            'Attendance Management' => [
+                'attendance-management.create',
+                'attendance-management.edit',
+                'attendance-management.delete',
+                'attendance-management.view',
+            ],
             'Holiday' => [
                 'holidays.create',
                 'holidays.edit',

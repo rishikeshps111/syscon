@@ -14,6 +14,7 @@ class LeaveExport implements FromCollection, WithHeadings
     {
         return ($this->query ?: Leave::with(['user.roles', 'leaveType'])->latest())->get()->map(function (Leave $leave) {
             return [
+                'Leave Code' => $leave->code,
                 'Employee' => $leave->user?->name,
                 'Role' => $leave->user?->roles?->pluck('name')->implode(', '),
                 'Leave For' => Leave::TYPES[$leave->leave_for] ?? $leave->leave_for,
@@ -36,6 +37,7 @@ class LeaveExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
+            'Leave Code',
             'Employee',
             'Role',
             'Leave For',

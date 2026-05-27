@@ -31,6 +31,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'DSG', 'module' => 'Designation Module', 'is_active' => true],
             ['prefix' => 'HDT', 'module' => 'HRMS Document Type Module', 'is_active' => true],
             ['prefix' => 'LV', 'module' => 'Leave Type Module', 'is_active' => true],
+            ['prefix' => 'LVM', 'module' => 'Leave Management Module', 'is_active' => true],
             ['prefix' => 'SH', 'module' => 'Shift Setting Module', 'is_active' => true],
             ['prefix' => 'HOL', 'module' => 'Holiday Module', 'is_active' => true],
             ['prefix' => 'STF', 'module' => 'Staff Management Module', 'is_active' => true],

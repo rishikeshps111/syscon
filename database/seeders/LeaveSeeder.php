@@ -22,7 +22,7 @@ class LeaveSeeder extends Seeder
 
         DB::transaction(function () use ($leaveTypes, $supervisor, $controller, $driver, $admin, $route) {
             if ($supervisor && $leaveTypes->has('CL')) {
-                Leave::updateOrCreate(
+                $leave = Leave::updateOrCreate(
                     [
                         'leave_for' => 'general',
                         'user_id' => $supervisor->id,
@@ -38,10 +38,11 @@ class LeaveSeeder extends Seeder
                         'updated_by' => $admin?->id,
                     ]
                 );
+                $this->syncCode($leave);
             }
 
             if ($controller && $leaveTypes->has('SL')) {
-                Leave::updateOrCreate(
+                $leave = Leave::updateOrCreate(
                     [
                         'leave_for' => 'general',
                         'user_id' => $controller->id,
@@ -57,10 +58,11 @@ class LeaveSeeder extends Seeder
                         'updated_by' => $admin?->id,
                     ]
                 );
+                $this->syncCode($leave);
             }
 
             if ($driver) {
-                Leave::updateOrCreate(
+                $leave = Leave::updateOrCreate(
                     [
                         'leave_for' => 'driver',
                         'user_id' => $driver->id,
@@ -76,7 +78,18 @@ class LeaveSeeder extends Seeder
                         'updated_by' => $admin?->id,
                     ]
                 );
+                $this->syncCode($leave);
             }
         });
+    }
+
+    private function syncCode(Leave $leave): void
+    {
+        if ($leave->code) {
+            return;
+        }
+
+        $leave->code = generate_code('Leave Management Module', $leave->id, 3, 'LVM');
+        $leave->save();
     }
 }

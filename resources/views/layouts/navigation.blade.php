@@ -13,7 +13,7 @@
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
-                    'supervisor-management.view'])
+                    'supervisor-management.view', 'attendance-management.view'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('dashboard') ? '' : 'collapsed' }}"
                             href="{{ route('dashboard') }}">
@@ -171,12 +171,12 @@
                         </li>
                     @endcan
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav6"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('branch-locations.view')
                                 <li>
@@ -312,6 +312,14 @@
                                     <a href="{{ route('leaves.index') }}"
                                         class="{{ request()->routeIs('leaves.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Leave Management</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('attendance-management.view')
+                                <li>
+                                    <a href="{{ route('attendance-management.index') }}"
+                                        class="{{ request()->routeIs('attendance-management.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Attendance Management</span>
                                     </a>
                                 </li>
                             @endcan

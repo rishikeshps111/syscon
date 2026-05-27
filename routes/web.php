@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchLocationController;
 use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
@@ -269,6 +270,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/leaves/general/create', [LeaveController::class, 'createGeneral'])->name('leaves.general.create');
     Route::get('/leaves/driver/create', [LeaveController::class, 'createDriver'])->name('leaves.driver.create');
     Route::resource('leaves', LeaveController::class)->except(['create', 'show'])->parameters(['leaves' => 'leave']);
+
+    Route::get('/attendance-management/users-by-role', [AttendanceController::class, 'usersByRole'])
+        ->name('attendance-management.users-by-role');
+    Route::get('/attendance-management/{year}/{month}/manage', [AttendanceController::class, 'manage'])
+        ->whereNumber(['year', 'month'])
+        ->name('attendance-management.manage');
+    Route::post('/attendance-management/update', [AttendanceController::class, 'update'])
+        ->name('attendance-management.update');
+    Route::get('/attendance-management/{year}/{month}/print', [AttendanceController::class, 'print'])
+        ->whereNumber(['year', 'month'])
+        ->name('attendance-management.print');
+    Route::get('/attendance-management/{year}/{month}/export', [AttendanceController::class, 'export'])
+        ->whereNumber(['year', 'month'])
+        ->name('attendance-management.export');
+    Route::get('/attendance-management/{year}/{month}/download-pdf', [AttendanceController::class, 'downloadPdf'])
+        ->whereNumber(['year', 'month'])
+        ->name('attendance-management.pdf');
+    Route::resource('attendance-management', AttendanceController::class)
+        ->only(['index', 'create', 'store']);
 
     Route::get('/holidays/calendar', [HolidayController::class, 'calendar'])
         ->name('holidays.calendar');

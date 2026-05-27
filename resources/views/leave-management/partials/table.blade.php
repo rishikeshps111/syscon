@@ -85,6 +85,7 @@
                         <tr>
                             <th class="text-center nowrap"><input type="checkbox" class="check-all"></th>
                             <th class="text-center nowrap">SL NO</th>
+                            <th class="text-center nowrap">Leave Code</th>
                             @if($type === 'driver')
                                 <th class="text-center nowrap">Driver</th>
                                 <th class="text-center nowrap">Date</th>

@@ -14,6 +14,7 @@
             var columns = [
                 { data: 'checkbox', name: 'checkbox', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'code_display', name: 'code', className: 'text-center' },
             ];
 
             if (type === 'driver') {

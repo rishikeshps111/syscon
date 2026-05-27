@@ -28,6 +28,11 @@
                     <div class="main-table-container mb-3">
                         <div class="row">
                             <div class="col-lg-4 o-f-inp mb-3">
+                                <label for="code">Leave Code</label>
+                                <input type="text" id="code" class="form-control shadow-none"
+                                    value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
+                            </div>
+                            <div class="col-lg-4 o-f-inp mb-3">
                                 <label for="user_id">Employee Name <span class="text-danger">*</span></label>
                                 <select id="user_id" name="user_id" class="form-select shadow-none select2 @error('user_id') is-invalid @enderror">
                                     <option value="">---Select---</option>

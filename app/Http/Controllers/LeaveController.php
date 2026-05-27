@@ -42,6 +42,7 @@ class LeaveController extends Controller implements HasMiddleware
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn (Leave $row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
+                ->addColumn('code_display', fn (Leave $row) => $row->code ?: '-')
                 ->addColumn('employee_name', fn (Leave $row) => $row->user?->name ?? '-')
                 ->addColumn('role_name', fn (Leave $row) => $row->user?->roles?->pluck('name')->implode(', ') ?: '-')
                 ->addColumn('leave_type_name', fn (Leave $row) => $row->leave_for === 'driver'
@@ -89,7 +90,9 @@ class LeaveController extends Controller implements HasMiddleware
             $validated['attachment_path'] = $request->file('attachment')->store('leave-attachments', 'public');
         }
 
-        Leave::create($validated);
+        $leave = Leave::create($validated);
+        $leave->code = $this->generateLeaveCode($leave->id);
+        $leave->save();
 
         return redirect()->route('leaves.index')->with('success', 'Leave created successfully.');
     }
@@ -115,6 +118,11 @@ class LeaveController extends Controller implements HasMiddleware
         }
 
         $leave->update($validated);
+
+        if (! $leave->code) {
+            $leave->code = $this->generateLeaveCode($leave->id);
+            $leave->save();
+        }
 
         return redirect()->route('leaves.index')->with('success', 'Leave updated successfully.');
     }
@@ -254,6 +262,7 @@ class LeaveController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
+            'generatedCode' => generate_code('Leave Management Module', ((int) Leave::max('id')) + 1, 3, 'LVM'),
             'employees' => User::role(self::GENERAL_LEAVE_ROLES)
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -273,5 +282,10 @@ class LeaveController extends Controller implements HasMiddleware
             'Rejected', 'Cancelled', 'Auto Marked' => '<span class="status-red">' . e($status) . '</span>',
             default => '<span class="status-orange">Pending</span>',
         };
+    }
+
+    private function generateLeaveCode(int $id): string
+    {
+        return generate_code('Leave Management Module', $id, 3, 'LVM');
     }
 }
