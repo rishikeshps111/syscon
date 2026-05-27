@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
@@ -24,7 +25,7 @@ class AttendanceController extends Controller implements HasMiddleware
         return [
             'auth',
             new Middleware(PermissionMiddleware::using('attendance-management.view'), ['index', 'print', 'export', 'downloadPdf', 'usersByRole']),
-            new Middleware(PermissionMiddleware::using('attendance-management.create'), ['create', 'store']),
+            new Middleware(PermissionMiddleware::using('attendance-management.create'), ['create', 'store', 'importForm', 'import', 'sampleCsv']),
             new Middleware(PermissionMiddleware::using('attendance-management.edit'), ['manage', 'update']),
         ];
     }
@@ -121,6 +122,88 @@ class AttendanceController extends Controller implements HasMiddleware
         $this->saveAttendance($request);
 
         return back()->with('success', 'Attendance updated successfully.');
+    }
+
+    public function importForm()
+    {
+        return view('attendance-management.import', $this->commonData() + [
+            'headers' => $this->csvHeaders(),
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ]);
+
+        [$rows, $errors] = $this->readAttendanceCsv($request->file('csv_file')->getRealPath());
+
+        if ($errors) {
+            throw ValidationException::withMessages(['csv_file' => $errors]);
+        }
+
+        $validatedRows = $this->validateCsvRows($rows);
+
+        DB::transaction(function () use ($validatedRows) {
+            foreach ($validatedRows as $row) {
+                Attendance::updateOrCreate(
+                    [
+                        'attendance_date' => $row['attendance_date']->toDateString(),
+                        'user_id' => $row['user']->id,
+                    ],
+                    [
+                        'month' => (int) $row['attendance_date']->format('n'),
+                        'year' => (int) $row['attendance_date']->format('Y'),
+                        'user_type' => $row['user_type'],
+                        'status' => $row['status'],
+                        'half_day_period' => $row['status'] === 'half_day' ? $row['half_day_period'] : null,
+                        'shift' => $row['user_type'] === 'Driver' ? $row['shift'] : null,
+                        'leave_id' => in_array($row['status'], ['absent', 'half_day'], true) ? $row['leave_id'] : null,
+                        'remarks' => $row['remarks'],
+                        'created_by' => auth()->id(),
+                        'updated_by' => auth()->id(),
+                    ]
+                );
+            }
+        });
+
+        return redirect()
+            ->route('attendance-management.index')
+            ->with('success', count($validatedRows) . ' attendance row(s) imported successfully.');
+    }
+
+    public function sampleCsv()
+    {
+        $sampleUser = $this->attendanceUsers('Staff')->first() ?? $this->attendanceUsers()->first();
+
+        return response()->streamDownload(function () use ($sampleUser) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $this->csvHeaders());
+            fputcsv($handle, [
+                now()->format('d-m-Y'),
+                $sampleUser && $sampleUser->hasRole('Driver') ? 'Driver' : 'Staff',
+                $sampleUser?->code ?: '',
+                $sampleUser?->name ?: '',
+                'present',
+                '',
+                '',
+                '',
+                'Sample present attendance',
+            ]);
+            fputcsv($handle, [
+                now()->format('d-m-Y'),
+                $sampleUser && $sampleUser->hasRole('Driver') ? 'Driver' : 'Staff',
+                $sampleUser?->code ?: '',
+                $sampleUser?->name ?: '',
+                'half_day',
+                'morning',
+                $sampleUser && $sampleUser->hasRole('Driver') ? 'Morning' : '',
+                '',
+                'Sample half day attendance',
+            ]);
+            fclose($handle);
+        }, 'attendance-import-sample.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function print(Request $request, int $year, int $month)
@@ -371,6 +454,225 @@ class AttendanceController extends Controller implements HasMiddleware
                     });
             })
             ->exists();
+    }
+
+    private function csvHeaders(): array
+    {
+        return [
+            'attendance_date',
+            'user_type',
+            'usercode',
+            'name',
+            'status',
+            'half_day_period',
+            'shift',
+            'leave_code',
+            'remarks',
+        ];
+    }
+
+    private function readAttendanceCsv(string $path): array
+    {
+        $handle = fopen($path, 'r');
+
+        if (! $handle) {
+            return [[], ['Unable to read the uploaded CSV file.']];
+        }
+
+        $header = fgetcsv($handle);
+
+        if (! $header) {
+            fclose($handle);
+            return [[], ['CSV file is empty.']];
+        }
+
+        $header = array_map(fn ($value) => Str::of((string) $value)->trim()->lower()->replace(' ', '_')->toString(), $header);
+        $missingHeaders = array_diff(['attendance_date', 'user_type', 'status'], $header);
+
+        if ($missingHeaders) {
+            fclose($handle);
+            return [[], ['Missing required column(s): ' . implode(', ', $missingHeaders) . '.']];
+        }
+
+        if (! in_array('usercode', $header, true) && ! in_array('name', $header, true)) {
+            fclose($handle);
+            return [[], ['CSV must include either usercode or name column.']];
+        }
+
+        $rows = [];
+        $errors = [];
+        $line = 1;
+
+        while (($data = fgetcsv($handle)) !== false) {
+            $line++;
+
+            if ($this->isEmptyCsvRow($data)) {
+                continue;
+            }
+
+            if (count($data) > count($header)) {
+                $errors[] = "Row {$line}: too many columns.";
+                continue;
+            }
+
+            $data = array_pad($data, count($header), '');
+            $rows[] = [
+                'line' => $line,
+                'data' => array_combine($header, $data),
+            ];
+        }
+
+        fclose($handle);
+
+        if (! $rows && ! $errors) {
+            $errors[] = 'CSV file does not contain any attendance rows.';
+        }
+
+        return [$rows, $errors];
+    }
+
+    private function validateCsvRows(array $rows): array
+    {
+        $errors = [];
+        $validatedRows = [];
+        $seen = [];
+
+        foreach ($rows as $row) {
+            $line = $row['line'];
+            $data = collect($row['data'])
+                ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+                ->all();
+
+            $date = $this->csvDate($data['attendance_date'] ?? null);
+            $userType = $data['user_type'] ?? '';
+            $status = $data['status'] ?? '';
+            $halfDayPeriod = $data['half_day_period'] ?? null;
+            $shift = $data['shift'] ?? null;
+            $remarks = $data['remarks'] ?? null;
+
+            if (! $date) {
+                $errors[] = "Row {$line}: attendance_date must be a valid date in DD-MM-YYYY format.";
+            }
+
+            if (! array_key_exists($userType, Attendance::ROLES)) {
+                $errors[] = "Row {$line}: user_type must be one of " . implode(', ', array_keys(Attendance::ROLES)) . '.';
+            }
+
+            if (! array_key_exists($status, Attendance::STATUSES)) {
+                $errors[] = "Row {$line}: status must be one of " . implode(', ', array_keys(Attendance::STATUSES)) . '.';
+            }
+
+            [$user, $userError] = $this->csvUser($data['usercode'] ?? null, $data['name'] ?? null);
+
+            if ($userError) {
+                $errors[] = "Row {$line}: {$userError}";
+            } elseif ($userType && ! $user->hasRole($userType)) {
+                $errors[] = "Row {$line}: selected user does not have the {$userType} role.";
+            }
+
+            if ($status === 'half_day' && ! array_key_exists((string) $halfDayPeriod, Attendance::HALF_DAY_PERIODS)) {
+                $errors[] = "Row {$line}: half_day_period is required for half_day status and must be morning or afternoon.";
+            }
+
+            if ($userType === 'Driver' && ! array_key_exists((string) $shift, Attendance::SHIFTS)) {
+                $errors[] = "Row {$line}: shift is required for Driver attendance and must be Morning, Evening, or Night.";
+            }
+
+            $leaveId = $this->csvLeaveId($data['leave_code'] ?? null);
+
+            if ($data['leave_code'] ?? null) {
+                if (! $leaveId) {
+                    $errors[] = "Row {$line}: leave application not found.";
+                } elseif ($user && $date && ! $this->leaveBelongsToDate($leaveId, $user->id, $date)) {
+                    $errors[] = "Row {$line}: leave application does not belong to this user/date or is not Pending/Approved.";
+                }
+            }
+
+            if ($user && $date) {
+                $key = $date->toDateString() . ':' . $user->id;
+
+                if (isset($seen[$key])) {
+                    $errors[] = "Row {$line}: duplicate attendance for this user/date; first seen on row {$seen[$key]}.";
+                }
+
+                $seen[$key] = $line;
+            }
+
+            $validatedRows[] = [
+                'attendance_date' => $date,
+                'user_type' => $userType,
+                'user' => $user,
+                'status' => $status,
+                'half_day_period' => $status === 'half_day' ? $halfDayPeriod : null,
+                'shift' => $userType === 'Driver' ? $shift : null,
+                'leave_id' => $leaveId,
+                'remarks' => $remarks ?: null,
+            ];
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages(['csv_file' => array_slice($errors, 0, 20)]);
+        }
+
+        return $validatedRows;
+    }
+
+    private function csvDate(?string $value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::createFromFormat('d-m-Y', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $date && $date->format('d-m-Y') === $value ? $date : null;
+    }
+
+    private function csvUser(?string $userCode, ?string $name): array
+    {
+        if (! $userCode && ! $name) {
+            return [null, 'usercode or name is required.'];
+        }
+
+        $query = User::with('roles')->where('is_active', true);
+
+        if ($userCode) {
+            $user = (clone $query)->where('code', $userCode)->first();
+
+            return $user
+                ? [$user, null]
+                : [null, 'active user not found for the supplied usercode.'];
+        }
+
+        $users = $query->where('name', $name)->limit(2)->get();
+
+        if ($users->count() > 1) {
+            return [null, 'multiple active users found with this name; use usercode instead.'];
+        }
+
+        return $users->isNotEmpty()
+            ? [$users->first(), null]
+            : [null, 'active user not found for the supplied name.'];
+    }
+
+    private function csvLeaveId(?string $leaveCode): ?int
+    {
+        if (! $leaveCode) {
+            return null;
+        }
+
+        return Leave::query()
+            ->where('code', $leaveCode)
+            ->value('id');
+    }
+
+    private function isEmptyCsvRow(array $row): bool
+    {
+        return collect($row)->every(fn ($value) => trim((string) $value) === '');
     }
 
     private function validDate(int $year, int $month, ?string $date): Carbon

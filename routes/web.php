@@ -273,6 +273,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/attendance-management/users-by-role', [AttendanceController::class, 'usersByRole'])
         ->name('attendance-management.users-by-role');
+    Route::get('/attendance-management/import', [AttendanceController::class, 'importForm'])
+        ->name('attendance-management.import.form');
+    Route::post('/attendance-management/import', [AttendanceController::class, 'import'])
+        ->name('attendance-management.import');
+    Route::get('/attendance-management/sample-csv', [AttendanceController::class, 'sampleCsv'])
+        ->name('attendance-management.sample-csv');
     Route::get('/attendance-management/{year}/{month}/manage', [AttendanceController::class, 'manage'])
         ->whereNumber(['year', 'month'])
         ->name('attendance-management.manage');
