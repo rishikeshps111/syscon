@@ -30,6 +30,10 @@
                             <button class="nav-link mb-0" data-table-type="driver" data-bs-toggle="tab"
                                 data-bs-target="#lv2" type="button">Shift-Based Leave System</button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link mb-0" data-table-type="consolidated" data-bs-toggle="tab"
+                                data-bs-target="#lv3" type="button">Consolidated Leave Report</button>
+                        </li>
                     </ul>
 
                     <div class="tab-content pt-2">
@@ -41,6 +45,9 @@
                         </div>
                         <div class="tab-pane fade lv2" id="lv2">
                             @include('leave-management.partials.table', ['type' => 'driver'])
+                        </div>
+                        <div class="tab-pane fade lv3" id="lv3">
+                            @include('leave-management.partials.consolidated-report')
                         </div>
                     </div>
                 </div>

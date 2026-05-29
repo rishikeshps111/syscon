@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('from_date')->nullable();
             $table->date('to_date')->nullable();
             $table->date('leave_date')->nullable();
+            $table->enum('day_type', ['full_day', 'half_day'])->default('full_day');
             $table->decimal('number_of_days', 8, 2)->nullable();
             $table->string('shift')->nullable();
             $table->string('assigned_vehicle_route')->nullable();

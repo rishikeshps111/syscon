@@ -353,6 +353,27 @@
                         </a>
                     </li>
                 @endcan
+                @can('settings.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('financial-year-settings.*') ? '' : 'collapsed' }}"
+                            data-bs-target="#sidebarSettings" data-bs-toggle="collapse" href="#">
+                            <i class="fa-solid fa-gear"></i>
+                            <span>Settings</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <ul id="sidebarSettings"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('financial-year-settings.*') ? 'show' : '' }}"
+                            data-bs-parent="#sidebar-nav">
+                            <li>
+                                <a href="{{ route('financial-year-settings.index') }}"
+                                    class="{{ request()->routeIs('financial-year-settings.*') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Financial Year Settings</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>

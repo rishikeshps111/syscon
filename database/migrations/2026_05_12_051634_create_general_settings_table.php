@@ -14,6 +14,9 @@ return new class extends Migration
         Schema::create('general_settings', function (Blueprint $table) {
             $table->id();
             $table->string('financial_year')->nullable();
+            $table->unsignedTinyInteger('financial_year_from_month')->nullable();
+            $table->unsignedSmallInteger('financial_year_to_year')->nullable();
+            $table->unsignedTinyInteger('financial_year_to_month')->nullable();
             $table->timestamps();
         });
     }

@@ -194,6 +194,10 @@ class PermissionSeeder extends Seeder
                 'complaints.delete',
                 'complaints.view',
             ],
+            'Settings' => [
+                'settings.edit',
+                'settings.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

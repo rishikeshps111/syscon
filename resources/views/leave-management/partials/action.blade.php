@@ -1,5 +1,10 @@
-@canany(['leaves.edit', 'leaves.delete'])
+@canany(['leaves.view', 'leaves.edit', 'leaves.delete'])
     <div class="action-btns">
+        @can('leaves.view')
+            <a href="{{ route('leaves.show', $row->id) }}" class="btn-view" title="View">
+                <i class="fa-solid fa-eye"></i>
+            </a>
+        @endcan
         @can('leaves.edit')
             <a href="{{ route('leaves.edit', $row->id) }}" class="btn-edit" title="Edit">
                 <i class="fa-solid fa-pen-to-square"></i>

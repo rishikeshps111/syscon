@@ -18,9 +18,7 @@ class LeaveExport implements FromCollection, WithHeadings
                 'Employee' => $leave->user?->name,
                 'Role' => $leave->user?->roles?->pluck('name')->implode(', '),
                 'Leave For' => Leave::TYPES[$leave->leave_for] ?? $leave->leave_for,
-                'Leave Type' => $leave->leave_for === 'driver'
-                    ? $leave->driver_leave_type
-                    : $leave->leaveType?->short_name ?? $leave->leaveType?->leave_name,
+                'Leave Type' => $leave->leaveType?->short_name ?: $leave->leaveType?->leave_name ?: $leave->driver_leave_type,
                 'From' => $leave->from_date?->format('d M Y'),
                 'To' => $leave->to_date?->format('d M Y'),
                 'Date' => $leave->leave_date?->format('d M Y'),

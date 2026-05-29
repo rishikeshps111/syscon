@@ -16,7 +16,7 @@ class LeaveTypeSeeder extends Seeder
         $records = [
             [
                 'leave_name' => 'Casual Leave',
-                'short_name' => 'CL',
+                'short_name' => 'Casual Leave',
                 'leave_category' => 'Paid Leave',
                 'max_leaves_per_year' => 12,
                 'carry_forward_allowed' => false,
@@ -36,7 +36,7 @@ class LeaveTypeSeeder extends Seeder
             ],
             [
                 'leave_name' => 'Sick Leave',
-                'short_name' => 'SL',
+                'short_name' => 'Sick Leave',
                 'leave_category' => 'Paid Leave',
                 'max_leaves_per_year' => 10,
                 'carry_forward_allowed' => false,
@@ -56,7 +56,7 @@ class LeaveTypeSeeder extends Seeder
             ],
             [
                 'leave_name' => 'Earned Leave',
-                'short_name' => 'EL',
+                'short_name' => 'Earned Leave',
                 'leave_category' => 'Paid Leave',
                 'max_leaves_per_year' => 24,
                 'carry_forward_allowed' => true,
@@ -76,7 +76,7 @@ class LeaveTypeSeeder extends Seeder
             ],
             [
                 'leave_name' => 'Maternity Leave',
-                'short_name' => 'ML',
+                'short_name' => 'Maternity Leave',
                 'leave_category' => 'Paid Leave',
                 'max_leaves_per_year' => 180,
                 'carry_forward_allowed' => false,
@@ -96,7 +96,7 @@ class LeaveTypeSeeder extends Seeder
             ],
             [
                 'leave_name' => 'Paternity Leave',
-                'short_name' => 'PL',
+                'short_name' => 'Paternity Leave',
                 'leave_category' => 'Paid Leave',
                 'max_leaves_per_year' => 10,
                 'carry_forward_allowed' => false,

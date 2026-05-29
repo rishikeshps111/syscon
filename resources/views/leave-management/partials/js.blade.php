@@ -1,6 +1,8 @@
 <script>
     $(function () {
         var tables = {};
+        var consolidatedTable = null;
+        var filterUsersByRole = @json($filterUsersByRole ?? []);
 
         $('.leave-select-filter').select2({
             width: '100%',
@@ -20,10 +22,12 @@
             if (type === 'driver') {
                 columns = columns.concat([
                     { data: 'employee_name', name: 'user.name', orderable: false, className: 'text-center' },
-                    { data: 'date_display', name: 'leave_date', className: 'text-center' },
+                    { data: 'from_display', name: 'from_date', className: 'text-center' },
+                    { data: 'to_display', name: 'to_date', className: 'text-center' },
+                    { data: 'days_display', name: 'number_of_days', className: 'text-center' },
                     { data: 'shift', name: 'shift', className: 'text-center' },
                     { data: 'assigned_vehicle_route', name: 'assigned_vehicle_route', className: 'text-center' },
-                    { data: 'leave_type_name', name: 'driver_leave_type', orderable: false, className: 'text-center' },
+                    { data: 'leave_type_name', name: 'leaveType.leave_name', orderable: false, className: 'text-center' },
                 ]);
             } else {
                 columns = columns.concat([
@@ -53,7 +57,8 @@
                         data.employee_name = $('#' + type + 'EmployeeFilter').val();
                         data.leave_type = $('#' + type + 'LeaveTypeFilter').val();
                         data.role = $('#' + type + 'RoleFilter').val();
-                        data.leave_date = $('#' + type + 'DateFilter').val();
+                        data.from_date = $('#' + type + 'FromDateFilter').val();
+                        data.to_date = $('#' + type + 'ToDateFilter').val();
                     }
                 },
                 columns: columns,
@@ -63,13 +68,46 @@
 
         $('.reset-leave-filters').on('click', function () {
             var type = $(this).data('type');
-            $('#' + type + 'EmployeeFilter, #' + type + 'DateFilter').val('');
+            $('#' + type + 'FromDateFilter, #' + type + 'ToDateFilter').val('');
             $('#' + type + 'LeaveTypeFilter, #' + type + 'RoleFilter, #' + type + 'StatusFilter').val('').trigger('change');
+            loadEmployeeFilterOptions(type);
             tables[type].ajax.reload();
         });
 
+        function loadEmployeeFilterOptions(type) {
+            var role = $('#' + type + 'RoleFilter').val();
+            var employeeFilter = $('#' + type + 'EmployeeFilter');
+
+            if (! employeeFilter.is('select')) {
+                return;
+            }
+
+            employeeFilter.empty();
+
+            if (! role || ! filterUsersByRole[role]) {
+                employeeFilter.append(new Option('---Select User Type First---', ''));
+                employeeFilter.val('').trigger('change.select2');
+                return;
+            }
+
+            employeeFilter.append(new Option('---Select---', ''));
+            filterUsersByRole[role].forEach(function (user) {
+                employeeFilter.append(new Option(user.name, user.search_name));
+            });
+            employeeFilter.val('').trigger('change.select2');
+        }
+
         $('.leave-select-filter, input[type="date"].leave-filter').on('change', function () {
             var type = $(this).closest('.tab-pane').find('.leave-table').data('type');
+
+            if (! type || ! tables[type]) {
+                return;
+            }
+
+            if ($(this).attr('id') === type + 'RoleFilter') {
+                loadEmployeeFilterOptions(type);
+            }
+
             tables[type].ajax.reload();
         });
 
@@ -92,7 +130,12 @@
 
         $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
             var type = $(this).data('table-type');
-            tables[type].columns.adjust();
+            if (tables[type]) {
+                tables[type].columns.adjust();
+            }
+            if (type === 'consolidated' && consolidatedTable) {
+                consolidatedTable.columns.adjust();
+            }
         });
 
         $(document).on('change', '.check-all', function () {
@@ -164,7 +207,8 @@
                     employee_name: $('#' + type + 'EmployeeFilter').val(),
                     leave_type: $('#' + type + 'LeaveTypeFilter').val(),
                     role: $('#' + type + 'RoleFilter').val(),
-                    leave_date: $('#' + type + 'DateFilter').val()
+                    from_date: $('#' + type + 'FromDateFilter').val(),
+                    to_date: $('#' + type + 'ToDateFilter').val()
                 },
                 xhrFields: { responseType: 'blob' },
                 success: function (data) {
@@ -185,6 +229,72 @@
                     showToast('error', xhr.responseJSON?.message || 'Export failed.');
                 }
             });
+        });
+
+        function consolidatedFilters() {
+            return {
+                status: $('#consolidatedStatusFilter').val(),
+                employee_name: $('#consolidatedEmployeeFilter').val(),
+                leave_type: $('#consolidatedLeaveTypeFilter').val(),
+                role: $('#consolidatedRoleFilter').val(),
+                from_date: $('#consolidatedFromDateFilter').val(),
+                to_date: $('#consolidatedToDateFilter').val()
+            };
+        }
+
+        function initConsolidatedTable() {
+            if (consolidatedTable) {
+                consolidatedTable.ajax.reload();
+                return;
+            }
+
+            consolidatedTable = $('#consolidatedLeaveTable').DataTable({
+                processing: true,
+                serverSide: true,
+                searching: false,
+                ajax: {
+                    url: "{{ route('leaves.consolidated-report.data') }}",
+                    data: function (data) {
+                        Object.assign(data, consolidatedFilters());
+                    }
+                },
+                columns: [
+                    { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                    { data: 'code_display', name: 'code', className: 'text-center' },
+                    { data: 'employee_name', name: 'user.name', orderable: false, className: 'text-center' },
+                    { data: 'role_name', name: 'role_name', orderable: false, searchable: false, className: 'text-center' },
+                    { data: 'leave_type_name', name: 'leaveType.leave_name', orderable: false, className: 'text-center' },
+                    { data: 'from_display', name: 'from_date', className: 'text-center' },
+                    { data: 'to_display', name: 'to_date', className: 'text-center' },
+                    { data: 'days_display', name: 'number_of_days', className: 'text-center' },
+                    { data: 'status_badge', name: 'status', orderable: false, searchable: false, className: 'text-center' }
+                ],
+                order: []
+            });
+        }
+
+        $('#consolidatedRoleFilter').on('change', function () {
+            loadEmployeeFilterOptions('consolidated');
+        });
+
+        $('#filterConsolidatedReport').on('click', function () {
+            initConsolidatedTable();
+        });
+
+        $('#resetConsolidatedReport').on('click', function () {
+            $('#consolidatedFromDateFilter, #consolidatedToDateFilter').val('');
+            $('#consolidatedLeaveTypeFilter, #consolidatedRoleFilter, #consolidatedStatusFilter').val('').trigger('change');
+            loadEmployeeFilterOptions('consolidated');
+            if (consolidatedTable) {
+                consolidatedTable.destroy();
+                consolidatedTable = null;
+                $('#consolidatedLeaveTable tbody').empty();
+            }
+        });
+
+        $('#downloadConsolidatedReport').on('click', function () {
+            var query = $.param(consolidatedFilters());
+            window.location.href = "{{ route('leaves.consolidated-report.pdf') }}" + (query ? '?' + query : '');
         });
 
         function currentType() {

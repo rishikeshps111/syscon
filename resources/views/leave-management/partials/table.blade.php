@@ -2,27 +2,7 @@
     @if($type === 'all')
         <div class="col-lg-3 mb-3">
             <div class="o-f-inp">
-                <label for="{{ $type }}EmployeeFilter">Employee Name</label>
-                <input type="text" id="{{ $type }}EmployeeFilter" class="form-control shadow-none leave-filter">
-            </div>
-        </div>
-        <div class="col-lg-3 mb-3">
-            <div class="o-f-inp">
-                <label for="{{ $type }}LeaveTypeFilter">Leave Type</label>
-                <select id="{{ $type }}LeaveTypeFilter" class="form-select shadow-none leave-select-filter leave-filter">
-                    <option value="">---Select---</option>
-                    @foreach($leaveTypes as $leaveType)
-                        <option value="general:{{ $leaveType->id }}">{{ $leaveType->short_name ?: $leaveType->leave_name }}</option>
-                    @endforeach
-                    @foreach($driverLeaveTypes as $value => $label)
-                        <option value="driver:{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="col-lg-3 mb-3">
-            <div class="o-f-inp">
-                <label for="{{ $type }}RoleFilter">Role</label>
+                <label for="{{ $type }}RoleFilter">User Type</label>
                 <select id="{{ $type }}RoleFilter" class="form-select shadow-none leave-select-filter leave-filter">
                     <option value="">---Select---</option>
                     @foreach($filterRoles as $role)
@@ -33,8 +13,36 @@
         </div>
         <div class="col-lg-3 mb-3">
             <div class="o-f-inp">
-                <label for="{{ $type }}DateFilter">Date</label>
-                <input type="date" id="{{ $type }}DateFilter" class="form-control shadow-none leave-filter">
+                <label for="{{ $type }}EmployeeFilter">Employee Name</label>
+                <select id="{{ $type }}EmployeeFilter" class="form-select shadow-none leave-select-filter leave-filter">
+                    <option value="">---Select User Type First---</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-lg-3 mb-3">
+            <div class="o-f-inp">
+                <label for="{{ $type }}LeaveTypeFilter">Leave Type</label>
+                <select id="{{ $type }}LeaveTypeFilter" class="form-select shadow-none leave-select-filter leave-filter">
+                    <option value="">---Select---</option>
+                    @foreach($leaveTypes as $leaveType)
+                        <option value="general:{{ $leaveType->id }}">{{ $leaveType->short_name ?: $leaveType->leave_name }}</option>
+                    @endforeach
+                    @foreach($driverLeaveTypes as $leaveType)
+                        <option value="driver:{{ $leaveType->id }}">Driver - {{ $leaveType->short_name ?: $leaveType->leave_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div class="col-lg-3 mb-3">
+            <div class="o-f-inp">
+                <label for="{{ $type }}FromDateFilter">From Date</label>
+                <input type="date" id="{{ $type }}FromDateFilter" class="form-control shadow-none leave-filter">
+            </div>
+        </div>
+        <div class="col-lg-3 mb-3">
+            <div class="o-f-inp">
+                <label for="{{ $type }}ToDateFilter">To Date</label>
+                <input type="date" id="{{ $type }}ToDateFilter" class="form-control shadow-none leave-filter">
             </div>
         </div>
     @endif
@@ -88,7 +96,9 @@
                             <th class="text-center nowrap">Leave Code</th>
                             @if($type === 'driver')
                                 <th class="text-center nowrap">Driver</th>
-                                <th class="text-center nowrap">Date</th>
+                                <th class="text-center nowrap">From</th>
+                                <th class="text-center nowrap">To</th>
+                                <th class="text-center nowrap">Days</th>
                                 <th class="text-center nowrap">Shift</th>
                                 <th class="text-center">Route</th>
                                 <th class="text-center">Leave Type</th>

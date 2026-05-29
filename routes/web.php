@@ -14,6 +14,7 @@ use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
+use App\Http\Controllers\FinancialYearSettingController;
 use App\Http\Controllers\HrmsDocumentTypeController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
@@ -169,6 +170,11 @@ Route::middleware('auth')->group(function () {
         ->name('vehicle-fuel-logs.destroy');
     Route::resource('vehicles', VehicleController::class);
 
+    Route::get('/financial-year-settings', [FinancialYearSettingController::class, 'index'])
+        ->name('financial-year-settings.index');
+    Route::put('/financial-year-settings', [FinancialYearSettingController::class, 'update'])
+        ->name('financial-year-settings.update');
+
     Route::post('/trip-setups/status', [TripSetupController::class, 'status'])->name('trip-setups.status');
     Route::post('/trip-setups/export', [TripSetupController::class, 'export'])
         ->name('trip-setups.export');
@@ -267,9 +273,14 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/leaves/export', [LeaveController::class, 'export'])->name('leaves.export');
     Route::post('/leaves/{leave}/change-status', [LeaveController::class, 'changeStatus'])->name('leaves.change-status');
+    Route::get('/leaves/balances', [LeaveController::class, 'balances'])->name('leaves.balances');
+    Route::get('/leaves/consolidated-report/data', [LeaveController::class, 'consolidatedReportData'])
+        ->name('leaves.consolidated-report.data');
+    Route::get('/leaves/consolidated-report/pdf', [LeaveController::class, 'downloadConsolidatedReport'])
+        ->name('leaves.consolidated-report.pdf');
     Route::get('/leaves/general/create', [LeaveController::class, 'createGeneral'])->name('leaves.general.create');
     Route::get('/leaves/driver/create', [LeaveController::class, 'createDriver'])->name('leaves.driver.create');
-    Route::resource('leaves', LeaveController::class)->except(['create', 'show'])->parameters(['leaves' => 'leave']);
+    Route::resource('leaves', LeaveController::class)->except(['create'])->parameters(['leaves' => 'leave']);
 
     Route::get('/attendance-management/users-by-role', [AttendanceController::class, 'usersByRole'])
         ->name('attendance-management.users-by-role');

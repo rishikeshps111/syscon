@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'from_date',
     'to_date',
     'leave_date',
+    'day_type',
     'number_of_days',
     'shift',
     'assigned_vehicle_route',
@@ -48,6 +49,11 @@ class Leave extends Model
         'Morning' => 'Morning',
         'Evening' => 'Evening',
         'Night' => 'Night',
+    ];
+
+    public const DAY_TYPES = [
+        'full_day' => 'Full Day',
+        'half_day' => 'Half Day',
     ];
 
     public const STATUSES = [
