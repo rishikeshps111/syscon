@@ -18,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'schedule_type',
     'start_time',
     'end_time',
+    'halt_time',
+    'trip_side',
     'from_date',
     'to_date',
     'status',
@@ -43,6 +45,12 @@ class Trip extends Model
         'Active' => 'Active',
         'Inactive' => 'Inactive',
         'Cancelled' => 'Cancelled',
+    ];
+
+    public const TRIP_SIDES = [
+        'up' => 'Up',
+        'down' => 'Down',
+        'both' => 'Both',
     ];
 
     protected function casts(): array

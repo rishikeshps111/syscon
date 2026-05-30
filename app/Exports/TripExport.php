@@ -13,7 +13,7 @@ class TripExport implements FromCollection, WithHeadings
     public function __construct($query = null)
     {
         $this->query = $query ?: Trip::with(['serviceType', 'route.startPoint', 'route.endPoint', 'depot'])
-            ->select('service_type_id', 'route_id', 'depot_id', 'code', 'title', 'schedule_type', 'start_time', 'end_time', 'is_active', 'status', 'from_date', 'to_date', 'created_at');
+            ->select('service_type_id', 'route_id', 'depot_id', 'code', 'title', 'schedule_type', 'start_time', 'end_time', 'halt_time', 'trip_side', 'is_active', 'status', 'from_date', 'to_date', 'created_at');
     }
 
     public function collection()
@@ -31,6 +31,8 @@ class TripExport implements FromCollection, WithHeadings
                 'To Date' => $trip->to_date?->format('d M Y'),
                 'Actual Start Time' => $trip->start_time ? substr($trip->start_time, 0, 5) : '',
                 'Actual Reach Time' => $trip->end_time ? substr($trip->end_time, 0, 5) : '',
+                'Halt Time' => $trip->halt_time ? substr($trip->halt_time, 0, 5) : '',
+                'Trip Side' => Trip::TRIP_SIDES[$trip->trip_side] ?? '',
                 'Status' => $trip->status ?: ($trip->is_active ? 'Active' : 'Inactive'),
                 'Created At' => $trip->created_at->format('d M Y'),
             ];
@@ -51,6 +53,8 @@ class TripExport implements FromCollection, WithHeadings
             'To Date',
             'Actual Start Time',
             'Actual Reach Time',
+            'Halt Time',
+            'Trip Side',
             'Status',
             'Created At',
         ];

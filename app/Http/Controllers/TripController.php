@@ -15,11 +15,14 @@ use App\Models\ShiftSetting;
 use App\Models\SupervisorProfile;
 use App\Models\Trip;
 use App\Models\Vehicle;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
@@ -33,7 +36,7 @@ class TripController extends Controller implements HasMiddleware
             new Middleware(PermissionMiddleware::using('trips.view'), ['index', 'show', 'export']),
             new Middleware(PermissionMiddleware::using('trips.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('trips.edit'), ['edit', 'update', 'status']),
-            new Middleware(PermissionMiddleware::using('trips.sheet'), ['sheet', 'storeSheet', 'sheetView']),
+            new Middleware(PermissionMiddleware::using('trips.sheet'), ['sheet', 'storeSheet', 'sheetView', 'importSheetForm', 'importSheet', 'sampleSheetCsv']),
             new Middleware(PermissionMiddleware::using('trips.delete'), ['destroy']),
         ];
     }
@@ -51,6 +54,8 @@ class TripController extends Controller implements HasMiddleware
                 ->addColumn('trip_title', fn ($row) => $row->trip_title ?: '-')
                 ->addColumn('from_location', fn ($row) => $row->route?->startPoint?->name ?? '-')
                 ->addColumn('to_location', fn ($row) => $row->route?->endPoint?->name ?? '-')
+                ->addColumn('halt_time', fn ($row) => $row->halt_time ? substr($row->halt_time, 0, 5) : '-')
+                ->addColumn('trip_side', fn ($row) => Trip::TRIP_SIDES[$row->trip_side] ?? '-')
                 ->addColumn('status', fn ($row) => $this->statusBadge($row->status))
                 ->addColumn('action', fn ($row) => view('trip.partials.action', compact('row'))->render())
                 ->rawColumns(['action', 'status', 'checkbox'])
@@ -248,6 +253,91 @@ class TripController extends Controller implements HasMiddleware
         ]);
     }
 
+    public function importSheetForm(Trip $trip)
+    {
+        return view('trip.sheet-import', [
+            'record' => $trip->load(['route.startPoint', 'route.endPoint', 'route.stops']),
+            'headers' => $this->sheetCsvHeaders(),
+        ]);
+    }
+
+    public function importSheet(Request $request, Trip $trip)
+    {
+        $request->validate([
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+        ]);
+
+        [$rows, $errors] = $this->readSheetCsv($request->file('csv_file')->getRealPath());
+
+        if ($errors) {
+            throw ValidationException::withMessages(['csv_file' => $errors]);
+        }
+
+        $validatedRows = $this->validateSheetCsvRows($trip, $rows);
+
+        DB::transaction(function () use ($trip, $validatedRows) {
+            $dates = collect($validatedRows)
+                ->pluck('trip_date')
+                ->map(fn (Carbon $date) => $date->toDateString())
+                ->unique()
+                ->values();
+
+            $trip->sheetEntries()
+                ->whereIn('trip_date', $dates)
+                ->delete();
+
+            foreach ($validatedRows as $row) {
+                $trip->sheetEntries()->create([
+                    'trip_date' => $row['trip_date']->toDateString(),
+                    'departure_time' => $row['departure_time'],
+                    'arrival_time' => $row['arrival_time'],
+                    'actual_start_time' => $row['actual_start_time'],
+                    'actual_reach_time' => $row['actual_reach_time'],
+                    'verified_by' => $row['verified_by'],
+                    'approved_by' => $row['approved_by'],
+                    'shift' => $row['shift'],
+                    'driver_profile_id' => $row['driver_profile_id'],
+                    'vehicle_id' => $row['vehicle_id'],
+                    'notes' => $row['notes'],
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('trips.sheet.view', $trip->id)
+            ->with('success', count($validatedRows) . ' trip sheet row(s) imported successfully.');
+    }
+
+    public function sampleSheetCsv(Trip $trip)
+    {
+        $driver = DriverProfile::with('user')
+            ->whereHas('user', fn ($query) => $query->where('is_active', true))
+            ->first();
+        $vehicle = Vehicle::where('status', 'Active')->orderBy('vehicle_no')->first();
+        $shift = ShiftSetting::where('is_active', true)->orderBy('shift_name')->value('shift_name');
+        $tripDate = $trip->from_date ?: now();
+
+        return response()->streamDownload(function () use ($driver, $vehicle, $shift, $tripDate) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, $this->sheetCsvHeaders());
+            fputcsv($handle, [
+                $tripDate->format('d-m-Y'),
+                '09:00',
+                '17:00',
+                '09:05',
+                '17:10',
+                '',
+                '',
+                $shift ?: '',
+                $driver?->user?->code ?: '',
+                $driver?->user?->name ?: '',
+                $vehicle?->vehicle_no ?: '',
+                'Sample trip sheet row',
+            ]);
+            fclose($handle);
+        }, ($trip->code ?: 'trip') . '-sheet-import-sample.csv', ['Content-Type' => 'text/csv']);
+    }
+
     public function storeSheet(Request $request, Trip $trip)
     {
         $validated = $request->validate([
@@ -344,6 +434,252 @@ class TripController extends Controller implements HasMiddleware
     private function formatSheetTime(?string $time): string
     {
         return $time ? substr($time, 0, 5) : '';
+    }
+
+    private function sheetCsvHeaders(): array
+    {
+        return [
+            'trip_date',
+            'departure_time',
+            'arrival_time',
+            'actual_start_time',
+            'actual_reach_time',
+            'verified_by',
+            'approved_by',
+            'shift',
+            'driver_code',
+            'driver_name',
+            'vehicle_no',
+            'notes',
+        ];
+    }
+
+    private function readSheetCsv(string $path): array
+    {
+        $handle = fopen($path, 'r');
+
+        if (! $handle) {
+            return [[], ['Unable to read the uploaded CSV file.']];
+        }
+
+        $header = fgetcsv($handle);
+
+        if (! $header) {
+            fclose($handle);
+            return [[], ['CSV file is empty.']];
+        }
+
+        $header = array_map(fn ($value) => Str::of((string) $value)->trim()->lower()->replace(' ', '_')->toString(), $header);
+        $missingHeaders = array_diff(['trip_date'], $header);
+
+        if ($missingHeaders) {
+            fclose($handle);
+            return [[], ['Missing required column(s): ' . implode(', ', $missingHeaders) . '.']];
+        }
+
+        $rows = [];
+        $errors = [];
+        $line = 1;
+
+        while (($data = fgetcsv($handle)) !== false) {
+            $line++;
+
+            if ($this->isEmptyCsvRow($data)) {
+                continue;
+            }
+
+            if (count($data) > count($header)) {
+                $errors[] = "Row {$line}: too many columns.";
+                continue;
+            }
+
+            $data = array_pad($data, count($header), '');
+            $rows[] = [
+                'line' => $line,
+                'data' => array_combine($header, $data),
+            ];
+        }
+
+        fclose($handle);
+
+        if (! $rows && ! $errors) {
+            $errors[] = 'CSV file does not contain any trip sheet rows.';
+        }
+
+        return [$rows, $errors];
+    }
+
+    private function validateSheetCsvRows(Trip $trip, array $rows): array
+    {
+        $errors = [];
+        $validatedRows = [];
+        $seen = [];
+
+        foreach ($rows as $row) {
+            $line = $row['line'];
+            $data = collect($row['data'])
+                ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+                ->all();
+
+            $date = $this->csvDate($data['trip_date'] ?? null);
+            $departureTime = $this->csvTime($data['departure_time'] ?? null);
+            $arrivalTime = $this->csvTime($data['arrival_time'] ?? null);
+            $actualStartTime = $this->csvTime($data['actual_start_time'] ?? null) ?: $departureTime;
+            $actualReachTime = $this->csvTime($data['actual_reach_time'] ?? null) ?: $arrivalTime;
+            $verifiedBy = $data['verified_by'] ?? null;
+            $approvedBy = $data['approved_by'] ?? null;
+            $shift = $data['shift'] ?? null;
+            $vehicleNo = $data['vehicle_no'] ?? null;
+            $notes = $data['notes'] ?? null;
+
+            if (! $date) {
+                $errors[] = "Row {$line}: trip_date must be a valid date in DD-MM-YYYY format.";
+            } elseif (($trip->from_date && $date->lt($trip->from_date)) || ($trip->to_date && $date->gt($trip->to_date))) {
+                $errors[] = "Row {$line}: trip_date must be within the trip date range.";
+            }
+
+            foreach (['departure_time', 'arrival_time', 'actual_start_time', 'actual_reach_time'] as $field) {
+                if (($data[$field] ?? '') !== '' && ! $this->csvTime($data[$field])) {
+                    $errors[] = "Row {$line}: {$field} must be a valid time in HH:MM format.";
+                }
+            }
+
+            if ($verifiedBy && ! $this->controllerNameExists($trip, $verifiedBy)) {
+                $errors[] = "Row {$line}: verified_by must be an active controller name for this depot.";
+            }
+
+            if ($approvedBy && ! $this->supervisorNameExists($trip, $approvedBy)) {
+                $errors[] = "Row {$line}: approved_by must be an active supervisor name for this depot.";
+            }
+
+            if ($shift && ! ShiftSetting::where('is_active', true)->where('shift_name', $shift)->exists()) {
+                $errors[] = "Row {$line}: shift must be an active shift name.";
+            }
+
+            [$driverProfileId, $driverError] = $this->csvDriverProfileId($data['driver_code'] ?? null, $data['driver_name'] ?? null);
+
+            if ($driverError) {
+                $errors[] = "Row {$line}: {$driverError}";
+            }
+
+            $vehicleId = null;
+
+            if ($vehicleNo) {
+                $vehicleId = Vehicle::where('vehicle_no', $vehicleNo)->where('status', 'Active')->value('id');
+
+                if (! $vehicleId) {
+                    $errors[] = "Row {$line}: active vehicle not found for vehicle_no.";
+                }
+            }
+
+            if ($date) {
+                $key = $date->toDateString();
+
+                if (isset($seen[$key])) {
+                    $errors[] = "Row {$line}: duplicate trip sheet date; first seen on row {$seen[$key]}.";
+                }
+
+                $seen[$key] = $line;
+            }
+
+            $validatedRows[] = [
+                'trip_date' => $date,
+                'departure_time' => $departureTime,
+                'arrival_time' => $arrivalTime,
+                'actual_start_time' => $actualStartTime,
+                'actual_reach_time' => $actualReachTime,
+                'verified_by' => $verifiedBy ?: null,
+                'approved_by' => $approvedBy ?: null,
+                'shift' => $shift ?: null,
+                'driver_profile_id' => $driverProfileId,
+                'vehicle_id' => $vehicleId,
+                'notes' => $notes ?: null,
+            ];
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages(['csv_file' => array_slice($errors, 0, 20)]);
+        }
+
+        return $validatedRows;
+    }
+
+    private function csvDate(?string $value): ?Carbon
+    {
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            $date = Carbon::createFromFormat('d-m-Y', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $date && $date->format('d-m-Y') === $value ? $date : null;
+    }
+
+    private function csvTime(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        try {
+            $time = Carbon::createFromFormat('H:i', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $time && $time->format('H:i') === $value ? $time->format('H:i') : null;
+    }
+
+    private function csvDriverProfileId(?string $driverCode, ?string $driverName): array
+    {
+        if (! $driverCode && ! $driverName) {
+            return [null, null];
+        }
+
+        $query = DriverProfile::whereHas('user', fn ($userQuery) => $userQuery->where('is_active', true));
+
+        if ($driverCode) {
+            $driver = (clone $query)->whereHas('user', fn ($userQuery) => $userQuery->where('code', $driverCode))->first();
+
+            return $driver
+                ? [$driver->id, null]
+                : [null, 'active driver not found for driver_code.'];
+        }
+
+        $drivers = $query->whereHas('user', fn ($userQuery) => $userQuery->where('name', $driverName))->limit(2)->get();
+
+        if ($drivers->count() > 1) {
+            return [null, 'multiple active drivers found with this name; use driver_code instead.'];
+        }
+
+        return $drivers->isNotEmpty()
+            ? [$drivers->first()->id, null]
+            : [null, 'active driver not found for driver_name.'];
+    }
+
+    private function controllerNameExists(Trip $trip, string $name): bool
+    {
+        return ControllerProfile::query()
+            ->when($trip->depot_id, fn ($query) => $query->where('depot_id', $trip->depot_id))
+            ->whereHas('user', fn ($query) => $query->where('is_active', true)->where('name', $name))
+            ->exists();
+    }
+
+    private function supervisorNameExists(Trip $trip, string $name): bool
+    {
+        return SupervisorProfile::query()
+            ->when($trip->depot_id, fn ($query) => $query->where('depot_id', $trip->depot_id))
+            ->whereHas('user', fn ($query) => $query->where('is_active', true)->where('name', $name))
+            ->exists();
+    }
+
+    private function isEmptyCsvRow(array $row): bool
+    {
+        return collect($row)->every(fn ($value) => trim((string) $value) === '');
     }
 
     private function statusBadge(?string $status): string

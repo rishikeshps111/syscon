@@ -26,6 +26,8 @@ class StoreTripRequest extends FormRequest
             'schedule_type' => ['nullable', Rule::in(['daily', 'weekly', 'monthly'])],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'halt_time' => ['nullable', 'date_format:H:i'],
+            'trip_side' => ['required', Rule::in(['up', 'down', 'both'])],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
             'status' => ['nullable', Rule::in(['Active', 'Inactive', 'Cancelled'])],

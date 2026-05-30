@@ -189,6 +189,12 @@ Route::middleware('auth')->group(function () {
         ->name('trip-assignments.destroy');
     Route::get('/trips/{trip}/sheet-view', [TripController::class, 'sheetView'])
         ->name('trips.sheet.view');
+    Route::get('/trips/{trip}/sheet/import', [TripController::class, 'importSheetForm'])
+        ->name('trips.sheet.import.form');
+    Route::post('/trips/{trip}/sheet/import', [TripController::class, 'importSheet'])
+        ->name('trips.sheet.import');
+    Route::get('/trips/{trip}/sheet/sample-csv', [TripController::class, 'sampleSheetCsv'])
+        ->name('trips.sheet.sample-csv');
     Route::get('/trips/{trip}/sheet', [TripController::class, 'sheet'])
         ->name('trips.sheet');
     Route::post('/trips/{trip}/sheet', [TripController::class, 'storeSheet'])

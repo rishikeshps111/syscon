@@ -22,6 +22,8 @@ class TripSeeder extends Seeder
                 'schedule_type' => 'daily',
                 'start_time' => '08:00',
                 'end_time' => '09:10',
+                'halt_time' => '00:20',
+                'trip_side' => 'up',
             ],
             [
                 'service_type' => 'Intercity',
@@ -29,6 +31,8 @@ class TripSeeder extends Seeder
                 'schedule_type' => 'daily',
                 'start_time' => '09:30',
                 'end_time' => '11:05',
+                'halt_time' => '00:30',
+                'trip_side' => 'both',
             ],
             [
                 'service_type' => 'Intracity',
@@ -36,6 +40,8 @@ class TripSeeder extends Seeder
                 'schedule_type' => 'weekly',
                 'start_time' => '07:15',
                 'end_time' => '08:00',
+                'halt_time' => '00:15',
+                'trip_side' => 'down',
             ],
             [
                 'service_type' => 'Intracity',
@@ -43,6 +49,8 @@ class TripSeeder extends Seeder
                 'schedule_type' => 'daily',
                 'start_time' => '06:30',
                 'end_time' => '07:50',
+                'halt_time' => '00:25',
+                'trip_side' => 'up',
             ],
             [
                 'service_type' => 'Intercity',
@@ -50,6 +58,8 @@ class TripSeeder extends Seeder
                 'schedule_type' => 'monthly',
                 'start_time' => '10:00',
                 'end_time' => '10:55',
+                'halt_time' => '00:20',
+                'trip_side' => 'both',
             ],
         ];
 
@@ -71,6 +81,8 @@ class TripSeeder extends Seeder
                     [
                         'start_time' => $record['start_time'],
                         'end_time' => $record['end_time'],
+                        'halt_time' => $record['halt_time'],
+                        'trip_side' => $record['trip_side'],
                         'is_active' => true,
                     ]
                 );

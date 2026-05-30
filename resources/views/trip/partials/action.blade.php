@@ -21,6 +21,9 @@
                             <a class="dropdown-item" href="{{ route('trips.sheet', $row->id) }}">Create Trip Sheet</a>
                         </li>
                         <li>
+                            <a class="dropdown-item" href="{{ route('trips.sheet.import.form', $row->id) }}">Import Trip Sheet</a>
+                        </li>
+                        <li>
                             <a class="dropdown-item" href="{{ route('trips.sheet.view', $row->id) }}">View Trip Sheet</a>
                         </li>
                     @endcan

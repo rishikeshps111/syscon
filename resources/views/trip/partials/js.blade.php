@@ -30,6 +30,8 @@
                 { data: 'trip_title', name: 'title', className: 'text-center' },
                 { data: 'from_location', name: 'from_location', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'to_location', name: 'to_location', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'halt_time', name: 'halt_time', className: 'text-center' },
+                { data: 'trip_side', name: 'trip_side', className: 'text-center' },
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],

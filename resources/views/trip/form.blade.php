@@ -69,6 +69,24 @@
         <span class="text-danger error-text end_time_error">@error('end_time'){{ $message }}@enderror</span>
     </div>
 
+    <div class="col-lg-4 o-f-inp mb-2">
+        <label for="halt_time" class="form-label m-0">Halt Time</label>
+        <input type="time" class="form-control shadow-none" id="halt_time" name="halt_time"
+            value="{{ old('halt_time', isset($record) && $record->halt_time ? substr($record->halt_time, 0, 5) : '') }}">
+        <span class="text-danger error-text halt_time_error">@error('halt_time'){{ $message }}@enderror</span>
+    </div>
+
+    <div class="col-lg-4 o-f-inp mb-2">
+        <label for="trip_side" class="form-label m-0">Trip Side <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none" id="trip_side" name="trip_side">
+            <option value="">--- Select ---</option>
+            @foreach(\App\Models\Trip::TRIP_SIDES as $value => $label)
+                <option value="{{ $value }}" {{ old('trip_side', $record->trip_side ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text trip_side_error">@error('trip_side'){{ $message }}@enderror</span>
+    </div>
+
     <div class="col-lg-12 o-f-inp mb-2">
         <label for="stopsPreview" class="form-label m-0">Stops</label>
         <div id="stopsPreview" class="d-flex flex-wrap gap-2 mt-1">
