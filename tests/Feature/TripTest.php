@@ -6,30 +6,30 @@ use App\Models\Location;
 use App\Models\Route as RouteModel;
 use App\Models\ServiceType;
 use App\Models\State;
-use App\Models\TripSetup;
+use App\Models\Trip;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
 
-function actingAsTripSetupManager(): User
+function actingAsTripManager(): User
 {
     app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-    foreach (['trip-setups.create', 'trip-setups.edit', 'trip-setups.delete', 'trip-setups.view'] as $permission) {
+    foreach (['trips.create', 'trips.edit', 'trips.delete', 'trips.view'] as $permission) {
         Permission::firstOrCreate(
             ['name' => $permission, 'guard_name' => 'web'],
-            ['group_name' => 'Trip Setup']
+            ['group_name' => 'Trip']
         );
     }
 
     $user = User::factory()->create();
-    $user->givePermissionTo(['trip-setups.create', 'trip-setups.edit', 'trip-setups.delete', 'trip-setups.view']);
+    $user->givePermissionTo(['trips.create', 'trips.edit', 'trips.delete', 'trips.view']);
 
     test()->actingAs($user);
 
     return $user;
 }
 
-function createTripSetupFixtures(): array
+function createTripFixtures(): array
 {
     $serviceType = ServiceType::create([
         'code' => 'SRT' . now()->year . '#001',
@@ -97,11 +97,11 @@ function createTripSetupFixtures(): array
     return [$serviceType, $route];
 }
 
-test('trip setup can be created with generated code', function () {
-    actingAsTripSetupManager();
-    [$serviceType, $route] = createTripSetupFixtures();
+test('Trip can be created with generated code', function () {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
 
-    $response = $this->postJson('/trip-setups', [
+    $response = $this->postJson('/trips', [
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
         'schedule_type' => 'daily',
@@ -113,28 +113,28 @@ test('trip setup can be created with generated code', function () {
     $response->assertCreated()
         ->assertJsonPath('success', true);
 
-    $tripSetup = TripSetup::first();
+    $trip = Trip::first();
 
-    expect($tripSetup->service_type_id)->toBe($serviceType->id)
-        ->and($tripSetup->route_id)->toBe($route->id)
-        ->and($tripSetup->code)->toBe(generate_code('Trip Setup Module', 1, 3, 'TSU'));
+    expect($trip->service_type_id)->toBe($serviceType->id)
+        ->and($trip->route_id)->toBe($route->id)
+        ->and($trip->code)->toBe(generate_code(Trip::PREFIX_MODULE, 1, 4));
 });
 
-test('trip setup can be updated', function () {
-    actingAsTripSetupManager();
-    [$serviceType, $route] = createTripSetupFixtures();
+test('Trip can be updated', function () {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
 
-    $tripSetup = TripSetup::create([
+    $trip = Trip::create([
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
-        'code' => 'TSU' . now()->year . '#001',
+        'code' => 'TRP' . now()->year . '#0001',
         'schedule_type' => 'daily',
         'start_time' => '08:00',
         'end_time' => '10:00',
         'is_active' => true,
     ]);
 
-    $response = $this->putJson('/trip-setups/' . $tripSetup->id, [
+    $response = $this->putJson('/trips/' . $trip->id, [
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
         'schedule_type' => 'weekly',
@@ -146,60 +146,60 @@ test('trip setup can be updated', function () {
     $response->assertOk()
         ->assertJsonPath('success', true);
 
-    expect($tripSetup->refresh()->schedule_type)->toBe('weekly')
-        ->and($tripSetup->is_active)->toBeFalse();
+    expect($trip->refresh()->schedule_type)->toBe('weekly')
+        ->and($trip->is_active)->toBeFalse();
 });
 
-test('trip setup status can be changed', function () {
-    actingAsTripSetupManager();
-    [$serviceType, $route] = createTripSetupFixtures();
+test('Trip status can be changed', function () {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
 
-    $tripSetup = TripSetup::create([
+    $trip = Trip::create([
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
-        'code' => 'TSU' . now()->year . '#001',
+        'code' => 'TRP' . now()->year . '#0001',
         'schedule_type' => 'daily',
         'start_time' => '08:00',
         'end_time' => '10:00',
         'is_active' => true,
     ]);
 
-    $response = $this->postJson('/trip-setups/status', [
-        'id' => $tripSetup->id,
+    $response = $this->postJson('/trips/status', [
+        'id' => $trip->id,
         'status' => false,
     ]);
 
     $response->assertOk()
         ->assertJsonPath('success', true);
 
-    expect($tripSetup->refresh()->is_active)->toBeFalse();
+    expect($trip->refresh()->is_active)->toBeFalse();
 });
 
-test('trip setups can be filtered by status', function () {
-    actingAsTripSetupManager();
-    [$serviceType, $route] = createTripSetupFixtures();
+test('Trips can be filtered by status', function () {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
 
-    TripSetup::create([
+    Trip::create([
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
-        'code' => 'TSU' . now()->year . '#001',
+        'code' => 'TRP' . now()->year . '#0001',
         'schedule_type' => 'daily',
         'start_time' => '08:00',
         'end_time' => '10:00',
         'is_active' => true,
     ]);
 
-    TripSetup::create([
+    Trip::create([
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
-        'code' => 'TSU' . now()->year . '#002',
+        'code' => 'TRP' . now()->year . '#0002',
         'schedule_type' => 'weekly',
         'start_time' => '09:00',
         'end_time' => '11:00',
         'is_active' => false,
     ]);
 
-    $response = $this->getJson('/trip-setups?status=0', [
+    $response = $this->getJson('/trips?status=0', [
         'X-Requested-With' => 'XMLHttpRequest',
     ]);
 
@@ -211,24 +211,24 @@ test('trip setups can be filtered by status', function () {
         ->and($response->json('data.0.route_name'))->toBe('Kakkanad to Aluva');
 });
 
-test('trip setup can be deleted', function () {
-    actingAsTripSetupManager();
-    [$serviceType, $route] = createTripSetupFixtures();
+test('Trip can be deleted', function () {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
 
-    $tripSetup = TripSetup::create([
+    $trip = Trip::create([
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
-        'code' => 'TSU' . now()->year . '#001',
+        'code' => 'TRP' . now()->year . '#0001',
         'schedule_type' => 'daily',
         'start_time' => '08:00',
         'end_time' => '10:00',
         'is_active' => true,
     ]);
 
-    $response = $this->deleteJson('/trip-setups/' . $tripSetup->id);
+    $response = $this->deleteJson('/trips/' . $trip->id);
 
     $response->assertOk()
         ->assertJsonPath('success', true);
 
-    expect($tripSetup->fresh())->toBeNull();
+    expect($trip->fresh())->toBeNull();
 });

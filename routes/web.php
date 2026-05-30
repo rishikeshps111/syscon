@@ -39,7 +39,8 @@ use App\Http\Controllers\StaffManagementController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\SupervisorDocumentController;
 use App\Http\Controllers\SupervisorManagementController;
-use App\Http\Controllers\TripSetupController;
+use App\Http\Controllers\TripAssignmentController;
+use App\Http\Controllers\TripController;
 use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleClassificationController;
 use App\Http\Controllers\VehicleController;
@@ -175,10 +176,24 @@ Route::middleware('auth')->group(function () {
     Route::put('/financial-year-settings', [FinancialYearSettingController::class, 'update'])
         ->name('financial-year-settings.update');
 
-    Route::post('/trip-setups/status', [TripSetupController::class, 'status'])->name('trip-setups.status');
-    Route::post('/trip-setups/export', [TripSetupController::class, 'export'])
-        ->name('trip-setups.export');
-    Route::resource('trip-setups', TripSetupController::class)->except(['edit', 'show']);
+    Route::post('/trips/status', [TripController::class, 'status'])->name('trips.status');
+    Route::post('/trips/export', [TripController::class, 'export'])
+        ->name('trips.export');
+    Route::get('/trips/{trip}/assignments', [TripAssignmentController::class, 'index'])
+        ->name('trips.assignments.index');
+    Route::post('/trips/{trip}/assignments', [TripAssignmentController::class, 'store'])
+        ->name('trips.assignments.store');
+    Route::put('/trip-assignments/{tripAssignment}', [TripAssignmentController::class, 'update'])
+        ->name('trip-assignments.update');
+    Route::delete('/trip-assignments/{tripAssignment}', [TripAssignmentController::class, 'destroy'])
+        ->name('trip-assignments.destroy');
+    Route::get('/trips/{trip}/sheet-view', [TripController::class, 'sheetView'])
+        ->name('trips.sheet.view');
+    Route::get('/trips/{trip}/sheet', [TripController::class, 'sheet'])
+        ->name('trips.sheet');
+    Route::post('/trips/{trip}/sheet', [TripController::class, 'storeSheet'])
+        ->name('trips.sheet.store');
+    Route::resource('trips', TripController::class)->except(['show']);
 
     Route::post('/oem-types/status', [OemTypeController::class, 'status'])->name('oem-types.status');
     Route::post('/oem-types/export', [OemTypeController::class, 'export'])

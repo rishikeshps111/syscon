@@ -86,11 +86,13 @@ class PermissionSeeder extends Seeder
                 'vehicles.delete',
                 'vehicles.view',
             ],
-            'Trip Setup' => [
-                'trip-setups.create',
-                'trip-setups.edit',
-                'trip-setups.delete',
-                'trip-setups.view',
+            'Trip' => [
+                'trips.create',
+                'trips.edit',
+                'trips.delete',
+                'trips.view',
+                'trips.assign',
+                'trips.sheet',
             ],
             'OEM Type' => [
                 'oem-types.create',

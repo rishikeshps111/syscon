@@ -25,7 +25,7 @@
             'Location Module',
             'Service Type Module',
             'Route Module',
-            'Trip Setup Module',
+            \App\Models\Trip::PREFIX_MODULE,
             'Vehicle Classification Module',
             'Document Type Module',
             'Depot Module',

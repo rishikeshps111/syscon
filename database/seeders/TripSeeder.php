@@ -4,11 +4,11 @@ namespace Database\Seeders;
 
 use App\Models\Route;
 use App\Models\ServiceType;
-use App\Models\TripSetup;
+use App\Models\Trip;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class TripSetupSeeder extends Seeder
+class TripSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -17,35 +17,35 @@ class TripSetupSeeder extends Seeder
     {
         $records = [
             [
-                'service_type' => 'Employee Transport',
+                'service_type' => 'Intracity',
                 'route' => 'Kakkanad to Aluva',
                 'schedule_type' => 'daily',
                 'start_time' => '08:00',
                 'end_time' => '09:10',
             ],
             [
-                'service_type' => 'Shuttle Service',
+                'service_type' => 'Intercity',
                 'route' => 'Aluva to Fort Kochi',
                 'schedule_type' => 'daily',
                 'start_time' => '09:30',
                 'end_time' => '11:05',
             ],
             [
-                'service_type' => 'School Transport',
+                'service_type' => 'Intracity',
                 'route' => 'T. Nagar to Anna Nagar',
                 'schedule_type' => 'weekly',
                 'start_time' => '07:15',
                 'end_time' => '08:00',
             ],
             [
-                'service_type' => 'Logistics',
+                'service_type' => 'Intracity',
                 'route' => 'Koramangala to Whitefield',
                 'schedule_type' => 'daily',
                 'start_time' => '06:30',
                 'end_time' => '07:50',
             ],
             [
-                'service_type' => 'Emergency Service',
+                'service_type' => 'Intercity',
                 'route' => 'Colaba to Dadar',
                 'schedule_type' => 'monthly',
                 'start_time' => '10:00',
@@ -62,7 +62,7 @@ class TripSetupSeeder extends Seeder
                     continue;
                 }
 
-                $tripSetup = TripSetup::firstOrCreate(
+                $trip = Trip::firstOrCreate(
                     [
                         'service_type_id' => $serviceType->id,
                         'route_id' => $route->id,
@@ -75,9 +75,9 @@ class TripSetupSeeder extends Seeder
                     ]
                 );
 
-                if (! $tripSetup->code) {
-                    $tripSetup->code = generate_code('Trip Setup Module', $tripSetup->id, 3, 'TSU');
-                    $tripSetup->save();
+                if (! $trip->code) {
+                    $trip->code = generate_code(Trip::PREFIX_MODULE, $trip->id, 4);
+                    $trip->save();
                 }
             }
         });

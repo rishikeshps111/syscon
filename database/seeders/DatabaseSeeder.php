@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
             VehicleClassificationSeeder::class,
             DocumentTypeSeeder::class,
             ComplaintCategorySeeder::class,
-            TripSetupSeeder::class,
+            TripSeeder::class,
             DepartmentSeeder::class,
             LevelSeeder::class,
             DesignationSeeder::class,
@@ -44,6 +44,7 @@ class DatabaseSeeder extends Seeder
             ControllerManagementSeeder::class,
             SupervisorManagementSeeder::class,
             DriverManagementSeeder::class,
+            TripManagementSeeder::class,
             LeaveSeeder::class,
             ComplaintSeeder::class,
         ]);

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\TripSetup;
+use App\Models\Trip;
 use Database\Seeders\DepotSeeder;
 use Database\Seeders\DistrictSeeder;
 use Database\Seeders\LocationSeeder;
@@ -8,9 +8,9 @@ use Database\Seeders\PrefixSeeder;
 use Database\Seeders\RouteSeeder;
 use Database\Seeders\ServiceTypeSeeder;
 use Database\Seeders\StateSeeder;
-use Database\Seeders\TripSetupSeeder;
+use Database\Seeders\TripSeeder;
 
-test('trip setup seeder creates trip setup records', function () {
+test('Trip seeder creates Trip records', function () {
     $this->seed(PrefixSeeder::class);
     $this->seed(StateSeeder::class);
     $this->seed(DistrictSeeder::class);
@@ -18,7 +18,7 @@ test('trip setup seeder creates trip setup records', function () {
     $this->seed(DepotSeeder::class);
     $this->seed(ServiceTypeSeeder::class);
     $this->seed(RouteSeeder::class);
-    $this->seed(TripSetupSeeder::class);
+    $this->seed(TripSeeder::class);
 
-    expect(TripSetup::count())->toBeGreaterThan(0);
+    expect(Trip::count())->toBeGreaterThan(0);
 });

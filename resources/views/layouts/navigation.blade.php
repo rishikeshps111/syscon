@@ -13,7 +13,7 @@
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
-                    'supervisor-management.view', 'attendance-management.view'])
+                    'supervisor-management.view', 'attendance-management.view', 'trips.view'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('dashboard') ? '' : 'collapsed' }}"
                             href="{{ route('dashboard') }}">
@@ -29,7 +29,7 @@
                         </a>
                     </li>
                     @canany(['prefixes.view', 'service-types.view', 'oem-types.view', 'vehicle-classifications.view',
-                        'document-types.view', 'complaint-categories.view', 'depots.view', 'trip-setups.view', 'countries.view',
+                        'document-types.view', 'complaint-categories.view', 'depots.view', 'countries.view',
                         'nationalities.view', 'states.view', 'districts.view', 'locations.view', 'degree-levels.view',
                         'field-of-studies.view', 'study-modes.view', 'currencies.view', 'universities.view',
                         'university-types.view', 'intakes.view', 'program-types.view', 'program-levels.view',
@@ -38,7 +38,7 @@
                         'payment-types.view', 'payment-methods.view', 'lead-sources.view', 'lead-types.view',
                         'lead-statuses.view', 'action-plans.view', 'relations.view'])
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*', 'trip-setups.*') ? '' : 'collapsed' }}"
+                            <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*') ? '' : 'collapsed' }}"
                                 data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                                 <i class="fa-solid fa-align-center"></i>
@@ -46,7 +46,7 @@
                                 <i class="bi bi-chevron-down ms-auto"></i>
                             </a>
                             <ul id="sidebarNav0"
-                                class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*', 'trip-setups.*') ? 'show' : '' }}"
+                                class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*') ? 'show' : '' }}"
                                 data-bs-parent="#sidebar-nav">
                                 @can('prefixes.view')
                                     <li>
@@ -108,15 +108,6 @@
                                             class="{{ request()->routeIs('depots.*') ? 'sub-active' : '' }}">
                                             <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                             <span> Depot Management</span>
-                                        </a>
-                                    </li>
-                                @endcan
-                                @can('trip-setups.view')
-                                    <li>
-                                        <a href="{{ route('trip-setups.index') }}"
-                                            class="{{ request()->routeIs('trip-setups.*') ? 'sub-active' : '' }}">
-                                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                            <span> Trip Setup Master</span>
                                         </a>
                                     </li>
                                 @endcan
@@ -350,6 +341,15 @@
                             href="{{ route('vehicles.index') }}">
                             <i class="fa-solid fa-bus"></i>
                             <span>Vehicle Management</span>
+                        </a>
+                    </li>
+                @endcan
+                @can('trips.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('trips.*') ? '' : 'collapsed' }}"
+                            href="{{ route('trips.index') }}">
+                            <i class="fa-solid fa-cogs"></i>
+                            <span>Trip Management</span>
                         </a>
                     </li>
                 @endcan

@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Prefix;
+use App\Models\Trip;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -20,7 +21,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'SRT', 'module' => 'Service Type Module', 'is_active' => true],
             ['prefix' => 'RT', 'module' => 'Route Module', 'is_active' => true],
             ['prefix' => 'VEH', 'module' => 'Vehicle Module', 'is_active' => true],
-            ['prefix' => 'TSU', 'module' => 'Trip Setup Module', 'is_active' => true],
+            ['prefix' => 'TRP', 'module' => Trip::PREFIX_MODULE, 'is_active' => true],
             ['prefix' => 'VC', 'module' => 'Vehicle Classification Module', 'is_active' => true],
             ['prefix' => 'DOCT', 'module' => 'Document Type Module', 'is_active' => true],
             ['prefix' => 'CC', 'module' => 'Complaint Category Module', 'is_active' => true],
@@ -43,7 +44,7 @@ class PrefixSeeder extends Seeder
         ];
 
         foreach ($records as $record) {
-            Prefix::firstOrCreate(
+            Prefix::updateOrCreate(
                 ['module' => $record['module']],
                 $record
             );

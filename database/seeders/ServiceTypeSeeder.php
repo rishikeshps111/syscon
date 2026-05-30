@@ -15,30 +15,20 @@ class ServiceTypeSeeder extends Seeder
     {
         $records = [
             [
-                'name' => 'Employee Transport',
-                'description' => 'Daily office commute',
+                'name' => 'Intercity',
+                'description' => 'Trips operated between cities.',
             ],
             [
-                'name' => 'School Transport',
-                'description' => 'Student pickup/drop',
-            ],
-            [
-                'name' => 'Logistics',
-                'description' => 'Goods transport',
-            ],
-            [
-                'name' => 'Shuttle Service',
-                'description' => 'Short distance shuttle',
-            ],
-            [
-                'name' => 'Emergency Service',
-                'description' => 'Medical/emergency trips',
+                'name' => 'Intracity',
+                'description' => 'Trips operated within a city.',
             ],
         ];
 
         DB::transaction(function () use ($records) {
+            ServiceType::whereNotIn('name', collect($records)->pluck('name'))->delete();
+
             foreach ($records as $record) {
-                $serviceType = ServiceType::firstOrCreate(
+                $serviceType = ServiceType::updateOrCreate(
                     ['name' => $record['name']],
                     [
                         'description' => $record['description'],
