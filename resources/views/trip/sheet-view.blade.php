@@ -80,15 +80,19 @@
                         <tr>
                             <th class="text-center nowrap">SL No</th>
                             <th class="text-center nowrap">Date</th>
+                            <th class="text-center nowrap">Code</th>
+                            <th class="text-center nowrap">Status</th>
+                            <th class="text-center nowrap">Side</th>
                             <th class="text-center nowrap">Departure Time</th>
                             <th class="text-center nowrap">Arrival Time</th>
                             <th class="text-center nowrap">Actual Start Time</th>
                             <th class="text-center nowrap">Actual Reach Time</th>
-                            <th class="text-center nowrap">Verified By</th>
-                            <th class="text-center nowrap">Approved By</th>
-                            <th class="text-center nowrap">Shift</th>
-                            <th class="text-center nowrap">Driver Name</th>
-                            <th class="text-center nowrap">Vehicle No</th>
+                            <th class="text-center nowrap">Starting Km</th>
+                            <th class="text-center nowrap">Charge</th>
+                            <th class="text-center nowrap">Vehicle Verified</th>
+                            <th class="text-center nowrap">Driver Verified</th>
+                            <th class="text-center nowrap">Supervisor Verified</th>
+                            <th class="text-center nowrap">Driver Final Verified</th>
                             <th class="text-center nowrap">Notes</th>
                         </tr>
                     </thead>
@@ -118,23 +122,27 @@
                     },
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'trip_date', name: 'trip_date', className: 'text-center' },
+                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center' },
+                        { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
+                        { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
+                        { data: 'side', name: 'side', className: 'text-center' },
                         { data: 'departure_time', name: 'departure_time', className: 'text-center' },
                         { data: 'arrival_time', name: 'arrival_time', className: 'text-center' },
                         { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
                         { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
-                        { data: 'verified_by', name: 'verified_by', className: 'text-center' },
-                        { data: 'approved_by', name: 'approved_by', className: 'text-center' },
-                        { data: 'shift', name: 'shift', className: 'text-center' },
-                        { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'starting_km', name: 'starting_km', className: 'text-center' },
+                        { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
+                        { data: 'is_vehicle_verified', name: 'is_vehicle_verified', className: 'text-center' },
+                        { data: 'is_driver_verified', name: 'is_driver_verified', className: 'text-center' },
+                        { data: 'is_verified_by_supervisor', name: 'is_verified_by_supervisor', className: 'text-center' },
+                        { data: 'is_verified_by_driver', name: 'is_verified_by_driver', className: 'text-center' },
                         { data: 'notes', name: 'notes', orderable: false, className: 'text-center' }
                     ],
                     language: {
                         emptyTable: 'No trip sheet entries found.'
                     },
                     columnDefs: [
-                        { orderable: false, targets: [11] }
+                        { orderable: false, targets: [15] }
                     ],
                     order: [[1, 'asc']]
                 });

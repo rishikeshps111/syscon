@@ -347,10 +347,29 @@
                 @can('trips.view')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('trips.*') ? '' : 'collapsed' }}"
-                            href="{{ route('trips.index') }}">
+                            data-bs-target="#sidebarTripManagement" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-cogs"></i>
                             <span>Trip Management</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
+                        <ul id="sidebarTripManagement"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('trips.*') ? 'show' : '' }}"
+                            data-bs-parent="#sidebar-nav">
+                            <li>
+                                <a href="{{ route('trips.index') }}"
+                                    class="{{ request()->routeIs('trips.index') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Manage Trips</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('trips.completed.index') }}"
+                                    class="{{ request()->routeIs('trips.completed.*') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Completed Trips</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 @endcan
                 @can('settings.view')

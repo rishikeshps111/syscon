@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'service_type_id',
@@ -98,9 +99,14 @@ class Trip extends Model
         return $this->hasOne(TripAssignment::class)->latestOfMany();
     }
 
-    public function sheetEntries(): HasMany
+    public function sheetEntries(): HasManyThrough
     {
-        return $this->hasMany(TripSheetEntry::class);
+        return $this->hasManyThrough(TripSheetEntry::class, TripSheet::class);
+    }
+
+    public function sheets(): HasMany
+    {
+        return $this->hasMany(TripSheet::class);
     }
 
     public function getTripTitleAttribute(): string

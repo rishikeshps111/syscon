@@ -14,171 +14,135 @@
             </nav>
         </div>
 
-        <form method="POST" action="{{ route('trips.sheet.store', $record->id) }}" id="tripSheetForm">
-            @csrf
-            <div class="main-table-container mb-3">
-                <div class="row">
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label>Trip No</label>
-                        <input type="text" class="form-control shadow-none" value="{{ $record->code }}" disabled>
+        <div class="main-table-container mb-3">
+            <div class="row">
+                <div class="col-lg-3 o-f-inp mb-3">
+                    <label>Trip No</label>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->code }}" disabled>
+                </div>
+                <div class="col-lg-3 o-f-inp mb-3">
+                    <label>Trip</label>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->trip_title }}" disabled>
+                </div>
+                <div class="col-lg-3 o-f-inp mb-3">
+                    <label>Trip Side</label>
+                    <input type="text" class="form-control shadow-none"
+                        value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
+                </div>
+                <div class="col-lg-3 o-f-inp mb-3">
+                    <label>Date Range</label>
+                    <input type="text" class="form-control shadow-none"
+                        value="{{ $record->from_date?->format('d/m/Y') }} - {{ $record->to_date?->format('d/m/Y') }}"
+                        disabled>
+                </div>
+                <div class="col-lg-12 o-f-inp">
+                    <label>Stops</label>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        @forelse($record->route?->stops ?? [] as $stop)
+                            @if(!$loop->first)
+                                <span class="d-inline-flex align-items-center text-muted">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </span>
+                            @endif
+                            <span class="btn btn-sm btn-outline-secondary disabled">{{ $stop->name }}</span>
+                        @empty
+                            <span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>
+                        @endforelse
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label>From Date</label>
-                        <input type="text" class="form-control shadow-none" value="{{ $record->from_date?->format('d/m/Y') }}" disabled>
-                    </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label>To Date</label>
-                        <input type="text" class="form-control shadow-none" value="{{ $record->to_date?->format('d/m/Y') }}" disabled>
-                    </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label>Trip</label>
-                        <input type="text" class="form-control shadow-none" value="{{ $record->trip_title }}" disabled>
-                    </div>
-                    <div class="col-lg-12 o-f-inp">
-                        <label>Stops</label>
-                        <div class="d-flex flex-wrap gap-2 mt-1">
-                            @forelse($record->route?->stops ?? [] as $stop)
-                                @if(! $loop->first)
-                                    <span class="d-inline-flex align-items-center text-muted">
-                                        <i class="fa-solid fa-arrow-right"></i>
-                                    </span>
-                                @endif
-                                <span class="btn btn-sm btn-outline-secondary disabled">{{ $stop->name }}</span>
-                            @empty
-                                <span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>
-                            @endforelse
-                        </div>
-                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-table-container">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h5 class="mb-0">Trip Sheet Entries</h5>
+                <div class="btn-flex">
+                    <a href="{{ route('trips.sheet.entries.create', $record->id) }}" class="btn btn-primary"
+                        title="Add Entry">
+                        <i class="fa-solid fa-plus me-1"></i> Add Entry
+                    </a>
+                    <a href="{{ route('trips.index') }}" class="btn btn-secondary" title="Back">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back
+                    </a>
                 </div>
             </div>
 
-            <div class="main-table-container">
-                <div class="table-over field-table mt-3">
-                    <table class="align-middle mb-0 table table-striped tble-cstm bg-transparent" id="sheetTable">
-                        <thead>
-                            <tr>
-                                <th class="text-center nowrap">SL No</th>
-                                <th class="text-center nowrap">Date</th>
-                                <th class="text-center nowrap">Departure Time</th>
-                                <th class="text-center nowrap">Arrival Time</th>
-                                <th class="text-center nowrap">Actual Start Time</th>
-                                <th class="text-center nowrap">Actual Reach Time</th>
-                                <th class="text-center nowrap">Verified By</th>
-                                <th class="text-center nowrap">Approved By</th>
-                                <th class="text-center nowrap">Shift</th>
-                                <th class="text-center nowrap">Driver Name</th>
-                                <th class="text-center nowrap">Vehicle No</th>
-                                <th class="text-center nowrap">Notes</th>
-                                <th class="text-center nowrap">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @php
-                                $rows = $entries->isNotEmpty() ? $entries : collect([null]);
-                            @endphp
-                            @foreach($rows as $index => $entry)
-                                @include('trip.sheet-row', ['index' => $index, 'entry' => $entry])
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                <div class="col-lg-12 mt-3 text-center">
-                    <button type="submit" class="btn btn-primary" id="tripSheetSubmitBtn">Save</button>
-                </div>
+            <div class="table-over">
+                <table class="align-middle mb-0 table table-striped tble-cstm bg-transparent" id="sheetEntryTable">
+                    <thead>
+                        <tr>
+                            <th class="text-center nowrap">SL No</th>
+                            <th class="text-center nowrap" style="min-width: 130px;">Date</th>
+                            <th class="text-center nowrap">Code</th>
+                            <th class="text-center nowrap">Status</th>
+                            <th class="text-center nowrap">Side</th>
+                            <th class="text-center nowrap">Actual Start</th>
+                            <th class="text-center nowrap">Actual Reach</th>
+                            <th class="text-center nowrap">Starting Km</th>
+                            <th class="text-center nowrap">Charge</th>
+                            <th class="text-center nowrap">Vehicle Verified</th>
+                            <th class="text-center nowrap">Driver Verified</th>
+                            <th class="text-center nowrap">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-        </form>
+        </div>
     </section>
 
     @section('scripts')
         <script>
             $(function () {
-                initSheetSelect2();
-
-                $(document).on('change', '.departure-time', function () {
-                    $(this).closest('tr').find('.actual-start-time').val($(this).val());
+                $('#sheetEntryTable').DataTable({
+                    processing: true,
+                    serverSide: true,
+                    searching: false,
+                    pageLength: 10,
+                    ordering: true,
+                    responsive: true,
+                    ajax: "{{ route('trips.sheet', $record->id) }}",
+                    columns: [
+                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
+                        { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
+                        { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
+                        { data: 'side', name: 'side', className: 'text-center' },
+                        { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
+                        { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
+                        { data: 'starting_km', name: 'starting_km', className: 'text-center' },
+                        { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
+                        { data: 'is_vehicle_verified', name: 'is_vehicle_verified', className: 'text-center' },
+                        { data: 'is_driver_verified', name: 'is_driver_verified', className: 'text-center' },
+                        { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
+                    ],
+                    language: {
+                        emptyTable: 'No trip sheet entries found.'
+                    },
+                    order: [[1, 'asc']]
                 });
 
-                $(document).on('change', '.arrival-time', function () {
-                    $(this).closest('tr').find('.actual-reach-time').val($(this).val());
-                });
+                $(document).on('submit', '.delete-sheet-entry', function (event) {
+                    event.preventDefault();
 
-                $(document).on('click', '.add-sheet-row', function () {
-                    var row = buildSheetRow($(this).closest('tr'), false);
-                    $(this).closest('tr').after(row);
-                    reindexSheetRows();
-                });
+                    var form = this;
 
-                $(document).on('click', '.remove-sheet-row', function () {
-                    if ($('#sheetTable tbody tr').length === 1) {
-                        return;
-                    }
-                    $(this).closest('tr').remove();
-                    reindexSheetRows();
-                });
-
-                $(document).on('click', '.copy-sheet-row', function () {
-                    var row = buildSheetRow($(this).closest('tr'), true);
-                    $(this).closest('tr').after(row);
-                    reindexSheetRows();
-                });
-
-                $('#tripSheetForm').on('submit', function () {
-                    var button = $('#tripSheetSubmitBtn');
-                    var originalText = button.data('original-text') || button.text();
-                    button.data('original-text', originalText).prop('disabled', true).text('Please wait...');
-                });
-            });
-
-            function buildSheetRow(sourceRow, keepValues) {
-                sourceRow.find('.sheet-select').each(function () {
-                    if ($(this).hasClass('select2-hidden-accessible')) {
-                        $(this).select2('destroy');
-                    }
-                });
-
-                var row = sourceRow.clone();
-
-                initSheetSelect2(sourceRow);
-                cleanupSheetRowSelect2(row);
-
-                if (!keepValues) {
-                    row.find('input, textarea').val('');
-                    row.find('select').val('');
-                }
-
-                initSheetSelect2(row);
-
-                return row;
-            }
-
-            function cleanupSheetRowSelect2(row) {
-                row.find('.select2').remove();
-                row.find('.sheet-select')
-                    .removeClass('select2-hidden-accessible')
-                    .removeAttr('data-select2-id')
-                    .removeAttr('aria-hidden')
-                    .removeAttr('tabindex');
-                row.find('option').removeAttr('data-select2-id');
-            }
-
-            function initSheetSelect2(context) {
-                var target = context ? $(context).find('.sheet-select') : $('.sheet-select');
-
-                target.select2({
-                    placeholder: '---Select---',
-                    allowClear: true,
-                    width: '100%'
-                });
-            }
-
-            function reindexSheetRows() {
-                $('#sheetTable tbody tr').each(function (index) {
-                    $(this).find('.sheet-sl').text(index + 1);
-                    $(this).find('input, select, textarea').each(function () {
-                        $(this).attr('name', $(this).attr('name').replace(/entries\[\d+\]/, 'entries[' + index + ']'));
+                    Swal.fire({
+                        title: 'Delete entry?',
+                        text: 'This trip sheet entry will be permanently deleted.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, delete',
+                        cancelButtonText: 'Cancel'
+                    }).then(function (result) {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
                     });
                 });
-            }
+            });
         </script>
     @endsection
 </x-app-layout>

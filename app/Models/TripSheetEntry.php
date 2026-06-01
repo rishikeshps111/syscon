@@ -9,17 +9,27 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'trip_id',
-    'trip_date',
+    'trip_sheet_id',
+    'side',
     'departure_time',
     'arrival_time',
     'actual_start_time',
     'actual_reach_time',
-    'verified_by',
-    'approved_by',
-    'shift',
-    'driver_profile_id',
-    'vehicle_id',
+    'starting_km',
+    'starting_electric_charge',
+    'vehicle_condition',
+    'is_vehicle_verified',
+    'vehicle_verified_by',
+    'vehicle_verified_at',
+    'is_driver_verified',
+    'driver_verified_by',
+    'driver_verified_at',
+    'is_verified_by_supervisor',
+    'verified_by_supervisor',
+    'verified_by_supervisor_at',
+    'is_verified_by_driver',
+    'verified_by_driver',
+    'verified_by_driver_at',
     'notes',
 ])]
 #[Table('trip_sheet_entries')]
@@ -30,22 +40,20 @@ class TripSheetEntry extends Model
     protected function casts(): array
     {
         return [
-            'trip_date' => 'date',
+            'is_vehicle_verified' => 'boolean',
+            'vehicle_verified_at' => 'datetime',
+            'is_driver_verified' => 'boolean',
+            'driver_verified_at' => 'datetime',
+            'is_verified_by_supervisor' => 'boolean',
+            'verified_by_supervisor_at' => 'datetime',
+            'is_verified_by_driver' => 'boolean',
+            'verified_by_driver_at' => 'datetime',
         ];
     }
 
-    public function trip(): BelongsTo
+    public function sheet(): BelongsTo
     {
-        return $this->belongsTo(Trip::class);
+        return $this->belongsTo(TripSheet::class, 'trip_sheet_id');
     }
 
-    public function driverProfile(): BelongsTo
-    {
-        return $this->belongsTo(DriverProfile::class);
-    }
-
-    public function vehicle(): BelongsTo
-    {
-        return $this->belongsTo(Vehicle::class);
-    }
 }

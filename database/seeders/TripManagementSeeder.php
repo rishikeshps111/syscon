@@ -117,34 +117,62 @@ class TripManagementSeeder extends Seeder
                     ]
                 );
 
-                foreach ($this->sheetRows($record, $driver->id, $vehicle->id) as $row) {
-                    $trip->sheetEntries()->updateOrCreate(
-                        ['trip_date' => $row['trip_date']],
-                        $row
+                $controllerName = DB::table('users')->where('email', 'vishnu.controller@example.com')->value('name') ?: 'Vishnu Controller';
+                $supervisorName = DB::table('users')->where('email', 'nithin.supervisor@example.com')->value('name') ?: 'Nithin Supervisor';
+
+                foreach ($this->sheetRows($record, $controllerName, $supervisorName) as $row) {
+                    $sheet = $trip->sheets()->updateOrCreate(
+                        ['date' => $row['date']],
+                        [
+                            'code' => ($trip->code ?: 'TRIP-' . $trip->id) . '-' . str_replace('-', '', $row['date']),
+                            'status' => $row['status'],
+                        ]
+                    );
+
+                    $sheet->entries()->updateOrCreate(
+                        ['side' => $row['side']],
+                        $row['entry']
                     );
                 }
             }
         });
     }
 
-    private function sheetRows(array $record, int $driverId, int $vehicleId): array
+    private function sheetRows(array $record, string $controllerName, string $supervisorName): array
     {
-        return collect(range(0, 2))->map(function (int $offset) use ($record, $driverId, $vehicleId) {
+        return collect(range(0, 2))->flatMap(function (int $offset) use ($record, $controllerName, $supervisorName) {
             $date = Carbon::parse($record['from_date'])->addDays($offset)->toDateString();
+            $sides = $record['trip_side'] === 'both' ? ['up', 'down'] : [$record['trip_side']];
+            $status = $offset < 2 ? 'completed' : 'pending';
 
-            return [
-                'trip_date' => $date,
-                'departure_time' => $record['start_time'],
-                'arrival_time' => $record['end_time'],
-                'actual_start_time' => $record['start_time'],
-                'actual_reach_time' => $record['end_time'],
-                'verified_by' => 'Controller',
-                'approved_by' => 'Supervisor',
-                'shift' => $offset % 2 === 0 ? '1' : '2',
-                'driver_profile_id' => $driverId,
-                'vehicle_id' => $vehicleId,
-                'notes' => 'Seeded trip sheet entry.',
-            ];
+            return collect($sides)->map(fn (string $side) => [
+                'date' => $date,
+                'status' => $status,
+                'side' => $side,
+                'entry' => [
+                    'side' => $side,
+                    'departure_time' => $record['start_time'],
+                    'arrival_time' => $record['end_time'],
+                    'actual_start_time' => $side === 'up' ? $record['start_time'] : null,
+                    'actual_reach_time' => $side === 'down' ? $record['end_time'] : null,
+                    'starting_km' => 1200 + $offset,
+                    'starting_electric_charge' => 85,
+                    'vehicle_condition' => 'Good',
+                    'is_vehicle_verified' => true,
+                    'vehicle_verified_by' => $controllerName,
+                    'vehicle_verified_at' => now(),
+                    'is_driver_verified' => true,
+                    'driver_verified_by' => $supervisorName,
+                    'driver_verified_at' => now(),
+                    'is_verified_by_supervisor' => $status === 'completed',
+                    'verified_by_supervisor' => $status === 'completed' ? $supervisorName : null,
+                    'verified_by_supervisor_at' => $status === 'completed' ? now() : null,
+                    'is_verified_by_driver' => $status === 'completed',
+                    'verified_by_driver' => $status === 'completed' ? $controllerName : null,
+                    'verified_by_driver_at' => $status === 'completed' ? now() : null,
+                    'notes' => 'Seeded trip sheet entry.',
+                ],
+            ]);
         })->all();
     }
 }

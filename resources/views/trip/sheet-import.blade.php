@@ -32,6 +32,21 @@
                     <label>To Date</label>
                     <input type="text" class="form-control shadow-none" value="{{ $record->to_date?->format('d/m/Y') }}" disabled>
                 </div>
+                <div class="col-lg-12 o-f-inp">
+                    <label>Stops</label>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        @forelse($record->route?->stops ?? [] as $stop)
+                            @if(! $loop->first)
+                                <span class="d-inline-flex align-items-center text-muted">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </span>
+                            @endif
+                            <span class="btn btn-sm btn-outline-secondary disabled">{{ $stop->name }}</span>
+                        @empty
+                            <span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>
+                        @endforelse
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -92,6 +107,16 @@
                                     <td>Use DD-MM-YYYY within the trip date range.</td>
                                 </tr>
                                 <tr>
+                                    <td>status</td>
+                                    <td>No</td>
+                                    <td>Use pending, partial, completed, or cancelled. Blank defaults to pending.</td>
+                                </tr>
+                                <tr>
+                                    <td>side</td>
+                                    <td>Yes</td>
+                                    <td>Use up/down. Both-side trips can import one row for each side per date.</td>
+                                </tr>
+                                <tr>
                                     <td>departure_time / arrival_time</td>
                                     <td>No</td>
                                     <td>Use HH:MM in 24-hour format.</td>
@@ -99,27 +124,32 @@
                                 <tr>
                                     <td>actual_start_time / actual_reach_time</td>
                                     <td>No</td>
-                                    <td>Use HH:MM. Blank values default to departure and arrival time.</td>
+                                    <td>Use HH:MM. Blank actual_start_time defaults from trip start time for up; blank actual_reach_time defaults from trip end time for down.</td>
                                 </tr>
                                 <tr>
-                                    <td>verified_by / approved_by</td>
+                                    <td>starting_km / starting_electric_charge</td>
                                     <td>No</td>
-                                    <td>Use exact active controller and supervisor names for this trip depot.</td>
+                                    <td>Use whole numbers. Electric charge must be 0 to 100.</td>
                                 </tr>
                                 <tr>
-                                    <td>shift</td>
+                                    <td>vehicle_condition</td>
                                     <td>No</td>
-                                    <td>Use an active shift name.</td>
+                                    <td>Optional vehicle condition notes.</td>
                                 </tr>
                                 <tr>
-                                    <td>driver_code / driver_name</td>
+                                    <td>is_* fields</td>
                                     <td>No</td>
-                                    <td>Use driver_code when names are duplicate.</td>
+                                    <td>Use yes/no for verification flags.</td>
                                 </tr>
                                 <tr>
-                                    <td>vehicle_no</td>
+                                    <td>*_verified_by / verified_by_*</td>
                                     <td>No</td>
-                                    <td>Use an active vehicle number.</td>
+                                    <td>Use a supervisor or controller name.</td>
+                                </tr>
+                                <tr>
+                                    <td>*_verified_at / verified_by_*_at</td>
+                                    <td>No</td>
+                                    <td>Use DD-MM-YYYY HH:MM.</td>
                                 </tr>
                                 <tr>
                                     <td>notes</td>
@@ -131,7 +161,7 @@
                     </div>
 
                     <p class="mb-0">
-                        The file is checked completely before saving. Existing trip sheet rows for imported dates are replaced,
+                        The file is checked completely before saving. Existing trip sheets for imported dates are replaced,
                         and other dates remain unchanged.
                     </p>
                 </div>

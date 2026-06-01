@@ -179,6 +179,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/trips/status', [TripController::class, 'status'])->name('trips.status');
     Route::post('/trips/export', [TripController::class, 'export'])
         ->name('trips.export');
+    Route::get('/completed-trips', [TripController::class, 'completedTrips'])
+        ->name('trips.completed.index');
+    Route::get('/completed-trips/export', [TripController::class, 'completedTripsExport'])
+        ->name('trips.completed.export');
+    Route::get('/completed-trips/{tripSheetEntry}', [TripController::class, 'completedTripView'])
+        ->name('trips.completed.view');
+    Route::get('/completed-trips/{tripSheetEntry}/download-pdf', [TripController::class, 'completedTripPdf'])
+        ->name('trips.completed.download-pdf');
     Route::get('/trips/{trip}/assignments', [TripAssignmentController::class, 'index'])
         ->name('trips.assignments.index');
     Route::post('/trips/{trip}/assignments', [TripAssignmentController::class, 'store'])
@@ -197,8 +205,16 @@ Route::middleware('auth')->group(function () {
         ->name('trips.sheet.sample-csv');
     Route::get('/trips/{trip}/sheet', [TripController::class, 'sheet'])
         ->name('trips.sheet');
+    Route::get('/trips/{trip}/sheet/create', [TripController::class, 'createSheetEntry'])
+        ->name('trips.sheet.entries.create');
     Route::post('/trips/{trip}/sheet', [TripController::class, 'storeSheet'])
         ->name('trips.sheet.store');
+    Route::get('/trips/{trip}/sheet-entries/{tripSheetEntry}/edit', [TripController::class, 'editSheetEntry'])
+        ->name('trips.sheet.entries.edit');
+    Route::get('/trips/{trip}/sheet-entries/{tripSheetEntry}/duplicate', [TripController::class, 'duplicateSheetEntry'])
+        ->name('trips.sheet.entries.duplicate');
+    Route::delete('/trips/{trip}/sheet-entries/{tripSheetEntry}', [TripController::class, 'destroySheetEntry'])
+        ->name('trips.sheet.entries.destroy');
     Route::resource('trips', TripController::class)->except(['show']);
 
     Route::post('/oem-types/status', [OemTypeController::class, 'status'])->name('oem-types.status');
