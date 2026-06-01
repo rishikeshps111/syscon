@@ -31,7 +31,7 @@ class TripExport implements FromCollection, WithHeadings
                 'To Date' => $trip->to_date?->format('d M Y'),
                 'Actual Start Time' => $trip->start_time ? substr($trip->start_time, 0, 5) : '',
                 'Actual Reach Time' => $trip->end_time ? substr($trip->end_time, 0, 5) : '',
-                'Halt Time' => $trip->halt_time ? substr($trip->halt_time, 0, 5) : '',
+                'Halt Time (Minutes)' => $this->timeToMinutes($trip->halt_time) ?? '',
                 'Trip Side' => Trip::TRIP_SIDES[$trip->trip_side] ?? '',
                 'Status' => $trip->status ?: ($trip->is_active ? 'Active' : 'Inactive'),
                 'Created At' => $trip->created_at->format('d M Y'),
@@ -53,10 +53,21 @@ class TripExport implements FromCollection, WithHeadings
             'To Date',
             'Actual Start Time',
             'Actual Reach Time',
-            'Halt Time',
+            'Halt Time (Minutes)',
             'Trip Side',
             'Status',
             'Created At',
         ];
+    }
+
+    private function timeToMinutes(?string $time): ?int
+    {
+        if (! $time) {
+            return null;
+        }
+
+        $parts = explode(':', $time);
+
+        return ((int) ($parts[0] ?? 0) * 60) + (int) ($parts[1] ?? 0);
     }
 }

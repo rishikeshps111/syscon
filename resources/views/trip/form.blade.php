@@ -1,3 +1,19 @@
+@php
+    $haltTimeMinutes = function ($value) {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        $parts = explode(':', (string) $value);
+
+        return ((int) ($parts[0] ?? 0) * 60) + (int) ($parts[1] ?? 0);
+    };
+@endphp
+
 <form id="commonForm" class="row" method="POST"
     action="{{ isset($record) ? route('trips.update', $record->id) : route('trips.store') }}">
 
@@ -70,9 +86,9 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-2">
-        <label for="halt_time" class="form-label m-0">Halt Time</label>
-        <input type="time" class="form-control shadow-none" id="halt_time" name="halt_time"
-            value="{{ old('halt_time', isset($record) && $record->halt_time ? substr($record->halt_time, 0, 5) : '') }}">
+        <label for="halt_time" class="form-label m-0">Halt Time (in Minutes)</label>
+        <input type="number" class="form-control shadow-none" id="halt_time" name="halt_time" min="0" step="1"
+            value="{{ $haltTimeMinutes(old('halt_time', isset($record) ? $record->halt_time : '')) }}">
         <span class="text-danger error-text halt_time_error">@error('halt_time'){{ $message }}@enderror</span>
     </div>
 

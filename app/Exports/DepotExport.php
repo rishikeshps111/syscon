@@ -12,8 +12,8 @@ class DepotExport implements FromCollection, WithHeadings
 
     public function __construct($query = null)
     {
-        $this->query = $query ?: Depot::with('location')
-            ->select('location_id', 'code', 'name', 'is_active', 'created_at');
+        $this->query = $query ?: Depot::with(['state', 'district', 'location'])
+            ->select('state_id', 'district_id', 'location_id', 'code', 'name', 'short_name', 'is_active', 'created_at');
     }
 
     public function collection()
@@ -22,6 +22,9 @@ class DepotExport implements FromCollection, WithHeadings
             return [
                 'Code' => $depot->code,
                 'Depot' => $depot->name,
+                'Short Name' => $depot->short_name,
+                'State' => $depot->state?->name,
+                'District' => $depot->district?->name,
                 'Location' => $depot->location?->name,
                 'Status' => $depot->is_active ? 'Active' : 'Inactive',
                 'Created At' => $depot->created_at->format('d M Y'),
@@ -34,6 +37,9 @@ class DepotExport implements FromCollection, WithHeadings
         return [
             'Code',
             'Depot',
+            'Short Name',
+            'State',
+            'District',
             'Location',
             'Status',
             'Created At',

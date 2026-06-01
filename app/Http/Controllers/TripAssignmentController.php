@@ -9,6 +9,7 @@ use App\Models\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -70,7 +71,10 @@ class TripAssignmentController extends Controller implements HasMiddleware
 
     public function store(Request $request, Trip $trip)
     {
-        $assignment = $trip->assignments()->create($this->validatedData($request) + [
+        $data = $this->validatedData($request);
+        $this->ensureDateRangeIsAvailable($trip, $data);
+
+        $assignment = $trip->assignments()->create($data + [
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
         ]);
@@ -90,7 +94,10 @@ class TripAssignmentController extends Controller implements HasMiddleware
 
     public function update(Request $request, TripAssignment $tripAssignment)
     {
-        $tripAssignment->update($this->validatedData($request) + [
+        $data = $this->validatedData($request);
+        $this->ensureDateRangeIsAvailable($tripAssignment->trip, $data, $tripAssignment);
+
+        $tripAssignment->update($data + [
             'updated_by' => auth()->id(),
         ]);
 
@@ -120,5 +127,20 @@ class TripAssignmentController extends Controller implements HasMiddleware
             'driver_profile_id' => ['required', 'integer', 'exists:driver_profiles,id'],
             'notes' => ['nullable', 'string'],
         ]);
+    }
+
+    private function ensureDateRangeIsAvailable(Trip $trip, array $data, ?TripAssignment $currentAssignment = null): void
+    {
+        $exists = $trip->assignments()
+            ->when($currentAssignment, fn ($query) => $query->whereKeyNot($currentAssignment->id))
+            ->whereDate('from_date', '<=', $data['to_date'])
+            ->whereDate('to_date', '>=', $data['from_date'])
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'from_date' => 'An assignment already exists for the selected date range.',
+            ]);
+        }
     }
 }

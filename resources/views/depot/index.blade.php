@@ -18,7 +18,34 @@
             <div class="col-lg-12 mb-3">
                 <div class="main-table-container">
                     <div class="row">
-                        <div class="col-lg-3">
+                        <div class="col-lg-3 mb-3">
+                            <div class="o-f-inp">
+                                <label for="stateFilter">Filter by State</label>
+                                <select name="state_id" id="stateFilter" class="form-select shadow-none multi-select">
+                                    <option value="">--- Select ---</option>
+                                    @foreach ($states as $state)
+                                        <option value="{{ $state->id }}">{{ $state->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 mb-3">
+                            <div class="o-f-inp">
+                                <label for="districtFilter">Filter by District</label>
+                                <select name="district_id" id="districtFilter" class="form-select shadow-none multi-select" disabled>
+                                    <option value="">--- Select State First ---</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 mb-3">
+                            <div class="o-f-inp">
+                                <label for="locationFilter">Filter by Location</label>
+                                <select name="location_id" id="locationFilter" class="form-select shadow-none multi-select" disabled>
+                                    <option value="">--- Select District First ---</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 mb-3">
                             <div class="o-f-inp">
                                 <label for="statusFilter">Filter by Status</label>
                                 <select name="status" id="statusFilter" class="form-select shadow-none">
@@ -28,7 +55,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-2 d-flex align-items-end">
+                        <div class="col-lg-2 d-flex align-items-end mb-3">
                             <button type="button" id="resetFilters" class="btn btn-secondary mb-1">
                                 Reset
                             </button>
@@ -57,6 +84,9 @@
                                             <th class="text-center">Sl No</th>
                                             <th class="text-center">Code</th>
                                             <th class="text-center">Depot</th>
+                                            <th class="text-center">Short Name</th>
+                                            <th class="text-center">State</th>
+                                            <th class="text-center">District</th>
                                             <th class="text-center">Location</th>
                                             <th class="text-center">Status</th>
                                             <th class="text-center">Action</th>

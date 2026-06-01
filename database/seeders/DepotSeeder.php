@@ -55,9 +55,18 @@ class DepotSeeder extends Seeder
                             'name' => $depotName,
                         ],
                         [
+                            'state_id' => $location->state_id,
+                            'district_id' => $location->district_id,
                             'is_active' => true,
+                            'short_name' => $this->shortName($depotName),
                         ]
                     );
+
+                    $depot->fill([
+                        'state_id' => $location->state_id,
+                        'district_id' => $location->district_id,
+                        'short_name' => $depot->short_name ?: $this->shortName($depotName),
+                    ])->save();
 
                     if (! $depot->code) {
                         $depot->code = generate_code('Depot Module', $depot->id, 3, 'DPM');
@@ -66,5 +75,13 @@ class DepotSeeder extends Seeder
                 }
             }
         });
+    }
+
+    private function shortName(string $name): string
+    {
+        return collect(preg_split('/\s+/', $name))
+            ->filter()
+            ->map(fn (string $word) => strtoupper(substr($word, 0, 1)))
+            ->implode('');
     }
 }

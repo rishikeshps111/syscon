@@ -6,6 +6,9 @@
             ajax: {
                 url: "{{ route('depots.index') }}",
                 data: function (data) {
+                    data.state_id = $('#stateFilter').val();
+                    data.district_id = $('#districtFilter').val();
+                    data.location_id = $('#locationFilter').val();
                     data.status = $('#statusFilter').val();
                 }
             },
@@ -23,21 +26,41 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
                 { data: 'name', name: 'name', className: 'text-center' },
+                { data: 'short_name', name: 'short_name', className: 'text-center' },
+                { data: 'state_name', name: 'state.name', className: 'text-center' },
+                { data: 'district_name', name: 'district.name', className: 'text-center' },
                 { data: 'location_name', name: 'location.name', className: 'text-center' },
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]
         });
 
-        $('#statusFilter').on('change', function () {
-            $('#checkAll').prop('checked', false);
+        $('.multi-select').select2({});
+
+        $('#stateFilter').on('change', function () {
+            loadDistrictOptions($('#districtFilter'), $(this).val(), '', '--- Select District ---');
+            resetLocationSelect($('#locationFilter'), '--- Select District First ---');
+            clearChecks();
+            table.ajax.reload();
+        });
+
+        $('#districtFilter').on('change', function () {
+            loadLocationOptions($('#locationFilter'), $('#stateFilter').val(), $(this).val(), '', '--- Select Location ---');
+            clearChecks();
+            table.ajax.reload();
+        });
+
+        $('#locationFilter, #statusFilter').on('change', function () {
+            clearChecks();
             table.ajax.reload();
         });
 
         $('#resetFilters').on('click', function () {
+            $('#stateFilter').val(null).trigger('change');
+            resetDistrictSelect($('#districtFilter'), '--- Select State First ---');
+            resetLocationSelect($('#locationFilter'), '--- Select District First ---');
             $('#statusFilter').val('');
-            $('#checkAll').prop('checked', false);
-            $('.row-check').prop('checked', false);
+            clearChecks();
             table.ajax.reload();
         });
 
@@ -58,6 +81,21 @@
                     showToast('error', 'Failed to load form.');
                 }
             });
+        });
+
+        $(document).on('change', '#formModal #state_id', function () {
+            loadDistrictOptions($('#formModal #district_id'), $(this).val(), '', 'Select District');
+            resetLocationSelect($('#formModal #location_id'), 'Select District First');
+        });
+
+        $(document).on('change', '#formModal #district_id', function () {
+            loadLocationOptions(
+                $('#formModal #location_id'),
+                $('#formModal #state_id').val(),
+                $(this).val(),
+                '',
+                'Select Location'
+            );
         });
 
         $(document).on('submit', '#commonForm', function (e) {
@@ -178,8 +216,85 @@
         deleteRecord('/depots/' + id, 'table', 'Do you really want to delete this depot?');
     }
 
+    function clearChecks() {
+        $('#checkAll').prop('checked', false);
+        $('.row-check').prop('checked', false);
+    }
+
+    function resetDistrictSelect($select, placeholder) {
+        $select.empty()
+            .append(new Option(placeholder, ''))
+            .val('')
+            .prop('disabled', true)
+            .trigger('change.select2');
+    }
+
+    function resetLocationSelect($select, placeholder) {
+        $select.empty()
+            .append(new Option(placeholder, ''))
+            .val('')
+            .prop('disabled', true)
+            .trigger('change.select2');
+    }
+
+    function loadDistrictOptions($select, stateId, selectedDistrictId, placeholder) {
+        resetDistrictSelect($select, 'Loading...');
+
+        if (!stateId) {
+            resetDistrictSelect($select, '--- Select State First ---');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ route('depots.districts-by-state') }}",
+            type: 'GET',
+            data: { state_id: stateId },
+            success: function (districts) {
+                $select.empty().append(new Option(placeholder, ''));
+
+                $.each(districts, function (index, district) {
+                    $select.append(new Option(district.name, district.id));
+                });
+
+                $select.prop('disabled', false).val(selectedDistrictId || '').trigger('change.select2');
+            },
+            error: function () {
+                resetDistrictSelect($select, '--- Select State First ---');
+                showToast('error', 'Failed to load districts.');
+            }
+        });
+    }
+
+    function loadLocationOptions($select, stateId, districtId, selectedLocationId, placeholder) {
+        resetLocationSelect($select, 'Loading...');
+
+        if (!stateId || !districtId) {
+            resetLocationSelect($select, '--- Select District First ---');
+            return;
+        }
+
+        $.ajax({
+            url: "{{ route('depots.locations-by-district') }}",
+            type: 'GET',
+            data: { state_id: stateId, district_id: districtId },
+            success: function (locations) {
+                $select.empty().append(new Option(placeholder, ''));
+
+                $.each(locations, function (index, location) {
+                    $select.append(new Option(location.name, location.id));
+                });
+
+                $select.prop('disabled', false).val(selectedLocationId || '').trigger('change.select2');
+            },
+            error: function () {
+                resetLocationSelect($select, '--- Select District First ---');
+                showToast('error', 'Failed to load locations.');
+            }
+        });
+    }
+
     function initSelect() {
-        $('.select2').select2({
+        $('#formModal .select2').select2({
             placeholder: "Select an option",
             dropdownParent: $('#formModal'),
             allowClear: true

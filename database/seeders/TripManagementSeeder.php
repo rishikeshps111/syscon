@@ -28,7 +28,7 @@ class TripManagementSeeder extends Seeder
                 'to_date' => '2026-06-10',
                 'start_time' => '09:00',
                 'end_time' => '13:00',
-                'halt_time' => '00:30',
+                'halt_time' => 30,
                 'trip_side' => 'both',
                 'status' => 'Active',
                 'notes' => 'Morning intercity employee transport trip.',
@@ -44,7 +44,7 @@ class TripManagementSeeder extends Seeder
                 'to_date' => '2026-06-10',
                 'start_time' => '14:00',
                 'end_time' => '17:30',
-                'halt_time' => '00:20',
+                'halt_time' => 20,
                 'trip_side' => 'up',
                 'status' => 'Active',
                 'notes' => 'Afternoon shuttle trip.',
@@ -60,7 +60,7 @@ class TripManagementSeeder extends Seeder
                 'to_date' => '2026-06-12',
                 'start_time' => '07:15',
                 'end_time' => '08:00',
-                'halt_time' => '00:15',
+                'halt_time' => 15,
                 'trip_side' => 'down',
                 'status' => 'Inactive',
                 'notes' => 'Completed school transport sample.',
@@ -90,7 +90,7 @@ class TripManagementSeeder extends Seeder
                         'schedule_type' => 'daily',
                         'start_time' => $record['start_time'],
                         'end_time' => $record['end_time'],
-                        'halt_time' => $record['halt_time'],
+                        'halt_time' => $this->minutesToTime($record['halt_time']),
                         'trip_side' => $record['trip_side'],
                         'from_date' => $record['from_date'],
                         'to_date' => $record['to_date'],
@@ -136,6 +136,13 @@ class TripManagementSeeder extends Seeder
                 }
             }
         });
+    }
+
+    private function minutesToTime(?int $minutes): ?string
+    {
+        return $minutes === null
+            ? null
+            : sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
     }
 
     private function sheetRows(array $record, string $controllerName, string $supervisorName): array

@@ -80,7 +80,10 @@
                 <div class="row">
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="sheetDate">Date <span class="text-danger">*</span></label>
-                        <input type="date" id="sheetDate" name="date" class="form-control shadow-none" value="{{ $selectedDate }}">
+                        <input type="date" id="sheetDate" name="date" class="form-control shadow-none"
+                            value="{{ $selectedDate }}"
+                            min="{{ $record->from_date?->format('Y-m-d') }}"
+                            max="{{ $record->to_date?->format('Y-m-d') }}">
                         @error('date') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-lg-3 o-f-inp mb-3">

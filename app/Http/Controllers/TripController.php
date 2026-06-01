@@ -57,7 +57,7 @@ class TripController extends Controller implements HasMiddleware
                 ->addColumn('trip_title', fn ($row) => $row->trip_title ?: '-')
                 ->addColumn('from_location', fn ($row) => $row->route?->startPoint?->name ?? '-')
                 ->addColumn('to_location', fn ($row) => $row->route?->endPoint?->name ?? '-')
-                ->addColumn('halt_time', fn ($row) => $row->halt_time ? substr($row->halt_time, 0, 5) : '-')
+                ->addColumn('halt_time', fn ($row) => $this->timeToMinutes($row->halt_time) ?? '-')
                 ->addColumn('trip_side', fn ($row) => Trip::TRIP_SIDES[$row->trip_side] ?? '-')
                 ->addColumn('status', fn ($row) => $this->statusBadge($row->status))
                 ->addColumn('action', fn ($row) => view('trip.partials.action', compact('row'))->render())
@@ -155,7 +155,7 @@ class TripController extends Controller implements HasMiddleware
 
     public function store(StoreTripRequest $request)
     {
-        $data = $request->validated() + ['created_by' => auth()->id(), 'updated_by' => auth()->id()];
+        $data = $this->tripPayload($request->validated()) + ['created_by' => auth()->id(), 'updated_by' => auth()->id()];
         $trip = Trip::create($data);
         $trip->code = $this->generateTripCode($trip->id);
         $trip->save();
@@ -180,7 +180,7 @@ class TripController extends Controller implements HasMiddleware
 
     public function update(UpdateTripRequest $request, Trip $trip)
     {
-        $trip->update($request->validated() + ['updated_by' => auth()->id()]);
+        $trip->update($this->tripPayload($request->validated()) + ['updated_by' => auth()->id()]);
 
         if (! $request->expectsJson() && ! $request->ajax()) {
             return redirect()->route('trips.index')->with('success', 'Trip updated successfully.');
@@ -191,6 +191,29 @@ class TripController extends Controller implements HasMiddleware
             'message' => 'Trip updated successfully.',
             'data' => $trip->fresh(),
         ]);
+    }
+
+    private function tripPayload(array $data): array
+    {
+        if (array_key_exists('halt_time', $data)) {
+            $haltTime = $data['halt_time'];
+            $data['halt_time'] = $haltTime === null || $haltTime === ''
+                ? null
+                : sprintf('%02d:%02d', intdiv((int) $haltTime, 60), (int) $haltTime % 60);
+        }
+
+        return $data;
+    }
+
+    private function timeToMinutes(?string $time): ?int
+    {
+        if (! $time) {
+            return null;
+        }
+
+        $parts = explode(':', $time);
+
+        return ((int) ($parts[0] ?? 0) * 60) + (int) ($parts[1] ?? 0);
     }
 
     public function destroy(Trip $trip)

@@ -19,15 +19,31 @@ class UpdateDepotRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'location_id' => ['required', 'integer', 'exists:locations,id'],
+            'state_id' => ['required', 'integer', 'exists:states,id'],
+            'district_id' => [
+                'required',
+                'integer',
+                Rule::exists('districts', 'id')->where(fn ($query) => $query->where('state_id', $this->state_id)),
+            ],
+            'location_id' => [
+                'required',
+                'integer',
+                Rule::exists('locations', 'id')->where(fn ($query) => $query
+                    ->where('state_id', $this->state_id)
+                    ->where('district_id', $this->district_id)),
+            ],
             'name' => [
                 'required',
                 'string',
                 'max:255',
                 Rule::unique('depots', 'name')
-                    ->where('location_id', $this->input('location_id'))
+                    ->where(fn ($query) => $query
+                        ->where('state_id', $this->state_id)
+                        ->where('district_id', $this->district_id)
+                        ->where('location_id', $this->location_id))
                     ->ignore($this->route('depot')),
             ],
+            'short_name' => ['nullable', 'string', 'max:50'],
             'is_active' => ['required', 'boolean'],
         ];
     }

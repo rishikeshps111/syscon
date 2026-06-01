@@ -101,6 +101,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('complaint-categories', ComplaintCategoryController::class)->except(['edit', 'show']);
 
     Route::post('/depots/status', [DepotController::class, 'status'])->name('depots.status');
+    Route::get('/depots/districts-by-state', [DepotController::class, 'districtsByState'])
+        ->name('depots.districts-by-state');
+    Route::get('/depots/locations-by-district', [DepotController::class, 'locationsByDistrict'])
+        ->name('depots.locations-by-district');
     Route::post('/depots/export', [DepotController::class, 'export'])
         ->name('depots.export');
     Route::resource('depots', DepotController::class)->except(['edit', 'show']);
