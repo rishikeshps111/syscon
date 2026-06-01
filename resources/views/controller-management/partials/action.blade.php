@@ -16,6 +16,7 @@
                     <li><a class="dropdown-item" href="{{ route('controller-management.show', $row->id) }}">View Details</a></li>
                     <li><a class="dropdown-item" href="{{ route('controller-management.documents.index', $row->id) }}">Documents</a>
                     </li>
+                    <li><a class="dropdown-item" href="{{ route('controller-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>
                 </ul>
             </div>
         @endcan

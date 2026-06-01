@@ -25,6 +25,9 @@
                         <a class="dropdown-item" href="{{ route('vehicles.documents.index', $row->id) }}">Documents</a>
                     </li>
                     <li>
+                        <a class="dropdown-item" href="{{ route('vehicles.depot-assignments.index', $row->id) }}">Assign Depot</a>
+                    </li>
+                    <li>
                         <a class="dropdown-item" href="{{ route('vehicles.assignments.index', $row->id) }}">Assign Vehicle</a>
                     </li>
                     <li>

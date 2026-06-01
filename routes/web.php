@@ -7,6 +7,7 @@ use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ControllerDocumentController;
 use App\Http\Controllers\ControllerManagementController;
+use App\Http\Controllers\DepotAssignmentController;
 use App\Http\Controllers\DepotController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
@@ -105,6 +106,8 @@ Route::middleware('auth')->group(function () {
         ->name('depots.districts-by-state');
     Route::get('/depots/locations-by-district', [DepotController::class, 'locationsByDistrict'])
         ->name('depots.locations-by-district');
+    Route::get('/depots/{depot}/assignments', [DepotAssignmentController::class, 'depotIndex'])
+        ->name('depots.assignments.index');
     Route::post('/depots/export', [DepotController::class, 'export'])
         ->name('depots.export');
     Route::resource('depots', DepotController::class)->except(['edit', 'show']);
@@ -149,6 +152,12 @@ Route::middleware('auth')->group(function () {
         ->name('vehicle-documents.preview');
     Route::delete('/vehicle-documents/{vehicleDocument}', [VehicleDocumentController::class, 'destroy'])
         ->name('vehicle-documents.destroy');
+    Route::get('/vehicles/{subject}/depot-assignments', [DepotAssignmentController::class, 'index'])
+        ->defaults('module', 'vehicle')
+        ->name('vehicles.depot-assignments.index');
+    Route::post('/vehicles/{subject}/depot-assignments', [DepotAssignmentController::class, 'store'])
+        ->defaults('module', 'vehicle')
+        ->name('vehicles.depot-assignments.store');
     Route::get('/vehicles/{vehicle}/assignments', [VehicleAssignmentController::class, 'index'])
         ->name('vehicles.assignments.index');
     Route::post('/vehicles/{vehicle}/assignments', [VehicleAssignmentController::class, 'store'])
@@ -400,6 +409,12 @@ Route::middleware('auth')->group(function () {
         ->name('controller-documents.preview');
     Route::delete('/controller-documents/{controllerDocument}', [ControllerDocumentController::class, 'destroy'])
         ->name('controller-documents.destroy');
+    Route::get('/controller-management/{subject}/depot-assignments', [DepotAssignmentController::class, 'index'])
+        ->defaults('module', 'controller')
+        ->name('controller-management.depot-assignments.index');
+    Route::post('/controller-management/{subject}/depot-assignments', [DepotAssignmentController::class, 'store'])
+        ->defaults('module', 'controller')
+        ->name('controller-management.depot-assignments.store');
     Route::resource('controller-management', ControllerManagementController::class);
 
     Route::post('/supervisor-management/status', [SupervisorManagementController::class, 'status'])
@@ -422,6 +437,12 @@ Route::middleware('auth')->group(function () {
         ->name('supervisor-documents.preview');
     Route::delete('/supervisor-documents/{supervisorDocument}', [SupervisorDocumentController::class, 'destroy'])
         ->name('supervisor-documents.destroy');
+    Route::get('/supervisor-management/{subject}/depot-assignments', [DepotAssignmentController::class, 'index'])
+        ->defaults('module', 'supervisor')
+        ->name('supervisor-management.depot-assignments.index');
+    Route::post('/supervisor-management/{subject}/depot-assignments', [DepotAssignmentController::class, 'store'])
+        ->defaults('module', 'supervisor')
+        ->name('supervisor-management.depot-assignments.store');
     Route::resource('supervisor-management', SupervisorManagementController::class);
 
     Route::get('/driver-management/districts-by-state', [DriverManagementController::class, 'districtsByState'])
@@ -444,7 +465,18 @@ Route::middleware('auth')->group(function () {
         ->name('driver-documents.preview');
     Route::delete('/driver-documents/{driverDocument}', [DriverDocumentController::class, 'destroy'])
         ->name('driver-documents.destroy');
+    Route::get('/driver-management/{subject}/depot-assignments', [DepotAssignmentController::class, 'index'])
+        ->defaults('module', 'driver')
+        ->name('driver-management.depot-assignments.index');
+    Route::post('/driver-management/{subject}/depot-assignments', [DepotAssignmentController::class, 'store'])
+        ->defaults('module', 'driver')
+        ->name('driver-management.depot-assignments.store');
     Route::resource('driver-management', DriverManagementController::class);
+
+    Route::put('/depot-assignments/{depotAssignment}', [DepotAssignmentController::class, 'update'])
+        ->name('depot-assignments.update');
+    Route::delete('/depot-assignments/{depotAssignment}', [DepotAssignmentController::class, 'destroy'])
+        ->name('depot-assignments.destroy');
 
     Route::get('/complaints/users-by-role', [ComplaintController::class, 'usersByRole'])
         ->name('complaints.users-by-role');

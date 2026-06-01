@@ -16,6 +16,7 @@
                     <li><a class="dropdown-item" href="{{ route('driver-management.show', $row->id) }}">View Details</a></li>
                     <li><a class="dropdown-item" href="{{ route('driver-management.documents.index', $row->id) }}">Documents</a>
                     </li>
+                    <li><a class="dropdown-item" href="{{ route('driver-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>
                 </ul>
             </div>
         @endcan

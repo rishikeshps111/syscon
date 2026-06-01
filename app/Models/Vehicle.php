@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 #[Table('vehicles')]
 #[Fillable([
@@ -137,6 +138,11 @@ class Vehicle extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(VehicleAssignment::class);
+    }
+
+    public function depotAssignments(): MorphMany
+    {
+        return $this->morphMany(DepotAssignment::class, 'assignable');
     }
 
     public function maintenanceLogs(): HasMany
