@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Prefix;
+use App\Models\Roster;
 use App\Models\Trip;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -22,6 +23,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'RT', 'module' => 'Route Module', 'is_active' => true],
             ['prefix' => 'VEH', 'module' => 'Vehicle Module', 'is_active' => true],
             ['prefix' => 'TRP', 'module' => Trip::PREFIX_MODULE, 'is_active' => true],
+            ['prefix' => 'RST', 'module' => Roster::PREFIX_MODULE, 'is_active' => true],
             ['prefix' => 'VC', 'module' => 'Vehicle Classification Module', 'is_active' => true],
             ['prefix' => 'DOCT', 'module' => 'Document Type Module', 'is_active' => true],
             ['prefix' => 'CC', 'module' => 'Complaint Category Module', 'is_active' => true],

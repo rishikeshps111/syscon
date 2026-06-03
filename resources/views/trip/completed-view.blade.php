@@ -47,8 +47,8 @@
                                     <li>Date : <span>{{ $date($entry->sheet?->date) }}</span></li>
                                     <li>Side : <span>{{ ucfirst((string) $entry->side) }}</span></li>
                                     <li>Depot : <span>{{ $trip?->depot?->name ?: '-' }}</span></li>
-                                    <li>Driver Name : <span>{{ $assignment?->driverProfile?->user?->name ?: '-' }}</span></li>
-                                    <li>Vehicle No : <span>{{ $assignment?->vehicle?->vehicle_no ?: '-' }}</span></li>
+                                    <li>Driver Name : <span>{{ $entry->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-' }}</span></li>
+                                    <li>Vehicle No : <span>{{ $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span></li>
                                     <li>Status : <span>Completed</span></li>
                                     <li>Starting KM : <span>{{ $entry->starting_km ?? '-' }}</span></li>
                                 </ul>
@@ -73,7 +73,7 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Vehicle Details</h6>
                                 <ul>
-                                    <li><label>Vehicle No :</label> <span>{{ $assignment?->vehicle?->vehicle_no ?: '-' }}</span></li>
+                                    <li><label>Vehicle No :</label> <span>{{ $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span></li>
                                     <li><label>Starting KM :</label> <span>{{ $entry->starting_km ?? '-' }}</span></li>
                                     <li><label>Starting Charge :</label> <span>{{ $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-' }}</span></li>
                                     <li><label>Vehicle Condition :</label> <span>{{ $entry->vehicle_condition ?: '-' }}</span></li>
@@ -87,7 +87,7 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Driver Verification</h6>
                                 <ul>
-                                    <li><label>Driver :</label> <span>{{ $assignment?->driverProfile?->user?->name ?: '-' }}</span></li>
+                                    <li><label>Driver :</label> <span>{{ $entry->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-' }}</span></li>
                                     <li><label>Driver Verified :</label> <span>{{ $entry->is_driver_verified ? 'Yes' : 'No' }}</span></li>
                                     <li><label>Verified By :</label> <span>{{ $entry->driver_verified_by ?: '-' }}</span></li>
                                     <li><label>Verified At :</label> <span>{{ $dateTime($entry->driver_verified_at) }}</span></li>

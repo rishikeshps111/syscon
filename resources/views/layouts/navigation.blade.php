@@ -13,7 +13,7 @@
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
-                    'supervisor-management.view', 'attendance-management.view', 'trips.view'])
+                    'supervisor-management.view', 'attendance-management.view', 'trips.view', 'rosters.view'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('dashboard') ? '' : 'collapsed' }}"
                             href="{{ route('dashboard') }}">
@@ -369,6 +369,42 @@
                                     <span>Completed Trips</span>
                                 </a>
                             </li>
+                        </ul>
+                    </li>
+                @endcan
+                @can('rosters.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('rosters.*') ? '' : 'collapsed' }}"
+                            data-bs-target="#sidebarRoasterManagement" data-bs-toggle="collapse" href="#">
+                            <i class="fa-regular fa-user-clock"></i>
+                            <span>Roaster</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <ul id="sidebarRoasterManagement"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('rosters.*') ? 'show' : '' }}"
+                            data-bs-parent="#sidebar-nav">
+                            @can('rosters.create')
+                                <li>
+                                    <a href="{{ route('rosters.create') }}"
+                                        class="{{ request()->routeIs('rosters.create') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Create Roaster</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            <li>
+                                <a href="{{ route('rosters.index') }}"
+                                    class="{{ request()->routeIs('rosters.index', 'rosters.edit', 'rosters.show') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Manage Roaster</span>
+                                </a>
+                            </li>
+                            {{-- <li>
+                                <a href="#!" class="text-muted">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Roaster Report</span>
+                                </a>
+                            </li> --}}
                         </ul>
                     </li>
                 @endcan

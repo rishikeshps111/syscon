@@ -13,6 +13,17 @@
         $selectedDate = old('date', $entry?->sheet?->date?->format('Y-m-d'));
         $selectedStatus = old('status', $entry?->sheet?->status ?? 'pending');
         $selectedSide = old('side', $entry?->side ?? array_key_first($sideOptions));
+        $defaultAssignment = $selectedDate
+            ? $record->assignments->first(fn ($assignment) => $assignment->from_date?->format('Y-m-d') <= $selectedDate && $assignment->to_date?->format('Y-m-d') >= $selectedDate)
+            : null;
+        $selectedDriverId = old('driver_profile_id', $entry?->driver_profile_id ?: $defaultAssignment?->driver_profile_id);
+        $selectedVehicleId = old('vehicle_id', $entry?->vehicle_id ?: $defaultAssignment?->vehicle_id);
+        $assignmentDefaults = $record->assignments->map(fn ($assignment) => [
+            'from_date' => $assignment->from_date?->format('Y-m-d'),
+            'to_date' => $assignment->to_date?->format('Y-m-d'),
+            'driver_profile_id' => $assignment->driver_profile_id,
+            'vehicle_id' => $assignment->vehicle_id,
+        ])->values();
         $timeValue = fn ($field) => old($field, $entry?->{$field} ? substr($entry->{$field}, 0, 5) : '');
         $dateTimeValue = fn ($field) => old($field, $entry?->{$field}?->format('Y-m-d\TH:i') ?? '');
         $verificationGroups = [
@@ -109,6 +120,30 @@
                         <input type="time" id="departureTime" name="departure_time" class="form-control shadow-none" value="{{ $timeValue('departure_time') }}">
                     </div>
                     <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="driverProfileId">Driver</label>
+                        <select id="driverProfileId" name="driver_profile_id" class="form-select shadow-none sheet-select">
+                            <option value="">---Select---</option>
+                            @foreach($drivers as $driver)
+                                <option value="{{ $driver->id }}" {{ (string) $selectedDriverId === (string) $driver->id ? 'selected' : '' }}>
+                                    {{ $driver->user?->name ?? 'Driver #' . $driver->id }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('driver_profile_id') <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="vehicleId">Vehicle</label>
+                        <select id="vehicleId" name="vehicle_id" class="form-select shadow-none sheet-select">
+                            <option value="">---Select---</option>
+                            @foreach($vehicles as $vehicle)
+                                <option value="{{ $vehicle->id }}" {{ (string) $selectedVehicleId === (string) $vehicle->id ? 'selected' : '' }}>
+                                    {{ $vehicle->vehicle_no }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('vehicle_id') <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
                         <label for="arrivalTime">Arrival Time</label>
                         <input type="time" id="arrivalTime" name="arrival_time" class="form-control shadow-none" value="{{ $timeValue('arrival_time') }}">
                     </div>
@@ -183,6 +218,7 @@
             $(function () {
                 var startTime = @json($record->start_time ? substr($record->start_time, 0, 5) : '');
                 var endTime = @json($record->end_time ? substr($record->end_time, 0, 5) : '');
+                var assignmentDefaults = @json($assignmentDefaults);
 
                 $('.sheet-select').select2({
                     placeholder: '---Select---',
@@ -192,6 +228,10 @@
 
                 $('#sheetSide').on('change', function () {
                     applySideDefaults(false);
+                });
+
+                $('#sheetDate').on('change', function () {
+                    applyAssignmentDefaults(false);
                 });
 
                 $('#tripSheetForm').on('submit', function () {
@@ -219,7 +259,27 @@
                     }
                 }
 
+                function applyAssignmentDefaults(force) {
+                    var date = $('#sheetDate').val();
+                    var assignment = assignmentDefaults.find(function (row) {
+                        return row.from_date && row.to_date && row.from_date <= date && row.to_date >= date;
+                    });
+
+                    if (!assignment) {
+                        return;
+                    }
+
+                    if (force || !$('#driverProfileId').val()) {
+                        $('#driverProfileId').val(assignment.driver_profile_id || '').trigger('change');
+                    }
+
+                    if (force || !$('#vehicleId').val()) {
+                        $('#vehicleId').val(assignment.vehicle_id || '').trigger('change');
+                    }
+                }
+
                 applySideDefaults(false);
+                applyAssignmentDefaults(false);
             });
         </script>
     @endsection

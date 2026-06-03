@@ -29,6 +29,7 @@ use App\Http\Controllers\OemStateMappingController;
 use App\Http\Controllers\OemTypeController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RosterController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteAssignmentController;
 use App\Http\Controllers\RouteScheduleController;
@@ -229,6 +230,16 @@ Route::middleware('auth')->group(function () {
     Route::delete('/trips/{trip}/sheet-entries/{tripSheetEntry}', [TripController::class, 'destroySheetEntry'])
         ->name('trips.sheet.entries.destroy');
     Route::resource('trips', TripController::class)->except(['show']);
+
+    Route::post('/rosters/status', [RosterController::class, 'status'])->name('rosters.status');
+    Route::post('/rosters/attendance', [RosterController::class, 'attendance'])->name('rosters.attendance');
+    Route::post('/rosters/export', [RosterController::class, 'export'])->name('rosters.export');
+    Route::get('/rosters/trip-entries', [RosterController::class, 'tripEntries'])->name('rosters.trip-entries');
+    Route::get('/rosters/trip-entries/{tripSheetEntry}', [RosterController::class, 'tripEntryDetails'])->name('rosters.trip-entry-details');
+    Route::get('/rosters/{roster}/download-pdf', [RosterController::class, 'downloadPdf'])->name('rosters.download-pdf');
+    Route::post('/rosters/{roster}/reassign-driver', [RosterController::class, 'reassignDriver'])->name('rosters.reassign-driver');
+    Route::post('/rosters/{roster}/reassign-vehicle', [RosterController::class, 'reassignVehicle'])->name('rosters.reassign-vehicle');
+    Route::resource('rosters', RosterController::class);
 
     Route::post('/oem-types/status', [OemTypeController::class, 'status'])->name('oem-types.status');
     Route::post('/oem-types/export', [OemTypeController::class, 'export'])

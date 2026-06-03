@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'arrival_time',
     'actual_start_time',
     'actual_reach_time',
+    'driver_profile_id',
+    'vehicle_id',
     'starting_km',
     'starting_electric_charge',
     'vehicle_condition',
@@ -56,4 +58,13 @@ class TripSheetEntry extends Model
         return $this->belongsTo(TripSheet::class, 'trip_sheet_id');
     }
 
+    public function driverProfile(): BelongsTo
+    {
+        return $this->belongsTo(DriverProfile::class);
+    }
+
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
 }

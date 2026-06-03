@@ -82,7 +82,7 @@ class TripController extends Controller implements HasMiddleware
                 ->addColumn('trip_date', fn ($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
                 ->addColumn('from_location', fn ($entry) => $entry->sheet?->trip?->route?->startPoint?->name ?: '-')
                 ->addColumn('to_location', fn ($entry) => $entry->sheet?->trip?->route?->endPoint?->name ?: '-')
-                ->addColumn('driver_name', fn ($entry) => self::assignmentForCompletedEntry($entry)?->driverProfile?->user?->name ?: '-')
+                ->addColumn('driver_name', fn ($entry) => $this->entryDriverName($entry))
                 ->addColumn('status', fn ($entry) => $this->sheetStatusBadge($entry->sheet?->status))
                 ->addColumn('action', fn ($entry) => '<a href="' . e(route('trips.completed.view', $entry->id)) . '" class="btn-edit" title="View"><i class="fa-solid fa-eye"></i></a>')
                 ->rawColumns(['status', 'action'])
@@ -115,6 +115,8 @@ class TripController extends Controller implements HasMiddleware
             'sheet.trip.route.endPoint',
             'sheet.trip.route.stops',
             'sheet.trip.depot',
+            'driverProfile.user',
+            'vehicle',
             'sheet.trip.assignments.vehicle',
             'sheet.trip.assignments.driverProfile.user',
         ]);
@@ -133,6 +135,8 @@ class TripController extends Controller implements HasMiddleware
             'sheet.trip.route.startPoint',
             'sheet.trip.route.endPoint',
             'sheet.trip.depot',
+            'driverProfile.user',
+            'vehicle',
             'sheet.trip.assignments.vehicle',
             'sheet.trip.assignments.driverProfile.user',
         ]);
@@ -267,6 +271,8 @@ class TripController extends Controller implements HasMiddleware
                 ->editColumn('side', fn ($entry) => ucfirst((string) $entry->side))
                 ->editColumn('actual_start_time', fn ($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
                 ->editColumn('actual_reach_time', fn ($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
+                ->addColumn('driver_name', fn ($entry) => $this->entryDriverName($entry))
+                ->addColumn('vehicle_no', fn ($entry) => $this->entryVehicleNo($entry))
                 ->editColumn('starting_km', fn ($entry) => $entry->starting_km ?? '-')
                 ->editColumn('starting_electric_charge', fn ($entry) => $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-')
                 ->editColumn('is_vehicle_verified', fn ($entry) => $this->yesNoBadge((bool) $entry->is_vehicle_verified))
@@ -506,6 +512,8 @@ class TripController extends Controller implements HasMiddleware
             'arrival_time' => ['nullable', 'date_format:H:i'],
             'actual_start_time' => ['nullable', 'date_format:H:i'],
             'actual_reach_time' => ['nullable', 'date_format:H:i'],
+            'driver_profile_id' => ['nullable', 'integer', 'exists:driver_profiles,id'],
+            'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
             'starting_km' => ['nullable', 'integer', 'min:0'],
             'starting_electric_charge' => ['nullable', 'integer', 'min:0', 'max:100'],
             'vehicle_condition' => ['nullable', 'string'],
@@ -582,8 +590,13 @@ class TripController extends Controller implements HasMiddleware
 
     public static function assignmentForCompletedEntry(TripSheetEntry $entry): ?TripAssignment
     {
-        $date = $entry->sheet?->date;
+        return self::assignmentForEntryDate($entry, $entry->sheet?->date?->format('Y-m-d'));
+    }
+
+    private static function assignmentForEntryDate(TripSheetEntry $entry, ?string $date): ?TripAssignment
+    {
         $trip = $entry->sheet?->trip;
+        $date = $date ? Carbon::parse($date) : $entry->sheet?->date;
 
         if (! $date || ! $trip) {
             return null;
@@ -641,6 +654,8 @@ class TripController extends Controller implements HasMiddleware
                 'sheet.trip.route.startPoint',
                 'sheet.trip.route.endPoint',
                 'sheet.trip.depot',
+                'driverProfile.user',
+                'vehicle',
                 'sheet.trip.assignments.vehicle',
                 'sheet.trip.assignments.driverProfile.user',
             ])
@@ -667,24 +682,36 @@ class TripController extends Controller implements HasMiddleware
         }
 
         if ($request->filled('vehicle_id')) {
-            $query->whereExists(function ($subQuery) use ($request) {
-                $subQuery->selectRaw('1')
-                    ->from('trip_assignments')
-                    ->whereColumn('trip_assignments.trip_id', 'trip_sheets.trip_id')
-                    ->whereColumn('trip_assignments.from_date', '<=', 'trip_sheets.date')
-                    ->whereColumn('trip_assignments.to_date', '>=', 'trip_sheets.date')
-                    ->where('trip_assignments.vehicle_id', $request->vehicle_id);
+            $query->where(function ($filterQuery) use ($request) {
+                $filterQuery->where('trip_sheet_entries.vehicle_id', $request->vehicle_id)
+                    ->orWhere(function ($fallbackQuery) use ($request) {
+                        $fallbackQuery->whereNull('trip_sheet_entries.vehicle_id')
+                            ->whereExists(function ($subQuery) use ($request) {
+                                $subQuery->selectRaw('1')
+                                    ->from('trip_assignments')
+                                    ->whereColumn('trip_assignments.trip_id', 'trip_sheets.trip_id')
+                                    ->whereColumn('trip_assignments.from_date', '<=', 'trip_sheets.date')
+                                    ->whereColumn('trip_assignments.to_date', '>=', 'trip_sheets.date')
+                                    ->where('trip_assignments.vehicle_id', $request->vehicle_id);
+                            });
+                    });
             });
         }
 
         if ($request->filled('driver_profile_id')) {
-            $query->whereExists(function ($subQuery) use ($request) {
-                $subQuery->selectRaw('1')
-                    ->from('trip_assignments')
-                    ->whereColumn('trip_assignments.trip_id', 'trip_sheets.trip_id')
-                    ->whereColumn('trip_assignments.from_date', '<=', 'trip_sheets.date')
-                    ->whereColumn('trip_assignments.to_date', '>=', 'trip_sheets.date')
-                    ->where('trip_assignments.driver_profile_id', $request->driver_profile_id);
+            $query->where(function ($filterQuery) use ($request) {
+                $filterQuery->where('trip_sheet_entries.driver_profile_id', $request->driver_profile_id)
+                    ->orWhere(function ($fallbackQuery) use ($request) {
+                        $fallbackQuery->whereNull('trip_sheet_entries.driver_profile_id')
+                            ->whereExists(function ($subQuery) use ($request) {
+                                $subQuery->selectRaw('1')
+                                    ->from('trip_assignments')
+                                    ->whereColumn('trip_assignments.trip_id', 'trip_sheets.trip_id')
+                                    ->whereColumn('trip_assignments.from_date', '<=', 'trip_sheets.date')
+                                    ->whereColumn('trip_assignments.to_date', '>=', 'trip_sheets.date')
+                                    ->where('trip_assignments.driver_profile_id', $request->driver_profile_id);
+                            });
+                    });
             });
         }
 
@@ -714,7 +741,7 @@ class TripController extends Controller implements HasMiddleware
     private function sheetEntriesQuery(Trip $trip)
     {
         return TripSheetEntry::query()
-            ->with('sheet')
+            ->with(['sheet.trip.assignments.driverProfile.user', 'sheet.trip.assignments.vehicle', 'driverProfile.user', 'vehicle'])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->where('trip_sheets.trip_id', $trip->id)
             ->orderBy('trip_sheets.date')
@@ -750,6 +777,8 @@ class TripController extends Controller implements HasMiddleware
             'arrival_time' => $this->formatSheetTime($entry->arrival_time),
             'actual_start_time' => $this->formatSheetTime($entry->actual_start_time),
             'actual_reach_time' => $this->formatSheetTime($entry->actual_reach_time),
+            'driver_profile_id' => $entry->driver_profile_id,
+            'vehicle_id' => $entry->vehicle_id,
             'starting_km' => $entry->starting_km,
             'starting_electric_charge' => $entry->starting_electric_charge,
             'vehicle_condition' => $entry->vehicle_condition,
@@ -767,6 +796,37 @@ class TripController extends Controller implements HasMiddleware
             'verified_by_driver_at' => $entry->verified_by_driver_at?->format('Y-m-d\TH:i'),
             'notes' => $entry->notes,
         ];
+    }
+
+    private function entryDriverName(TripSheetEntry $entry): string
+    {
+        $assignment = self::assignmentForCompletedEntry($entry);
+
+        return $entry->driverProfile?->user?->name
+            ?: $assignment?->driverProfile?->user?->name
+            ?: '-';
+    }
+
+    private function entryVehicleNo(TripSheetEntry $entry): string
+    {
+        $assignment = self::assignmentForCompletedEntry($entry);
+
+        return $entry->vehicle?->vehicle_no
+            ?: $assignment?->vehicle?->vehicle_no
+            ?: '-';
+    }
+
+    private function assignmentForDate(Trip $trip, ?string $date): ?TripAssignment
+    {
+        if (! $date) {
+            return null;
+        }
+
+        $date = Carbon::parse($date);
+        $trip->loadMissing(['assignments.driverProfile.user', 'assignments.vehicle']);
+
+        return $trip->assignments
+            ->first(fn (TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
     }
 
     private function formData(array $extra = []): array
@@ -1065,6 +1125,8 @@ class TripController extends Controller implements HasMiddleware
             'arrival_time' => $data['arrival_time'] ?? null,
             'actual_start_time' => ($data['actual_start_time'] ?? null) ?: ($side === 'up' ? $this->formatSheetTime($trip->start_time) : null),
             'actual_reach_time' => ($data['actual_reach_time'] ?? null) ?: ($side === 'down' ? $this->formatSheetTime($trip->end_time) : null),
+            'driver_profile_id' => ($data['driver_profile_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->driver_profile_id,
+            'vehicle_id' => ($data['vehicle_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->vehicle_id,
             'starting_km' => $data['starting_km'] ?? null,
             'starting_electric_charge' => $data['starting_electric_charge'] ?? null,
             'vehicle_condition' => $data['vehicle_condition'] ?? null,
@@ -1214,8 +1276,8 @@ class TripController extends Controller implements HasMiddleware
         $this->pdfSection($content, 'Route And Assignment', 40, 425, 515, [
             'From' => $trip?->route?->startPoint?->name ?: '-',
             'To' => $trip?->route?->endPoint?->name ?: '-',
-            'Vehicle No' => $assignment?->vehicle?->vehicle_no ?: '-',
-            'Driver Name' => $assignment?->driverProfile?->user?->name ?: '-',
+            'Vehicle No' => $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-',
+            'Driver Name' => $entry->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-',
             'Departure Time' => $this->formatSheetTime($entry->departure_time) ?: '-',
             'Arrival Time' => $this->formatSheetTime($entry->arrival_time) ?: '-',
         ], 135);

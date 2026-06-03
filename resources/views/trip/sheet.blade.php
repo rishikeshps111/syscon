@@ -76,6 +76,8 @@
                             <th class="text-center nowrap">Code</th>
                             <th class="text-center nowrap">Status</th>
                             <th class="text-center nowrap">Side</th>
+                            <th class="text-center nowrap">Driver</th>
+                            <th class="text-center nowrap">Vehicle</th>
                             <th class="text-center nowrap">Actual Start</th>
                             <th class="text-center nowrap">Actual Reach</th>
                             <th class="text-center nowrap">Starting Km</th>
@@ -108,6 +110,8 @@
                         { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
                         { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
                         { data: 'side', name: 'side', className: 'text-center' },
+                        { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
                         { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
                         { data: 'starting_km', name: 'starting_km', className: 'text-center' },

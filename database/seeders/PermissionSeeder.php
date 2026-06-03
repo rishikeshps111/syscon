@@ -94,6 +94,12 @@ class PermissionSeeder extends Seeder
                 'trips.assign',
                 'trips.sheet',
             ],
+            'Roaster' => [
+                'rosters.create',
+                'rosters.edit',
+                'rosters.delete',
+                'rosters.view',
+            ],
             'OEM Type' => [
                 'oem-types.create',
                 'oem-types.edit',
