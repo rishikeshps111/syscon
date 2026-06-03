@@ -95,6 +95,51 @@ class RouteSeeder extends Seeder
                     ['name' => 'Worli', 'position' => 2, 'expected_reach_time' => '00:35'],
                 ],
             ],
+            [
+                'state' => 'Telangana',
+                'district' => 'Hyderabad',
+                'start' => 'Secunderabad',
+                'end' => 'Banjara Hills',
+                'name' => 'Secunderabad to Banjara Hills',
+                'distance' => 13.50,
+                'estimated_duration' => '00:50',
+                'route_type' => 'Intracity',
+                'route_category' => 'Passenger',
+                'stops' => [
+                    ['name' => 'Begumpet', 'position' => 1, 'expected_reach_time' => '00:15'],
+                    ['name' => 'Panjagutta', 'position' => 2, 'expected_reach_time' => '00:32'],
+                ],
+            ],
+            [
+                'state' => 'Maharashtra',
+                'district' => 'Pune',
+                'start' => 'Shivajinagar',
+                'end' => 'Kothrud',
+                'name' => 'Shivajinagar to Kothrud',
+                'distance' => 9.75,
+                'estimated_duration' => '00:35',
+                'route_type' => 'Intracity',
+                'route_category' => 'Passenger',
+                'stops' => [
+                    ['name' => 'Deccan Gymkhana', 'position' => 1, 'expected_reach_time' => '00:12'],
+                    ['name' => 'Paud Road', 'position' => 2, 'expected_reach_time' => '00:24'],
+                ],
+            ],
+            [
+                'state' => 'Delhi',
+                'district' => 'New Delhi',
+                'start' => 'Connaught Place',
+                'end' => 'Dwarka',
+                'name' => 'Connaught Place to Dwarka',
+                'distance' => 22.00,
+                'estimated_duration' => '01:05',
+                'route_type' => 'Intercity',
+                'route_category' => 'Passenger',
+                'stops' => [
+                    ['name' => 'Karol Bagh', 'position' => 1, 'expected_reach_time' => '00:18'],
+                    ['name' => 'Janakpuri', 'position' => 2, 'expected_reach_time' => '00:48'],
+                ],
+            ],
         ];
 
         DB::transaction(function () use ($records) {

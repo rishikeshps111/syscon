@@ -19,6 +19,9 @@ class DepartmentSeeder extends Seeder
             ['name' => 'Finance', 'is_active' => true],
             ['name' => 'Administration', 'is_active' => true],
             ['name' => 'Maintenance', 'is_active' => true],
+            ['name' => 'Fleet Compliance', 'is_active' => true],
+            ['name' => 'Route Planning', 'is_active' => true],
+            ['name' => 'Vendor Management', 'is_active' => true],
             ['name' => 'Customer Support', 'is_active' => false],
         ];
 

@@ -1,6 +1,9 @@
 <script>
+    var selectedTrips = @json($selectedTrips ?? []);
+
     $(function () {
         $('.select2').select2({ placeholder: 'Select an option', allowClear: true, width: '100%' });
+        renderSelectedTrips();
 
         $('#openTripModal').on('click', function () {
             if (!$('#duty_date').val()) {
@@ -22,12 +25,22 @@
         $('#duty_date').on('change', function () {
             $('#trip_sheet_entry_id').val('');
             $('#tripLabel').val('');
+            selectedTrips = [];
+            renderSelectedTrips();
             $('#driver_profile_id, #vehicle_id').val('').trigger('change');
         });
 
         $(document).on('click', '.choose-trip-entry', function () {
             applyTrip($(this).data());
-            $('#tripSelectModal').modal('hide');
+            searchTrips();
+        });
+
+        $(document).on('click', '.remove-selected-trip', function () {
+            var id = String($(this).data('id'));
+            selectedTrips = selectedTrips.filter(function (row) {
+                return String(row.id) !== id;
+            });
+            renderSelectedTrips();
         });
 
         $('#commonForm').on('submit', function () {
@@ -55,6 +68,10 @@
             }
 
             rows.forEach(function (row) {
+                var selected = selectedTrips.some(function (trip) {
+                    return String(trip.id) === String(row.id);
+                });
+
                 body.append(
                     '<div class="trip-result-card">' +
                         '<div>' +
@@ -68,11 +85,13 @@
                             '</div>' +
                         '</div>' +
                         '<div class="text-end">' +
-                            '<button type="button" class="btn btn-sm btn-primary choose-trip-entry" ' +
+                            '<button type="button" class="btn btn-sm ' + (selected ? 'btn-secondary' : 'btn-primary') + ' choose-trip-entry" ' +
+                            (selected ? 'disabled ' : '') +
                             'data-id="' + row.id + '" ' +
                             'data-label="' + escapeAttribute((row.sheet_code || '') + ' - ' + (row.trip_title || '')) + '" ' +
+                            'data-side="' + escapeAttribute(row.side || '') + '" ' +
                             'data-driver="' + (row.driver_profile_id || '') + '" ' +
-                            'data-vehicle="' + (row.vehicle_id || '') + '">Select</button>' +
+                            'data-vehicle="' + (row.vehicle_id || '') + '">' + (selected ? 'Selected' : 'Select') + '</button>' +
                         '</div>' +
                     '</div>'
                 );
@@ -83,10 +102,58 @@
     }
 
     function applyTrip(row) {
-        $('#trip_sheet_entry_id').val(row.id || '');
-        $('#tripLabel').val(row.label || '');
-        $('#driver_profile_id').val(row.driver || '').trigger('change');
-        $('#vehicle_id').val(row.vehicle || '').trigger('change');
+        if (selectedTrips.some(function (trip) { return String(trip.id) === String(row.id); })) {
+            showToast('warning', 'Trip sheet entry already selected.');
+            return;
+        }
+
+        selectedTrips.push({
+            id: row.id || '',
+            label: row.label || '',
+            side: row.side || '',
+            driver: row.driver || '',
+            vehicle: row.vehicle || ''
+        });
+
+        renderSelectedTrips();
+
+        if (selectedTrips.length === 1) {
+            $('#driver_profile_id').val(row.driver || '').trigger('change');
+            $('#vehicle_id').val(row.vehicle || '').trigger('change');
+        }
+    }
+
+    function renderSelectedTrips() {
+        var list = $('#selectedTripList');
+        var inputs = $('#selectedTripInputs');
+        list.empty();
+        inputs.empty();
+
+        selectedTrips.forEach(function (row) {
+            inputs.append('<input type="hidden" name="trip_sheet_entry_ids[]" value="' + escapeAttribute(row.id) + '">');
+            list.append(
+                '<div class="selected-trip-pill" data-id="' + escapeAttribute(row.id) + '" data-side="' + escapeAttribute(row.side || '') + '">' +
+                    '<span>' + escapeHtml(row.label || '-') + ' <small>(' + escapeHtml(row.side || '-') + ')</small></span>' +
+                    (@json(isset($record)) ? '' : '<button type="button" class="remove-selected-trip" data-id="' + escapeAttribute(row.id) + '">x</button>') +
+                '</div>'
+            );
+        });
+
+        if (!selectedTrips.length) {
+            list.append('<div class="selected-trip-empty">No trip sheet entries selected yet.</div>');
+        }
+
+        $('#trip_sheet_entry_id').val(selectedTrips[0]?.id || '');
+        $('#tripLabel').val(selectedTrips.length ? selectedTrips.length + (selectedTrips.length === 1 ? ' trip selected' : ' trips selected') : 'No trip selected');
+        toggleReportingToTime();
+    }
+
+    function toggleReportingToTime() {
+        var sides = selectedTrips.map(function (row) {
+            return String(row.side || '').toLowerCase();
+        });
+        var hasBoth = sides.includes('up') && sides.includes('down');
+        $('#reportingToTimeWrap').toggle(hasBoth);
     }
 
     function escapeHtml(value) {

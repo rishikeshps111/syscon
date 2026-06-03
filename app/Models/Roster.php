@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'supervisor_profile_id',
     'controller_profile_id',
     'reporting_time',
+    'reporting_to_time',
     'remarks',
     'status',
     'attendance_status',

@@ -46,6 +46,24 @@ class DocumentTypeSeeder extends Seeder
                 'is_expiry_required' => true,
             ],
             [
+                'name' => 'Tax Certificate',
+                'applicable_for' => 'vehicle',
+                'is_mandatory' => false,
+                'is_expiry_required' => true,
+            ],
+            [
+                'name' => 'Battery Warranty',
+                'applicable_for' => 'vehicle',
+                'is_mandatory' => false,
+                'is_expiry_required' => true,
+            ],
+            [
+                'name' => 'GPS Installation Certificate',
+                'applicable_for' => 'vehicle',
+                'is_mandatory' => false,
+                'is_expiry_required' => false,
+            ],
+            [
                 'name' => 'OEM Registration Certificate',
                 'applicable_for' => 'oem',
                 'is_mandatory' => true,
@@ -61,6 +79,18 @@ class DocumentTypeSeeder extends Seeder
                 'name' => 'PAN Card',
                 'applicable_for' => 'oem',
                 'is_mandatory' => true,
+                'is_expiry_required' => false,
+            ],
+            [
+                'name' => 'Trade License',
+                'applicable_for' => 'oem',
+                'is_mandatory' => false,
+                'is_expiry_required' => true,
+            ],
+            [
+                'name' => 'Bank Mandate',
+                'applicable_for' => 'oem',
+                'is_mandatory' => false,
                 'is_expiry_required' => false,
             ],
         ];

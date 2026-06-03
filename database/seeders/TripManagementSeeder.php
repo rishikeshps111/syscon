@@ -65,6 +65,70 @@ class TripManagementSeeder extends Seeder
                 'status' => 'Inactive',
                 'notes' => 'Completed school transport sample.',
             ],
+            [
+                'service_type' => 'Employee Shuttle',
+                'route' => 'Koramangala to Whitefield',
+                'title' => 'Koramangala to Whitefield Tech Park Shuttle',
+                'depot' => 'Koramangala Depot',
+                'vehicle_no' => 'KA01EV2202',
+                'driver_email' => 'prakash.driver@example.com',
+                'from_date' => '2026-06-03',
+                'to_date' => '2026-06-15',
+                'start_time' => '08:00',
+                'end_time' => '10:10',
+                'halt_time' => 25,
+                'trip_side' => 'both',
+                'status' => 'Active',
+                'notes' => 'Bengaluru employee shuttle route with up and down trips.',
+            ],
+            [
+                'service_type' => 'Airport Shuttle',
+                'route' => 'Secunderabad to Banjara Hills',
+                'title' => 'Secunderabad to Banjara Hills Airport Feeder',
+                'depot' => 'Secunderabad Depot',
+                'vehicle_no' => 'TS10EV3303',
+                'driver_email' => 'manoj.driver@example.com',
+                'from_date' => '2026-06-04',
+                'to_date' => '2026-06-16',
+                'start_time' => '06:30',
+                'end_time' => '07:40',
+                'halt_time' => 15,
+                'trip_side' => 'up',
+                'status' => 'Active',
+                'notes' => 'Hyderabad morning airport feeder sample.',
+            ],
+            [
+                'service_type' => 'Intracity',
+                'route' => 'Shivajinagar to Kothrud',
+                'title' => 'Shivajinagar to Kothrud Feeder',
+                'depot' => 'Shivajinagar Depot',
+                'vehicle_no' => 'MH12MB6606',
+                'driver_email' => 'sameer.driver@example.com',
+                'from_date' => '2026-06-05',
+                'to_date' => '2026-06-18',
+                'start_time' => '17:30',
+                'end_time' => '18:25',
+                'halt_time' => 10,
+                'trip_side' => 'down',
+                'status' => 'Active',
+                'notes' => 'Pune evening feeder sample.',
+            ],
+            [
+                'service_type' => 'Emergency Replacement',
+                'route' => 'Connaught Place to Dwarka',
+                'title' => 'Connaught Place to Dwarka Replacement',
+                'depot' => 'Connaught Place Depot',
+                'vehicle_no' => 'DL01EV7707',
+                'driver_email' => 'arif.driver@example.com',
+                'from_date' => '2026-06-06',
+                'to_date' => '2026-06-09',
+                'start_time' => '11:00',
+                'end_time' => '12:30',
+                'halt_time' => 20,
+                'trip_side' => 'both',
+                'status' => 'Cancelled',
+                'notes' => 'Cancelled emergency replacement sample.',
+            ],
         ];
 
         DB::transaction(function () use ($records) {
@@ -120,7 +184,7 @@ class TripManagementSeeder extends Seeder
                 $controllerName = DB::table('users')->where('email', 'vishnu.controller@example.com')->value('name') ?: 'Vishnu Controller';
                 $supervisorName = DB::table('users')->where('email', 'nithin.supervisor@example.com')->value('name') ?: 'Nithin Supervisor';
 
-                foreach ($this->sheetRows($record, $controllerName, $supervisorName) as $row) {
+                foreach ($this->sheetRows($record, $controllerName, $supervisorName, $driver, $vehicle) as $row) {
                     $sheet = $trip->sheets()->updateOrCreate(
                         ['date' => $row['date']],
                         [
@@ -145,9 +209,9 @@ class TripManagementSeeder extends Seeder
             : sprintf('%02d:%02d', intdiv($minutes, 60), $minutes % 60);
     }
 
-    private function sheetRows(array $record, string $controllerName, string $supervisorName): array
+    private function sheetRows(array $record, string $controllerName, string $supervisorName, DriverProfile $driver, Vehicle $vehicle): array
     {
-        return collect(range(0, 2))->flatMap(function (int $offset) use ($record, $controllerName, $supervisorName) {
+        return collect(range(0, 2))->flatMap(function (int $offset) use ($record, $controllerName, $supervisorName, $driver, $vehicle) {
             $date = Carbon::parse($record['from_date'])->addDays($offset)->toDateString();
             $sides = $record['trip_side'] === 'both' ? ['up', 'down'] : [$record['trip_side']];
             $status = $offset < 2 ? 'completed' : 'pending';
@@ -163,6 +227,8 @@ class TripManagementSeeder extends Seeder
                     'actual_start_time' => $side === 'up' ? $record['start_time'] : null,
                     'actual_reach_time' => $side === 'down' ? $record['end_time'] : null,
                     'starting_km' => 1200 + $offset,
+                    'driver_profile_id' => $driver->id,
+                    'vehicle_id' => $vehicle->id,
                     'starting_electric_charge' => 85,
                     'vehicle_condition' => 'Good',
                     'is_vehicle_verified' => true,

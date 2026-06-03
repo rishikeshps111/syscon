@@ -308,9 +308,18 @@ class TripController extends Controller implements HasMiddleware
 
     public function sheetView(Request $request, Trip $trip)
     {
-        $trip->load(['route.startPoint', 'route.endPoint', 'route.stops', 'depot']);
+        $trip->load([
+            'route.startPoint.state',
+            'route.endPoint',
+            'route.stops',
+            'depot.state',
+            'createdBy',
+            'assignments.driverProfile.user',
+            'assignments.vehicle.oem',
+            'assignments.vehicle.branch',
+        ]);
         $query = TripSheetEntry::query()
-            ->with('sheet')
+            ->with(['sheet.trip.route.startPoint', 'sheet.trip.route.endPoint', 'sheet.trip.assignments.driverProfile.user', 'driverProfile.user'])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->where('trip_sheets.trip_id', $trip->id)
             ->select('trip_sheet_entries.*')
@@ -333,59 +342,31 @@ class TripController extends Controller implements HasMiddleware
                 $handle = fopen('php://output', 'w');
                 fputcsv($handle, [
                     'SL No',
-                    'Date',
-                    'Code',
-                    'Status',
-                    'Side',
-                    'Departure Time',
-                    'Arrival Time',
+                    'Trip Code',
+                    'Starting From',
+                    'Destination Point',
+                    'Start Time',
                     'Actual Start Time',
+                    'Reach Time',
                     'Actual Reach Time',
-                    'Starting Km',
-                    'Starting Electric Charge',
-                    'Vehicle Condition',
-                    'Vehicle Verified',
-                    'Vehicle Verified By',
-                    'Vehicle Verified Timestamp',
-                    'Driver Verified',
-                    'Driver Verified By',
-                    'Driver Verified Timestamp',
-                    'Supervisor Verified',
-                    'Verified By Supervisor',
-                    'Verified By Supervisor Timestamp',
-                    'Driver Final Verified',
-                    'Verified By Driver',
-                    'Verified By Driver Timestamp',
-                    'Notes',
+                    'Shift',
+                    'Driver',
+                    'Delay',
                 ]);
 
                 foreach ($entries as $index => $entry) {
                     fputcsv($handle, [
                         $index + 1,
-                        $entry->sheet?->date?->format('d-m-Y'),
                         $entry->sheet?->code,
-                        TripSheet::STATUSES[$entry->sheet?->status] ?? $entry->sheet?->status,
-                        ucfirst((string) $entry->side),
+                        $this->entryStartingPoint($entry),
+                        $this->entryDestinationPoint($entry),
                         $this->formatSheetTime($entry->departure_time),
-                        $this->formatSheetTime($entry->arrival_time),
                         $this->formatSheetTime($entry->actual_start_time),
+                        $this->formatSheetTime($entry->arrival_time),
                         $this->formatSheetTime($entry->actual_reach_time),
-                        $entry->starting_km,
-                        $entry->starting_electric_charge,
-                        $entry->vehicle_condition,
-                        $entry->is_vehicle_verified ? 'Yes' : 'No',
-                        $entry->vehicle_verified_by,
-                        $entry->vehicle_verified_at?->format('d-m-Y H:i'),
-                        $entry->is_driver_verified ? 'Yes' : 'No',
-                        $entry->driver_verified_by,
-                        $entry->driver_verified_at?->format('d-m-Y H:i'),
-                        $entry->is_verified_by_supervisor ? 'Yes' : 'No',
-                        $entry->verified_by_supervisor,
-                        $entry->verified_by_supervisor_at?->format('d-m-Y H:i'),
-                        $entry->is_verified_by_driver ? 'Yes' : 'No',
-                        $entry->verified_by_driver,
-                        $entry->verified_by_driver_at?->format('d-m-Y H:i'),
-                        $entry->notes,
+                        ucfirst((string) $entry->side),
+                        $this->entryDriverName($entry),
+                        $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time),
                     ]);
                 }
 
@@ -396,26 +377,24 @@ class TripController extends Controller implements HasMiddleware
         if ($request->ajax()) {
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('trip_date', fn ($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
-                ->addColumn('code', fn ($entry) => $entry->sheet?->code ?: '-')
-                ->addColumn('status', fn ($entry) => $this->sheetStatusBadge($entry->sheet?->status))
-                ->editColumn('side', fn ($entry) => ucfirst((string) $entry->side))
+                ->addColumn('trip_code', fn ($entry) => $entry->sheet?->code ?: '-')
+                ->addColumn('starting_from', fn ($entry) => $this->entryStartingPoint($entry))
+                ->addColumn('destination_point', fn ($entry) => $this->entryDestinationPoint($entry))
                 ->editColumn('departure_time', fn ($entry) => $this->formatSheetTime($entry->departure_time) ?: '-')
-                ->editColumn('arrival_time', fn ($entry) => $this->formatSheetTime($entry->arrival_time) ?: '-')
                 ->editColumn('actual_start_time', fn ($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
+                ->editColumn('arrival_time', fn ($entry) => $this->formatSheetTime($entry->arrival_time) ?: '-')
                 ->editColumn('actual_reach_time', fn ($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
-                ->editColumn('starting_electric_charge', fn ($entry) => $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-')
-                ->editColumn('is_vehicle_verified', fn ($entry) => $this->yesNoBadge((bool) $entry->is_vehicle_verified))
-                ->editColumn('is_driver_verified', fn ($entry) => $this->yesNoBadge((bool) $entry->is_driver_verified))
-                ->editColumn('is_verified_by_supervisor', fn ($entry) => $this->yesNoBadge((bool) $entry->is_verified_by_supervisor))
-                ->editColumn('is_verified_by_driver', fn ($entry) => $this->yesNoBadge((bool) $entry->is_verified_by_driver))
-                ->editColumn('notes', fn ($entry) => $entry->notes ?: '-')
-                ->rawColumns(['status', 'is_vehicle_verified', 'is_driver_verified', 'is_verified_by_supervisor', 'is_verified_by_driver'])
+                ->addColumn('shift', fn ($entry) => ucfirst((string) $entry->side))
+                ->addColumn('driver', fn ($entry) => $this->entryDriverName($entry))
+                ->addColumn('delay', fn ($entry) => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time))
+                ->addColumn('action', fn () => $this->sheetViewDorButtons())
+                ->rawColumns(['action'])
                 ->make(true);
         }
 
         return view('trip.sheet-view', [
             'record' => $trip,
+            'entries' => $query->get(),
             'filters' => $request->only(['date_from', 'date_to']),
         ]);
     }
@@ -814,6 +793,53 @@ class TripController extends Controller implements HasMiddleware
         return $entry->vehicle?->vehicle_no
             ?: $assignment?->vehicle?->vehicle_no
             ?: '-';
+    }
+
+    private function entryStartingPoint(TripSheetEntry $entry): string
+    {
+        $route = $entry->sheet?->trip?->route;
+
+        return $entry->side === 'down'
+            ? ($route?->endPoint?->name ?: '-')
+            : ($route?->startPoint?->name ?: '-');
+    }
+
+    private function entryDestinationPoint(TripSheetEntry $entry): string
+    {
+        $route = $entry->sheet?->trip?->route;
+
+        return $entry->side === 'down'
+            ? ($route?->startPoint?->name ?: '-')
+            : ($route?->endPoint?->name ?: '-');
+    }
+
+    private function sheetStartDelay(?string $startTime, ?string $actualStartTime): string
+    {
+        if (! $startTime || ! $actualStartTime) {
+            return '-';
+        }
+
+        $scheduled = Carbon::createFromFormat('H:i', $this->formatSheetTime($startTime));
+        $actual = Carbon::createFromFormat('H:i', $this->formatSheetTime($actualStartTime));
+        $minutes = (int) round($scheduled->diffInMinutes($actual, false));
+
+        if ($minutes === 0) {
+            return 'On time';
+        }
+
+        $label = abs($minutes) === 1 ? 'min' : 'mins';
+
+        return $minutes > 0
+            ? "{$minutes} {$label}"
+            : abs($minutes) . " {$label} early";
+    }
+
+    private function sheetViewDorButtons(): string
+    {
+        return '<div class="d-flex justify-content-center gap-1">'
+            . '<a href="#!" class="btn-edit btn-nowrap btn-cstm">Create DOR</a>'
+            . '<a href="#!" class="btn-edit btn-nowrap btn-cstm">View DOR</a>'
+            . '</div>';
     }
 
     private function assignmentForDate(Trip $trip, ?string $date): ?TripAssignment

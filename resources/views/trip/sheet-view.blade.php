@@ -2,178 +2,146 @@
     View Trip Sheet
 @endsection
 <x-app-layout>
-    <section class="section dashboard section-top-padding">
-        <div class="page-title">
-            <h3>View Trip Sheet</h3>
-            <nav>
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('trips.index') }}">Trip Management</a></li>
-                    <li class="breadcrumb-item active">View Trip Sheet</li>
-                </ol>
-            </nav>
-        </div>
+    @php
+        $date = fn ($value) => $value ? $value->format('d-m-Y') : '-';
+        $time = fn ($value) => $value ? \Carbon\Carbon::parse($value)->format('h:ia') : '-';
+        $delay = function ($startTime, $actualStartTime) {
+            if (! $startTime || ! $actualStartTime) {
+                return '-';
+            }
 
-        <div class="main-table-container mb-3">
-            <div class="row">
-                <div class="col-lg-3 o-f-inp mb-3">
-                    <label>Trip No</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->code }}" disabled>
-                </div>
-                <div class="col-lg-3 o-f-inp mb-3">
-                    <label>Trip</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->trip_title }}" disabled>
-                </div>
-                <div class="col-lg-3 o-f-inp mb-3">
-                    <label>From Date</label>
-                    <input type="text" class="form-control shadow-none"
-                        value="{{ $record->from_date?->format('d/m/Y') }}" disabled>
-                </div>
-                <div class="col-lg-3 o-f-inp mb-3">
-                    <label>To Date</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->to_date?->format('d/m/Y') }}"
-                        disabled>
-                </div>
-                <div class="col-lg-12 o-f-inp">
-                    <label>Stops</label>
-                    <div class="d-flex flex-wrap gap-2 mt-1">
-                        @forelse($record->route?->stops ?? [] as $stop)
-                            @if(!$loop->first)
-                                <span class="d-inline-flex align-items-center text-muted">
-                                    <i class="fa-solid fa-arrow-right"></i>
-                                </span>
-                            @endif
-                            <span class="btn btn-sm btn-outline-secondary disabled">{{ $stop->name }}</span>
-                        @empty
-                            <span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-        </div>
+            $start = \Carbon\Carbon::parse($startTime);
+            $actual = \Carbon\Carbon::parse($actualStartTime);
+            $minutes = (int) round($start->diffInMinutes($actual, false));
 
+            if ($minutes === 0) {
+                return 'On time';
+            }
+
+            return $minutes > 0
+                ? $minutes . ' ' . (\abs($minutes) === 1 ? 'min' : 'mins')
+                : \abs($minutes) . ' ' . (\abs($minutes) === 1 ? 'min' : 'mins') . ' early';
+        };
+        $dateRange = $record->from_date || $record->to_date
+            ? trim(($record->from_date?->format('d-m-Y') ?: '-') . ' - ' . ($record->to_date?->format('d-m-Y') ?: '-'))
+            : '-';
+        $vehicle = $record->assignments->first()?->vehicle;
+    @endphp
+
+    <div class="page-title">
+        <h3>View Trip Sheet</h3>
+        <nav>
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                <li class="breadcrumb-item active">Trip Management</li>
+            </ol>
+        </nav>
+    </div>
+
+    <section class="section dashboard">
         <div class="main-table-container">
-            <div class="row mb-3">
-                <div class="col-lg-3 o-f-inp mb-3">
-                    <label for="dateFrom">From Date</label>
-                    <input type="date" id="dateFrom" name="date_from" class="form-control shadow-none"
-                        value="{{ $filters['date_from'] ?? '' }}">
-                </div>
-                <div class="col-lg-3 o-f-inp mb-3">
-                    <label for="dateTo">To Date</label>
-                    <input type="date" id="dateTo" name="date_to" class="form-control shadow-none"
-                        value="{{ $filters['date_to'] ?? '' }}">
-                </div>
-                <div class="col-lg-6 d-flex justify-content-end align-items-end mb-3">
-                    <div class="btn-flex">
-                        <button type="button" class="btn btn-danger" id="resetSheetFilters">Reset</button>
-                        <a href="{{ route('trips.sheet.view', array_merge(['trip' => $record->id], $filters, ['export' => 'csv'])) }}"
-                            class="btn btn-info" id="exportSheetCsv">Export CSV</a>
-                        <a href="{{ route('trips.index') }}" class="btn btn-secondary">Back</a>
-                    </div>
+            <div class="col-lg-12 mb-3">
+                <div class="vehicle-short-preview">
+                    <h4>Trip Details</h4>
+                    <ul>
+                        <li>Trip Code: <span>{{ $record->code ?: '-' }}</span></li>
+                        <li>Route: <span>{{ $record->route?->route_name ?: '-' }}</span></li>
+                        <li>Schedule: <span>{{ $record->schedule_type ?: '-' }}</span></li>
+                        <li>State: <span>{{ $record->route?->startPoint?->state?->name ?: $record->depot?->state?->name ?: '-' }}</span></li>
+                        <li>Depo: <span>{{ $record->depot?->name ?: '-' }}</span></li>
+                        <li>Date: <span>{{ $dateRange }}</span></li>
+                        <li>Start Time: <span>{{ $time($record->start_time) }}</span></li>
+                        <li>End Time: <span>{{ $time($record->end_time) }}</span></li>
+                        <li>Created By: <span>{{ $record->createdBy?->name ?: '-' }}</span></li>
+                        <li>Created At: <span>{{ $date($record->created_at) }}</span></li>
+                    </ul>
                 </div>
             </div>
 
-            <div class="table-over">
-                <table class="align-middle mb-0 table table-striped tble-cstm bg-transparent" id="sheetViewTable">
+            <div class="col-lg-12">
+                <div class="vehicle-short-preview">
+                    <h4>Vehicle Details</h4>
+                    <ul>
+                        <li>Vehicle No: <span>{{ $vehicle?->vehicle_no ?: '-' }}</span></li>
+                        <li>Type: <span>{{ $vehicle?->vehicle_type ?: '-' }}</span></li>
+                        <li>Fuel Type: <span>{{ $vehicle?->fuel_type ?: '-' }}</span></li>
+                        <li>Vendor / Branch: <span>{{ $vehicle?->oem?->oem_name ?: $vehicle?->branch?->name ?: '-' }}</span></li>
+                        <li>Capacity: <span>{{ $vehicle?->capacity_seating ? $vehicle->capacity_seating . ' Seats' : '-' }}</span></li>
+                        <li>Insurance Expiry: <span>{{ $date($vehicle?->insurance_expiry) }}</span></li>
+                        <li>Fitness Expiry: <span>{{ $date($vehicle?->fitness_expiry) }}</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-table-container mt-3">
+            <h5 class="title-w-sec bt-ween-print">
+                Trip Sheet
+                <a href="{{ route('trips.sheet.view', ['trip' => $record->id, 'export' => 'csv']) }}" class="add-btn">Export</a>
+            </h5>
+            <hr>
+
+            <div class="mt-3" style="overflow-x: auto;">
+                <table class="align-middle mb-0 table xl-table">
                     <thead>
                         <tr>
-                            <th class="text-center nowrap">SL No</th>
-                            <th class="text-center nowrap">Date</th>
-                            <th class="text-center nowrap">Code</th>
-                            <th class="text-center nowrap">Status</th>
-                            <th class="text-center nowrap">Side</th>
-                            <th class="text-center nowrap">Departure Time</th>
-                            <th class="text-center nowrap">Arrival Time</th>
-                            <th class="text-center nowrap">Actual Start Time</th>
-                            <th class="text-center nowrap">Actual Reach Time</th>
-                            <th class="text-center nowrap">Starting Km</th>
-                            <th class="text-center nowrap">Charge</th>
-                            <th class="text-center nowrap">Vehicle Verified</th>
-                            <th class="text-center nowrap">Driver Verified</th>
-                            <th class="text-center nowrap">Supervisor Verified</th>
-                            <th class="text-center nowrap">Driver Final Verified</th>
-                            <th class="text-center nowrap">Notes</th>
+                            <th class="text-center nowrap">Sl No</th>
+                            <th class="text-center nowrap">Trip Code</th>
+                            <th class="text-center">Starting From</th>
+                            <th class="text-center">Destination Point</th>
+                            <th class="text-center">Start Time</th>
+                            <th class="text-center">Actual Start Time</th>
+                            <th class="text-center">Reach Time</th>
+                            <th class="text-center">Actual Reach Time</th>
+                            <th class="text-center">Shift</th>
+                            <th class="text-center">Driver</th>
+                            <th class="text-center">Delay</th>
+                            <th class="text-center">Action</th>
                         </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody>
+                        @forelse($entries as $entry)
+                            @php
+                                $route = $entry->sheet?->trip?->route;
+                                $startingFrom = $entry->side === 'down'
+                                    ? ($route?->endPoint?->name ?: '-')
+                                    : ($route?->startPoint?->name ?: '-');
+                                $destinationPoint = $entry->side === 'down'
+                                    ? ($route?->startPoint?->name ?: '-')
+                                    : ($route?->endPoint?->name ?: '-');
+                                $assignment = $entry->sheet?->trip?->assignments
+                                    ->first(fn ($assignment) => $assignment->from_date?->lte($entry->sheet?->date) && $assignment->to_date?->gte($entry->sheet?->date));
+                                $driver = $entry->driverProfile?->user?->name
+                                    ?: $assignment?->driverProfile?->user?->name
+                                    ?: '-';
+                            @endphp
+                            <tr>
+                                <td class="text-center text-muted">{{ $loop->iteration }}</td>
+                                <td class="text-center text-muted nowrap">{{ $entry->sheet?->code ?: '-' }}</td>
+                                <td class="text-center text-muted">{{ $startingFrom }}</td>
+                                <td class="text-center text-muted">{{ $destinationPoint }}</td>
+                                <td class="text-center text-muted">{{ $time($entry->departure_time) }}</td>
+                                <td class="text-center text-muted">{{ $time($entry->actual_start_time) }}</td>
+                                <td class="text-center text-muted">{{ $time($entry->arrival_time) }}</td>
+                                <td class="text-center text-muted">{{ $time($entry->actual_reach_time) }}</td>
+                                <td class="text-center text-muted">{{ ucfirst((string) $entry->side) ?: '-' }}</td>
+                                <td class="text-center text-muted">{{ $driver }}</td>
+                                <td class="text-center text-muted">{{ $delay($entry->departure_time, $entry->actual_start_time) }}</td>
+                                <td class="text-center text-muted">
+                                    <div class="action-btns">
+                                        <a href="#!" class="btn-edit btn-nowrap btn-cstm">Create DOR</a>
+                                        <a href="#!" class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View DOR</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="12" class="text-center text-muted">No trip sheet entries found.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
                 </table>
             </div>
         </div>
     </section>
-
-    @section('scripts')
-        <script>
-            $(function () {
-                var sheetViewUrl = "{{ route('trips.sheet.view', $record->id) }}";
-                var table = $('#sheetViewTable').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    searching: false,
-                    pageLength: 10,
-                    ordering: true,
-                    responsive: true,
-                    ajax: {
-                        url: sheetViewUrl,
-                        data: function (data) {
-                            data.date_from = $('#dateFrom').val();
-                            data.date_to = $('#dateTo').val();
-                        }
-                    },
-                    columns: [
-                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center' },
-                        { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
-                        { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
-                        { data: 'side', name: 'side', className: 'text-center' },
-                        { data: 'departure_time', name: 'departure_time', className: 'text-center' },
-                        { data: 'arrival_time', name: 'arrival_time', className: 'text-center' },
-                        { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
-                        { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
-                        { data: 'starting_km', name: 'starting_km', className: 'text-center' },
-                        { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
-                        { data: 'is_vehicle_verified', name: 'is_vehicle_verified', className: 'text-center' },
-                        { data: 'is_driver_verified', name: 'is_driver_verified', className: 'text-center' },
-                        { data: 'is_verified_by_supervisor', name: 'is_verified_by_supervisor', className: 'text-center' },
-                        { data: 'is_verified_by_driver', name: 'is_verified_by_driver', className: 'text-center' },
-                        { data: 'notes', name: 'notes', orderable: false, className: 'text-center' }
-                    ],
-                    language: {
-                        emptyTable: 'No trip sheet entries found.'
-                    },
-                    columnDefs: [
-                        { orderable: false, targets: [15] }
-                    ],
-                    order: [[1, 'asc']]
-                });
-
-                $('#dateFrom, #dateTo').on('change', function () {
-                    updateExportUrl();
-                    table.ajax.reload();
-                });
-
-                $('#resetSheetFilters').on('click', function () {
-                    $('#dateFrom, #dateTo').val('');
-                    updateExportUrl();
-                    table.ajax.reload();
-                });
-
-                function updateExportUrl() {
-                    var params = new URLSearchParams({ export: 'csv' });
-
-                    if ($('#dateFrom').val()) {
-                        params.set('date_from', $('#dateFrom').val());
-                    }
-
-                    if ($('#dateTo').val()) {
-                        params.set('date_to', $('#dateTo').val());
-                    }
-
-                    $('#exportSheetCsv').attr('href', sheetViewUrl + '?' + params.toString());
-                }
-
-                updateExportUrl();
-            });
-        </script>
-    @endsection
 </x-app-layout>

@@ -65,6 +65,30 @@ class DesignationSeeder extends Seeder
                 'description' => 'Supports customer query handling',
                 'is_active' => false,
             ],
+            [
+                'name' => 'Fleet Compliance Executive',
+                'department' => 'Fleet Compliance',
+                'level' => 'Mid Level',
+                'reporting_to' => 'Supervisor',
+                'description' => 'Tracks vehicle and driver compliance documents',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Route Planner',
+                'department' => 'Route Planning',
+                'level' => 'Mid Level',
+                'reporting_to' => 'Controller',
+                'description' => 'Plans trip routes, stops and schedule coverage',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Vendor Coordinator',
+                'department' => 'Vendor Management',
+                'level' => 'Junior',
+                'reporting_to' => 'Supervisor',
+                'description' => 'Coordinates OEM and vendor documentation follow-up',
+                'is_active' => true,
+            ],
         ];
 
         DB::transaction(function () use ($records) {

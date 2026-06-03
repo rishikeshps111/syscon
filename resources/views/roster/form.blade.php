@@ -1,9 +1,13 @@
 @php
     $record = $record ?? null;
     $selectedEntry = $record?->tripSheetEntry ?? null;
-    $selectedTripLabel = $selectedEntry
-        ? trim(($selectedEntry->sheet?->code ?: '') . ' - ' . ($selectedEntry->sheet?->trip?->trip_title ?: ''))
-        : '';
+    $selectedTrips = $selectedEntry ? [[
+        'id' => $selectedEntry->id,
+        'label' => trim(($selectedEntry->sheet?->code ?: '') . ' - ' . ($selectedEntry->sheet?->trip?->trip_title ?: '')),
+        'side' => ucfirst((string) $selectedEntry->side),
+        'driver' => $record?->driver_profile_id,
+        'vehicle' => $record?->vehicle_id,
+    ]] : [];
 @endphp
 
 <form id="commonForm" class="row" method="POST"
@@ -99,24 +103,55 @@
             <h5 class="title-w-sec">Assignment</h5>
             <hr>
             <div class="row">
-                <div class="col-lg-4 o-f-inp mb-3">
-                    <label for="tripLabel">Trip <span class="text-danger">*</span></label>
+                <div class="col-lg-12 o-f-inp mb-3">
+                    <label for="tripLabel">Trip Sheet Entries <span class="text-danger">*</span></label>
                     <input type="hidden" id="trip_sheet_entry_id" name="trip_sheet_entry_id"
                         value="{{ old('trip_sheet_entry_id', $record->trip_sheet_entry_id ?? '') }}">
-                    <div class="input-group">
-                        <input type="text" class="form-control shadow-none" id="tripLabel"
-                            value="{{ $selectedTripLabel }}" readonly>
-                        <button class="btn btn-primary" type="button" id="openTripModal">Choose</button>
+                    <div id="selectedTripInputs">
+                        @foreach(old('trip_sheet_entry_ids', collect($selectedTrips)->pluck('id')->all()) as $entryId)
+                            <input type="hidden" name="trip_sheet_entry_ids[]" value="{{ $entryId }}">
+                        @endforeach
+                    </div>
+                    <div class="trip-select-panel">
+                        <div class="trip-select-summary">
+                            <div>
+                                <input type="text" class="trip-select-title" id="tripLabel"
+                                    value="{{ count($selectedTrips) ? count($selectedTrips) . ' trip selected' : 'No trip selected' }}" readonly>
+                                <span class="trip-select-subtitle">Select one or more trip sheet entries for this duty date.</span>
+                            </div>
+                            <button class="btn btn-primary" type="button" id="openTripModal">
+                                <i class="fa-solid fa-route me-1"></i> Choose Trip
+                            </button>
+                        </div>
+                        <div id="selectedTripList" class="selected-trip-list">
+                            @foreach($selectedTrips as $trip)
+                                <div class="selected-trip-pill" data-id="{{ $trip['id'] }}" data-side="{{ $trip['side'] }}">
+                                    <span>{{ $trip['label'] }} <small>({{ $trip['side'] }})</small></span>
+                                    @unless(isset($record))
+                                        <button type="button" class="remove-selected-trip" data-id="{{ $trip['id'] }}">x</button>
+                                    @endunless
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                     <span
                         class="text-danger error-text trip_sheet_entry_id_error">@error('trip_sheet_entry_id'){{ $message }}@enderror</span>
+                    <span
+                        class="text-danger error-text trip_sheet_entry_ids_error">@error('trip_sheet_entry_ids'){{ $message }}@enderror</span>
                 </div>
                 <div class="col-lg-4 o-f-inp mb-3">
                     <label for="driver_profile_id">Driver <span class="text-danger">*</span></label>
                     <select class="form-select shadow-none select2" id="driver_profile_id" name="driver_profile_id">
                         <option value="">---Select---</option>
                         @foreach($drivers as $driver)
-                            <option value="{{ $driver->id }}" {{ old('driver_profile_id', $record->driver_profile_id ?? '') == $driver->id ? 'selected' : '' }}>{{ $driver->user?->name }}</option>
+                            @php
+                                $driverSelected = old('driver_profile_id', $record->driver_profile_id ?? '') == $driver->id;
+                                $driverAssigned = in_array($driver->id, $assignedDriverIds ?? [], true) && ! $driverSelected;
+                                $driverExpired = ! $driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay());
+                            @endphp
+                            <option value="{{ $driver->id }}" {{ $driverSelected ? 'selected' : '' }} {{ $driverAssigned || $driverExpired ? 'disabled' : '' }}>
+                                {{ $driver->user?->name }}{{ $driverExpired ? ' - Licence Expired' : ($driverAssigned ? ' - Already Associated' : '') }}
+                            </option>
                         @endforeach
                     </select>
                     <span
@@ -127,7 +162,13 @@
                     <select class="form-select shadow-none select2" id="vehicle_id" name="vehicle_id">
                         <option value="">---Select---</option>
                         @foreach($vehicles as $vehicle)
-                            <option value="{{ $vehicle->id }}" {{ old('vehicle_id', $record->vehicle_id ?? '') == $vehicle->id ? 'selected' : '' }}>{{ $vehicle->vehicle_no }}</option>
+                            @php
+                                $vehicleSelected = old('vehicle_id', $record->vehicle_id ?? '') == $vehicle->id;
+                                $vehicleAssigned = in_array($vehicle->id, $assignedVehicleIds ?? [], true) && ! $vehicleSelected;
+                            @endphp
+                            <option value="{{ $vehicle->id }}" {{ $vehicleSelected ? 'selected' : '' }} {{ $vehicleAssigned ? 'disabled' : '' }}>
+                                {{ $vehicle->vehicle_no }}{{ $vehicleAssigned ? ' - Already Associated' : '' }}
+                            </option>
                         @endforeach
                     </select>
                     <span
@@ -173,9 +214,14 @@
             <hr>
             <div class="row">
                 <div class="col-lg-4 o-f-inp mb-3">
-                    <label for="reporting_time">Reporting Time <span class="text-danger">*</span></label>
+                    <label for="reporting_time">Reporting To Time <span class="text-danger">*</span></label>
                     <input type="time" class="form-control shadow-none" id="reporting_time" name="reporting_time"
                         value="{{ old('reporting_time', isset($record) && $record->reporting_time ? substr($record->reporting_time, 0, 5) : '') }}">
+                </div>
+                <div class="col-lg-4 o-f-inp mb-3" id="reportingToTimeWrap" style="display:none;">
+                    <label for="reporting_to_time">Reporting To Time</label>
+                    <input type="time" class="form-control shadow-none" id="reporting_to_time" name="reporting_to_time"
+                        value="{{ old('reporting_to_time', isset($record) && $record->reporting_to_time ? substr($record->reporting_to_time, 0, 5) : '') }}">
                 </div>
                 <div class="col-lg-12 o-f-inp mb-3">
                     <label for="remarks">Remarks</label>

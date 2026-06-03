@@ -38,6 +38,30 @@ class VehicleClassificationSeeder extends Seeder
                 'fuel_type' => 'diesel',
                 'description' => 'High-capacity truck for long-haul transport.',
             ],
+            [
+                'name' => 'City Bus',
+                'capacity' => 42,
+                'fuel_type' => 'diesel',
+                'description' => 'Passenger buses for dense urban shuttle routes.',
+            ],
+            [
+                'name' => 'Electric City Bus',
+                'capacity' => 36,
+                'fuel_type' => 'ev',
+                'description' => 'Electric passenger buses for zero-emission city routes.',
+            ],
+            [
+                'name' => 'Staff Car',
+                'capacity' => 7,
+                'fuel_type' => 'hybrid',
+                'description' => 'Cars and MPVs for staff and supervisor movement.',
+            ],
+            [
+                'name' => 'Mini Bus',
+                'capacity' => 24,
+                'fuel_type' => 'diesel',
+                'description' => 'Compact passenger buses for feeder and branch routes.',
+            ],
         ];
 
         DB::transaction(function () use ($records) {

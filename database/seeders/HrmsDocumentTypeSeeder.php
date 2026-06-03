@@ -94,6 +94,36 @@ class HrmsDocumentTypeSeeder extends Seeder
                 'description' => 'Staff identification card',
                 'is_active' => true,
             ],
+            [
+                'name' => 'Police Verification',
+                'category' => 'Legal',
+                'applicable_for' => 'driver',
+                'allowed_file_types' => 'pdf',
+                'is_mandatory' => true,
+                'is_expiry_required' => true,
+                'description' => 'Driver police verification certificate',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Medical Fitness Certificate',
+                'category' => 'Identity Proof',
+                'applicable_for' => 'driver',
+                'allowed_file_types' => 'pdf',
+                'is_mandatory' => true,
+                'is_expiry_required' => true,
+                'description' => 'Medical fitness certificate for driving duty',
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Experience Certificate',
+                'category' => 'Educational',
+                'applicable_for' => 'all',
+                'allowed_file_types' => 'pdf',
+                'is_mandatory' => false,
+                'is_expiry_required' => false,
+                'description' => 'Previous employment experience proof',
+                'is_active' => true,
+            ],
         ];
 
         DB::transaction(function () use ($records) {

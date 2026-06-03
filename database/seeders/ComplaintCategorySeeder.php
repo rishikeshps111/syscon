@@ -19,6 +19,12 @@ class ComplaintCategorySeeder extends Seeder
             ['name' => 'Absenteeism', 'is_active' => true],
             ['name' => 'Behavior Issue', 'is_active' => true],
             ['name' => 'Safety Violation', 'is_active' => true],
+            ['name' => 'Vehicle Breakdown', 'is_active' => true],
+            ['name' => 'Route Deviation', 'is_active' => true],
+            ['name' => 'Fuel Misuse', 'is_active' => true],
+            ['name' => 'Document Expiry', 'is_active' => true],
+            ['name' => 'Passenger Complaint', 'is_active' => true],
+            ['name' => 'Trip Delay', 'is_active' => true],
             ['name' => 'Other', 'is_active' => true],
         ];
 

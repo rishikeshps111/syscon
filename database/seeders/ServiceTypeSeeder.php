@@ -22,6 +22,22 @@ class ServiceTypeSeeder extends Seeder
                 'name' => 'Intracity',
                 'description' => 'Trips operated within a city.',
             ],
+            [
+                'name' => 'Airport Shuttle',
+                'description' => 'Scheduled pickup and drop trips between depots, hotels, offices and airports.',
+            ],
+            [
+                'name' => 'School Transport',
+                'description' => 'Fixed route student and staff transport services.',
+            ],
+            [
+                'name' => 'Employee Shuttle',
+                'description' => 'Corporate commute trips for shift-based employee movement.',
+            ],
+            [
+                'name' => 'Emergency Replacement',
+                'description' => 'Short-notice replacement trips for breakdown, absenteeism or route disruption.',
+            ],
         ];
 
         DB::transaction(function () use ($records) {

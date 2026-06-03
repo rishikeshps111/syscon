@@ -128,7 +128,7 @@
                                     <th class="text-center nowrap">Driver Name</th>
                                     <th class="text-center nowrap">Vehicle</th>
                                     <th class="text-center nowrap">Trip Code</th>
-                                    <th class="text-center nowrap">Reporting Time</th>
+                                    <th class="text-center nowrap">Reporting To Time</th>
                                     <th class="text-center nowrap">Status</th>
                                     <th class="text-center nowrap">Attendance Status</th>
                                     <th class="text-center nowrap">Action</th>

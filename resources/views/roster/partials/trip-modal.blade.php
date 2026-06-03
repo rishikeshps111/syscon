@@ -116,6 +116,90 @@
         background: #fcfcfd;
     }
 
+    .trip-select-panel {
+        background: #f8fafc;
+        border: 1px solid #dbe4ef;
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    .trip-select-summary {
+        align-items: center;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+    }
+
+    .trip-select-title {
+        background: transparent;
+        border: 0;
+        color: #101828;
+        display: block;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 0;
+        pointer-events: none;
+        width: 100%;
+    }
+
+    .trip-select-title:focus {
+        outline: 0;
+    }
+
+    .trip-select-subtitle {
+        color: #667085;
+        display: block;
+        font-size: 13px;
+        margin-top: 3px;
+    }
+
+    .selected-trip-list {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        margin-top: 12px;
+    }
+
+    .selected-trip-empty {
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        color: #667085;
+        font-size: 13px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    .selected-trip-pill {
+        align-items: center;
+        background: #fff;
+        border: 1px solid #d9e2ef;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        min-height: 48px;
+        padding: 8px 10px;
+    }
+
+    .selected-trip-pill span {
+        color: #101828;
+        font-weight: 600;
+    }
+
+    .selected-trip-pill small {
+        color: #667085;
+        font-weight: 500;
+    }
+
+    .selected-trip-pill button {
+        background: #dc3545;
+        border: 0;
+        border-radius: 4px;
+        color: #fff;
+        height: 24px;
+        line-height: 1;
+        width: 24px;
+    }
+
     @media (max-width: 575px) {
         .trip-result-card {
             grid-template-columns: 1fr;

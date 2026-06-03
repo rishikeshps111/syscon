@@ -89,6 +89,11 @@ class Trip extends Model
         return $this->belongsTo(Depot::class);
     }
 
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function assignments(): HasMany
     {
         return $this->hasMany(TripAssignment::class);

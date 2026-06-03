@@ -25,7 +25,7 @@ class RosterSeeder extends Seeder
             'sheet.trip.assignments.vehicle.depot',
         ])
             ->whereHas('sheet.trip.assignments')
-            ->limit(8)
+            ->limit(14)
             ->get();
 
         DB::transaction(function () use ($entries, $supervisor, $controller) {
@@ -61,6 +61,7 @@ class RosterSeeder extends Seeder
                         'supervisor_profile_id' => $supervisor?->id,
                         'controller_profile_id' => $controller?->id,
                         'reporting_time' => $shift['reporting'],
+                        'reporting_to_time' => $shift['reporting_to'],
                         'remarks' => 'Seeded duty roster for ' . ($trip->trip_title ?: $trip->code),
                         'status' => $index % 4 === 0 ? 'in_progress' : 'assigned',
                         'attendance_status' => $index % 3 === 0 ? 'present' : null,
@@ -96,18 +97,21 @@ class RosterSeeder extends Seeder
                 'start' => '14:00',
                 'end' => '22:00',
                 'reporting' => '13:30',
+                'reporting_to' => '21:45',
             ],
             2 => [
                 'type' => 'night',
                 'start' => '22:00',
                 'end' => '06:00',
                 'reporting' => '21:30',
+                'reporting_to' => '05:45',
             ],
             default => [
                 'type' => 'morning',
                 'start' => '06:00',
                 'end' => '14:00',
                 'reporting' => '05:30',
+                'reporting_to' => '13:45',
             ],
         };
     }

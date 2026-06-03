@@ -21,6 +21,7 @@ use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
@@ -73,12 +74,16 @@ class RosterController extends Controller implements HasMiddleware
 
     public function store(StoreRosterRequest $request)
     {
-        $data = $this->payload($request->validated());
+        $validated = $request->validated();
+        $entryIds = $this->selectedTripEntryIds($validated);
 
-        DB::transaction(function () use ($data) {
-            $roster = Roster::create($data + ['created_by' => auth()->id(), 'updated_by' => auth()->id()]);
-            $roster->update(['code' => $this->generateRosterCode($roster->id)]);
-            $this->syncTripSheetEntry($roster);
+        DB::transaction(function () use ($validated, $entryIds) {
+            foreach ($entryIds as $entryId) {
+                $data = $this->payload($validated + ['trip_sheet_entry_id' => $entryId]);
+                $roster = Roster::create($data + ['created_by' => auth()->id(), 'updated_by' => auth()->id()]);
+                $roster->update(['code' => $this->generateRosterCode($roster->id)]);
+                $this->syncTripSheetEntry($roster);
+            }
         });
 
         return redirect()->route('rosters.index')->with('success', 'Roaster saved successfully.');
@@ -111,7 +116,9 @@ class RosterController extends Controller implements HasMiddleware
     public function update(UpdateRosterRequest $request, Roster $roster)
     {
         DB::transaction(function () use ($request, $roster) {
-            $roster->update($this->payload($request->validated()) + ['updated_by' => auth()->id()]);
+            $validated = $request->validated();
+            $entryId = $this->selectedTripEntryIds($validated)[0] ?? $validated['trip_sheet_entry_id'];
+            $roster->update($this->payload($validated + ['trip_sheet_entry_id' => $entryId]) + ['updated_by' => auth()->id()]);
             $this->syncTripSheetEntry($roster);
         });
 
@@ -173,6 +180,7 @@ class RosterController extends Controller implements HasMiddleware
         ]);
 
         DB::transaction(function () use ($roster, $validated) {
+            $this->ensureDriverCanBeAssigned((int) $validated['driver_profile_id'], $roster);
             $roster->update($validated + ['updated_by' => auth()->id()]);
             $this->syncTripSheetEntry($roster);
         });
@@ -187,6 +195,7 @@ class RosterController extends Controller implements HasMiddleware
         ]);
 
         DB::transaction(function () use ($roster, $validated) {
+            $this->ensureVehicleCanBeAssigned((int) $validated['vehicle_id'], $roster);
             $roster->update($validated + ['updated_by' => auth()->id()]);
             $this->syncTripSheetEntry($roster);
         });
@@ -268,8 +277,24 @@ class RosterController extends Controller implements HasMiddleware
         $data['trip_assignment_id'] = $assignment?->id;
         $data['driver_profile_id'] = ($data['driver_profile_id'] ?? null) ?: $assignment?->driver_profile_id;
         $data['vehicle_id'] = ($data['vehicle_id'] ?? null) ?: $assignment?->vehicle_id;
+        unset($data['trip_sheet_entry_ids']);
+
+        if ($data['driver_profile_id'] ?? null) {
+            $this->ensureDriverCanBeAssigned((int) $data['driver_profile_id']);
+        }
+
+        if ($data['vehicle_id'] ?? null) {
+            $this->ensureVehicleCanBeAssigned((int) $data['vehicle_id']);
+        }
 
         return $data;
+    }
+
+    private function selectedTripEntryIds(array $data): array
+    {
+        $ids = $data['trip_sheet_entry_ids'] ?? [$data['trip_sheet_entry_id'] ?? null];
+
+        return array_values(array_unique(array_filter(array_map('intval', (array) $ids))));
     }
 
     private function entryPayload(TripSheetEntry $entry, ?string $date): array
@@ -333,6 +358,40 @@ class RosterController extends Controller implements HasMiddleware
         }
     }
 
+    private function ensureDriverCanBeAssigned(int $driverProfileId, ?Roster $currentRoster = null): void
+    {
+        $driver = DriverProfile::findOrFail($driverProfileId);
+
+        if (! $driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'driver_profile_id' => 'Licence expired driver cannot be selected.',
+            ]);
+        }
+
+        $exists = Roster::where('driver_profile_id', $driverProfileId)
+            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'driver_profile_id' => 'Driver already associated with another roaster.',
+            ]);
+        }
+    }
+
+    private function ensureVehicleCanBeAssigned(int $vehicleId, ?Roster $currentRoster = null): void
+    {
+        $exists = Roster::where('vehicle_id', $vehicleId)
+            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'vehicle_id' => 'Vehicle already associated with another roaster.',
+            ]);
+        }
+    }
+
     private function formData(array $extra = []): array
     {
         return $extra + $this->lookupData() + [
@@ -344,14 +403,19 @@ class RosterController extends Controller implements HasMiddleware
 
     private function lookupData(): array
     {
+        $assignedDriverIds = Roster::whereNotNull('driver_profile_id')->pluck('driver_profile_id')->all();
+        $assignedVehicleIds = Roster::whereNotNull('vehicle_id')->pluck('vehicle_id')->all();
+
         return [
             'states' => State::orderBy('name')->get(['id', 'name']),
             'oems' => Oem::orderBy('oem_name')->get(['id', 'oem_name']),
             'depots' => Depot::orderBy('name')->get(['id', 'name', 'state_id']),
             'drivers' => DriverProfile::with('user')->orderBy('id')->get(),
-            'vehicles' => Vehicle::where('status', 'Active')->orderBy('vehicle_no')->get(['id', 'vehicle_no', 'oem_id', 'depot_id', 'state_id']),
+            'vehicles' => Vehicle::where('status', 'Active')->orderBy('vehicle_no')->get(['id', 'vehicle_code', 'vehicle_no', 'capacity_seating', 'capacity_load', 'chassis_no', 'registration_valid_upto', 'fitness_expiry', 'pollution_expiry', 'insurance_expiry', 'oem_id', 'depot_id', 'state_id']),
             'supervisors' => SupervisorProfile::with('user')->orderBy('id')->get(),
             'controllers' => ControllerProfile::with('user')->orderBy('id')->get(),
+            'assignedDriverIds' => $assignedDriverIds,
+            'assignedVehicleIds' => $assignedVehicleIds,
         ];
     }
 
@@ -428,7 +492,8 @@ class RosterController extends Controller implements HasMiddleware
             'Shift Type' => Roster::SHIFT_TYPES[$record->shift_type] ?? '-',
             'Shift Start Time' => $this->time($record->shift_start_time) ?: '-',
             'Shift End Time' => $this->time($record->shift_end_time) ?: '-',
-            'Reporting Time' => $this->time($record->reporting_time) ?: '-',
+            'Reporting To Time' => $this->time($record->reporting_time) ?: '-',
+            'Second Reporting To Time' => $this->time($record->reporting_to_time) ?: '-',
             'Attendance Status' => $record->attendance_status ? (Roster::ATTENDANCE_STATUSES[$record->attendance_status] ?? $record->attendance_status) : 'Not Marked',
         ], 145);
 

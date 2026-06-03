@@ -43,7 +43,8 @@
                                     <li>Date : <span>{{ $record->duty_date?->format('d-m-Y') ?: '-' }}</span></li>
                                     <li>Shift Type : <span>{{ \App\Models\Roster::SHIFT_TYPES[$record->shift_type] ?? '-' }}</span></li>
                                     <li>Shift Time : <span>{{ $time($record->shift_start_time) }} - {{ $time($record->shift_end_time) }}</span></li>
-                                    <li>Reporting Time : <span>{{ $time($record->reporting_time) }}</span></li>
+                                    <li>Reporting To Time : <span>{{ $time($record->reporting_time) }}</span></li>
+                                    <li>Second Reporting To Time : <span>{{ $time($record->reporting_to_time) }}</span></li>
                                     <li>Attendance : <span>{{ $record->attendance_status ? (\App\Models\Roster::ATTENDANCE_STATUSES[$record->attendance_status] ?? $record->attendance_status) : 'Not Marked' }}</span></li>
                                 </ul>
                             </div>
