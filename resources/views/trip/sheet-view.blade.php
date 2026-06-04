@@ -14,13 +14,11 @@
             $actual = \Carbon\Carbon::parse($actualStartTime);
             $minutes = (int) round($start->diffInMinutes($actual, false));
 
-            if ($minutes === 0) {
-                return 'On time';
-            }
-
             return $minutes > 0
                 ? $minutes . ' ' . (\abs($minutes) === 1 ? 'min' : 'mins')
-                : \abs($minutes) . ' ' . (\abs($minutes) === 1 ? 'min' : 'mins') . ' early';
+                : ($minutes === 0
+                    ? '0 min'
+                    : \abs($minutes) . ' ' . (\abs($minutes) === 1 ? 'min' : 'mins') . ' early');
         };
         $dateRange = $record->from_date || $record->to_date
             ? trim(($record->from_date?->format('d-m-Y') ?: '-') . ' - ' . ($record->to_date?->format('d-m-Y') ?: '-'))
@@ -129,8 +127,14 @@
                                 <td class="text-center text-muted">{{ $delay($entry->departure_time, $entry->actual_start_time) }}</td>
                                 <td class="text-center text-muted">
                                     <div class="action-btns">
-                                        <a href="#!" class="btn-edit btn-nowrap btn-cstm">Create DOR</a>
-                                        <a href="#!" class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View DOR</a>
+                                        <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}" class="btn-edit btn-nowrap btn-cstm">
+                                            {{ $entry->dor ? 'Edit DOR' : 'Create DOR' }}
+                                        </a>
+                                        @if($entry->dor)
+                                            <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}" class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View DOR</a>
+                                        @else
+                                            <a href="#!" class="btn-edit btn-nowrap btn-cstm disabled" style="background-color: #b23939; opacity: .65; pointer-events: none;">View DOR</a>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

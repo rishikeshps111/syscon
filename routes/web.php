@@ -227,6 +227,12 @@ Route::middleware('auth')->group(function () {
         ->name('trips.sheet.entries.edit');
     Route::get('/trips/{trip}/sheet-entries/{tripSheetEntry}/duplicate', [TripController::class, 'duplicateSheetEntry'])
         ->name('trips.sheet.entries.duplicate');
+    Route::get('/trips/{trip}/sheet-entries/{tripSheetEntry}/dor', [TripController::class, 'dorForm'])
+        ->name('trips.sheet.entries.dor');
+    Route::post('/trips/{trip}/sheet-entries/{tripSheetEntry}/dor', [TripController::class, 'storeDor'])
+        ->name('trips.sheet.entries.dor.store');
+    Route::get('/trips/{trip}/sheet-entries/{tripSheetEntry}/dor/preview', [TripController::class, 'dorPreview'])
+        ->name('trips.sheet.entries.dor.preview');
     Route::delete('/trips/{trip}/sheet-entries/{tripSheetEntry}', [TripController::class, 'destroySheetEntry'])
         ->name('trips.sheet.entries.destroy');
     Route::resource('trips', TripController::class)->except(['show']);

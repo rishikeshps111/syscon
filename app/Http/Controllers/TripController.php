@@ -17,6 +17,7 @@ use App\Models\Trip;
 use App\Models\TripAssignment;
 use App\Models\TripSheet;
 use App\Models\TripSheetEntry;
+use App\Models\TripSheetEntryDor;
 use App\Models\Vehicle;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class TripController extends Controller implements HasMiddleware
             new Middleware(PermissionMiddleware::using('trips.view'), ['index', 'show', 'export', 'completedTrips', 'completedTripsExport', 'completedTripView', 'completedTripPdf']),
             new Middleware(PermissionMiddleware::using('trips.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('trips.edit'), ['edit', 'update', 'status']),
-            new Middleware(PermissionMiddleware::using('trips.sheet'), ['sheet', 'createSheetEntry', 'editSheetEntry', 'duplicateSheetEntry', 'storeSheet', 'destroySheetEntry', 'sheetView', 'importSheetForm', 'importSheet', 'sampleSheetCsv']),
+            new Middleware(PermissionMiddleware::using('trips.sheet'), ['sheet', 'createSheetEntry', 'editSheetEntry', 'duplicateSheetEntry', 'storeSheet', 'destroySheetEntry', 'sheetView', 'importSheetForm', 'importSheet', 'sampleSheetCsv', 'dorForm', 'storeDor', 'dorPreview']),
             new Middleware(PermissionMiddleware::using('trips.delete'), ['destroy']),
         ];
     }
@@ -306,6 +307,52 @@ class TripController extends Controller implements HasMiddleware
         return view('trip.sheet-form', $this->sheetFormData($trip, $tripSheetEntry->load('sheet'), 'duplicate'));
     }
 
+    public function dorForm(Trip $trip, TripSheetEntry $tripSheetEntry)
+    {
+        $entry = $this->dorEntry($trip, $tripSheetEntry);
+
+        return view('trip.dor-form', [
+            'record' => $trip->load(['route.startPoint', 'route.endPoint', 'depot']),
+            'entry' => $entry,
+            'dor' => $entry->dor,
+            'fields' => $this->dorFields($entry),
+        ]);
+    }
+
+    public function storeDor(Request $request, Trip $trip, TripSheetEntry $tripSheetEntry)
+    {
+        $entry = $this->dorEntry($trip, $tripSheetEntry);
+        $validated = $request->validate($this->dorRules());
+        $payload = $this->dorPayload($entry, $validated);
+
+        $dor = $entry->dor;
+
+        if ($dor) {
+            $dor->update($payload + ['updated_by' => auth()->id()]);
+            $message = 'DOR updated successfully.';
+        } else {
+            $entry->dor()->create($payload + ['created_by' => auth()->id(), 'updated_by' => auth()->id()]);
+            $message = 'DOR created successfully.';
+        }
+
+        return redirect()
+            ->route('trips.sheet.view', $trip->id)
+            ->with('success', $message);
+    }
+
+    public function dorPreview(Trip $trip, TripSheetEntry $tripSheetEntry)
+    {
+        $entry = $this->dorEntry($trip, $tripSheetEntry);
+        abort_unless($entry->dor, 404);
+
+        return view('trip.dor-preview', [
+            'record' => $trip,
+            'entry' => $entry,
+            'dor' => $entry->dor,
+            'groups' => $this->dorPreviewGroups($entry->dor),
+        ]);
+    }
+
     public function sheetView(Request $request, Trip $trip)
     {
         $trip->load([
@@ -319,7 +366,7 @@ class TripController extends Controller implements HasMiddleware
             'assignments.vehicle.branch',
         ]);
         $query = TripSheetEntry::query()
-            ->with(['sheet.trip.route.startPoint', 'sheet.trip.route.endPoint', 'sheet.trip.assignments.driverProfile.user', 'driverProfile.user'])
+            ->with(['sheet.trip.route.startPoint', 'sheet.trip.route.endPoint', 'sheet.trip.assignments.driverProfile.user', 'driverProfile.user', 'dor'])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->where('trip_sheets.trip_id', $trip->id)
             ->select('trip_sheet_entries.*')
@@ -795,6 +842,295 @@ class TripController extends Controller implements HasMiddleware
             ?: '-';
     }
 
+    private function dorEntry(Trip $trip, TripSheetEntry $entry): TripSheetEntry
+    {
+        abort_unless($entry->sheet?->trip_id === $trip->id, 404);
+
+        return $entry->load([
+            'dor',
+            'sheet.trip.route.startPoint',
+            'sheet.trip.route.endPoint',
+            'sheet.trip.depot',
+            'sheet.trip.assignments.driverProfile.user',
+            'sheet.trip.assignments.vehicle',
+            'driverProfile.user',
+            'vehicle',
+        ]);
+    }
+
+    private function dorRules(): array
+    {
+        return [
+            'duty' => ['nullable', 'string', 'max:255'],
+            'schedule_km' => ['nullable', 'numeric', 'min:0'],
+            'route_km_loss' => ['nullable', 'numeric', 'min:0'],
+            'actual_route_km' => ['nullable', 'numeric', 'min:0'],
+            'schedule_trip' => ['nullable', 'integer', 'min:0'],
+            'actual_trip' => ['nullable', 'integer', 'min:0'],
+            'miss_trip' => ['nullable', 'integer', 'min:0'],
+            'odometer_start_reading' => ['nullable', 'numeric', 'min:0'],
+            'odometer_end_reading' => ['nullable', 'numeric', 'min:0'],
+            'odometer_diff_km' => ['nullable', 'numeric', 'min:0'],
+            'difference' => ['nullable', 'numeric'],
+            'account_responsible' => ['nullable', 'string', 'max:255'],
+            'reason_for_kilometer_loss' => ['nullable', 'string'],
+            'after_sales_reason' => ['nullable', 'string'],
+            'penalty_infraction' => ['nullable', 'string'],
+            'remarks' => ['nullable', 'string'],
+            'route_start_soc_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'route_end_soc_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'soc_consumption_on_route_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'soc_per_km' => ['nullable', 'numeric', 'min:0'],
+            'run_kilometer_per_soc' => ['nullable', 'numeric', 'min:0'],
+            'dor_kwh_per_km_odo' => ['nullable', 'numeric', 'min:0'],
+            'dor_kwh_per_km_act' => ['nullable', 'numeric', 'min:0'],
+            'dcr_kwh' => ['nullable', 'numeric', 'min:0'],
+            'dcr_charged_soc' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'energy_absorption' => ['nullable', 'numeric', 'min:0'],
+            'battery_size_kwh' => ['nullable', 'numeric', 'min:0'],
+            'vp1' => ['nullable', 'numeric', 'min:0'],
+            'vp2' => ['nullable', 'numeric', 'min:0'],
+            'dp' => ['nullable', 'numeric', 'min:0'],
+            'penalty' => ['nullable', 'numeric', 'min:0'],
+            'model_9m_12m' => ['nullable', Rule::in(['9M', '12M'])],
+        ];
+    }
+
+    private function dorPayload(TripSheetEntry $entry, array $data): array
+    {
+        $assignment = self::assignmentForCompletedEntry($entry);
+        $trip = $entry->sheet?->trip;
+        $driver = $entry->driverProfile ?: $assignment?->driverProfile;
+        $vehicle = $entry->vehicle ?: $assignment?->vehicle;
+
+        return [
+            'depot_name' => $trip?->depot?->name,
+            'dor_date' => $entry->sheet?->date?->format('Y-m-d'),
+            'bus_no' => $vehicle?->vehicle_no,
+            'route_no' => $trip?->route?->route_code ?: $trip?->route?->code,
+            'duty' => $data['duty'] ?? null,
+            'shift' => ucfirst((string) $entry->side),
+            'driver_badge_no' => $driver?->badge_number ?: $driver?->user?->code,
+            'schedule_start_time' => $this->formatSheetTime($entry->departure_time) ?: null,
+            'schedule_end_time' => $this->formatSheetTime($entry->arrival_time) ?: null,
+            'actual_start_time' => $this->formatSheetTime($entry->actual_start_time) ?: null,
+            'actual_end_time' => $this->formatSheetTime($entry->actual_reach_time) ?: null,
+            'start_punc' => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time),
+            'route_completion_time' => $this->formatSheetTime($entry->actual_reach_time ?: $entry->arrival_time) ?: null,
+            'schedule_km' => $this->nullableFloat($data['schedule_km'] ?? null),
+            'route_km_loss' => $this->nullableFloat($data['route_km_loss'] ?? null),
+            'actual_route_km' => $this->nullableFloat($data['actual_route_km'] ?? null),
+            'schedule_trip' => $this->nullableInt($data['schedule_trip'] ?? null),
+            'actual_trip' => $this->nullableInt($data['actual_trip'] ?? null),
+            'miss_trip' => $this->nullableInt($data['miss_trip'] ?? null),
+            'odometer_start_reading' => $this->nullableFloat($data['odometer_start_reading'] ?? null),
+            'odometer_end_reading' => $this->nullableFloat($data['odometer_end_reading'] ?? null),
+            'odometer_diff_km' => $this->nullableFloat($data['odometer_diff_km'] ?? null),
+            'difference' => $this->nullableFloat($data['difference'] ?? null),
+            'account_responsible' => $data['account_responsible'] ?? null,
+            'reason_for_kilometer_loss' => $data['reason_for_kilometer_loss'] ?? null,
+            'after_sales_reason' => $data['after_sales_reason'] ?? null,
+            'penalty_infraction' => $data['penalty_infraction'] ?? null,
+            'remarks' => $data['remarks'] ?? null,
+            'route_start_soc_percent' => $this->nullableFloat($data['route_start_soc_percent'] ?? null),
+            'route_end_soc_percent' => $this->nullableFloat($data['route_end_soc_percent'] ?? null),
+            'soc_consumption_on_route_percent' => $this->nullableFloat($data['soc_consumption_on_route_percent'] ?? null),
+            'soc_per_km' => $this->nullableFloat($data['soc_per_km'] ?? null),
+            'run_kilometer_per_soc' => $this->nullableFloat($data['run_kilometer_per_soc'] ?? null),
+            'dor_kwh_per_km_odo' => $this->nullableFloat($data['dor_kwh_per_km_odo'] ?? null),
+            'dor_kwh_per_km_act' => $this->nullableFloat($data['dor_kwh_per_km_act'] ?? null),
+            'dcr_kwh' => $this->nullableFloat($data['dcr_kwh'] ?? null),
+            'dcr_charged_soc' => $this->nullableFloat($data['dcr_charged_soc'] ?? null),
+            'energy_absorption' => $this->nullableFloat($data['energy_absorption'] ?? null),
+            'battery_size_kwh' => $this->nullableFloat($data['battery_size_kwh'] ?? null),
+            'vp1' => $this->nullableFloat($data['vp1'] ?? null),
+            'vp2' => $this->nullableFloat($data['vp2'] ?? null),
+            'dp' => $this->nullableFloat($data['dp'] ?? null),
+            'penalty' => $this->nullableFloat($data['penalty'] ?? null),
+            'model_9m_12m' => $data['model_9m_12m'] ?? null,
+        ];
+    }
+
+    private function dorFields(TripSheetEntry $entry): array
+    {
+        $saved = $entry->dor;
+        $values = $this->dorPayload($entry, [
+            'duty' => $saved?->duty,
+            'schedule_km' => $saved?->schedule_km,
+            'route_km_loss' => $saved?->route_km_loss,
+            'actual_route_km' => $saved?->actual_route_km,
+            'schedule_trip' => $saved?->schedule_trip,
+            'actual_trip' => $saved?->actual_trip,
+            'miss_trip' => $saved?->miss_trip,
+            'odometer_start_reading' => $saved?->odometer_start_reading,
+            'odometer_end_reading' => $saved?->odometer_end_reading,
+            'odometer_diff_km' => $saved?->odometer_diff_km,
+            'difference' => $saved?->difference,
+            'account_responsible' => $saved?->account_responsible,
+            'reason_for_kilometer_loss' => $saved?->reason_for_kilometer_loss,
+            'after_sales_reason' => $saved?->after_sales_reason,
+            'penalty_infraction' => $saved?->penalty_infraction,
+            'remarks' => $saved?->remarks,
+            'route_start_soc_percent' => $saved?->route_start_soc_percent,
+            'route_end_soc_percent' => $saved?->route_end_soc_percent,
+            'soc_consumption_on_route_percent' => $saved?->soc_consumption_on_route_percent,
+            'soc_per_km' => $saved?->soc_per_km,
+            'run_kilometer_per_soc' => $saved?->run_kilometer_per_soc,
+            'dor_kwh_per_km_odo' => $saved?->dor_kwh_per_km_odo,
+            'dor_kwh_per_km_act' => $saved?->dor_kwh_per_km_act,
+            'dcr_kwh' => $saved?->dcr_kwh,
+            'dcr_charged_soc' => $saved?->dcr_charged_soc,
+            'energy_absorption' => $saved?->energy_absorption,
+            'battery_size_kwh' => $saved?->battery_size_kwh,
+            'vp1' => $saved?->vp1,
+            'vp2' => $saved?->vp2,
+            'dp' => $saved?->dp,
+            'penalty' => $saved?->penalty,
+            'model_9m_12m' => $saved?->model_9m_12m,
+        ]);
+
+        return [
+            ['label' => 'Depot Name', 'name' => 'depot_name', 'type' => 'text', 'disabled' => true, 'value' => $values['depot_name']],
+            ['label' => 'Date', 'name' => 'dor_date', 'type' => 'text', 'disabled' => true, 'value' => $entry->sheet?->date?->format('d-m-Y')],
+            ['label' => 'Bus No. (With full registration)', 'name' => 'bus_no', 'type' => 'text', 'disabled' => true, 'value' => $values['bus_no']],
+            ['label' => 'Route No', 'name' => 'route_no', 'type' => 'text', 'disabled' => true, 'value' => $values['route_no']],
+            ['label' => 'Duty', 'name' => 'duty', 'type' => 'text', 'value' => $saved?->duty],
+            ['label' => 'Shift', 'name' => 'shift', 'type' => 'text', 'disabled' => true, 'value' => $values['shift']],
+            ['label' => 'Driver ID/Badge No.', 'name' => 'driver_badge_no', 'type' => 'text', 'disabled' => true, 'value' => $values['driver_badge_no']],
+            ['label' => 'Schedule Start Time', 'name' => 'schedule_start_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_start_time']],
+            ['label' => 'Schedule End Time', 'name' => 'schedule_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_end_time']],
+            ['label' => 'Actual Start Time', 'name' => 'actual_start_time', 'type' => 'time', 'disabled' => true, 'value' => $values['actual_start_time']],
+            ['label' => 'Actual End Time', 'name' => 'actual_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['actual_end_time']],
+            ['label' => 'Start Punc.', 'name' => 'start_punc', 'type' => 'text', 'disabled' => true, 'value' => $values['start_punc']],
+            ['label' => 'Route Completion Time', 'name' => 'route_completion_time', 'type' => 'time', 'disabled' => true, 'value' => $values['route_completion_time']],
+            ['label' => 'Schedule Km', 'name' => 'schedule_km', 'type' => 'number', 'value' => $values['schedule_km']],
+            ['label' => 'Route Km Loss', 'name' => 'route_km_loss', 'type' => 'number', 'value' => $values['route_km_loss']],
+            ['label' => 'Act. Route Km', 'name' => 'actual_route_km', 'type' => 'number', 'value' => $values['actual_route_km']],
+            ['label' => 'Schedule Trip', 'name' => 'schedule_trip', 'type' => 'number', 'value' => $values['schedule_trip']],
+            ['label' => 'Actual Trip', 'name' => 'actual_trip', 'type' => 'number', 'value' => $values['actual_trip']],
+            ['label' => 'Miss Trip', 'name' => 'miss_trip', 'type' => 'number', 'value' => $values['miss_trip']],
+            ['label' => 'Odometer Start Reading (A)', 'name' => 'odometer_start_reading', 'type' => 'number', 'value' => $saved?->odometer_start_reading],
+            ['label' => 'Odometer End Reading (B)', 'name' => 'odometer_end_reading', 'type' => 'number', 'value' => $saved?->odometer_end_reading],
+            ['label' => 'Odometer Diff. Km', 'name' => 'odometer_diff_km', 'type' => 'number', 'value' => $values['odometer_diff_km']],
+            ['label' => 'Difference', 'name' => 'difference', 'type' => 'number', 'value' => $values['difference']],
+            ['label' => 'Account Responsible', 'name' => 'account_responsible', 'type' => 'text', 'value' => $saved?->account_responsible],
+            ['label' => 'Reason For Kilometer Loss', 'name' => 'reason_for_kilometer_loss', 'type' => 'text', 'value' => $saved?->reason_for_kilometer_loss],
+            ['label' => 'After Sales Reason', 'name' => 'after_sales_reason', 'type' => 'text', 'value' => $saved?->after_sales_reason],
+            ['label' => 'Penalty Infraction', 'name' => 'penalty_infraction', 'type' => 'text', 'value' => $saved?->penalty_infraction],
+            ['label' => 'Remarks', 'name' => 'remarks', 'type' => 'text', 'value' => $saved?->remarks],
+            ['label' => 'Route Start SOC %', 'name' => 'route_start_soc_percent', 'type' => 'number', 'value' => $saved?->route_start_soc_percent],
+            ['label' => 'Route End SOC %', 'name' => 'route_end_soc_percent', 'type' => 'number', 'value' => $saved?->route_end_soc_percent],
+            ['label' => 'SOC Consumption On Route %', 'name' => 'soc_consumption_on_route_percent', 'type' => 'number', 'value' => $values['soc_consumption_on_route_percent']],
+            ['label' => 'SOC Per KM', 'name' => 'soc_per_km', 'type' => 'number', 'value' => $values['soc_per_km']],
+            ['label' => 'Run Kilometer Per SOC', 'name' => 'run_kilometer_per_soc', 'type' => 'number', 'value' => $values['run_kilometer_per_soc']],
+            ['label' => 'DOR KWh/km (odo)', 'name' => 'dor_kwh_per_km_odo', 'type' => 'number', 'value' => $values['dor_kwh_per_km_odo']],
+            ['label' => 'DOR KWH/KM (ACT)', 'name' => 'dor_kwh_per_km_act', 'type' => 'number', 'value' => $values['dor_kwh_per_km_act']],
+            ['label' => 'DCR KWH', 'name' => 'dcr_kwh', 'type' => 'number', 'value' => $saved?->dcr_kwh],
+            ['label' => 'DCR Charged SOC', 'name' => 'dcr_charged_soc', 'type' => 'number', 'value' => $saved?->dcr_charged_soc],
+            ['label' => 'Energy Absorption', 'name' => 'energy_absorption', 'type' => 'number', 'value' => $values['energy_absorption']],
+            ['label' => 'Battery size In KWH', 'name' => 'battery_size_kwh', 'type' => 'number', 'value' => $saved?->battery_size_kwh],
+            ['label' => 'VP1', 'name' => 'vp1', 'type' => 'number', 'value' => $values['vp1']],
+            ['label' => 'VP2', 'name' => 'vp2', 'type' => 'number', 'value' => $values['vp2']],
+            ['label' => 'DP', 'name' => 'dp', 'type' => 'number', 'value' => $values['dp']],
+            ['label' => 'Penalty', 'name' => 'penalty', 'type' => 'number', 'value' => $saved?->penalty],
+            ['label' => 'Model 9M/12M', 'name' => 'model_9m_12m', 'type' => 'select', 'options' => ['9M' => '9M', '12M' => '12M'], 'value' => $saved?->model_9m_12m],
+        ];
+    }
+
+    private function nullableFloat(mixed $value): ?float
+    {
+        return $value === null || $value === '' ? null : (float) $value;
+    }
+
+    private function nullableInt(mixed $value): ?int
+    {
+        return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    private function dorPreviewGroups(TripSheetEntryDor $dor): array
+    {
+        return [
+            'Basic Details' => [
+                'Depot Name' => $this->dorDisplay($dor->depot_name),
+                'Date' => $dor->dor_date?->format('d-M-Y') ?: '-',
+                'Bus No' => $this->dorDisplay($dor->bus_no),
+                'Route No' => $this->dorDisplay($dor->route_no),
+                'Duty' => $this->dorDisplay($dor->duty),
+                'Shift' => $this->dorDisplay($dor->shift),
+                'Driver ID' => $this->dorDisplay($dor->driver_badge_no),
+            ],
+            'Time Details' => [
+                'Schedule Start Time' => $this->dorTime($dor->schedule_start_time),
+                'Schedule End Time' => $this->dorTime($dor->schedule_end_time),
+                'Actual Start Time' => $this->dorTime($dor->actual_start_time),
+                'Actual End Time' => $this->dorTime($dor->actual_end_time),
+                'Start Punc.' => $this->dorDisplay($dor->start_punc),
+                'Route Completion Time' => $this->dorTime($dor->route_completion_time),
+            ],
+            'Kilometer Details' => [
+                'Schedule Km' => $this->dorDisplay($dor->schedule_km),
+                'Route Km Loss' => $this->dorDisplay($dor->route_km_loss),
+                'Act. Route Km' => $this->dorDisplay($dor->actual_route_km),
+                'Schedule Trip' => $this->dorDisplay($dor->schedule_trip),
+                'Actual Trip' => $this->dorDisplay($dor->actual_trip),
+                'Miss Trip' => $this->dorDisplay($dor->miss_trip),
+                'Odometer Start' => $this->dorDisplay($dor->odometer_start_reading),
+                'Odometer End' => $this->dorDisplay($dor->odometer_end_reading),
+                'Odometer Diff' => $this->dorDisplay($dor->odometer_diff_km),
+                'Difference' => $this->dorDisplay($dor->difference),
+            ],
+            'Responsibility' => [
+                'Account Responsible' => $this->dorDisplay($dor->account_responsible),
+                'Reason For Kilometer Loss' => $this->dorDisplay($dor->reason_for_kilometer_loss),
+                'After Sales Reason' => $this->dorDisplay($dor->after_sales_reason),
+                'Penalty Infraction' => $this->dorDisplay($dor->penalty_infraction),
+                'Remarks' => $this->dorDisplay($dor->remarks),
+            ],
+            'SOC / Energy' => [
+                'Route Start SOC %' => $this->dorDisplay($dor->route_start_soc_percent),
+                'Route End SOC %' => $this->dorDisplay($dor->route_end_soc_percent),
+                'SOC Consumption' => $this->dorDisplay($dor->soc_consumption_on_route_percent),
+                'SOC Per KM' => $this->dorDisplay($dor->soc_per_km),
+                'Run KM per SOC' => $this->dorDisplay($dor->run_kilometer_per_soc),
+                'DOR KWh/km' => $this->dorDisplay($dor->dor_kwh_per_km_odo),
+                'DOR KWH/KM (ACT)' => $this->dorDisplay($dor->dor_kwh_per_km_act),
+                'DCR KWH' => $this->dorDisplay($dor->dcr_kwh),
+                'DCR Charged SOC' => $this->dorDisplay($dor->dcr_charged_soc),
+                'Energy Absorption' => $this->dorDisplay($dor->energy_absorption),
+                'Battery Size' => $this->dorDisplay($dor->battery_size_kwh),
+            ],
+            'Final Metrics' => [
+                'VP1' => $this->dorDisplay($dor->vp1),
+                'VP2' => $this->dorDisplay($dor->vp2),
+                'DP' => $this->dorDisplay($dor->dp),
+                'Penalty' => $this->dorDisplay($dor->penalty),
+                'Model 9M/12M' => $this->dorDisplay($dor->model_9m_12m),
+            ],
+        ];
+    }
+
+    private function dorDisplay(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '-';
+        }
+
+        if (is_numeric($value)) {
+            $number = (float) $value;
+
+            return floor($number) === $number
+                ? (string) (int) $number
+                : rtrim(rtrim(number_format($number, 4, '.', ''), '0'), '.');
+        }
+
+        return (string) $value;
+    }
+
+    private function dorTime(?string $value): string
+    {
+        return $value ? substr($value, 0, 5) : '-';
+    }
+
     private function entryStartingPoint(TripSheetEntry $entry): string
     {
         $route = $entry->sheet?->trip?->route;
@@ -823,13 +1159,9 @@ class TripController extends Controller implements HasMiddleware
         $actual = Carbon::createFromFormat('H:i', $this->formatSheetTime($actualStartTime));
         $minutes = (int) round($scheduled->diffInMinutes($actual, false));
 
-        if ($minutes === 0) {
-            return 'On time';
-        }
-
         $label = abs($minutes) === 1 ? 'min' : 'mins';
 
-        return $minutes > 0
+        return $minutes >= 0
             ? "{$minutes} {$label}"
             : abs($minutes) . " {$label} early";
     }
