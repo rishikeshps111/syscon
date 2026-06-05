@@ -136,6 +136,10 @@ class PermissionSeeder extends Seeder
                 'designations.delete',
                 'designations.view',
             ],
+            'Role Permissions' => [
+                'role-permissions.edit',
+                'role-permissions.view',
+            ],
             'HRMS Document Type' => [
                 'hrms-document-types.create',
                 'hrms-document-types.edit',

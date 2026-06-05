@@ -94,15 +94,15 @@ class AuthenticatedSessionController extends Controller
     {
         return match ($portal) {
             'staff' => $user->hasRole('Staff'),
-            default => ! $user->hasRole('Staff'),
+            default => $user->hasRole('Super Admin'),
         };
     }
 
     private function portalErrorMessage(string $portal): string
     {
         return match ($portal) {
-            'staff' => 'This account is not allowed on the staff login page.',
-            default => 'Staff accounts must use the staff login page.',
+            'staff' => 'Only staff accounts can login from the staff login page.',
+            default => 'Only super admin accounts can login from the admin login page.',
         };
     }
 }

@@ -231,11 +231,19 @@ class StaffManagementSeeder extends Seeder
                     $user->save();
                 }
 
-                $user->assignRole('Staff');
                 $user->staffProfile()->updateOrCreate(
                     ['user_id' => $user->id],
                     collect($record)->except(['name', 'email', 'country_code', 'phone', 'is_active'])->all()
                 );
+
+                $roles = ['Staff'];
+                $designation = Designation::with('role')->find($record['designation_id']);
+
+                if ($designation?->role) {
+                    $roles[] = $designation->role->name;
+                }
+
+                $user->syncRoles($roles);
             }
         });
     }

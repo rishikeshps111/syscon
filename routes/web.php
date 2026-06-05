@@ -29,6 +29,7 @@ use App\Http\Controllers\OemStateMappingController;
 use App\Http\Controllers\OemTypeController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\RosterController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteAssignmentController;
@@ -323,6 +324,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/designations/export', [DesignationController::class, 'export'])
         ->name('designations.export');
     Route::resource('designations', DesignationController::class)->except(['edit', 'show']);
+
+    Route::get('/role-permissions', [RolePermissionController::class, 'index'])
+        ->name('role-permissions.index');
+    Route::get('/role-permissions/{role}/permissions', [RolePermissionController::class, 'edit'])
+        ->name('role-permissions.edit');
+    Route::put('/role-permissions/{role}/permissions', [RolePermissionController::class, 'update'])
+        ->name('role-permissions.update');
 
     Route::post('/hrms-document-types/status', [HrmsDocumentTypeController::class, 'status'])
         ->name('hrms-document-types.status');

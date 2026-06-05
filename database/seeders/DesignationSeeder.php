@@ -95,24 +95,35 @@ class DesignationSeeder extends Seeder
             foreach ($records as $record) {
                 $department = Department::where('name', $record['department'])->first();
                 $level = Level::where('name', $record['level'])->first();
-                $role = Role::where('name', $record['reporting_to'])
+                $reportingRole = Role::where('name', $record['reporting_to'])
                     ->where('name', '!=', 'Super Admin')
                     ->first();
 
-                if (! $department || ! $level || ! $role) {
+                if (! $department || ! $level || ! $reportingRole) {
                     continue;
                 }
+
+                $designationRole = Role::firstOrCreate([
+                    'name' => $record['name'],
+                    'guard_name' => 'web',
+                ]);
 
                 $designation = Designation::firstOrCreate(
                     ['name' => $record['name']],
                     [
                         'department_id' => $department->id,
                         'level_id' => $level->id,
-                        'reporting_to' => $role->id,
+                        'reporting_to' => $reportingRole->id,
+                        'role_id' => $designationRole->id,
                         'description' => $record['description'],
                         'is_active' => $record['is_active'],
                     ]
                 );
+
+                if (! $designation->role_id) {
+                    $designation->role_id = $designationRole->id;
+                    $designation->save();
+                }
 
                 if (! $designation->code) {
                     $designation->code = generate_code('Designation Module', $designation->id, 3, 'DSG');

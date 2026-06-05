@@ -24,13 +24,16 @@ class UpdateDesignationRequest extends FormRequest
             'reporting_to' => [
                 'required',
                 'integer',
-                Rule::exists('roles', 'id')->where(fn ($query) => $query->where('name', '!=', 'Super Admin')),
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])),
             ],
             'name' => [
                 'required',
                 'string',
                 'max:255',
                 Rule::unique('designations', 'name')->ignore($this->route('designation')),
+                Rule::unique('roles', 'name')
+                    ->where(fn ($query) => $query->where('guard_name', 'web'))
+                    ->ignore($this->route('designation')?->role_id),
             ],
             'description' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],

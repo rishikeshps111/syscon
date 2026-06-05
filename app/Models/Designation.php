@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Models\Role;
 
-#[Fillable(['department_id', 'level_id', 'reporting_to', 'code', 'name', 'is_active', 'description'])]
+#[Fillable(['department_id', 'level_id', 'reporting_to', 'role_id', 'code', 'name', 'is_active', 'description'])]
 #[Table('designations')]
 class Designation extends Model
 {
@@ -35,5 +36,15 @@ class Designation extends Model
     public function reportingRole(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'reporting_to');
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function staffProfiles(): HasMany
+    {
+        return $this->hasMany(StaffProfile::class);
     }
 }

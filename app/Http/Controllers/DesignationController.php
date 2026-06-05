@@ -11,8 +11,10 @@ use App\Models\Level;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Models\Role;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -32,8 +34,8 @@ class DesignationController extends Controller implements HasMiddleware
     public function index()
     {
         if (request()->ajax()) {
-            $query = Designation::with(['department', 'level', 'reportingRole'])
-                ->select(['id', 'department_id', 'level_id', 'reporting_to', 'code', 'name', 'is_active', 'created_at'])
+            $query = Designation::with(['department', 'level', 'reportingRole', 'role'])
+                ->select(['id', 'department_id', 'level_id', 'reporting_to', 'role_id', 'code', 'name', 'is_active', 'created_at'])
                 ->orderBy('created_at', 'desc');
 
             if (request()->filled('department_id')) {
@@ -84,7 +86,7 @@ class DesignationController extends Controller implements HasMiddleware
     {
         $departments = Department::orderBy('name')->get(['id', 'name']);
         $levels = Level::orderBy('name')->get(['id', 'name']);
-        $roles = Role::where('name', '!=', 'Super Admin')->orderBy('name')->get(['id', 'name']);
+        $roles = $this->reportingRoles();
 
         if ($request->id) {
             $record = Designation::findOrFail($request->id);
@@ -105,9 +107,21 @@ class DesignationController extends Controller implements HasMiddleware
 
     public function store(StoreDesignationRequest $request)
     {
-        $designation = Designation::create($request->validated());
-        $designation->code = generate_code('Designation Module', $designation->id, 3, 'DSG');
-        $designation->save();
+        $designation = DB::transaction(function () use ($request) {
+            $data = $request->validated();
+            $role = Role::create([
+                'name' => $data['name'],
+                'guard_name' => 'web',
+            ]);
+
+            $designation = Designation::create($data + ['role_id' => $role->id]);
+            $designation->code = generate_code('Designation Module', $designation->id, 3, 'DSG');
+            $designation->save();
+
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            return $designation;
+        });
 
         return response()->json([
             'success' => true,
@@ -122,7 +136,25 @@ class DesignationController extends Controller implements HasMiddleware
 
     public function update(UpdateDesignationRequest $request, Designation $designation)
     {
-        $designation->update($request->validated());
+        $designation = DB::transaction(function () use ($request, $designation) {
+            $data = $request->validated();
+            $role = $designation->role;
+
+            if (! $role) {
+                $role = Role::create([
+                    'name' => $data['name'],
+                    'guard_name' => 'web',
+                ]);
+                $data['role_id'] = $role->id;
+            } else {
+                $role->update(['name' => $data['name']]);
+            }
+
+            $designation->update($data);
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            return $designation;
+        });
 
         return response()->json([
             'success' => true,
@@ -133,7 +165,23 @@ class DesignationController extends Controller implements HasMiddleware
 
     public function destroy(Designation $designation)
     {
-        $designation->delete();
+        if ($designation->staffProfiles()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This designation is assigned to staff and cannot be deleted.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($designation) {
+            $role = $designation->role;
+            $designation->delete();
+
+            if ($role && ! $role->users()->exists()) {
+                $role->delete();
+            }
+
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+        });
 
         return response()->json([
             'success' => true,
@@ -166,5 +214,12 @@ class DesignationController extends Controller implements HasMiddleware
         $designation->save();
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
+    }
+
+    private function reportingRoles()
+    {
+        return Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+            ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 WHEN 'Supervisor' THEN 4 ELSE 5 END")
+            ->get(['id', 'name']);
     }
 }

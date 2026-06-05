@@ -80,8 +80,8 @@ class StaffManagementController extends Controller implements HasMiddleware
         $user->code = $this->generateStaffCode($user->id);
         $user->save();
         $this->storeAvatar($request, $user);
-        $user->assignRole('Staff');
         $user->staffProfile()->create($this->profileData($data));
+        $this->syncStaffRoles($user, (int) $data['designation_id']);
 
         return redirect()->route('staff-management.index')->with('success', 'Staff created successfully.');
     }
@@ -134,11 +134,11 @@ class StaffManagementController extends Controller implements HasMiddleware
             'is_active' => $data['is_active'],
         ] + (! empty($data['password']) ? ['password' => $data['password']] : []));
         $this->storeAvatar($request, $staff_management);
-        $staff_management->syncRoles(['Staff']);
         $staff_management->staffProfile()->updateOrCreate(
             ['user_id' => $staff_management->id],
             $this->profileData($data)
         );
+        $this->syncStaffRoles($staff_management, (int) $data['designation_id']);
 
         return redirect()->route('staff-management.index')->with('success', 'Staff updated successfully.');
     }
@@ -339,6 +339,18 @@ class StaffManagementController extends Controller implements HasMiddleware
 
         $user->avatar = $request->file('avatar')->store('avatars', 'public');
         $user->save();
+    }
+
+    private function syncStaffRoles(User $user, int $designationId): void
+    {
+        $roles = ['Staff'];
+        $designation = Designation::with('role')->find($designationId);
+
+        if ($designation?->role) {
+            $roles[] = $designation->role->name;
+        }
+
+        $user->syncRoles($roles);
     }
 
     private function staffRecord(User $staff): User
