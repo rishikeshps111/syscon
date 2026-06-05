@@ -73,4 +73,9 @@ class TripSheetEntry extends Model
     {
         return $this->hasOne(TripSheetEntryDor::class);
     }
+
+    public function roster(): HasOne
+    {
+        return $this->hasOne(Roster::class)->latestOfMany();
+    }
 }

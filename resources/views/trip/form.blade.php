@@ -31,6 +31,19 @@
             value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
     </div>
 
+     <div class="col-lg-4 o-f-inp mb-2">
+        <label for="depot_id" class="form-label m-0">Depot</label>
+        <select class="form-select shadow-none select2" id="depot_id" name="depot_id">
+            <option value="">--- Select ---</option>
+            @foreach($depots as $depot)
+                <option value="{{ $depot->id }}" {{ old('depot_id', $record->depot_id ?? '') == $depot->id ? 'selected' : '' }}>
+                    {{ $depot->name }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text depot_id_error">@error('depot_id'){{ $message }}@enderror</span>
+    </div>
+
     <div class="col-lg-4 o-f-inp mb-2">
         <label for="service_type_id" class="form-label m-0">Service Type <span class="text-danger">*</span></label>
         <select class="form-select shadow-none select2" id="service_type_id" name="service_type_id">
@@ -67,7 +80,7 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-2">
-        <label for="start_time" class="form-label m-0">Actual Start Time <span class="text-danger">*</span></label>
+        <label for="start_time" class="form-label m-0">Start Time <span class="text-danger">*</span></label>
         <input type="time" class="form-control shadow-none" id="start_time" name="start_time"
             value="{{ old('start_time', isset($record) && $record->start_time ? substr($record->start_time, 0, 5) : '') }}">
         <span class="text-danger error-text start_time_error">@error('start_time'){{ $message }}@enderror</span>
@@ -79,7 +92,7 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-2">
-        <label for="end_time" class="form-label m-0">Actual Reach Time <span class="text-danger">*</span></label>
+        <label for="end_time" class="form-label m-0">Reach Time <span class="text-danger">*</span></label>
         <input type="time" class="form-control shadow-none" id="end_time" name="end_time"
             value="{{ old('end_time', isset($record) && $record->end_time ? substr($record->end_time, 0, 5) : '') }}">
         <span class="text-danger error-text end_time_error">@error('end_time'){{ $message }}@enderror</span>
@@ -108,19 +121,6 @@
         <div id="stopsPreview" class="d-flex flex-wrap gap-2 mt-1">
             <span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>
         </div>
-    </div>
-
-    <div class="col-lg-4 o-f-inp mb-2">
-        <label for="depot_id" class="form-label m-0">Depot</label>
-        <select class="form-select shadow-none select2" id="depot_id" name="depot_id">
-            <option value="">--- Select ---</option>
-            @foreach($depots as $depot)
-                <option value="{{ $depot->id }}" {{ old('depot_id', $record->depot_id ?? '') == $depot->id ? 'selected' : '' }}>
-                    {{ $depot->name }}
-                </option>
-            @endforeach
-        </select>
-        <span class="text-danger error-text depot_id_error">@error('depot_id'){{ $message }}@enderror</span>
     </div>
 
     <div class="col-lg-4 o-f-inp mb-2">

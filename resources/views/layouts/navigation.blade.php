@@ -310,22 +310,14 @@
                                 <li>
                                     <a href="{{ route('attendance-management.index') }}"
                                         class="{{ request()->routeIs('attendance-management.*') ? 'sub-active' : '' }}">
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Attendance Management</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Attendance
+                                            Management</span>
                                     </a>
                                 </li>
                             @endcan
                         </ul>
                     </li>
                 @endcanany
-                @can('complaints.view')
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('complaints.*') ? '' : 'collapsed' }}"
-                            href="{{ route('complaints.index') }}">
-                            <i class="fa-solid fa-ticket"></i>
-                            <span>Complaint Management</span>
-                        </a>
-                    </li>
-                @endcan
                 @can('routes.view')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('routes.*') ? '' : 'collapsed' }}"
@@ -369,6 +361,13 @@
                                     <span>Completed Trips</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ route('trips.report.index') }}"
+                                    class="{{ request()->routeIs('trips.report.*') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Trip Report</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 @endcan
@@ -399,13 +398,16 @@
                                     <span>Manage Roaster</span>
                                 </a>
                             </li>
-                            {{-- <li>
-                                <a href="#!" class="text-muted">
-                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                    <span>Roaster Report</span>
-                                </a>
-                            </li> --}}
                         </ul>
+                    </li>
+                @endcan
+                @can('complaints.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('complaints.*') ? '' : 'collapsed' }}"
+                            href="{{ route('complaints.index') }}">
+                            <i class="fa-solid fa-ticket"></i>
+                            <span>Complaint Management</span>
+                        </a>
                     </li>
                 @endcan
                 @can('settings.view')

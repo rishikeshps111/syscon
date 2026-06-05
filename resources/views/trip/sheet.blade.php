@@ -32,7 +32,7 @@
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>Date Range</label>
                     <input type="text" class="form-control shadow-none"
-                        value="{{ $record->from_date?->format('d/m/Y') }} - {{ $record->to_date?->format('d/m/Y') }}"
+                        value="{{ $record->from_date?->format('d M Y') }} - {{ $record->to_date?->format('d M Y') }}"
                         disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
@@ -61,6 +61,8 @@
                         title="Add Entry">
                         <i class="fa-solid fa-plus me-1"></i> Add Entry
                     </a>
+                    <a href="{{ route('trips.sheet.view', ['trip' => $record->id, 'export' => 'csv']) }}"
+                        class="add-btn">Export</a>
                     <a href="{{ route('trips.index') }}" class="btn btn-secondary" title="Back">
                         <i class="fa-solid fa-arrow-left me-1"></i> Back
                     </a>
@@ -72,12 +74,12 @@
                     <thead>
                         <tr>
                             <th class="text-center nowrap">SL No</th>
-                            <th class="text-center nowrap" style="min-width: 130px;">Date</th>
                             <th class="text-center nowrap">Code</th>
                             <th class="text-center nowrap">Status</th>
                             <th class="text-center nowrap">Side</th>
                             <th class="text-center nowrap">Driver</th>
                             <th class="text-center nowrap">Vehicle</th>
+                            <th class="text-center nowrap" style="min-width: 130px;">Date</th>
                             <th class="text-center nowrap">Actual Start</th>
                             <th class="text-center nowrap">Actual Reach</th>
                             <th class="text-center nowrap">Starting Km</th>
@@ -106,12 +108,12 @@
                     ajax: "{{ route('trips.sheet', $record->id) }}",
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
                         { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
                         { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
                         { data: 'side', name: 'side', className: 'text-center' },
                         { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
                         { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
                         { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
                         { data: 'starting_km', name: 'starting_km', className: 'text-center' },

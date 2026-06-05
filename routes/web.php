@@ -197,6 +197,10 @@ Route::middleware('auth')->group(function () {
         ->name('trips.completed.index');
     Route::get('/completed-trips/export', [TripController::class, 'completedTripsExport'])
         ->name('trips.completed.export');
+    Route::get('/trip-report', [TripController::class, 'tripReport'])
+        ->name('trips.report.index');
+    Route::get('/trip-report/download', [TripController::class, 'downloadTripReport'])
+        ->name('trips.report.download');
     Route::get('/completed-trips/{tripSheetEntry}', [TripController::class, 'completedTripView'])
         ->name('trips.completed.view');
     Route::get('/completed-trips/{tripSheetEntry}/download-pdf', [TripController::class, 'completedTripPdf'])

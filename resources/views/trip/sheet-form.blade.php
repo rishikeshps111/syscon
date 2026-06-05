@@ -14,18 +14,18 @@
         $selectedStatus = old('status', $entry?->sheet?->status ?? 'pending');
         $selectedSide = old('side', $entry?->side ?? array_key_first($sideOptions));
         $defaultAssignment = $selectedDate
-            ? $record->assignments->first(fn ($assignment) => $assignment->from_date?->format('Y-m-d') <= $selectedDate && $assignment->to_date?->format('Y-m-d') >= $selectedDate)
+            ? $record->assignments->first(fn($assignment) => $assignment->from_date?->format('Y-m-d') <= $selectedDate && $assignment->to_date?->format('Y-m-d') >= $selectedDate)
             : null;
         $selectedDriverId = old('driver_profile_id', $entry?->driver_profile_id ?: $defaultAssignment?->driver_profile_id);
         $selectedVehicleId = old('vehicle_id', $entry?->vehicle_id ?: $defaultAssignment?->vehicle_id);
-        $assignmentDefaults = $record->assignments->map(fn ($assignment) => [
+        $assignmentDefaults = $record->assignments->map(fn($assignment) => [
             'from_date' => $assignment->from_date?->format('Y-m-d'),
             'to_date' => $assignment->to_date?->format('Y-m-d'),
             'driver_profile_id' => $assignment->driver_profile_id,
             'vehicle_id' => $assignment->vehicle_id,
         ])->values();
-        $timeValue = fn ($field) => old($field, $entry?->{$field} ? substr($entry->{$field}, 0, 5) : '');
-        $dateTimeValue = fn ($field) => old($field, $entry?->{$field}?->format('Y-m-d\TH:i') ?? '');
+        $timeValue = fn($field) => old($field, $entry?->{$field} ? substr($entry->{$field}, 0, 5) : '');
+        $dateTimeValue = fn($field) => old($field, $entry?->{$field}?->format('Y-m-d\TH:i') ?? '');
         $verificationGroups = [
             ['is_vehicle_verified', 'vehicle_verified_by', 'vehicle_verified_at', 'Vehicle Verified'],
             ['is_driver_verified', 'driver_verified_by', 'driver_verified_at', 'Driver Verified'],
@@ -59,17 +59,20 @@
                 </div>
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>Trip Side</label>
-                    <input type="text" class="form-control shadow-none" value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
+                    <input type="text" class="form-control shadow-none"
+                        value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
                 </div>
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>Date Range</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->from_date?->format('d/m/Y') }} - {{ $record->to_date?->format('d/m/Y') }}" disabled>
+                    <input type="text" class="form-control shadow-none"
+                        value="{{ $record->from_date?->format('d M Y') }} - {{ $record->to_date?->format('d M Y') }}"
+                        disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
                     <label>Stops</label>
                     <div class="d-flex flex-wrap gap-2 mt-1">
                         @forelse($record->route?->stops ?? [] as $stop)
-                            @if(! $loop->first)
+                            @if(!$loop->first)
                                 <span class="d-inline-flex align-items-center text-muted">
                                     <i class="fa-solid fa-arrow-right"></i>
                                 </span>
@@ -92,16 +95,26 @@
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="sheetDate">Date <span class="text-danger">*</span></label>
                         <input type="date" id="sheetDate" name="date" class="form-control shadow-none"
-                            value="{{ $selectedDate }}"
-                            min="{{ $record->from_date?->format('Y-m-d') }}"
+                            value="{{ $selectedDate }}" min="{{ $record->from_date?->format('Y-m-d') }}"
                             max="{{ $record->to_date?->format('Y-m-d') }}">
                         @error('date') <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="actualStartTime">Actual Start Time</label>
+                        <input type="time" id="actualStartTime" name="actual_start_time"
+                            class="form-control shadow-none" value="{{ $timeValue('actual_start_time') }}">
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="actualReachTime">Actual Reach Time</label>
+                        <input type="time" id="actualReachTime" name="actual_reach_time"
+                            class="form-control shadow-none" value="{{ $timeValue('actual_reach_time') }}">
                     </div>
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="sheetStatus">Status <span class="text-danger">*</span></label>
                         <select id="sheetStatus" name="status" class="form-select shadow-none sheet-select">
                             @foreach($statuses as $value => $label)
-                                <option value="{{ $value }}" {{ $selectedStatus === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                <option value="{{ $value }}" {{ $selectedStatus === $value ? 'selected' : '' }}>{{ $label }}
+                                </option>
                             @endforeach
                         </select>
                         @error('status') <div class="text-danger mt-1">{{ $message }}</div> @enderror
@@ -110,18 +123,16 @@
                         <label for="sheetSide">Side <span class="text-danger">*</span></label>
                         <select id="sheetSide" name="side" class="form-select shadow-none sheet-select">
                             @foreach($sideOptions as $value => $label)
-                                <option value="{{ $value }}" {{ $selectedSide === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                <option value="{{ $value }}" {{ $selectedSide === $value ? 'selected' : '' }}>{{ $label }}
+                                </option>
                             @endforeach
                         </select>
                         @error('side') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="departureTime">Departure Time</label>
-                        <input type="time" id="departureTime" name="departure_time" class="form-control shadow-none" value="{{ $timeValue('departure_time') }}">
-                    </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
                         <label for="driverProfileId">Driver</label>
-                        <select id="driverProfileId" name="driver_profile_id" class="form-select shadow-none sheet-select">
+                        <select id="driverProfileId" name="driver_profile_id"
+                            class="form-select shadow-none sheet-select">
                             <option value="">---Select---</option>
                             @foreach($drivers as $driver)
                                 <option value="{{ $driver->id }}" {{ (string) $selectedDriverId === (string) $driver->id ? 'selected' : '' }}>
@@ -143,61 +154,78 @@
                         </select>
                         @error('vehicle_id') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
+                    <div class="col-lg-3 o-f-inp mb-3"></div>
+                    <div class="col-lg-12 o-f-inp mb-3">
+                        <hr />
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="departureTime">Departure Time</label>
+                        <input type="time" id="departureTime" name="departure_time" class="form-control shadow-none"
+                            value="{{ $timeValue('departure_time') }}">
+                    </div>
+
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="arrivalTime">Arrival Time</label>
-                        <input type="time" id="arrivalTime" name="arrival_time" class="form-control shadow-none" value="{{ $timeValue('arrival_time') }}">
+                        <input type="time" id="arrivalTime" name="arrival_time" class="form-control shadow-none"
+                            value="{{ $timeValue('arrival_time') }}">
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="actualStartTime">Actual Start Time</label>
-                        <input type="time" id="actualStartTime" name="actual_start_time" class="form-control shadow-none" value="{{ $timeValue('actual_start_time') }}">
-                    </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="actualReachTime">Actual Reach Time</label>
-                        <input type="time" id="actualReachTime" name="actual_reach_time" class="form-control shadow-none" value="{{ $timeValue('actual_reach_time') }}">
-                    </div>
+
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="startingKm">Starting Km</label>
-                        <input type="number" min="0" id="startingKm" name="starting_km" class="form-control shadow-none" value="{{ old('starting_km', $entry?->starting_km) }}">
+                        <input type="number" min="0" id="startingKm" name="starting_km" class="form-control shadow-none"
+                            value="{{ old('starting_km', $entry?->starting_km) }}">
                     </div>
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="startingElectricCharge">Starting Electric Charge (%)</label>
-                        <input type="number" min="0" max="100" id="startingElectricCharge" name="starting_electric_charge" class="form-control shadow-none" value="{{ old('starting_electric_charge', $entry?->starting_electric_charge) }}">
+                        <input type="number" min="0" max="100" id="startingElectricCharge"
+                            name="starting_electric_charge" class="form-control shadow-none"
+                            value="{{ old('starting_electric_charge', $entry?->starting_electric_charge) }}">
                     </div>
-                    <div class="col-lg-9 o-f-inp mb-3">
-                        <label for="vehicleCondition">Vehicle Condition</label>
-                        <textarea id="vehicleCondition" name="vehicle_condition" rows="2" class="form-control shadow-none">{{ old('vehicle_condition', $entry?->vehicle_condition) }}</textarea>
+                    <div class="col-lg-12 o-f-inp mb-3">
+                        <hr />
                     </div>
+
 
                     @foreach($verificationGroups as [$flag, $by, $at, $label])
-                        <div class="col-lg-3 o-f-inp mb-3">
-                            @php($isChecked = old($flag, $entry?->{$flag}))
-                            <label>{{ $label }}</label>
-                            <div class="mt-2">
-                                <input class="btn-check sheet-toggle-input" type="checkbox" value="1" id="{{ $flag }}" name="{{ $flag }}" autocomplete="off" {{ $isChecked ? 'checked' : '' }}>
-                                <label class="btn btn-sm {{ $isChecked ? 'btn-success' : 'btn-outline-secondary' }} sheet-toggle-btn" for="{{ $flag }}">
-                                    <i class="fa-solid {{ $isChecked ? 'fa-toggle-on' : 'fa-toggle-off' }} me-1"></i>
-                                    <span>{{ $isChecked ? 'Yes' : 'No' }}</span>
-                                </label>
-                            </div>
+                    <div class="col-lg-4 o-f-inp mb-3">
+                        @php($isChecked = old($flag, $entry?->{$flag}))
+                        <label>{{ $label }}</label>
+                        <div class="mt-2">
+                            <input class="btn-check sheet-toggle-input" type="checkbox" value="1" id="{{ $flag }}"
+                                name="{{ $flag }}" autocomplete="off" {{ $isChecked ? 'checked' : '' }}>
+                            <label
+                                class="btn btn-sm {{ $isChecked ? 'btn-success' : 'btn-outline-secondary' }} sheet-toggle-btn"
+                                for="{{ $flag }}">
+                                <i class="fa-solid {{ $isChecked ? 'fa-toggle-on' : 'fa-toggle-off' }} me-1"></i>
+                                <span>{{ $isChecked ? 'Yes' : 'No' }}</span>
+                            </label>
                         </div>
-                        <div class="col-lg-3 o-f-inp mb-3">
-                            <label for="{{ $by }}">{{ $label }} By</label>
-                            <select id="{{ $by }}" name="{{ $by }}" class="form-select shadow-none sheet-select">
-                                <option value="">---Select---</option>
-                                @foreach($verifiers as $verifier)
-                                    <option value="{{ $verifier }}" {{ old($by, $entry?->{$by}) === $verifier ? 'selected' : '' }}>{{ $verifier }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-lg-3 o-f-inp mb-3">
-                            <label for="{{ $at }}">{{ $label }} Timestamp</label>
-                            <input type="datetime-local" id="{{ $at }}" name="{{ $at }}" class="form-control shadow-none" value="{{ $dateTimeValue($at) }}">
-                        </div>
+                    </div>
+                    <div class="col-lg-4 o-f-inp mb-3">
+                        <label for="{{ $by }}">{{ $label }} By</label>
+                        <select id="{{ $by }}" name="{{ $by }}" class="form-select shadow-none sheet-select">
+                            <option value="">---Select---</option>
+                            @foreach($verifiers as $verifier)
+                                <option value="{{ $verifier }}" {{ old($by, $entry?->{$by}) === $verifier ? 'selected' : '' }}>{{ $verifier }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-lg-4 o-f-inp mb-3">
+                        <label for="{{ $at }}">{{ $label }} Timestamp</label>
+                        <input type="datetime-local" id="{{ $at }}" name="{{ $at }}" class="form-control shadow-none"
+                            value="{{ $dateTimeValue($at) }}">
+                    </div>
                     @endforeach
 
-                    <div class="col-lg-12 o-f-inp mb-3">
+                    <div class="col-lg-6 o-f-inp mb-3">
                         <label for="notes">Notes</label>
-                        <textarea id="notes" name="notes" rows="2" class="form-control shadow-none">{{ old('notes', $entry?->notes) }}</textarea>
+                        <textarea id="notes" name="notes" rows="2"
+                            class="form-control shadow-none">{{ old('notes', $entry?->notes) }}</textarea>
+                    </div>
+                    <div class="col-lg-6 o-f-inp mb-3">
+                        <label for="vehicleCondition">Vehicle Condition</label>
+                        <textarea id="vehicleCondition" name="vehicle_condition" rows="2"
+                            class="form-control shadow-none">{{ old('vehicle_condition', $entry?->vehicle_condition) }}</textarea>
                     </div>
                 </div>
 
@@ -205,7 +233,8 @@
                     <a href="{{ route('trips.sheet', $record->id) }}" class="btn btn-secondary">
                         <i class="fa-solid fa-xmark me-1"></i> Cancel
                     </a>
-                    <button type="submit" class="btn btn-primary" id="tripSheetSubmitBtn" data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
+                    <button type="submit" class="btn btn-primary" id="tripSheetSubmitBtn"
+                        data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
                         <i class="fa-solid fa-floppy-disk me-1"></i> Submit
                     </button>
                 </div>

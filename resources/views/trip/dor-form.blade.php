@@ -15,7 +15,7 @@
     </div>
 
     <section class="section dashboard">
-        <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}">
+        <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}" id="dorForm">
             @csrf
 
             <div class="col-lg-12 mb-3">
@@ -76,9 +76,28 @@
                     @if($dor)
                         <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}" class="add-btn">Preview</a>
                     @endif
-                    <button type="submit" class="add-btn">{{ $dor ? 'Update DOR' : 'Create DOR' }}</button>
+                    <button type="submit" class="add-btn js-loading-submit"
+                        data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
+                        {{ $dor ? 'Update DOR' : 'Create DOR' }}
+                    </button>
                 </div>
             </div>
         </form>
     </section>
+
+    @section('scripts')
+        <script>
+            $(function () {
+                $('#dorForm').on('submit', function () {
+                    var button = $(this).find('.js-loading-submit');
+
+                    if (button.prop('disabled')) {
+                        return false;
+                    }
+
+                    button.prop('disabled', true).html(button.data('loading-text') || 'Loading...');
+                });
+            });
+        </script>
+    @endsection
 </x-app-layout>

@@ -12,25 +12,25 @@
                 </button>
                 <ul class="dropdown-menu dromenu-cs">
                     @can('trips.assign')
-                        <li>
+                        {{-- <li>
                             <a class="dropdown-item" href="{{ route('trips.assignments.index', $row->id) }}">Trip Assignment</a>
-                        </li>
+                        </li> --}}
                     @endcan
                     @can('trips.sheet')
                         <li>
-                            <a class="dropdown-item" href="{{ route('trips.sheet', $row->id) }}">Create Trip Sheet</a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="{{ route('trips.sheet.import.form', $row->id) }}">Import Trip Sheet</a>
+                            <a class="dropdown-item" href="{{ route('trips.sheet', $row->id) }}">Manage Trip Sheet</a>
                         </li>
                         <li>
                             <a class="dropdown-item" href="{{ route('trips.sheet.view', $row->id) }}">View Trip Sheet</a>
                         </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ route('trips.sheet.import.form', $row->id) }}">Import Trip Sheet</a>
+                        </li>
                     @endcan
                     @can('trips.edit')
                         <li>
-                            <a class="dropdown-item status-btn" href="#!" data-id="{{ $row->id }}"
-                                data-status="{{ $row->status }}" data-reason="{{ $row->cancellation_reason }}">Update Status</a>
+                            <a class="dropdown-item status-btn" href="#!" data-id="{{ $row->id }}" data-status="{{ $row->status }}"
+                                data-reason="{{ $row->cancellation_reason }}">Update Status</a>
                         </li>
                     @endcan
                 </ul>

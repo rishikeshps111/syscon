@@ -26,11 +26,11 @@
                 </div>
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>From Date</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->from_date?->format('d/m/Y') }}" disabled>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->from_date?->format('d M Y') }}" disabled>
                 </div>
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>To Date</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->to_date?->format('d/m/Y') }}" disabled>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->to_date?->format('d M Y') }}" disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
                     <label>Stops</label>
