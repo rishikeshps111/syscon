@@ -41,7 +41,8 @@
                             <div class="col-lg-4 mb-3">
                                 <div class="filter-btns-top justify-content-start">
                                     <button type="button" class="reset-btn border-0" id="resetTripReport">Reset</button>
-                                    <button type="submit" class="search-btn">Download Report</button>
+                                    <button type="submit" class="search-btn" style="font-size: 11px;">Download
+                                        Report</button>
                                 </div>
                             </div>
                         </div>
