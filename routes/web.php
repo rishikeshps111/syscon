@@ -44,6 +44,7 @@ use App\Http\Controllers\SupervisorDocumentController;
 use App\Http\Controllers\SupervisorManagementController;
 use App\Http\Controllers\TripAssignmentController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\UserLogController;
 use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleClassificationController;
 use App\Http\Controllers\VehicleController;
@@ -190,6 +191,9 @@ Route::middleware('auth')->group(function () {
         ->name('financial-year-settings.index');
     Route::put('/financial-year-settings', [FinancialYearSettingController::class, 'update'])
         ->name('financial-year-settings.update');
+
+    Route::get('/user-logs', [UserLogController::class, 'index'])
+        ->name('user-logs.index');
 
     Route::post('/trips/status', [TripController::class, 'status'])->name('trips.status');
     Route::post('/trips/export', [TripController::class, 'export'])

@@ -215,6 +215,12 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Financial Year Settings', 'permissions' => ['settings.view', 'settings.edit']],
                 ],
             ],
+            [
+                'label' => 'User Logs',
+                'children' => [
+                    ['label' => 'User Logs', 'permissions' => ['user-logs.view']],
+                ],
+            ],
         ];
     }
 

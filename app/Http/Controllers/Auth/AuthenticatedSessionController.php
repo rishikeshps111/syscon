@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\UserLog;
+use App\Support\PermissionRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -45,7 +47,11 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        if ($request->user()->hasRole('Staff')) {
+            $this->startStaffLog($request);
+        }
+
+        return redirect()->intended(route(PermissionRedirect::routeNameFor($request->user()), absolute: false));
     }
 
     /**
@@ -53,6 +59,8 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $this->closeStaffLog($request, 'logout');
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
@@ -104,5 +112,49 @@ class AuthenticatedSessionController extends Controller
             'staff' => 'Only staff accounts can login from the staff login page.',
             default => 'Only super admin accounts can login from the admin login page.',
         };
+    }
+
+    private function startStaffLog(Request $request): void
+    {
+        $user = $request->user()->loadMissing('staffProfile');
+
+        UserLog::expireStaleOpenLogs($user->id);
+
+        $user->userLogs()
+            ->open()
+            ->update([
+                'logout_at' => now(),
+                'logout_reason' => 'new_login',
+            ]);
+
+        $log = $user->userLogs()->create([
+            'designation_id' => $user->staffProfile?->designation_id,
+            'login_at' => now(),
+            'last_activity_at' => now(),
+        ]);
+
+        $request->session()->put('user_log_id', $log->id);
+    }
+
+    private function closeStaffLog(Request $request, string $reason): void
+    {
+        $user = $request->user();
+
+        if (! $user?->hasRole('Staff')) {
+            return;
+        }
+
+        $logId = $request->session()->get('user_log_id');
+        $query = $user->userLogs()->open();
+
+        if ($logId) {
+            $query->whereKey($logId);
+        }
+
+        $query->update([
+            'last_activity_at' => now(),
+            'logout_at' => now(),
+            'logout_reason' => $reason,
+        ]);
     }
 }

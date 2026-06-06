@@ -210,6 +210,9 @@ class PermissionSeeder extends Seeder
                 'settings.edit',
                 'settings.view',
             ],
+            'User Logs' => [
+                'user-logs.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

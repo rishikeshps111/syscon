@@ -72,6 +72,11 @@ class User extends Authenticatable
         return $this->hasMany(StaffDocument::class);
     }
 
+    public function userLogs(): HasMany
+    {
+        return $this->hasMany(UserLog::class);
+    }
+
     public function controllerDocuments(): HasMany
     {
         return $this->hasMany(ControllerDocument::class);

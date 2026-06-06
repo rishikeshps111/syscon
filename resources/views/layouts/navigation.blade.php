@@ -442,6 +442,15 @@
                         </ul>
                     </li>
                 @endcan
+                @can('user-logs.view')
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('user-logs.*') ? '' : 'collapsed' }}"
+                            href="{{ route('user-logs.index') }}">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            <span>User Logs</span>
+                        </a>
+                    </li>
+                @endcan
             </ul>
         </div>
     </div>
