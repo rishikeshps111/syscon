@@ -110,7 +110,12 @@ class RosterController extends Controller implements HasMiddleware
 
     public function edit(Roster $roster)
     {
-        return view('roster.edit', $this->formData(['record' => $roster->load($this->relations())]));
+        $roster->load($this->relations());
+
+        return view('roster.edit', $this->formData([
+            'record' => $roster,
+            'selectedTrips' => $this->selectedTripsForRoster($roster),
+        ]));
     }
 
     public function update(UpdateRosterRequest $request, Roster $roster)
@@ -118,7 +123,7 @@ class RosterController extends Controller implements HasMiddleware
         DB::transaction(function () use ($request, $roster) {
             $validated = $request->validated();
             $entryId = $this->selectedTripEntryIds($validated)[0] ?? $validated['trip_sheet_entry_id'];
-            $roster->update($this->payload($validated + ['trip_sheet_entry_id' => $entryId]) + ['updated_by' => auth()->id()]);
+            $roster->update($this->payload($validated + ['trip_sheet_entry_id' => $entryId], $roster) + ['updated_by' => auth()->id()]);
             $this->syncTripSheetEntry($roster);
         });
 
@@ -207,6 +212,7 @@ class RosterController extends Controller implements HasMiddleware
     {
         $date = $request->input('duty_date');
         $search = trim((string) $request->input('q'));
+        $selectedIds = array_filter(array_map('intval', (array) $request->input('selected_ids', [])));
 
         $entries = TripSheetEntry::query()
             ->with(['driverProfile.user', 'vehicle', 'sheet.trip.assignments.driverProfile.user', 'sheet.trip.assignments.vehicle'])
@@ -224,7 +230,8 @@ class RosterController extends Controller implements HasMiddleware
                     });
                 }
             })
-            ->limit(30)
+            ->when($selectedIds, fn ($query) => $query->orWhereIn('id', $selectedIds))
+            ->limit(30 + count($selectedIds))
             ->get();
 
         return response()->json($entries->map(fn (TripSheetEntry $entry) => $this->entryPayload($entry, $date))->values());
@@ -269,7 +276,7 @@ class RosterController extends Controller implements HasMiddleware
         return $query->latest('id');
     }
 
-    private function payload(array $data): array
+    private function payload(array $data, ?Roster $currentRoster = null): array
     {
         $entry = TripSheetEntry::with('sheet.trip.assignments')->findOrFail($data['trip_sheet_entry_id']);
         $assignment = $this->assignmentForEntry($entry, $data['duty_date']);
@@ -280,11 +287,11 @@ class RosterController extends Controller implements HasMiddleware
         unset($data['trip_sheet_entry_ids']);
 
         if ($data['driver_profile_id'] ?? null) {
-            $this->ensureDriverCanBeAssigned((int) $data['driver_profile_id']);
+            $this->ensureDriverCanBeAssigned((int) $data['driver_profile_id'], $currentRoster);
         }
 
         if ($data['vehicle_id'] ?? null) {
-            $this->ensureVehicleCanBeAssigned((int) $data['vehicle_id']);
+            $this->ensureVehicleCanBeAssigned((int) $data['vehicle_id'], $currentRoster);
         }
 
         return $data;
@@ -313,6 +320,27 @@ class RosterController extends Controller implements HasMiddleware
             'vehicle_id' => $entry->vehicle_id ?: $assignment?->vehicle_id,
             'vehicle_no' => $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no,
         ];
+    }
+
+    private function selectedTripsForRoster(Roster $roster): array
+    {
+        $entry = $roster->tripSheetEntry;
+
+        if (! $entry && $roster->trip_sheet_entry_id) {
+            $entry = TripSheetEntry::with(['driverProfile.user', 'vehicle', 'sheet.trip'])->find($roster->trip_sheet_entry_id);
+        }
+
+        if (! $entry) {
+            return [];
+        }
+
+        return [[
+            'id' => $entry->id,
+            'label' => trim(($entry->sheet?->code ?: '') . ' - ' . ($entry->sheet?->trip?->trip_title ?: '')),
+            'side' => ucfirst((string) $entry->side),
+            'driver' => $roster->driver_profile_id ?: $entry->driver_profile_id,
+            'vehicle' => $roster->vehicle_id ?: $entry->vehicle_id,
+        ]];
     }
 
     private function assignmentForEntry(TripSheetEntry $entry, ?string $date): ?TripAssignment

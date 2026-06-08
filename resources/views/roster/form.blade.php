@@ -1,13 +1,13 @@
 @php
     $record = $record ?? null;
     $selectedEntry = $record?->tripSheetEntry ?? null;
-    $selectedTrips = $selectedEntry ? [[
+    $selectedTrips = $selectedTrips ?? ($selectedEntry ? [[
         'id' => $selectedEntry->id,
         'label' => trim(($selectedEntry->sheet?->code ?: '') . ' - ' . ($selectedEntry->sheet?->trip?->trip_title ?: '')),
         'side' => ucfirst((string) $selectedEntry->side),
         'driver' => $record?->driver_profile_id,
         'vehicle' => $record?->vehicle_id,
-    ]] : [];
+    ]] : []);
 @endphp
 
 <form id="commonForm" class="row" method="POST"

@@ -58,7 +58,10 @@
 
         $.get("{{ route('rosters.trip-entries') }}", {
             duty_date: $('#duty_date').val(),
-            q: $('#tripSearchInput').val()
+            q: $('#tripSearchInput').val(),
+            selected_ids: selectedTrips.map(function (row) {
+                return row.id;
+            })
         }).done(function (rows) {
             body.empty();
 
