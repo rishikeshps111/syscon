@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -77,5 +78,11 @@ class TripSheetEntry extends Model
     public function roster(): HasOne
     {
         return $this->hasOne(Roster::class)->latestOfMany();
+    }
+
+    public function rosters(): BelongsToMany
+    {
+        return $this->belongsToMany(Roster::class, 'roster_trip_sheet_entries')
+            ->withTimestamps();
     }
 }

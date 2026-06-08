@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
     'code',
@@ -17,7 +18,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'shift_type',
     'shift_start_time',
     'shift_end_time',
-    'trip_sheet_entry_id',
     'trip_assignment_id',
     'driver_profile_id',
     'vehicle_id',
@@ -79,9 +79,19 @@ class Roster extends Model
         return $this->belongsTo(Depot::class);
     }
 
-    public function tripSheetEntry(): BelongsTo
+    public function tripSheetEntries(): BelongsToMany
     {
-        return $this->belongsTo(TripSheetEntry::class);
+        return $this->belongsToMany(TripSheetEntry::class, 'roster_trip_sheet_entries')
+            ->withTimestamps();
+    }
+
+    public function primaryTripSheetEntry(): ?TripSheetEntry
+    {
+        if ($this->relationLoaded('tripSheetEntries')) {
+            return $this->tripSheetEntries->first();
+        }
+
+        return $this->tripSheetEntries()->with(['sheet.trip'])->first();
     }
 
     public function tripAssignment(): BelongsTo

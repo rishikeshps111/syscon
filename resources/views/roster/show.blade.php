@@ -15,6 +15,7 @@
 
     @php
         $time = fn ($value) => $value ? substr($value, 0, 5) : '-';
+        $tripEntries = $record->tripSheetEntries;
     @endphp
 
     <section class="section dashboard">
@@ -65,12 +66,21 @@
                         <div class="col-lg-6 mb-3">
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Trip Details</h6>
-                                <ul>
-                                    <li><label>Trip Sheet Code :</label> <span>{{ $record->tripSheetEntry?->sheet?->code ?: '-' }}</span></li>
-                                    <li><label>Trip Code :</label> <span>{{ $record->tripSheetEntry?->sheet?->trip?->code ?: '-' }}</span></li>
-                                    <li><label>Trip Title :</label> <span>{{ $record->tripSheetEntry?->sheet?->trip?->trip_title ?: '-' }}</span></li>
-                                    <li><label>Side :</label> <span>{{ ucfirst((string) $record->tripSheetEntry?->side) ?: '-' }}</span></li>
-                                </ul>
+                                @forelse($tripEntries as $entry)
+                                    <ul>
+                                        <li><label>Trip Sheet Code :</label> <span>{{ $entry->sheet?->code ?: '-' }}</span></li>
+                                        <li><label>Trip Code :</label> <span>{{ $entry->sheet?->trip?->code ?: '-' }}</span></li>
+                                        <li><label>Trip Title :</label> <span>{{ $entry->sheet?->trip?->trip_title ?: '-' }}</span></li>
+                                        <li><label>Side :</label> <span>{{ ucfirst((string) $entry->side) ?: '-' }}</span></li>
+                                    </ul>
+                                    @unless($loop->last)
+                                        <hr>
+                                    @endunless
+                                @empty
+                                    <ul>
+                                        <li><label>Trip Sheet Code :</label> <span>-</span></li>
+                                    </ul>
+                                @endforelse
                             </div>
                         </div>
 

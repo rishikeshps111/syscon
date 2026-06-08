@@ -45,8 +45,10 @@ class RosterSeeder extends Seeder
                 $shift = $this->shiftForIndex($index);
                 $roster = Roster::updateOrCreate(
                     [
-                        'trip_sheet_entry_id' => $entry->id,
+                        'duty_date' => $date->toDateString(),
                         'shift_type' => $shift['type'],
+                        'driver_profile_id' => $assignment->driver_profile_id,
+                        'vehicle_id' => $assignment->vehicle_id,
                     ],
                     [
                         'state_id' => $state->id,
@@ -67,6 +69,8 @@ class RosterSeeder extends Seeder
                         'attendance_status' => $index % 3 === 0 ? 'present' : null,
                     ]
                 );
+
+                $roster->tripSheetEntries()->syncWithoutDetaching([$entry->id]);
 
                 if (! $roster->code) {
                     $roster->code = generate_code(Roster::PREFIX_MODULE, $roster->id, 4, 'RST');

@@ -1,13 +1,6 @@
 @php
     $record = $record ?? null;
-    $selectedEntry = $record?->tripSheetEntry ?? null;
-    $selectedTrips = $selectedTrips ?? ($selectedEntry ? [[
-        'id' => $selectedEntry->id,
-        'label' => trim(($selectedEntry->sheet?->code ?: '') . ' - ' . ($selectedEntry->sheet?->trip?->trip_title ?: '')),
-        'side' => ucfirst((string) $selectedEntry->side),
-        'driver' => $record?->driver_profile_id,
-        'vehicle' => $record?->vehicle_id,
-    ]] : []);
+    $selectedTrips = $selectedTrips ?? [];
 @endphp
 
 <form id="commonForm" class="row" method="POST"
@@ -105,8 +98,6 @@
             <div class="row">
                 <div class="col-lg-12 o-f-inp mb-3">
                     <label for="tripLabel">Trip Sheet Entries <span class="text-danger">*</span></label>
-                    <input type="hidden" id="trip_sheet_entry_id" name="trip_sheet_entry_id"
-                        value="{{ old('trip_sheet_entry_id', $record->trip_sheet_entry_id ?? '') }}">
                     <div id="selectedTripInputs">
                         @foreach(old('trip_sheet_entry_ids', collect($selectedTrips)->pluck('id')->all()) as $entryId)
                             <input type="hidden" name="trip_sheet_entry_ids[]" value="{{ $entryId }}">
@@ -127,15 +118,11 @@
                             @foreach($selectedTrips as $trip)
                                 <div class="selected-trip-pill" data-id="{{ $trip['id'] }}" data-side="{{ $trip['side'] }}">
                                     <span>{{ $trip['label'] }} <small>({{ $trip['side'] }})</small></span>
-                                    @unless(isset($record))
-                                        <button type="button" class="remove-selected-trip" data-id="{{ $trip['id'] }}">x</button>
-                                    @endunless
+                                    <button type="button" class="remove-selected-trip" data-id="{{ $trip['id'] }}">x</button>
                                 </div>
                             @endforeach
                         </div>
                     </div>
-                    <span
-                        class="text-danger error-text trip_sheet_entry_id_error">@error('trip_sheet_entry_id'){{ $message }}@enderror</span>
                     <span
                         class="text-danger error-text trip_sheet_entry_ids_error">@error('trip_sheet_entry_ids'){{ $message }}@enderror</span>
                 </div>

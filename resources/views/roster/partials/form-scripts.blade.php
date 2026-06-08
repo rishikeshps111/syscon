@@ -23,7 +23,6 @@
         });
 
         $('#duty_date').on('change', function () {
-            $('#trip_sheet_entry_id').val('');
             $('#tripLabel').val('');
             selectedTrips = [];
             renderSelectedTrips();
@@ -137,7 +136,7 @@
             list.append(
                 '<div class="selected-trip-pill" data-id="' + escapeAttribute(row.id) + '" data-side="' + escapeAttribute(row.side || '') + '">' +
                     '<span>' + escapeHtml(row.label || '-') + ' <small>(' + escapeHtml(row.side || '-') + ')</small></span>' +
-                    (@json(isset($record)) ? '' : '<button type="button" class="remove-selected-trip" data-id="' + escapeAttribute(row.id) + '">x</button>') +
+                    '<button type="button" class="remove-selected-trip" data-id="' + escapeAttribute(row.id) + '">x</button>' +
                 '</div>'
             );
         });
@@ -146,7 +145,6 @@
             list.append('<div class="selected-trip-empty">No trip sheet entries selected yet.</div>');
         }
 
-        $('#trip_sheet_entry_id').val(selectedTrips[0]?.id || '');
         $('#tripLabel').val(selectedTrips.length ? selectedTrips.length + (selectedTrips.length === 1 ? ' trip selected' : ' trips selected') : 'No trip selected');
         toggleReportingToTime();
     }

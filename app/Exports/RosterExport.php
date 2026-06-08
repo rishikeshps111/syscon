@@ -16,6 +16,8 @@ class RosterExport implements FromCollection, WithHeadings
     public function collection()
     {
         return $this->query->get()->map(function (Roster $roster) {
+            $entries = $roster->tripSheetEntries;
+
             return [
                 'Roster Code' => $roster->code,
                 'Date' => $roster->duty_date?->format('d M Y'),
@@ -27,8 +29,8 @@ class RosterExport implements FromCollection, WithHeadings
                 'Shift End Time' => $this->time($roster->shift_end_time),
                 'Driver Name' => $roster->driverProfile?->user?->name,
                 'Vehicle' => $roster->vehicle?->vehicle_no,
-                'Trip Code' => $roster->tripSheetEntry?->sheet?->code,
-                'Trip Title' => $roster->tripSheetEntry?->sheet?->trip?->trip_title,
+                'Trip Code' => $entries->map(fn ($entry) => $entry->sheet?->code)->filter()->implode(', '),
+                'Trip Title' => $entries->map(fn ($entry) => $entry->sheet?->trip?->trip_title)->filter()->implode(', '),
                 'Reporting Time' => $this->time($roster->reporting_time),
                 'Status' => Roster::STATUSES[$roster->status] ?? $roster->status,
                 'Attendance Status' => $roster->attendance_status ? (Roster::ATTENDANCE_STATUSES[$roster->attendance_status] ?? $roster->attendance_status) : '',

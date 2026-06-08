@@ -49,7 +49,7 @@ class RosterController extends Controller implements HasMiddleware
                 ->addColumn('shift_type_label', fn ($row) => Roster::SHIFT_TYPES[$row->shift_type] ?? '-')
                 ->addColumn('driver_name', fn ($row) => $row->driverProfile?->user?->name ?: '-')
                 ->addColumn('vehicle_no', fn ($row) => $row->vehicle?->vehicle_no ?: '-')
-                ->addColumn('trip_code', fn ($row) => $row->tripSheetEntry?->sheet?->code ?: '-')
+                ->addColumn('trip_code', fn ($row) => $row->primaryTripSheetEntry()?->sheet?->code ?: '-')
                 ->addColumn('reporting_time_label', fn ($row) => $this->time($row->reporting_time) ?: '-')
                 ->addColumn('status', fn ($row) => $this->statusBadge($row->status))
                 ->addColumn('attendance_status', fn ($row) => $this->attendanceBadge($row->attendance_status))
@@ -78,12 +78,13 @@ class RosterController extends Controller implements HasMiddleware
         $entryIds = $this->selectedTripEntryIds($validated);
 
         DB::transaction(function () use ($validated, $entryIds) {
-            foreach ($entryIds as $entryId) {
-                $data = $this->payload($validated + ['trip_sheet_entry_id' => $entryId]);
-                $roster = Roster::create($data + ['created_by' => auth()->id(), 'updated_by' => auth()->id()]);
-                $roster->update(['code' => $this->generateRosterCode($roster->id)]);
-                $this->syncTripSheetEntry($roster);
-            }
+            $primaryEntryId = $entryIds[0];
+            $data = $this->payload($validated, $primaryEntryId);
+            $roster = Roster::create($data + ['created_by' => auth()->id(), 'updated_by' => auth()->id()]);
+
+            $roster->update(['code' => $this->generateRosterCode($roster->id)]);
+            $this->syncRosterTripSheetEntries($roster, $entryIds);
+            $this->syncTripSheetEntry($roster);
         });
 
         return redirect()->route('rosters.index')->with('success', 'Roaster saved successfully.');
@@ -122,8 +123,11 @@ class RosterController extends Controller implements HasMiddleware
     {
         DB::transaction(function () use ($request, $roster) {
             $validated = $request->validated();
-            $entryId = $this->selectedTripEntryIds($validated)[0] ?? $validated['trip_sheet_entry_id'];
-            $roster->update($this->payload($validated + ['trip_sheet_entry_id' => $entryId], $roster) + ['updated_by' => auth()->id()]);
+            $entryIds = $this->selectedTripEntryIds($validated);
+            $entryId = $entryIds[0];
+
+            $roster->update($this->payload($validated, $entryId, $roster) + ['updated_by' => auth()->id()]);
+            $this->syncRosterTripSheetEntries($roster, $entryIds);
             $this->syncTripSheetEntry($roster);
         });
 
@@ -254,8 +258,8 @@ class RosterController extends Controller implements HasMiddleware
                 $subQuery->where('code', 'like', '%' . $search . '%')
                     ->orWhereHas('driverProfile.user', fn ($userQuery) => $userQuery->where('name', 'like', '%' . $search . '%'))
                     ->orWhereHas('vehicle', fn ($vehicleQuery) => $vehicleQuery->where('vehicle_no', 'like', '%' . $search . '%'))
-                    ->orWhereHas('tripSheetEntry.sheet', fn ($sheetQuery) => $sheetQuery->where('code', 'like', '%' . $search . '%'))
-                    ->orWhereHas('tripSheetEntry.sheet.trip', fn ($tripQuery) => $tripQuery->where('title', 'like', '%' . $search . '%'));
+                    ->orWhereHas('tripSheetEntries.sheet', fn ($sheetQuery) => $sheetQuery->where('code', 'like', '%' . $search . '%'))
+                    ->orWhereHas('tripSheetEntries.sheet.trip', fn ($tripQuery) => $tripQuery->where('title', 'like', '%' . $search . '%'));
             });
         }
 
@@ -276,9 +280,9 @@ class RosterController extends Controller implements HasMiddleware
         return $query->latest('id');
     }
 
-    private function payload(array $data, ?Roster $currentRoster = null): array
+    private function payload(array $data, int $entryId, ?Roster $currentRoster = null): array
     {
-        $entry = TripSheetEntry::with('sheet.trip.assignments')->findOrFail($data['trip_sheet_entry_id']);
+        $entry = TripSheetEntry::with('sheet.trip.assignments')->findOrFail($entryId);
         $assignment = $this->assignmentForEntry($entry, $data['duty_date']);
 
         $data['trip_assignment_id'] = $assignment?->id;
@@ -299,7 +303,7 @@ class RosterController extends Controller implements HasMiddleware
 
     private function selectedTripEntryIds(array $data): array
     {
-        $ids = $data['trip_sheet_entry_ids'] ?? [$data['trip_sheet_entry_id'] ?? null];
+        $ids = $data['trip_sheet_entry_ids'] ?? [];
 
         return array_values(array_unique(array_filter(array_map('intval', (array) $ids))));
     }
@@ -324,23 +328,20 @@ class RosterController extends Controller implements HasMiddleware
 
     private function selectedTripsForRoster(Roster $roster): array
     {
-        $entry = $roster->tripSheetEntry;
+        $entries = $roster->tripSheetEntries;
 
-        if (! $entry && $roster->trip_sheet_entry_id) {
-            $entry = TripSheetEntry::with(['driverProfile.user', 'vehicle', 'sheet.trip'])->find($roster->trip_sheet_entry_id);
-        }
-
-        if (! $entry) {
-            return [];
-        }
-
-        return [[
+        return $entries->map(fn (TripSheetEntry $entry) => [
             'id' => $entry->id,
             'label' => trim(($entry->sheet?->code ?: '') . ' - ' . ($entry->sheet?->trip?->trip_title ?: '')),
             'side' => ucfirst((string) $entry->side),
             'driver' => $roster->driver_profile_id ?: $entry->driver_profile_id,
             'vehicle' => $roster->vehicle_id ?: $entry->vehicle_id,
-        ]];
+        ])->values()->all();
+    }
+
+    private function syncRosterTripSheetEntries(Roster $roster, array $entryIds): void
+    {
+        $roster->tripSheetEntries()->sync(array_values(array_unique(array_filter(array_map('intval', $entryIds)))));
     }
 
     private function assignmentForEntry(TripSheetEntry $entry, ?string $date): ?TripAssignment
@@ -358,15 +359,15 @@ class RosterController extends Controller implements HasMiddleware
 
     private function syncTripSheetEntry(Roster $roster): void
     {
-        $roster->loadMissing('tripSheetEntry');
+        $roster->loadMissing('tripSheetEntries');
 
-        $entry = $roster->tripSheetEntry;
+        $entries = $roster->tripSheetEntries;
 
-        if (! $entry) {
+        if ($entries->isEmpty()) {
             return;
         }
 
-        $this->syncTripSheetEntryColumns($entry, $roster);
+        $entries->each(fn (TripSheetEntry $entry) => $this->syncTripSheetEntryColumns($entry, $roster));
     }
 
     private function syncTripSheetEntryColumns(TripSheetEntry $entry, Roster $roster): void
@@ -453,7 +454,7 @@ class RosterController extends Controller implements HasMiddleware
             'state',
             'oem',
             'depot',
-            'tripSheetEntry.sheet.trip',
+            'tripSheetEntries.sheet.trip',
             'driverProfile.user',
             'vehicle',
             'supervisorProfile.user',
@@ -501,6 +502,7 @@ class RosterController extends Controller implements HasMiddleware
 
     private function buildRosterPdf(Roster $record): string
     {
+        $entry = $record->primaryTripSheetEntry();
         $content = '';
         $this->pdfFill($content, 0.96, 0.97, 0.99, 0, 0, 595, 842);
         $this->pdfText($content, 'SYSCON', 50, 795, 18, 'F2');
@@ -526,10 +528,10 @@ class RosterController extends Controller implements HasMiddleware
         ], 145);
 
         $this->pdfSection($content, 'Trip Details', 40, 230, 515, [
-            'Trip Sheet Code' => $record->tripSheetEntry?->sheet?->code ?: '-',
-            'Trip Code' => $record->tripSheetEntry?->sheet?->trip?->code ?: '-',
-            'Trip Title' => $record->tripSheetEntry?->sheet?->trip?->trip_title ?: '-',
-            'Side' => ucfirst((string) $record->tripSheetEntry?->side) ?: '-',
+            'Trip Sheet Code' => $entry?->sheet?->code ?: '-',
+            'Trip Code' => $entry?->sheet?->trip?->code ?: '-',
+            'Trip Title' => $entry?->sheet?->trip?->trip_title ?: '-',
+            'Side' => ucfirst((string) $entry?->side) ?: '-',
         ], 135);
 
         $this->pdfSection($content, 'Assignment', 40, 70, 515, [

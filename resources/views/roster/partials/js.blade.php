@@ -15,7 +15,7 @@
                 { data: 'shift_type_label', name: 'shift_type', className: 'text-center' },
                 { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'trip_code', name: 'tripSheetEntry.sheet.code', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'trip_code', name: 'tripSheetEntries.sheet.code', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'reporting_time_label', name: 'reporting_time', className: 'text-center' },
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'attendance_status', name: 'attendance_status', orderable: false, searchable: false, className: 'text-center' },
