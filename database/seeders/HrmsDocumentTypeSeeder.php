@@ -124,6 +124,16 @@ class HrmsDocumentTypeSeeder extends Seeder
                 'description' => 'Previous employment experience proof',
                 'is_active' => true,
             ],
+            [
+                'name' => 'Badge',
+                'category' => 'Identity Proof',
+                'applicable_for' => 'driver',
+                'allowed_file_types' => 'pdf',
+                'is_mandatory' => false,
+                'is_expiry_required' => false,
+                'description' => 'Driver badge',
+                'is_active' => true,
+            ],
         ];
 
         DB::transaction(function () use ($records) {
