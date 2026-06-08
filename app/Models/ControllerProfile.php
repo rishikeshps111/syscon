@@ -90,6 +90,11 @@ class ControllerProfile extends Model
         return $this->belongsTo(Location::class);
     }
 
+    public function rosters()
+    {
+        return $this->hasMany(Roster::class, 'controller_profile_id');
+    }
+
     public function getEmploymentTypeLabelAttribute(): string
     {
         return self::EMPLOYMENT_TYPES[$this->employment_type] ?? '';

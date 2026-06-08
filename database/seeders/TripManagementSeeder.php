@@ -240,9 +240,9 @@ class TripManagementSeeder extends Seeder
                     'is_verified_by_supervisor' => $status === 'completed',
                     'verified_by_supervisor' => $status === 'completed' ? $supervisorName : null,
                     'verified_by_supervisor_at' => $status === 'completed' ? now() : null,
-                    'is_verified_by_driver' => $status === 'completed',
-                    'verified_by_driver' => $status === 'completed' ? $controllerName : null,
-                    'verified_by_driver_at' => $status === 'completed' ? now() : null,
+                    'is_verified_by_controller' => $status === 'completed',
+                    'verified_by_controller' => $status === 'completed' ? $controllerName : null,
+                    'verified_by_controller_at' => $status === 'completed' ? now() : null,
                     'notes' => 'Seeded trip sheet entry.',
                 ],
             ]);

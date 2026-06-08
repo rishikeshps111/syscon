@@ -30,7 +30,7 @@
             ['is_vehicle_verified', 'vehicle_verified_by', 'vehicle_verified_at', 'Vehicle Verified'],
             ['is_driver_verified', 'driver_verified_by', 'driver_verified_at', 'Driver Verified'],
             ['is_verified_by_supervisor', 'verified_by_supervisor', 'verified_by_supervisor_at', 'Verified By Supervisor'],
-            ['is_verified_by_driver', 'verified_by_driver', 'verified_by_driver_at', 'Verified By Driver'],
+            ['is_verified_by_controller', 'verified_by_controller', 'verified_by_controller_at', 'Verified By Controller'],
         ];
     @endphp
 

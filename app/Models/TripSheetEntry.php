@@ -31,9 +31,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'is_verified_by_supervisor',
     'verified_by_supervisor',
     'verified_by_supervisor_at',
-    'is_verified_by_driver',
-    'verified_by_driver',
-    'verified_by_driver_at',
+    'is_verified_by_controller',
+    'verified_by_controller',
+    'verified_by_controller_at',
     'notes',
 ])]
 #[Table('trip_sheet_entries')]
@@ -50,8 +50,8 @@ class TripSheetEntry extends Model
             'driver_verified_at' => 'datetime',
             'is_verified_by_supervisor' => 'boolean',
             'verified_by_supervisor_at' => 'datetime',
-            'is_verified_by_driver' => 'boolean',
-            'verified_by_driver_at' => 'datetime',
+            'is_verified_by_controller' => 'boolean',
+            'verified_by_controller_at' => 'datetime',
         ];
     }
 

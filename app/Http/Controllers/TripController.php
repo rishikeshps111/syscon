@@ -574,9 +574,9 @@ class TripController extends Controller implements HasMiddleware
             'is_verified_by_supervisor' => ['nullable', 'boolean'],
             'verified_by_supervisor' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
             'verified_by_supervisor_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
-            'is_verified_by_driver' => ['nullable', 'boolean'],
-            'verified_by_driver' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
-            'verified_by_driver_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
+            'is_verified_by_controller' => ['nullable', 'boolean'],
+            'verified_by_controller' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
+            'verified_by_controller_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -813,7 +813,7 @@ class TripController extends Controller implements HasMiddleware
             $subQuery->where('trip_sheet_entries.vehicle_verified_by', $name)
                 ->orWhere('trip_sheet_entries.driver_verified_by', $name)
                 ->orWhere('trip_sheet_entries.verified_by_supervisor', $name)
-                ->orWhere('trip_sheet_entries.verified_by_driver', $name);
+                ->orWhere('trip_sheet_entries.verified_by_controller', $name);
         });
     }
 
@@ -870,9 +870,9 @@ class TripController extends Controller implements HasMiddleware
             'is_verified_by_supervisor' => $entry->is_verified_by_supervisor,
             'verified_by_supervisor' => $entry->verified_by_supervisor,
             'verified_by_supervisor_at' => $entry->verified_by_supervisor_at?->format('Y-m-d\TH:i'),
-            'is_verified_by_driver' => $entry->is_verified_by_driver,
-            'verified_by_driver' => $entry->verified_by_driver,
-            'verified_by_driver_at' => $entry->verified_by_driver_at?->format('Y-m-d\TH:i'),
+            'is_verified_by_controller' => $entry->is_verified_by_controller,
+            'verified_by_controller' => $entry->verified_by_controller,
+            'verified_by_controller_at' => $entry->verified_by_controller_at?->format('Y-m-d\TH:i'),
             'notes' => $entry->notes,
         ];
     }
@@ -1303,9 +1303,9 @@ class TripController extends Controller implements HasMiddleware
             'is_verified_by_supervisor',
             'verified_by_supervisor',
             'verified_by_supervisor_at',
-            'is_verified_by_driver',
-            'verified_by_driver',
-            'verified_by_driver_at',
+            'is_verified_by_controller',
+            'verified_by_controller',
+            'verified_by_controller_at',
             'notes',
         ];
     }
@@ -1428,13 +1428,13 @@ class TripController extends Controller implements HasMiddleware
                 $seen[$key] = $line;
             }
 
-            foreach (['vehicle_verified_at', 'driver_verified_at', 'verified_by_supervisor_at', 'verified_by_driver_at'] as $field) {
+            foreach (['vehicle_verified_at', 'driver_verified_at', 'verified_by_supervisor_at', 'verified_by_controller_at'] as $field) {
                 if (($data[$field] ?? '') !== '' && ! $this->csvDateTime($data[$field])) {
                     $errors[] = "Row {$line}: {$field} must be a valid date/time in DD-MM-YYYY HH:MM format.";
                 }
             }
 
-            foreach (['vehicle_verified_by', 'driver_verified_by', 'verified_by_supervisor', 'verified_by_driver'] as $field) {
+            foreach (['vehicle_verified_by', 'driver_verified_by', 'verified_by_supervisor', 'verified_by_controller'] as $field) {
                 if (($data[$field] ?? '') !== '' && ! in_array($data[$field], $verifierNames, true)) {
                     $errors[] = "Row {$line}: {$field} must be an active supervisor or controller name for this depot.";
                 }
@@ -1460,9 +1460,9 @@ class TripController extends Controller implements HasMiddleware
                 'is_verified_by_supervisor' => $this->csvBoolean($data['is_verified_by_supervisor'] ?? null),
                 'verified_by_supervisor' => ($data['verified_by_supervisor'] ?? '') ?: null,
                 'verified_by_supervisor_at' => $this->csvDateTime($data['verified_by_supervisor_at'] ?? null),
-                'is_verified_by_driver' => $this->csvBoolean($data['is_verified_by_driver'] ?? null),
-                'verified_by_driver' => ($data['verified_by_driver'] ?? '') ?: null,
-                'verified_by_driver_at' => $this->csvDateTime($data['verified_by_driver_at'] ?? null),
+                'is_verified_by_controller' => $this->csvBoolean($data['is_verified_by_controller'] ?? null),
+                'verified_by_controller' => ($data['verified_by_controller'] ?? '') ?: null,
+                'verified_by_controller_at' => $this->csvDateTime($data['verified_by_controller_at'] ?? null),
                 'notes' => $notes ?: null,
             ];
         }
@@ -1550,9 +1550,9 @@ class TripController extends Controller implements HasMiddleware
             'is_verified_by_supervisor' => (bool) ($data['is_verified_by_supervisor'] ?? false),
             'verified_by_supervisor' => $data['verified_by_supervisor'] ?? null,
             'verified_by_supervisor_at' => $this->normalizeDateTime($data['verified_by_supervisor_at'] ?? null),
-            'is_verified_by_driver' => (bool) ($data['is_verified_by_driver'] ?? false),
-            'verified_by_driver' => $data['verified_by_driver'] ?? null,
-            'verified_by_driver_at' => $this->normalizeDateTime($data['verified_by_driver_at'] ?? null),
+            'is_verified_by_controller' => (bool) ($data['is_verified_by_controller'] ?? false),
+            'verified_by_controller' => $data['verified_by_controller'] ?? null,
+            'verified_by_controller_at' => $this->normalizeDateTime($data['verified_by_controller_at'] ?? null),
             'notes' => $data['notes'] ?? null,
         ];
     }
@@ -1700,7 +1700,9 @@ class TripController extends Controller implements HasMiddleware
             'Driver Verified By' => $entry->driver_verified_by ?: '-',
             'Supervisor Verified' => $entry->is_verified_by_supervisor ? 'Yes' : 'No',
             'Verified By Supervisor' => $entry->verified_by_supervisor ?: '-',
-        ], 145);
+            'Controller Verified' => $entry->is_verified_by_controller ? 'Yes' : 'No',
+            'Controller Verified By' => $entry->verified_by_controller ?: '-',
+        ], 165);
 
         $this->pdfSection($content, 'Notes', 40, 110, 515, [
             'Notes' => $entry->notes ?: '-',

@@ -91,8 +91,9 @@
                                     <li><label>Driver Verified :</label> <span>{{ $entry->is_driver_verified ? 'Yes' : 'No' }}</span></li>
                                     <li><label>Verified By :</label> <span>{{ $entry->driver_verified_by ?: '-' }}</span></li>
                                     <li><label>Verified At :</label> <span>{{ $dateTime($entry->driver_verified_at) }}</span></li>
-                                    <li><label>Final Verified :</label> <span>{{ $entry->is_verified_by_driver ? 'Yes' : 'No' }}</span></li>
-                                    <li><label>Final Verified By :</label> <span>{{ $entry->verified_by_driver ?: '-' }}</span></li>
+                                    <li><label>Controller Verified :</label> <span>{{ $entry->is_verified_by_controller ? 'Yes' : 'No' }}</span></li>
+                                    <li><label>Controller Verified By :</label> <span>{{ $entry->verified_by_controller ?: '-' }}</span></li>
+                                    <li><label>Controller Verified At :</label> <span>{{ $dateTime($entry->verified_by_controller_at) }}</span></li>
                                 </ul>
                             </div>
                         </div>
