@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchLocationController;
 use App\Http\Controllers\ComplaintCategoryController;
@@ -191,9 +192,15 @@ Route::middleware('auth')->group(function () {
         ->name('financial-year-settings.index');
     Route::put('/financial-year-settings', [FinancialYearSettingController::class, 'update'])
         ->name('financial-year-settings.update');
+    Route::get('/free-no-settings', [FinancialYearSettingController::class, 'freeNo'])
+        ->name('free-no-settings.index');
+    Route::put('/free-no-settings', [FinancialYearSettingController::class, 'updateFreeNo'])
+        ->name('free-no-settings.update');
 
     Route::get('/user-logs', [UserLogController::class, 'index'])
         ->name('user-logs.index');
+    Route::get('/activity-logs', [ActivityLogController::class, 'index'])
+        ->name('activity-logs.index');
 
     Route::post('/trips/status', [TripController::class, 'status'])->name('trips.status');
     Route::post('/trips/export', [TripController::class, 'export'])

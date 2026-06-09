@@ -59,8 +59,22 @@ class RolePermissionController extends Controller implements HasMiddleware
             ->pluck('name')
             ->all();
 
+        $oldPermissions = $role->permissions()->pluck('name')->all();
         $role->syncPermissions($permissions);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        activity('crud')
+            ->event('updated')
+            ->causedBy(auth()->user())
+            ->performedOn($role)
+            ->withProperties([
+                'module' => 'Role Permissions',
+                'record_name' => $role->name,
+                'status' => null,
+                'attributes' => ['permissions' => $permissions],
+                'old' => ['permissions' => $oldPermissions],
+            ])
+            ->log('Role Permissions updated');
 
         return redirect()
             ->route('role-permissions.index')
@@ -213,12 +227,14 @@ class RolePermissionController extends Controller implements HasMiddleware
                 'label' => 'Settings',
                 'children' => [
                     ['label' => 'Financial Year Settings', 'permissions' => ['settings.view', 'settings.edit']],
+                    ['label' => 'Free No Settings', 'permissions' => ['settings.view', 'settings.edit']],
                 ],
             ],
             [
-                'label' => 'User Logs',
+                'label' => 'Logs',
                 'children' => [
                     ['label' => 'User Logs', 'permissions' => ['user-logs.view']],
+                    ['label' => 'Activity Logs', 'permissions' => ['activity-logs.view']],
                 ],
             ],
         ];

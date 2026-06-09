@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateFinancialYearSettingRequest;
 use App\Models\GeneralSetting;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
@@ -14,8 +15,8 @@ class FinancialYearSettingController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('settings.view'), ['index']),
-            new Middleware(PermissionMiddleware::using('settings.edit'), ['update']),
+            new Middleware(PermissionMiddleware::using('settings.view'), ['index', 'freeNo']),
+            new Middleware(PermissionMiddleware::using('settings.edit'), ['update', 'updateFreeNo']),
         ];
     }
 
@@ -45,6 +46,28 @@ class FinancialYearSettingController extends Controller implements HasMiddleware
         return redirect()
             ->route('financial-year-settings.index')
             ->with('success', 'Financial year settings updated successfully.');
+    }
+
+    public function freeNo()
+    {
+        $setting = GeneralSetting::query()->firstOrCreate([]);
+
+        return view('settings.free-no', [
+            'setting' => $setting,
+        ]);
+    }
+
+    public function updateFreeNo(Request $request)
+    {
+        $validated = $request->validate([
+            'free_no' => ['required', 'digits:10'],
+        ]);
+
+        GeneralSetting::query()->firstOrCreate([])->update($validated);
+
+        return redirect()
+            ->route('free-no-settings.index')
+            ->with('success', 'Free no settings updated successfully.');
     }
 
     private function months(): array

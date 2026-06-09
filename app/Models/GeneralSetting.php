@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
     'financial_year_from_month',
     'financial_year_to_year',
     'financial_year_to_month',
+    'free_no',
 ])]
 class GeneralSetting extends Model
 {

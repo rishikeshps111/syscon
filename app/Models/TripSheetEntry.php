@@ -75,9 +75,13 @@ class TripSheetEntry extends Model
         return $this->hasOne(TripSheetEntryDor::class);
     }
 
-    public function roster(): HasOne
+    public function getRosterAttribute(): ?Roster
     {
-        return $this->hasOne(Roster::class)->latestOfMany();
+        if ($this->relationLoaded('rosters')) {
+            return $this->rosters->sortByDesc('id')->first();
+        }
+
+        return $this->rosters()->latest('rosters.id')->first();
     }
 
     public function rosters(): BelongsToMany

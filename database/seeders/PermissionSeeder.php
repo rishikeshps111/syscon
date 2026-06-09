@@ -213,6 +213,9 @@ class PermissionSeeder extends Seeder
             'User Logs' => [
                 'user-logs.view',
             ],
+            'Activity Logs' => [
+                'activity-logs.view',
+            ],
         ];
 
         foreach ($permissions as $group => $perms) {

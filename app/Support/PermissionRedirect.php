@@ -57,6 +57,7 @@ class PermissionRedirect
             'complaints.view' => 'complaints.index',
             'settings.view' => 'financial-year-settings.index',
             'user-logs.view' => 'user-logs.index',
+            'activity-logs.view' => 'activity-logs.index',
         ];
     }
 }

@@ -423,14 +423,14 @@
                 @endcan
                 @can('settings.view')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('financial-year-settings.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('financial-year-settings.*', 'free-no-settings.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarSettings" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-gear"></i>
                             <span>Settings</span>
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarSettings"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('financial-year-settings.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('financial-year-settings.*', 'free-no-settings.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             <li>
                                 <a href="{{ route('financial-year-settings.index') }}"
@@ -439,18 +439,48 @@
                                     <span>Financial Year Settings</span>
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ route('free-no-settings.index') }}"
+                                    class="{{ request()->routeIs('free-no-settings.*') ? 'sub-active' : '' }}">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    <span>Toll Free No Settings</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 @endcan
-                @can('user-logs.view')
+                @canany(['user-logs.view', 'activity-logs.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('user-logs.*') ? '' : 'collapsed' }}"
-                            href="{{ route('user-logs.index') }}">
+                        <a class="nav-link {{ request()->routeIs('user-logs.*', 'activity-logs.*') ? '' : 'collapsed' }}"
+                            data-bs-target="#sidebarLogs" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-clock-rotate-left"></i>
-                            <span>User Logs</span>
+                            <span>Logs</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
+                        <ul id="sidebarLogs"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('user-logs.*', 'activity-logs.*') ? 'show' : '' }}"
+                            data-bs-parent="#sidebar-nav">
+                            @can('user-logs.view')
+                                <li>
+                                    <a href="{{ route('user-logs.index') }}"
+                                        class="{{ request()->routeIs('user-logs.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>User Logs</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('activity-logs.view')
+                                <li>
+                                    <a href="{{ route('activity-logs.index') }}"
+                                        class="{{ request()->routeIs('activity-logs.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Activity Logs</span>
+                                    </a>
+                                </li>
+                            @endcan
+                        </ul>
                     </li>
-                @endcan
+                @endcanany
             </ul>
         </div>
     </div>

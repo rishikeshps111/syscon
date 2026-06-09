@@ -901,7 +901,7 @@ class TripController extends Controller implements HasMiddleware
 
         return $entry->load([
             'dor',
-            'roster',
+            'rosters',
             'sheet.trip.route.startPoint',
             'sheet.trip.route.endPoint',
             'sheet.trip.depot',
