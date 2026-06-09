@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'trip_sheet_entry_id',
@@ -30,7 +31,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'actual_trip',
     'miss_trip',
     'odometer_start_reading',
+    'odometer_start_image_path',
     'odometer_end_reading',
+    'odometer_end_image_path',
     'odometer_diff_km',
     'difference',
     'account_responsible',
@@ -61,6 +64,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TripSheetEntryDor extends Model
 {
     use HasFactory;
+
+    protected static function booted(): void
+    {
+        static::deleted(function (self $dor): void {
+            Storage::disk('public')->delete(array_filter([
+                $dor->odometer_start_image_path,
+                $dor->odometer_end_image_path,
+            ]));
+        });
+    }
 
     protected function casts(): array
     {

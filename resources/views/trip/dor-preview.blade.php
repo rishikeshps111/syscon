@@ -21,6 +21,27 @@
                 <a href="#!" class="add-btn mb-3" style="background-color: #b23939; border-color: #b23939;" onclick="window.print(); return false;">Print</a>
             </div>
 
+            @if(! empty($odometerImages['odometer_start_image']) || ! empty($odometerImages['odometer_end_image']))
+                <div class="dor-section">
+                    <div class="dor-section-title">Odometer Images</div>
+                    <div class="dor-grid">
+                        @foreach([
+                            'odometer_start_image' => 'Odometer Start Image',
+                            'odometer_end_image' => 'Odometer End Image',
+                        ] as $imageName => $imageLabel)
+                            @if(! empty($odometerImages[$imageName]))
+                                <div class="dor-card">
+                                    <div class="dor-label">{{ $imageLabel }}</div>
+                                    <a href="{{ $odometerImages[$imageName] }}" target="_blank">
+                                        <img src="{{ $odometerImages[$imageName] }}" alt="{{ $imageLabel }}" style="max-width: 100%; max-height: 180px; border-radius: 6px; border: 1px solid #d9dee3; object-fit: cover;">
+                                    </a>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
             @foreach($groups as $title => $items)
                 <div class="dor-section">
                     <div class="dor-section-title">{{ $title }}</div>

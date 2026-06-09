@@ -15,7 +15,7 @@
     </div>
 
     <section class="section dashboard">
-        <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}" id="dorForm">
+        <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}" id="dorForm" enctype="multipart/form-data">
             @csrf
 
             <div class="col-lg-12 mb-3">
@@ -47,10 +47,33 @@
                                                         <option value="{{ $optionValue }}" @selected((string) $value === (string) $optionValue)>{{ $optionLabel }}</option>
                                                     @endforeach
                                                 </select>
+                                            @elseif(($field['type'] ?? 'text') === 'file')
+                                                <input
+                                                    type="file"
+                                                    name="{{ $name }}"
+                                                    id="{{ $name }}"
+                                                    class="form-control odometer-image-input @error($name) is-invalid @enderror"
+                                                    accept="image/*"
+                                                    data-preview="{{ $name }}_preview"
+                                                    data-target="{{ $field['target'] ?? '' }}"
+                                                    @disabled($disabled)
+                                                >
+                                                <div class="mt-2 d-flex align-items-start gap-3 flex-wrap">
+                                                    <img id="{{ $name }}_preview"
+                                                        src="{{ $field['image_url'] ?? '' }}"
+                                                        alt="{{ $field['label'] }} preview"
+                                                        class="odometer-preview"
+                                                        style="{{ empty($field['image_url'] ?? null) ? 'display:none;' : '' }} max-width: 220px; max-height: 140px; border-radius: 6px; border: 1px solid #d9dee3; object-fit: cover;">
+                                                    @if(! empty($field['image_url'] ?? null))
+                                                        <a href="{{ $field['image_url'] }}" target="_blank" class="btn btn-sm btn-outline-primary">View saved image</a>
+                                                    @endif
+                                                </div>
+                                                <small class="text-muted d-block mt-2">Upload the meter photo for verification. If reading detection is not available, enter the reading manually.</small>
                                             @else
                                                 <input
                                                     type="{{ $field['type'] ?? 'text' }}"
                                                     name="{{ $name }}"
+                                                    id="{{ $name }}"
                                                     class="form-control"
                                                     value="{{ $value }}"
                                                     step="any"
@@ -88,6 +111,56 @@
     @section('scripts')
         <script>
             $(function () {
+                function refreshOdometerDiff() {
+                    var start = parseFloat($('#odometer_start_reading').val());
+                    var end = parseFloat($('#odometer_end_reading').val());
+
+                    if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
+                        $('#odometer_diff_km').val((end - start).toFixed(2));
+                    }
+                }
+
+                function readingFromFileName(fileName) {
+                    var baseName = (fileName || '').replace(/\.[^.]+$/, '');
+                    var matches = baseName.match(/\d+(?:[._-]\d+)?/g);
+
+                    if (!matches || !matches.length) {
+                        return '';
+                    }
+
+                    return matches[matches.length - 1].replace(/[._-]/g, '.');
+                }
+
+                $('.odometer-image-input').on('change', function () {
+                    var input = this;
+                    var file = input.files && input.files[0] ? input.files[0] : null;
+                    var preview = document.getElementById($(input).data('preview'));
+                    var target = $('#' + $(input).data('target'));
+
+                    if (!file) {
+                        return;
+                    }
+
+                    if (preview) {
+                        preview.src = URL.createObjectURL(file);
+                        preview.style.display = 'block';
+                        preview.onload = function () {
+                            URL.revokeObjectURL(preview.src);
+                        };
+                    }
+
+                    if (target.length && !target.val()) {
+                        var reading = readingFromFileName(file.name);
+
+                        if (reading) {
+                            target.val(reading);
+                            refreshOdometerDiff();
+                        }
+                    }
+                });
+
+                $('#odometer_start_reading, #odometer_end_reading').on('input', refreshOdometerDiff);
+
                 $('#dorForm').on('submit', function () {
                     var button = $(this).find('.js-loading-submit');
 

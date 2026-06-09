@@ -25,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -338,6 +339,7 @@ class TripController extends Controller implements HasMiddleware
             'entry' => $entry,
             'dor' => $entry->dor,
             'fields' => $this->dorFields($entry),
+            'odometerImages' => $this->dorImageUrls($entry->dor),
         ]);
     }
 
@@ -348,6 +350,7 @@ class TripController extends Controller implements HasMiddleware
         $payload = $this->dorPayload($entry, $validated);
 
         $dor = $entry->dor;
+        $payload += $this->dorImagePayload($request, $entry, $dor);
 
         if ($dor) {
             $dor->update($payload + ['updated_by' => auth()->id()]);
@@ -372,6 +375,7 @@ class TripController extends Controller implements HasMiddleware
             'entry' => $entry,
             'dor' => $entry->dor,
             'groups' => $this->dorPreviewGroups($entry->dor),
+            'odometerImages' => $this->dorImageUrls($entry->dor),
         ]);
     }
 
@@ -923,7 +927,9 @@ class TripController extends Controller implements HasMiddleware
             'actual_trip' => ['nullable', 'alpha_num', 'max:255'],
             'miss_trip' => ['nullable', 'alpha_num', 'max:255'],
             'odometer_start_reading' => ['nullable', 'numeric', 'min:0'],
+            'odometer_start_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'odometer_end_reading' => ['nullable', 'numeric', 'min:0'],
+            'odometer_end_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'odometer_diff_km' => ['nullable', 'numeric', 'min:0'],
             'difference' => ['nullable', 'numeric'],
             'account_responsible' => ['nullable', 'string', 'max:255'],
@@ -1005,6 +1011,41 @@ class TripController extends Controller implements HasMiddleware
         ];
     }
 
+    private function dorImagePayload(Request $request, TripSheetEntry $entry, ?TripSheetEntryDor $dor): array
+    {
+        $payload = [];
+        $directory = 'trip-dor-odometer/' . $entry->id;
+
+        foreach ([
+            'odometer_start_image' => 'odometer_start_image_path',
+            'odometer_end_image' => 'odometer_end_image_path',
+        ] as $input => $column) {
+            if (! $request->hasFile($input)) {
+                continue;
+            }
+
+            if ($dor?->{$column}) {
+                Storage::disk('public')->delete($dor->{$column});
+            }
+
+            $payload[$column] = $request->file($input)->store($directory, 'public');
+        }
+
+        return $payload;
+    }
+
+    private function dorImageUrls(?TripSheetEntryDor $dor): array
+    {
+        return [
+            'odometer_start_image' => $dor?->odometer_start_image_path
+                ? Storage::disk('public')->url($dor->odometer_start_image_path)
+                : null,
+            'odometer_end_image' => $dor?->odometer_end_image_path
+                ? Storage::disk('public')->url($dor->odometer_end_image_path)
+                : null,
+        ];
+    }
+
     private function dorFields(TripSheetEntry $entry): array
     {
         $saved = $entry->dor;
@@ -1063,7 +1104,9 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Actual Trip', 'name' => 'actual_trip', 'type' => 'text', 'value' => $values['actual_trip']],
             ['label' => 'Miss Trip', 'name' => 'miss_trip', 'type' => 'text', 'value' => $values['miss_trip']],
             ['label' => 'Odometer Start Reading (A)', 'name' => 'odometer_start_reading', 'type' => 'number', 'value' => $saved?->odometer_start_reading],
+            ['label' => 'Upload Start Odometer Image', 'name' => 'odometer_start_image', 'type' => 'file', 'target' => 'odometer_start_reading', 'image_url' => $this->dorImageUrls($saved)['odometer_start_image']],
             ['label' => 'Odometer End Reading (B)', 'name' => 'odometer_end_reading', 'type' => 'number', 'value' => $saved?->odometer_end_reading],
+            ['label' => 'Upload End Odometer Image', 'name' => 'odometer_end_image', 'type' => 'file', 'target' => 'odometer_end_reading', 'image_url' => $this->dorImageUrls($saved)['odometer_end_image']],
             ['label' => 'Odometer Diff. Km', 'name' => 'odometer_diff_km', 'type' => 'number', 'value' => $values['odometer_diff_km']],
             ['label' => 'Difference', 'name' => 'difference', 'type' => 'number', 'value' => $values['difference']],
             ['label' => 'Account Responsible', 'name' => 'account_responsible', 'type' => 'text', 'value' => $saved?->account_responsible],

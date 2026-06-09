@@ -13,7 +13,7 @@ class TrackStaffUserLog
     {
         UserLog::expireStaleOpenLogs();
 
-        if ($request->user()?->hasRole('Staff')) {
+        if ($request->user()?->hasRole(['Staff', 'Super Admin'])) {
             $log = $this->currentLog($request);
             $request->session()->put('user_log_id', $log->id);
             $log->update(['last_activity_at' => now()]);
