@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\OemExport;
+use App\Exports\TripReportExport;
 use App\Http\Requests\StoreOemRequest;
 use App\Http\Requests\UpdateOemRequest;
 use App\Models\District;
@@ -10,6 +11,9 @@ use App\Models\Location;
 use App\Models\Oem;
 use App\Models\OemType;
 use App\Models\State;
+use App\Models\TripSheetEntry;
+use App\Models\Vehicle;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -25,7 +29,7 @@ class OemController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('oems.view'), ['index', 'show', 'export', 'downloadPdf']),
+            new Middleware(PermissionMiddleware::using('oems.view'), ['index', 'show', 'export', 'downloadPdf', 'tripSheets', 'tripSheetsExport']),
             new Middleware(PermissionMiddleware::using('oems.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('oems.edit'), ['edit', 'update', 'verify', 'changeStatus']),
             new Middleware(PermissionMiddleware::using('oems.delete'), ['destroy']),
@@ -111,6 +115,39 @@ class OemController extends Controller implements HasMiddleware
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
+    }
+
+    public function tripSheets(Request $request, Oem $oem)
+    {
+        if (! $request->ajax()) {
+            return view('oem.trip-sheets', [
+                'record' => $oem,
+                'vehicles' => Vehicle::where('oem_id', $oem->id)->orderBy('vehicle_no')->get(['id', 'vehicle_no']),
+            ]);
+        }
+
+        return DataTables::of($this->oemTripSheetEntriesQuery($request, $oem))
+            ->addIndexColumn()
+            ->addColumn('trip_date', fn (TripSheetEntry $entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
+            ->addColumn('trip_code', fn (TripSheetEntry $entry) => $entry->sheet?->code ?: '-')
+            ->addColumn('starting_from', fn (TripSheetEntry $entry) => $this->entryStartingPoint($entry))
+            ->addColumn('destination_point', fn (TripSheetEntry $entry) => $this->entryDestinationPoint($entry))
+            ->editColumn('departure_time', fn (TripSheetEntry $entry) => $this->formatSheetTime($entry->departure_time) ?: '-')
+            ->editColumn('actual_start_time', fn (TripSheetEntry $entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
+            ->editColumn('arrival_time', fn (TripSheetEntry $entry) => $this->formatSheetTime($entry->arrival_time) ?: '-')
+            ->editColumn('actual_reach_time', fn (TripSheetEntry $entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
+            ->addColumn('shift', fn (TripSheetEntry $entry) => ucfirst((string) $entry->side))
+            ->addColumn('driver', fn (TripSheetEntry $entry) => $this->entryDriverName($entry))
+            ->addColumn('vehicle', fn (TripSheetEntry $entry) => $this->entryVehicleNo($entry))
+            ->addColumn('delay', fn (TripSheetEntry $entry) => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time))
+            ->make(true);
+    }
+
+    public function tripSheetsExport(Request $request, Oem $oem)
+    {
+        $fileName = ($oem->oem_code ?: 'oem') . '-trip-report.xlsx';
+
+        return Excel::download(new TripReportExport($this->oemTripSheetEntriesQuery($request, $oem)), $fileName);
     }
 
     public function update(UpdateOemRequest $request, Oem $oem)
@@ -284,6 +321,113 @@ class OemController extends Controller implements HasMiddleware
         }
 
         return $query->orderBy('updated_at', 'desc');
+    }
+
+    private function oemTripSheetEntriesQuery(Request $request, Oem $oem)
+    {
+        $vehicleIds = Vehicle::where('oem_id', $oem->id)->pluck('id');
+
+        return TripSheetEntry::query()
+            ->with([
+                'dor',
+                'sheet.trip.route.startPoint',
+                'sheet.trip.route.endPoint',
+                'sheet.trip.depot',
+                'sheet.trip.assignments.driverProfile.user',
+                'sheet.trip.assignments.vehicle',
+                'driverProfile.user',
+                'vehicle',
+            ])
+            ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
+            ->where(function ($query) use ($vehicleIds): void {
+                $query->whereIn('trip_sheet_entries.vehicle_id', $vehicleIds)
+                    ->orWhereHas('sheet.trip.assignments', function ($assignmentQuery) use ($vehicleIds): void {
+                        $assignmentQuery->whereIn('vehicle_id', $vehicleIds)
+                            ->whereColumn('from_date', '<=', 'trip_sheets.date')
+                            ->whereColumn('to_date', '>=', 'trip_sheets.date');
+                    });
+            })
+            ->when($request->filled('date_from'), fn ($query) => $query->whereDate('trip_sheets.date', '>=', $request->date_from))
+            ->when($request->filled('date_to'), fn ($query) => $query->whereDate('trip_sheets.date', '<=', $request->date_to))
+            ->when($request->filled('vehicle_id'), function ($query) use ($request): void {
+                $query->where(function ($query) use ($request): void {
+                    $query->where('trip_sheet_entries.vehicle_id', $request->vehicle_id)
+                        ->orWhereHas('sheet.trip.assignments', function ($assignmentQuery) use ($request): void {
+                            $assignmentQuery->where('vehicle_id', $request->vehicle_id)
+                                ->whereColumn('from_date', '<=', 'trip_sheets.date')
+                                ->whereColumn('to_date', '>=', 'trip_sheets.date');
+                        });
+                });
+            })
+            ->select('trip_sheet_entries.*')
+            ->orderByDesc('trip_sheets.date')
+            ->orderBy('trip_sheet_entries.side');
+    }
+
+    private function entryStartingPoint(TripSheetEntry $entry): string
+    {
+        $route = $entry->sheet?->trip?->route;
+
+        return $entry->side === 'down'
+            ? ($route?->endPoint?->name ?: '-')
+            : ($route?->startPoint?->name ?: '-');
+    }
+
+    private function entryDestinationPoint(TripSheetEntry $entry): string
+    {
+        $route = $entry->sheet?->trip?->route;
+
+        return $entry->side === 'down'
+            ? ($route?->startPoint?->name ?: '-')
+            : ($route?->endPoint?->name ?: '-');
+    }
+
+    private function entryDriverName(TripSheetEntry $entry): string
+    {
+        return $entry->driverProfile?->user?->name
+            ?: $this->assignmentForEntry($entry)?->driverProfile?->user?->name
+            ?: '-';
+    }
+
+    private function entryVehicleNo(TripSheetEntry $entry): string
+    {
+        return $entry->vehicle?->vehicle_no
+            ?: $this->assignmentForEntry($entry)?->vehicle?->vehicle_no
+            ?: '-';
+    }
+
+    private function assignmentForEntry(TripSheetEntry $entry)
+    {
+        $date = $entry->sheet?->date;
+
+        if (! $date) {
+            return null;
+        }
+
+        return $entry->sheet?->trip?->assignments
+            ?->first(fn ($assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
+    }
+
+    private function formatSheetTime($value): ?string
+    {
+        return $value ? Carbon::parse($value)->format('H:i') : null;
+    }
+
+    private function sheetStartDelay($startTime, $actualStartTime): string
+    {
+        if (! $startTime || ! $actualStartTime) {
+            return '-';
+        }
+
+        $start = Carbon::parse($startTime);
+        $actual = Carbon::parse($actualStartTime);
+        $minutes = (int) round($start->diffInMinutes($actual, false));
+
+        return $minutes > 0
+            ? $minutes . ' ' . (abs($minutes) === 1 ? 'min' : 'mins')
+            : ($minutes === 0
+                ? '0 min'
+                : abs($minutes) . ' ' . (abs($minutes) === 1 ? 'min' : 'mins') . ' early');
     }
 
     private function statusBadge(?string $status): string

@@ -276,6 +276,10 @@ Route::middleware('auth')->group(function () {
         ->name('oems.change-status');
     Route::get('/oems/{oem}/download-pdf', [OemController::class, 'downloadPdf'])
         ->name('oems.download-pdf');
+    Route::get('/oems/{oem}/trip-sheets', [OemController::class, 'tripSheets'])
+        ->name('oems.trip-sheets');
+    Route::get('/oems/{oem}/trip-sheets/export', [OemController::class, 'tripSheetsExport'])
+        ->name('oems.trip-sheets.export');
     Route::get('/oems/{oem}/documents', [OemDocumentController::class, 'index'])
         ->name('oems.documents.index');
     Route::post('/oems/{oem}/documents', [OemDocumentController::class, 'store'])

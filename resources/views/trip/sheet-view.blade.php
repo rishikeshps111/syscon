@@ -89,6 +89,7 @@
                     <thead>
                         <tr>
                             <th class="text-center nowrap">Sl No</th>
+                            <th class="text-center nowrap">Date</th>
                             <th class="text-center nowrap">Trip Code</th>
                             <th class="text-center">Starting From</th>
                             <th class="text-center">Destination Point</th>
@@ -121,6 +122,7 @@
                             @endphp
                             <tr>
                                 <td class="text-center text-muted">{{ $loop->iteration }}</td>
+                                <td class="text-center text-muted nowrap">{{ $entry->sheet?->date?->format('d M Y') ?: '-' }}</td>
                                 <td class="text-center text-muted nowrap">{{ $entry->sheet?->code ?: '-' }}</td>
                                 <td class="text-center text-muted">{{ $startingFrom }}</td>
                                 <td class="text-center text-muted">{{ $destinationPoint }}</td>
@@ -153,7 +155,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="text-center text-muted">No trip sheet entries found.</td>
+                                <td colspan="14" class="text-center text-muted">No trip sheet entries found.</td>
                             </tr>
                         @endforelse
                     </tbody>

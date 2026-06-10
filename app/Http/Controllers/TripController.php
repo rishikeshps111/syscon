@@ -415,6 +415,7 @@ class TripController extends Controller implements HasMiddleware
                 $handle = fopen('php://output', 'w');
                 fputcsv($handle, [
                     'SL No',
+                    'Date',
                     'Trip Code',
                     'Starting From',
                     'Destination Point',
@@ -424,12 +425,14 @@ class TripController extends Controller implements HasMiddleware
                     'Actual Reach Time',
                     'Shift',
                     'Driver',
+                    'Vehicle',
                     'Delay',
                 ]);
 
                 foreach ($entries as $index => $entry) {
                     fputcsv($handle, [
                         $index + 1,
+                        $entry->sheet?->date?->format('d-m-Y'),
                         $entry->sheet?->code,
                         $this->entryStartingPoint($entry),
                         $this->entryDestinationPoint($entry),
@@ -439,6 +442,7 @@ class TripController extends Controller implements HasMiddleware
                         $this->formatSheetTime($entry->actual_reach_time),
                         ucfirst((string) $entry->side),
                         $this->entryDriverName($entry),
+                        $this->entryVehicleNo($entry),
                         $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time),
                     ]);
                 }
@@ -450,6 +454,7 @@ class TripController extends Controller implements HasMiddleware
         if ($request->ajax()) {
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('trip_date', fn($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
                 ->addColumn('trip_code', fn($entry) => $entry->sheet?->code ?: '-')
                 ->addColumn('starting_from', fn($entry) => $this->entryStartingPoint($entry))
                 ->addColumn('destination_point', fn($entry) => $this->entryDestinationPoint($entry))
@@ -459,6 +464,7 @@ class TripController extends Controller implements HasMiddleware
                 ->editColumn('actual_reach_time', fn($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
                 ->addColumn('shift', fn($entry) => ucfirst((string) $entry->side))
                 ->addColumn('driver', fn($entry) => $this->entryDriverName($entry))
+                ->addColumn('vehicle', fn($entry) => $this->entryVehicleNo($entry))
                 ->addColumn('delay', fn($entry) => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time))
                 ->addColumn('action', fn() => $this->sheetViewDorButtons())
                 ->rawColumns(['action'])
