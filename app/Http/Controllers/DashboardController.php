@@ -16,11 +16,11 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $route = PermissionRedirect::routeNameFor(auth()->user());
+        // $route = PermissionRedirect::routeNameFor(auth()->user());
 
-        if ($route !== 'dashboard') {
-            return redirect()->route($route);
-        }
+        // if ($route !== 'dashboard') {
+        //     return redirect()->route($route);
+        // }
 
         $cards = collect($this->cards())
             ->filter(fn (array $card) => auth()->user()->can($card['permission']))

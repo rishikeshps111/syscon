@@ -161,7 +161,7 @@
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
-                    'supervisor-management.view', 'attendance-management.view', 'trips.view', 'rosters.view',
+                    'supervisor-management.view', 'attendance-management.view',
                     'role-permissions.view', 'settings.view'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*') ? '' : 'collapsed' }}"

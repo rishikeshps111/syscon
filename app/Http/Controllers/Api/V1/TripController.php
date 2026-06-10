@@ -60,8 +60,8 @@ class TripController extends Controller
                     });
                 }),
             )
-            ->paginate(10)
-            ->defaultSort('-id');
+            ->defaultSort('-id')
+            ->paginate(10);
 
         return TripResource::collection($records);
     }
