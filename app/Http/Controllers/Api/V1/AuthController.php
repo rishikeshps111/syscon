@@ -29,6 +29,8 @@ class AuthController extends Controller
         'supervisor' => 'Supervisor',
     ];
 
+    private const MAX_FAILED_LOGIN_ATTEMPTS = 3;
+
     public function login(LoginRequest $request): JsonResponse
     {
         $data = $request->validated();
@@ -39,7 +41,26 @@ class AuthController extends Controller
             ->with(self::USER_RELATIONS)
             ->first();
 
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'code' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        if (! Hash::check($data['password'], $user->password)) {
+            $failedAttempts = (int) $user->failed_login_attempts + 1;
+
+            $user->forceFill([
+                'failed_login_attempts' => min($failedAttempts, self::MAX_FAILED_LOGIN_ATTEMPTS),
+                'is_active' => $failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS ? false : $user->is_active,
+            ])->save();
+
+            if ($failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS) {
+                throw ValidationException::withMessages([
+                    'code' => ['3 attempts already done with wrong password, so your account has been blocked.'],
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'code' => ['The provided credentials are incorrect.'],
             ]);
@@ -49,6 +70,10 @@ class AuthController extends Controller
             throw ValidationException::withMessages([
                 'code' => ['This user account is inactive.'],
             ]);
+        }
+
+        if ($user->failed_login_attempts > 0) {
+            $user->forceFill(['failed_login_attempts' => 0])->save();
         }
 
         if (! $user->hasRole(self::ALLOWED_ROLES[$type])) {

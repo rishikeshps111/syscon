@@ -61,6 +61,59 @@ it('rejects login when the requested type does not match the role', function () 
         ->assertJsonValidationErrors('type');
 });
 
+it('deactivates an app user after three wrong password attempts', function () {
+    $user = User::factory()->create([
+        'code' => 'DRV002',
+        'password' => 'secret-password',
+        'is_active' => true,
+    ]);
+
+    foreach (range(1, 2) as $attempt) {
+        $this->postJson('/api/v1/login', [
+            'code' => 'DRV002',
+            'password' => 'wrong-password',
+            'type' => 'driver',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('code');
+
+        $user->refresh();
+
+        expect($user->failed_login_attempts)->toBe($attempt)
+            ->and($user->is_active)->toBeTrue();
+    }
+
+    $this->postJson('/api/v1/login', [
+        'code' => 'DRV002',
+        'password' => 'wrong-password',
+        'type' => 'driver',
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('code')
+        ->assertJsonPath('errors.code.0', '3 attempts already done with wrong password, so your account has been blocked.');
+
+    $user->refresh();
+
+    expect($user->failed_login_attempts)->toBe(3)
+        ->and($user->is_active)->toBeFalse();
+});
+
+it('resets failed password attempts after successful api login', function () {
+    $user = User::factory()->create([
+        'code' => 'DRV003',
+        'password' => 'secret-password',
+        'is_active' => true,
+        'failed_login_attempts' => 2,
+    ]);
+    $user->assignRole(apiRole('Driver'));
+
+    $this->postJson('/api/v1/login', [
+        'code' => 'DRV003',
+        'password' => 'secret-password',
+        'type' => 'driver',
+    ])->assertOk();
+
+    expect($user->refresh()->failed_login_attempts)->toBe(0);
+});
+
 it('logs out the current API token', function () {
     $user = User::factory()->create([
         'code' => 'CTL001',

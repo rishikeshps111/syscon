@@ -15,10 +15,6 @@
             </nav>
         </div>
 
-        @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
-        @endif
-
         <form class="js-loading-form" method="POST" action="{{ route('financial-year-settings.update') }}">
             @csrf
             @method('PUT')
