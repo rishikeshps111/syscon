@@ -92,7 +92,7 @@ class TripController extends Controller
             })
             ->count();
 
-        $records = $query->get();
+        $records = $query->latest()->get();
 
         return TripResource::collection($records)->additional([
             'meta' => [
@@ -101,6 +101,34 @@ class TripController extends Controller
                 'is_verified_by_controller_false_count' => $controllerUnverifiedCount,
             ],
         ]);
+    }
+
+    public function show(Request $request, TripSheetEntry $tripSheetEntry)
+    {
+        $controllerProfileId = $request->user()->controllerProfile?->id;
+
+        abort_if(! $controllerProfileId, 404);
+
+        $record = $this->tripQuery($controllerProfileId)
+            ->with([
+                'dor',
+                'driverProfile.state',
+                'driverProfile.district',
+                'driverProfile.location',
+                'driverProfile.depot',
+                'driverProfile.branchLocation',
+                'vehicle.state',
+                'vehicle.oem',
+                'vehicle.depot',
+                'vehicle.branch',
+                'sheet.trip.serviceType',
+                'sheet.trip.assignments.driverProfile.user',
+                'sheet.trip.assignments.vehicle',
+            ])
+            ->whereKey($tripSheetEntry->getKey())
+            ->firstOrFail();
+
+        return (new TripResource($record))->withDetails();
     }
 
     private function tripQuery(int $controllerProfileId): Builder

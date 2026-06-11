@@ -15,6 +15,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::prefix('trips')->name('trips.')->group(function () {
             Route::get('/today', [TripController::class, 'today'])->name('today');
+            Route::get('/{tripSheetEntry}', [TripController::class, 'show'])->name('show');
             Route::get('/', [TripController::class, 'index'])->name('index');
         });
     });
