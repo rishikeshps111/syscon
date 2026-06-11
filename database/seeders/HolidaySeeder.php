@@ -14,7 +14,7 @@ class HolidaySeeder extends Seeder
      */
     public function run(): void
     {
-        $kerala = State::where('name', 'Kerala')->first();
+        $telangana = State::where('name', 'Telangana')->first();
 
         $records = [
             [
@@ -39,11 +39,11 @@ class HolidaySeeder extends Seeder
                 'is_recurring_yearly' => true,
             ],
             [
-                'holiday_name' => 'Onam',
-                'holiday_date' => now()->year . '-09-05',
+                'holiday_name' => 'Telangana Formation Day',
+                'holiday_date' => now()->year . '-06-02',
                 'holiday_type' => 'state',
-                'applicable_location' => $kerala ? 'state' : 'all',
-                'state_id' => $kerala?->id,
+                'applicable_location' => $telangana ? 'state' : 'all',
+                'state_id' => $telangana?->id,
                 'is_recurring_yearly' => true,
             ],
             [

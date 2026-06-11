@@ -116,6 +116,19 @@
         <span class="text-danger error-text trip_side_error">@error('trip_side'){{ $message }}@enderror</span>
     </div>
 
+    <div class="col-lg-4 o-f-inp mb-2">
+        <label for="state_id" class="form-label m-0">State <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none select2" id="state_id" name="state_id">
+            <option value="">--- Select ---</option>
+            @foreach($states as $state)
+                <option value="{{ $state->id }}" {{ old('state_id', $record->state_id ?? '') == $state->id ? 'selected' : '' }}>
+                    {{ $state->name }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text state_id_error">@error('state_id'){{ $message }}@enderror</span>
+    </div>
+
     <div class="col-lg-12 o-f-inp mb-2">
         <label for="stopsPreview" class="form-label m-0">Stops</label>
         <div id="stopsPreview" class="d-flex flex-wrap gap-2 mt-1">

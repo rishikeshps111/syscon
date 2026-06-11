@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'service_type_id',
     'route_id',
     'depot_id',
+    'state_id',
     'code',
     'title',
     'schedule_type',
@@ -87,6 +88,11 @@ class Trip extends Model
     public function depot(): BelongsTo
     {
         return $this->belongsTo(Depot::class);
+    }
+
+    public function state(): BelongsTo
+    {
+        return $this->belongsTo(State::class);
     }
 
     public function createdBy(): BelongsTo

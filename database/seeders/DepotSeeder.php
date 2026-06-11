@@ -15,29 +15,11 @@ class DepotSeeder extends Seeder
     public function run(): void
     {
         $records = [
-            'Kakkanad' => ['Kakkanad Main Depot', 'Kakkanad North Depot'],
-            'Aluva' => ['Aluva Depot', 'Aluva Logistics Hub'],
-            'Fort Kochi' => ['Fort Kochi Depot'],
-            'Koyilandy' => ['Koyilandy Depot'],
-            'Vadakara' => ['Vadakara Depot'],
-            'Neyyattinkara' => ['Neyyattinkara Depot'],
-            'Kazhakkoottam' => ['Kazhakkoottam Depot'],
-            'T. Nagar' => ['T. Nagar Depot', 'T. Nagar Central Depot'],
-            'Anna Nagar' => ['Anna Nagar Depot'],
-            'Velachery' => ['Velachery Depot'],
-            'Gandhipuram' => ['Gandhipuram Depot'],
-            'Peelamedu' => ['Peelamedu Depot'],
-            'Colaba' => ['Colaba Depot'],
-            'Dadar' => ['Dadar Depot'],
-            'Shivajinagar' => ['Shivajinagar Depot'],
-            'Kothrud' => ['Kothrud Depot'],
-            'Koramangala' => ['Koramangala Depot', 'Koramangala South Depot'],
-            'Indiranagar' => ['Indiranagar Depot'],
-            'Whitefield' => ['Whitefield Depot'],
             'Secunderabad' => ['Secunderabad Depot'],
             'Banjara Hills' => ['Banjara Hills Depot'],
-            'Connaught Place' => ['Connaught Place Depot'],
-            'Dwarka' => ['Dwarka Depot'],
+            'Madhapur' => ['Madhapur Depot'],
+            'Gachibowli' => ['Gachibowli Depot'],
+            'Hanamkonda' => ['Hanamkonda Depot'],
         ];
 
         DB::transaction(function () use ($records) {

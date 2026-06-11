@@ -15,23 +15,12 @@ class LocationSeeder extends Seeder
     public function run(): void
     {
         $records = [
-            'Ernakulam' => ['Kakkanad' => '682030', 'Aluva' => '683101', 'Fort Kochi' => '682001'],
-            'Kozhikode' => ['Koyilandy' => '673305', 'Vadakara' => '673101', 'Feroke' => '673631'],
-            'Thiruvananthapuram' => ['Neyyattinkara' => '695121', 'Kazhakkoottam' => '695582', 'Varkala' => '695141'],
-            'Chennai' => ['T. Nagar' => '600017', 'Anna Nagar' => '600040', 'Velachery' => '600042'],
-            'Coimbatore' => ['Gandhipuram' => '641012', 'Peelamedu' => '641004', 'Singanallur' => '641005'],
-            'Madurai' => ['Anna Nagar' => '625020', 'Tallakulam' => '625002', 'Thiruppalai' => '625014'],
-            'Mumbai City' => ['Colaba' => '400005', 'Dadar' => '400014', 'Byculla' => '400027'],
-            'Pune' => ['Shivajinagar' => '411005', 'Kothrud' => '411038', 'Hadapsar' => '411028'],
-            'Bengaluru Urban' => ['Koramangala' => '560034', 'Indiranagar' => '560038', 'Whitefield' => '560066'],
-            'Mysuru' => ['Vijayanagar' => '570017', 'Nazarbad' => '570010', 'Kuvempunagar' => '570023'],
             'Hyderabad' => ['Secunderabad' => '500003', 'Banjara Hills' => '500034', 'Madhapur' => '500081'],
             'Rangareddy' => ['Gachibowli' => '500032', 'Shamshabad' => '501218', 'Ibrahimpatnam' => '501506'],
             'Warangal' => ['Hanamkonda' => '506001', 'Kazipet' => '506003', 'Warangal Fort' => '506002'],
             'Medchal-Malkajgiri' => ['Kompally' => '500014', 'Malkajgiri' => '500047', 'Uppal' => '500039'],
             'Nizamabad' => ['Bodhan' => '503185', 'Armoor' => '503224', 'Dichpally' => '503175'],
             'Karimnagar' => ['Huzurabad' => '505468', 'Jammikunta' => '505122', 'Manakondur' => '505469'],
-            'New Delhi' => ['Connaught Place' => '110001', 'Karol Bagh' => '110005', 'Dwarka' => '110075'],
         ];
 
         DB::transaction(function () use ($records) {

@@ -13,6 +13,7 @@ use App\Models\DriverProfile;
 use App\Models\Oem;
 use App\Models\Route as RouteModel;
 use App\Models\ServiceType;
+use App\Models\State;
 use App\Models\SupervisorProfile;
 use App\Models\Trip;
 use App\Models\TripAssignment;
@@ -666,7 +667,7 @@ class TripController extends Controller implements HasMiddleware
 
     private function filteredQuery()
     {
-        $query = Trip::with(['serviceType', 'route.startPoint', 'route.endPoint', 'depot', 'assignments.vehicle.oem'])
+        $query = Trip::with(['serviceType', 'route.startPoint', 'route.endPoint', 'depot', 'state', 'assignments.vehicle.oem'])
             ->select('trips.*');
 
         if (request()->filled('search_text')) {
@@ -1295,6 +1296,7 @@ class TripController extends Controller implements HasMiddleware
             'serviceTypes' => ServiceType::orderBy('name')->get(['id', 'name']),
             'routes' => RouteModel::with(['startPoint', 'endPoint', 'stops'])->orderBy('route_name')->get(),
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
+            'states' => State::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'statuses' => collect(Trip::STATUSES)->only(['Active', 'Inactive', 'Cancelled'])->all(),
         ];
     }

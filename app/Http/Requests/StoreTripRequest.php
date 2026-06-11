@@ -28,6 +28,7 @@ class StoreTripRequest extends FormRequest
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
             'halt_time' => ['nullable', 'integer', 'min:0', 'max:1439'],
             'trip_side' => ['required', Rule::in(['up', 'down', 'both'])],
+            'state_id' => ['required', 'integer', 'exists:states,id'],
             'from_date' => ['nullable', 'date'],
             'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
             'status' => ['nullable', Rule::in(['Active', 'Inactive', 'Cancelled'])],

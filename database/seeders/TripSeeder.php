@@ -18,48 +18,39 @@ class TripSeeder extends Seeder
         $records = [
             [
                 'service_type' => 'Intracity',
-                'route' => 'Kakkanad to Aluva',
+                'route' => 'Secunderabad to Banjara Hills',
                 'schedule_type' => 'daily',
                 'start_time' => '08:00',
-                'end_time' => '09:10',
+                'end_time' => '08:50',
                 'halt_time' => 20,
                 'trip_side' => 'up',
             ],
             [
-                'service_type' => 'Intercity',
-                'route' => 'Aluva to Fort Kochi',
+                'service_type' => 'Intracity',
+                'route' => 'Madhapur to Secunderabad',
                 'schedule_type' => 'daily',
                 'start_time' => '09:30',
-                'end_time' => '11:05',
+                'end_time' => '10:35',
                 'halt_time' => 30,
                 'trip_side' => 'both',
             ],
             [
                 'service_type' => 'Intracity',
-                'route' => 'T. Nagar to Anna Nagar',
+                'route' => 'Gachibowli to Shamshabad',
                 'schedule_type' => 'weekly',
-                'start_time' => '07:15',
-                'end_time' => '08:00',
+                'start_time' => '07:00',
+                'end_time' => '08:15',
                 'halt_time' => 15,
                 'trip_side' => 'down',
             ],
             [
                 'service_type' => 'Intracity',
-                'route' => 'Koramangala to Whitefield',
+                'route' => 'Hanamkonda to Kazipet',
                 'schedule_type' => 'daily',
                 'start_time' => '06:30',
-                'end_time' => '07:50',
+                'end_time' => '07:00',
                 'halt_time' => 25,
                 'trip_side' => 'up',
-            ],
-            [
-                'service_type' => 'Intercity',
-                'route' => 'Colaba to Dadar',
-                'schedule_type' => 'monthly',
-                'start_time' => '10:00',
-                'end_time' => '10:55',
-                'halt_time' => 20,
-                'trip_side' => 'both',
             ],
         ];
 
@@ -83,9 +74,15 @@ class TripSeeder extends Seeder
                         'end_time' => $record['end_time'],
                         'halt_time' => $this->minutesToTime($record['halt_time']),
                         'trip_side' => $record['trip_side'],
+                        'state_id' => $route->state_id,
                         'is_active' => true,
                     ]
                 );
+
+                if (! $trip->state_id) {
+                    $trip->state_id = $route->state_id;
+                    $trip->save();
+                }
 
                 if (! $trip->code) {
                     $trip->code = generate_code(Trip::PREFIX_MODULE, $trip->id, 4);
