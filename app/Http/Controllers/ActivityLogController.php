@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ActivityLogExport;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
@@ -15,16 +17,15 @@ class ActivityLogController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('activity-logs.view'), ['index']),
+            new Middleware(PermissionMiddleware::using('activity-logs.view'), ['index', 'export']),
         ];
     }
 
     public function index(Request $request)
     {
-        $query = Activity::query()
-            ->with('causer.roles')
-            ->inLog('crud')
-            ->latest('id');
+        $this->validateFilters($request);
+
+        $query = $this->filteredQuery($request);
 
         if ($request->ajax()) {
             return DataTables::of($query)
@@ -46,5 +47,32 @@ class ActivityLogController extends Controller implements HasMiddleware
         }
 
         return view('activity-log.index');
+    }
+
+    public function export(Request $request)
+    {
+        $this->validateFilters($request);
+
+        $query = $this->filteredQuery($request);
+
+        return Excel::download(new ActivityLogExport($query), 'activity-logs.xlsx');
+    }
+
+    private function filteredQuery(Request $request)
+    {
+        return Activity::query()
+            ->with('causer.roles')
+            ->inLog('crud')
+            ->when($request->filled('from_date'), fn ($query) => $query->whereDate('created_at', '>=', $request->from_date))
+            ->when($request->filled('to_date'), fn ($query) => $query->whereDate('created_at', '<=', $request->to_date))
+            ->latest('id');
+    }
+
+    private function validateFilters(Request $request): void
+    {
+        $request->validate([
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+        ]);
     }
 }

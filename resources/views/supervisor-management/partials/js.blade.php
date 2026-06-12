@@ -164,6 +164,76 @@
             });
         });
 
+        $(document).on('click', '.regenerate-passcode', function (event) {
+            event.preventDefault();
+            var url = $(this).data('url');
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you really want to regenerate this passcode?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, regenerate it',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: { _token: "{{ csrf_token() }}" },
+                    success: function (res) {
+                        table.ajax.reload(null, false);
+                        showToast('success', res.message + ' New passcode: ' + res.passcode);
+                        showPasscodeAlert(res.passcode);
+                    },
+                    error: function (xhr) {
+                        let message = xhr.responseJSON?.message || 'Unable to regenerate passcode.';
+                        showToast('error', message);
+                    }
+                });
+            });
+        });
+
+        function showPasscodeAlert(passcode) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Passcode Regenerated',
+                html: 'New passcode: <strong>' + passcode + '</strong>',
+                showCancelButton: true,
+                confirmButtonText: 'Copy Passcode',
+                cancelButtonText: 'Close'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    copyPasscode(passcode);
+                }
+            });
+        }
+
+        function copyPasscode(passcode) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(passcode).then(function () {
+                    showToast('success', 'Passcode copied.');
+                });
+
+                return;
+            }
+
+            var input = document.createElement('textarea');
+            input.value = passcode;
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showToast('success', 'Passcode copied.');
+        }
+
         function filters(data) {
             data.search_text = $('#searchFilter').val();
             data.depot_id = $('#depotFilter').val();
@@ -192,7 +262,4 @@
         deleteRecord('/supervisor-management/' + id, 'table', 'Do you really want to delete this supervisor?');
     }
 </script>
-
-
-
 

@@ -79,6 +79,21 @@
         <span class="text-danger error-text short_name_error"></span>
     </div>
 
+    <div class="col-lg-12 o-f-inp mb-2">
+        <label for="branch_location_ids" class="form-label m-0">
+            Branches
+        </label>
+        <select class="form-select shadow-none select2" id="branch_location_ids" name="branch_location_ids[]"
+            multiple style="height: 45px;">
+            @foreach($branches as $branch)
+                <option value="{{ $branch->id }}" {{ in_array($branch->id, old('branch_location_ids', $selectedBranchIds ?? [])) ? 'selected' : '' }}>
+                    {{ $branch->name }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text branch_location_ids_error"></span>
+    </div>
+
     <div class="col-lg-4 o-f-inp mb-2">
         <label for="is_active" class="form-label m-0">
             Status <span class="text-danger">*</span>

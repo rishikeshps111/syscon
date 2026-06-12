@@ -28,7 +28,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'auth',
             new Middleware(PermissionMiddleware::using('driver-management.view'), ['index', 'show', 'export', 'downloadPdf', 'districtsByState', 'locationsByDistrict']),
             new Middleware(PermissionMiddleware::using('driver-management.create'), ['create', 'store']),
-            new Middleware(PermissionMiddleware::using('driver-management.edit'), ['edit', 'update', 'status']),
+            new Middleware(PermissionMiddleware::using('driver-management.edit'), ['edit', 'update', 'status', 'regeneratePasscode']),
             new Middleware(PermissionMiddleware::using('driver-management.delete'), ['destroy']),
         ];
     }
@@ -74,7 +74,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'email' => $data['email'],
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
-            'password' => $data['password'],
+            'password' => $data['passcode'],
             'is_active' => $data['is_active'],
         ]);
         $user->code = $this->generateDriverCode($user->id);
@@ -136,7 +136,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
             'is_active' => $data['is_active'],
-        ] + (! empty($data['password']) ? ['password' => $data['password']] : []));
+        ] + (! empty($data['passcode']) ? ['password' => $data['passcode']] : []));
         $this->storeAvatar($request, $driver_management);
         $driver_management->syncRoles(['Driver']);
         $driver_management->driverProfile()->updateOrCreate(
@@ -187,6 +187,24 @@ class DriverManagementController extends Controller implements HasMiddleware
         $driver->save();
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
+    }
+
+    public function regeneratePasscode(User $driver_management)
+    {
+        abort_unless($driver_management->hasRole('Driver'), 404);
+
+        $passcode = $this->generatePasscode();
+
+        $driver_management->forceFill([
+            'password' => $passcode,
+            'failed_login_attempts' => 0,
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Passcode regenerated successfully.',
+            'passcode' => $passcode,
+        ]);
     }
 
     public function districtsByState(Request $request)
@@ -315,6 +333,11 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function generateDriverCode(int $id): string
     {
         return generate_code('Driver Management Module', $id, 3, 'DRV');
+    }
+
+    private function generatePasscode(): string
+    {
+        return (string) random_int(100000, 999999);
     }
 
     private function storeAvatar(Request $request, User $user): void

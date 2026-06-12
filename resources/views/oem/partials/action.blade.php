@@ -15,6 +15,8 @@
                     </li>
                     <li><a class="dropdown-item" href="{{ route('oems.trip-sheets', $row->id) }}">View Trip Sheet</a>
                     </li>
+                    <li><a class="dropdown-item" href="{{ route('oems.depots.index', $row->id) }}">Manage Depot</a>
+                    </li>
                     <li><a class=" dropdown-item" href="{{ route('oems.documents.index', $row->id) }}">Documents</a>
                     </li>
                     <li><a class=" dropdown-item" href="{{ route('oems.bank-details.index', $row->id) }}">Bank Details</a>

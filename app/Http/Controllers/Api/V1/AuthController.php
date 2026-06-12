@@ -37,17 +37,18 @@ class AuthController extends Controller
         $type = $data['type'];
 
         $user = User::query()
-            ->where('code', $data['code'])
+            ->role(self::ALLOWED_ROLES[$type])
+            ->where('phone', $data['phone'])
             ->with(self::USER_RELATIONS)
             ->first();
 
         if (! $user) {
             throw ValidationException::withMessages([
-                'code' => ['The provided credentials are incorrect.'],
+                'phone' => ['The provided credentials are incorrect.'],
             ]);
         }
 
-        if (! Hash::check($data['password'], $user->password)) {
+        if (! Hash::check($data['passcode'], $user->password)) {
             $failedAttempts = (int) $user->failed_login_attempts + 1;
 
             $user->forceFill([
@@ -57,18 +58,18 @@ class AuthController extends Controller
 
             if ($failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS) {
                 throw ValidationException::withMessages([
-                    'code' => ['3 attempts already done with wrong password, so your account has been blocked.'],
+                    'passcode' => ['3 attempts already done with wrong passcode, so your account has been blocked.'],
                 ]);
             }
 
             throw ValidationException::withMessages([
-                'code' => ['The provided credentials are incorrect.'],
+                'passcode' => ['The provided credentials are incorrect.'],
             ]);
         }
 
         if (! $user->is_active) {
             throw ValidationException::withMessages([
-                'code' => ['This user account is inactive.'],
+                'phone' => ['This user account is inactive.'],
             ]);
         }
 

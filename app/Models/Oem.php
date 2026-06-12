@@ -103,6 +103,11 @@ class Oem extends Model
         return $this->hasMany(OemStateMapping::class);
     }
 
+    public function depots(): HasMany
+    {
+        return $this->hasMany(OemDepot::class);
+    }
+
     public function primaryStateMapping(): HasOne
     {
         return $this->hasOne(OemStateMapping::class)->where('is_primary', true);

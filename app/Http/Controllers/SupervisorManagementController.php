@@ -27,7 +27,7 @@ class SupervisorManagementController extends Controller implements HasMiddleware
             'auth',
             new Middleware(PermissionMiddleware::using('supervisor-management.view'), ['index', 'show', 'export', 'downloadPdf', 'districtsByState', 'locationsByDistrict']),
             new Middleware(PermissionMiddleware::using('supervisor-management.create'), ['create', 'store']),
-            new Middleware(PermissionMiddleware::using('supervisor-management.edit'), ['edit', 'update', 'status']),
+            new Middleware(PermissionMiddleware::using('supervisor-management.edit'), ['edit', 'update', 'status', 'regeneratePasscode']),
             new Middleware(PermissionMiddleware::using('supervisor-management.delete'), ['destroy']),
         ];
     }
@@ -70,7 +70,7 @@ class SupervisorManagementController extends Controller implements HasMiddleware
             'email' => $data['email'],
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
-            'password' => $data['password'],
+            'password' => $data['passcode'],
             'is_active' => $data['is_active'],
         ]);
         $user->code = $this->generateSupervisorCode($user->id);
@@ -132,7 +132,7 @@ class SupervisorManagementController extends Controller implements HasMiddleware
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
             'is_active' => $data['is_active'],
-        ] + (! empty($data['password']) ? ['password' => $data['password']] : []));
+        ] + (! empty($data['passcode']) ? ['password' => $data['passcode']] : []));
         $this->storeAvatar($request, $supervisor_management);
         $supervisor_management->syncRoles(['Supervisor']);
         $supervisor_management->supervisorProfile()->updateOrCreate(
@@ -180,6 +180,24 @@ class SupervisorManagementController extends Controller implements HasMiddleware
         $supervisor->save();
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
+    }
+
+    public function regeneratePasscode(User $supervisor_management)
+    {
+        abort_unless($supervisor_management->hasRole('Supervisor'), 404);
+
+        $passcode = $this->generatePasscode();
+
+        $supervisor_management->forceFill([
+            'password' => $passcode,
+            'failed_login_attempts' => 0,
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Passcode regenerated successfully.',
+            'passcode' => $passcode,
+        ]);
     }
 
     public function districtsByState(Request $request)
@@ -316,6 +334,11 @@ class SupervisorManagementController extends Controller implements HasMiddleware
     private function generateSupervisorCode(int $id): string
     {
         return generate_code('Supervisor Management Module', $id, 3, 'SUP');
+    }
+
+    private function generatePasscode(): string
+    {
+        return (string) random_int(100000, 999999);
     }
 
     private function storeAvatar(Request $request, User $user): void
@@ -535,6 +558,5 @@ class SupervisorManagementController extends Controller implements HasMiddleware
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
     }
 }
-
 
 

@@ -9,10 +9,22 @@ class LoginRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if (! $this->filled('code') && $this->filled('user_id')) {
-            $this->merge([
-                'code' => $this->input('user_id'),
-            ]);
+        $merge = [];
+
+        if (! $this->filled('phone') && $this->filled('code')) {
+            $merge['phone'] = $this->input('code');
+        }
+
+        if (! $this->filled('phone') && $this->filled('user_id')) {
+            $merge['phone'] = $this->input('user_id');
+        }
+
+        if (! $this->filled('passcode') && $this->filled('password')) {
+            $merge['passcode'] = $this->input('password');
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
         }
     }
 
@@ -24,9 +36,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['required_without:user_id', 'string', 'max:255'],
-            'user_id' => ['required_without:code', 'string', 'max:255'],
-            'password' => ['required', 'string'],
+            'phone' => ['required', 'string', 'max:30'],
+            'passcode' => ['required', 'digits:6'],
             'type' => ['required', 'string', Rule::in(['driver', 'controller', 'supervisor'])],
             'device_name' => ['nullable', 'string', 'max:255'],
         ];

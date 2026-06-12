@@ -25,6 +25,7 @@ use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OemBankDetailController;
 use App\Http\Controllers\OemController;
+use App\Http\Controllers\OemDepotController;
 use App\Http\Controllers\OemDocumentController;
 use App\Http\Controllers\OemStateMappingController;
 use App\Http\Controllers\OemTypeController;
@@ -201,6 +202,8 @@ Route::middleware('auth')->group(function () {
         ->name('user-logs.index');
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])
         ->name('activity-logs.index');
+    Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])
+        ->name('activity-logs.export');
 
     Route::post('/trips/status', [TripController::class, 'status'])->name('trips.status');
     Route::post('/trips/export', [TripController::class, 'export'])
@@ -280,6 +283,12 @@ Route::middleware('auth')->group(function () {
         ->name('oems.trip-sheets');
     Route::get('/oems/{oem}/trip-sheets/export', [OemController::class, 'tripSheetsExport'])
         ->name('oems.trip-sheets.export');
+    Route::get('/oems/{oem}/depots', [OemDepotController::class, 'index'])
+        ->name('oems.depots.index');
+    Route::post('/oems/{oem}/depots', [OemDepotController::class, 'store'])
+        ->name('oems.depots.store');
+    Route::get('/oem-depots/depots/{depot}/branches', [OemDepotController::class, 'branchesByDepot'])
+        ->name('oem-depots.branches-by-depot');
     Route::get('/oems/{oem}/documents', [OemDocumentController::class, 'index'])
         ->name('oems.documents.index');
     Route::post('/oems/{oem}/documents', [OemDocumentController::class, 'store'])
@@ -304,6 +313,12 @@ Route::middleware('auth')->group(function () {
         ->name('oem-state-mappings.make-primary');
     Route::delete('/oem-state-mappings/{oemStateMapping}', [OemStateMappingController::class, 'destroy'])
         ->name('oem-state-mappings.destroy');
+    Route::put('/oem-depots/{oemDepot}', [OemDepotController::class, 'update'])
+        ->name('oem-depots.update');
+    Route::post('/oem-depots/{oemDepot}/status', [OemDepotController::class, 'status'])
+        ->name('oem-depots.status');
+    Route::delete('/oem-depots/{oemDepot}', [OemDepotController::class, 'destroy'])
+        ->name('oem-depots.destroy');
     Route::get('/oem-documents/{oemDocument}/download', [OemDocumentController::class, 'download'])
         ->name('oem-documents.download');
     Route::get('/oem-documents/{oemDocument}/preview', [OemDocumentController::class, 'preview'])
@@ -435,6 +450,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/controller-management/status', [ControllerManagementController::class, 'status'])
         ->name('controller-management.status');
+    Route::post('/controller-management/{controller_management}/regenerate-passcode', [ControllerManagementController::class, 'regeneratePasscode'])
+        ->name('controller-management.regenerate-passcode');
     Route::post('/controller-management/export', [ControllerManagementController::class, 'export'])
         ->name('controller-management.export');
     Route::get('/controller-management/districts-by-state', [ControllerManagementController::class, 'districtsByState'])
@@ -463,6 +480,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/supervisor-management/status', [SupervisorManagementController::class, 'status'])
         ->name('supervisor-management.status');
+    Route::post('/supervisor-management/{supervisor_management}/regenerate-passcode', [SupervisorManagementController::class, 'regeneratePasscode'])
+        ->name('supervisor-management.regenerate-passcode');
     Route::post('/supervisor-management/export', [SupervisorManagementController::class, 'export'])
         ->name('supervisor-management.export');
     Route::get('/supervisor-management/districts-by-state', [SupervisorManagementController::class, 'districtsByState'])
@@ -495,6 +514,8 @@ Route::middleware('auth')->group(function () {
         ->name('driver-management.locations-by-district');
     Route::post('/driver-management/status', [DriverManagementController::class, 'status'])
         ->name('driver-management.status');
+    Route::post('/driver-management/{driver_management}/regenerate-passcode', [DriverManagementController::class, 'regeneratePasscode'])
+        ->name('driver-management.regenerate-passcode');
     Route::post('/driver-management/export', [DriverManagementController::class, 'export'])
         ->name('driver-management.export');
     Route::get('/driver-management/{driver_management}/download-pdf', [DriverManagementController::class, 'downloadPdf'])

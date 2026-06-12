@@ -131,20 +131,21 @@
                                         @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="password">Password @if (!isset($record))
+                                        <label for="passcode">Passcode @if (!isset($record))
                                                 <span class="text-danger">*</span>
                                             @endif
                                         </label>
                                         <div class="input-group">
-                                            <input type="password" id="password" name="password"
-                                                class="form-control shadow-none @error('password') is-invalid @enderror"
+                                            <input type="password" id="passcode" name="passcode"
+                                                class="form-control shadow-none @error('passcode') is-invalid @enderror"
+                                                inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
                                                 {{ isset($record) ? '' : 'required' }}>
-                                            <button type="button" class="btn btn-outline-secondary" id="togglePassword"
-                                                title="Show password">
+                                            <button type="button" class="btn btn-outline-secondary" id="togglePasscode"
+                                                title="Show passcode">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
                                         </div>
-                                        @error('password')
+                                        @error('passcode')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
@@ -586,15 +587,15 @@
             });
             updateWizardButtons();
 
-            document.getElementById('togglePassword').addEventListener('click', function() {
-                var passwordInput = document.getElementById('password');
+            document.getElementById('togglePasscode').addEventListener('click', function() {
+                var passcodeInput = document.getElementById('passcode');
                 var icon = this.querySelector('i');
-                var isHidden = passwordInput.type === 'password';
+                var isHidden = passcodeInput.type === 'password';
 
-                passwordInput.type = isHidden ? 'text' : 'password';
+                passcodeInput.type = isHidden ? 'text' : 'password';
                 icon.classList.toggle('fa-eye', !isHidden);
                 icon.classList.toggle('fa-eye-slash', isHidden);
-                this.title = isHidden ? 'Hide password' : 'Show password';
+                this.title = isHidden ? 'Hide passcode' : 'Show passcode';
             });
 
             var avatarInput = document.getElementById('avatar');

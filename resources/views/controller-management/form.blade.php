@@ -101,15 +101,15 @@
                                         @error('phone') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="password">Password @if(! isset($record)) <span class="text-danger">*</span> @endif</label>
+                                        <label for="passcode">Passcode @if(! isset($record)) <span class="text-danger">*</span> @endif</label>
                                         <div class="input-group">
-                                            <input type="password" class="form-control shadow-none @error('password') is-invalid @enderror"
-                                                id="password" name="password" {{ isset($record) ? '' : 'required' }}>
-                                            <button type="button" class="btn btn-outline-secondary" id="togglePassword" title="Show password">
+                                            <input type="password" class="form-control shadow-none @error('passcode') is-invalid @enderror"
+                                                id="passcode" name="passcode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" {{ isset($record) ? '' : 'required' }}>
+                                            <button type="button" class="btn btn-outline-secondary" id="togglePasscode" title="Show passcode">
                                                 <i class="fa-solid fa-eye"></i>
                                             </button>
                                         </div>
-                                        @error('password') <span class="text-danger">{{ $message }}</span> @enderror
+                                        @error('passcode') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="depot_id">Depot <span class="text-danger">*</span></label>
@@ -336,15 +336,15 @@
             });
             updateWizardButtons();
 
-            document.getElementById('togglePassword').addEventListener('click', function () {
-                var passwordInput = document.getElementById('password');
+            document.getElementById('togglePasscode').addEventListener('click', function () {
+                var passcodeInput = document.getElementById('passcode');
                 var icon = this.querySelector('i');
-                var isHidden = passwordInput.type === 'password';
+                var isHidden = passcodeInput.type === 'password';
 
-                passwordInput.type = isHidden ? 'text' : 'password';
+                passcodeInput.type = isHidden ? 'text' : 'password';
                 icon.classList.toggle('fa-eye', !isHidden);
                 icon.classList.toggle('fa-eye-slash', isHidden);
-                this.title = isHidden ? 'Hide password' : 'Show password';
+                this.title = isHidden ? 'Hide passcode' : 'Show passcode';
             });
 
             var avatarInput = document.getElementById('avatar');
@@ -494,4 +494,3 @@
         </script>
     @endsection
 </x-app-layout>
-

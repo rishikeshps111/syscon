@@ -8,6 +8,13 @@ use Illuminate\Validation\Rule;
 
 class StoreControllerManagementRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('passcode') && $this->filled('password')) {
+            $this->merge(['passcode' => $this->input('password')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -21,7 +28,7 @@ class StoreControllerManagementRequest extends FormRequest
             'country_code' => ['required', 'string', 'max:10'],
             'phone' => ['required', 'string', 'max:30'],
             'avatar' => ['nullable', 'image', 'max:2048'],
-            'password' => ['required', 'string', 'min:8'],
+            'passcode' => ['required', 'digits:6'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'employment_type' => ['required', Rule::in(array_keys(ControllerProfile::EMPLOYMENT_TYPES))],
             'father_name' => ['required', 'string', 'max:255'],

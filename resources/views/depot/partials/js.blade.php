@@ -127,8 +127,9 @@
 
                         if (errors) {
                             $.each(errors, function (field, messages) {
-                                form.find('.' + field + '_error').text(messages[0]);
-                                form.find('[name="' + field + '"]').addClass('is-invalid');
+                                var inputName = field.replace(/\.\d+$/, '');
+                                form.find('.' + inputName + '_error').text(messages[0]);
+                                form.find('[name="' + inputName + '"], [name="' + inputName + '[]"]').addClass('is-invalid');
                             });
                         } else {
                             showToast('error', xhr.responseJSON.message || 'Validation failed.');

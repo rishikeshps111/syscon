@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\DepotExport;
 use App\Http\Requests\StoreDepotRequest;
 use App\Http\Requests\UpdateDepotRequest;
+use App\Models\BranchLocation;
 use App\Models\Depot;
 use App\Models\District;
 use App\Models\Location;
@@ -88,39 +89,48 @@ class DepotController extends Controller implements HasMiddleware
         $states = State::orderBy('name')->get(['id', 'name']);
 
         if ($request->id) {
-            $record = Depot::with('location')->findOrFail($request->id);
+            $record = Depot::with(['location', 'branchLocations'])->findOrFail($request->id);
             $stateId = $record->state_id ?: $record->location?->state_id;
             $districtId = $record->district_id ?: $record->location?->district_id;
             $record->setAttribute('state_id', $stateId);
             $record->setAttribute('district_id', $districtId);
+            $selectedBranchIds = $record->branchLocations->pluck('id')->all();
             $districts = $stateId
                 ? District::where('state_id', $stateId)->orderBy('name')->get(['id', 'name'])
                 : collect();
             $locations = $stateId && $districtId
                 ? Location::where('state_id', $stateId)->where('district_id', $districtId)->orderBy('name')->get(['id', 'name'])
                 : collect();
+            $branches = BranchLocation::orderBy('name')->get(['id', 'name']);
 
             return response()->json([
-                'html' => view('depot.form', compact('record', 'states', 'districts', 'locations'))->render(),
+                'html' => view('depot.form', compact('record', 'states', 'districts', 'locations', 'branches', 'selectedBranchIds'))->render(),
                 'title' => 'Update Depot',
             ]);
         }
 
         $districts = collect();
         $locations = collect();
+        $branches = BranchLocation::orderBy('name')->get(['id', 'name']);
+        $selectedBranchIds = [];
         $generatedCode = generate_code('Depot Module', ((int) Depot::max('id')) + 1, 3, 'DPM');
 
         return response()->json([
-            'html' => view('depot.form', compact('generatedCode', 'states', 'districts', 'locations'))->render(),
+            'html' => view('depot.form', compact('generatedCode', 'states', 'districts', 'locations', 'branches', 'selectedBranchIds'))->render(),
             'title' => 'Add Depot',
         ]);
     }
 
     public function store(StoreDepotRequest $request)
     {
-        $depot = Depot::create($request->validated());
+        $data = $request->validated();
+        $branchIds = $data['branch_location_ids'] ?? [];
+        unset($data['branch_location_ids']);
+
+        $depot = Depot::create($data);
         $depot->code = generate_code('Depot Module', $depot->id, 3, 'DPM');
         $depot->save();
+        $depot->branchLocations()->sync($branchIds);
 
         return response()->json([
             'success' => true,
@@ -135,7 +145,12 @@ class DepotController extends Controller implements HasMiddleware
 
     public function update(UpdateDepotRequest $request, Depot $depot)
     {
-        $depot->update($request->validated());
+        $data = $request->validated();
+        $branchIds = $data['branch_location_ids'] ?? [];
+        unset($data['branch_location_ids']);
+
+        $depot->update($data);
+        $depot->branchLocations()->sync($branchIds);
 
         return response()->json([
             'success' => true,
@@ -216,4 +231,5 @@ class DepotController extends Controller implements HasMiddleware
                 ->get(['id', 'name'])
         );
     }
+
 }

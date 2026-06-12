@@ -8,6 +8,13 @@ use Illuminate\Validation\Rule;
 
 class StoreDriverManagementRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('passcode') && $this->filled('password')) {
+            $this->merge(['passcode' => $this->input('password')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -22,7 +29,7 @@ class StoreDriverManagementRequest extends FormRequest
             'alternate_country_code' => ['nullable', 'string', 'max:10'],
             'alternate_phone' => ['nullable', 'string', 'max:30'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'passcode' => ['required', 'digits:6'],
             'avatar' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['required', 'boolean'],
 

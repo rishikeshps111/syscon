@@ -12,7 +12,7 @@ class UpdateControllerManagementRequest extends StoreControllerManagementRequest
         $userId = $this->route('controller_management')?->id;
 
         $rules['email'] = ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)];
-        $rules['password'] = ['nullable', 'string', 'min:8'];
+        $rules['passcode'] = ['nullable', 'digits:6'];
 
         return $rules;
     }

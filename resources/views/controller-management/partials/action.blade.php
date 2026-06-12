@@ -17,6 +17,9 @@
                     <li><a class="dropdown-item" href="{{ route('controller-management.documents.index', $row->id) }}">Documents</a>
                     </li>
                     <li><a class="dropdown-item" href="{{ route('controller-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>
+                    @can('controller-management.edit')
+                        <li><a class="dropdown-item regenerate-passcode" href="#!" data-url="{{ route('controller-management.regenerate-passcode', $row->id) }}">Regenerate Passcode</a></li>
+                    @endcan
                 </ul>
             </div>
         @endcan

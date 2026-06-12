@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Table('branch_locations')]
 #[Fillable(['state_id', 'district_id', 'location_id', 'code', 'name', 'status', 'remarks'])]
@@ -36,5 +37,11 @@ class BranchLocation extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function depots(): BelongsToMany
+    {
+        return $this->belongsToMany(Depot::class, 'depot_branch_location')
+            ->withTimestamps();
     }
 }

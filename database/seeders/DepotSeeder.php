@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Depot;
+use App\Models\BranchLocation;
 use App\Models\Location;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -54,6 +55,9 @@ class DepotSeeder extends Seeder
                         $depot->code = generate_code('Depot Module', $depot->id, 3, 'DPM');
                         $depot->save();
                     }
+
+                    $branchIds = BranchLocation::where('location_id', $location->id)->pluck('id')->all();
+                    $depot->branchLocations()->sync($branchIds);
                 }
             }
         });
