@@ -57,8 +57,10 @@
 
         $(document).on('click', '.reassign-driver-btn', function () {
             $('#reassignDriverForm').data('url', $(this).data('url'));
+            $('#reassignDriverForm').data('availability-url', $(this).data('availability-url'));
             $('#modalDriver').val($(this).data('driver'));
             markSelectedCard('#driverCardList', $(this).data('driver'));
+            refreshReassignAvailability('#driverCardList', 'driver', $(this).data('availability-url'));
             $('#driverCardSearch').val('');
             filterCards('#driverCardList', '');
             $('#reassignDriverModal').modal('show');
@@ -66,8 +68,10 @@
 
         $(document).on('click', '.reassign-vehicle-btn', function () {
             $('#reassignVehicleForm').data('url', $(this).data('url'));
+            $('#reassignVehicleForm').data('availability-url', $(this).data('availability-url'));
             $('#modalVehicle').val($(this).data('vehicle'));
             markSelectedCard('#vehicleCardList', $(this).data('vehicle'));
+            refreshReassignAvailability('#vehicleCardList', 'vehicle', $(this).data('availability-url'));
             $('#vehicleCardSearch').val('');
             filterCards('#vehicleCardList', '');
             $('#reassignVehicleModal').modal('show');
@@ -88,7 +92,7 @@
             }
 
             if ($(this).data('assigned') == 1 && !$(this).hasClass('is-selected')) {
-                showToast('warning', 'Driver already associated with another roaster.');
+                showToast('warning', 'Driver already associated with another active roaster in this time slot.');
                 return;
             }
 
@@ -98,7 +102,7 @@
 
         $(document).on('click', '.vehicle-card', function () {
             if ($(this).data('assigned') == 1 && !$(this).hasClass('is-selected')) {
-                showToast('warning', 'Vehicle already associated with another roaster.');
+                showToast('warning', 'Vehicle already associated with another active roaster in this time slot.');
                 return;
             }
 
@@ -219,6 +223,35 @@
             var value = String(search || '').toLowerCase();
             $(listSelector).find('.assignment-card').each(function () {
                 $(this).toggle(!value || String($(this).data('search') || '').indexOf(value) !== -1);
+            });
+        }
+
+        function refreshReassignAvailability(listSelector, type, url) {
+            if (!url) {
+                markUnavailableCards(listSelector, []);
+                return;
+            }
+
+            $.get(url)
+                .done(function (response) {
+                    markUnavailableCards(listSelector, type === 'driver' ? (response.driver_ids || []) : (response.vehicle_ids || []));
+                })
+                .fail(function () {
+                    showToast('error', 'Unable to load assignment availability.');
+                });
+        }
+
+        function markUnavailableCards(listSelector, ids) {
+            var unavailable = ids.map(String);
+
+            $(listSelector).find('.assignment-card').each(function () {
+                var card = $(this);
+                var blocked = unavailable.indexOf(String(card.data('id'))) !== -1;
+                var expired = card.data('expired') == 1;
+
+                card.data('assigned', blocked ? 1 : 0);
+                card.attr('data-assigned', blocked ? 1 : 0);
+                card.toggleClass('is-disabled', expired || blocked);
             });
         }
     });

@@ -19,9 +19,11 @@
                                 data-status="{{ $row->status }}">Update Status</a></li>
                         <li><a class="dropdown-item reassign-driver-btn" href="#!"
                                 data-url="{{ route('rosters.reassign-driver', $row->id) }}"
+                                data-availability-url="{{ route('rosters.availability.roster', $row->id) }}"
                                 data-driver="{{ $row->driver_profile_id }}">Reassign Driver</a></li>
                         <li><a class="dropdown-item reassign-vehicle-btn" href="#!"
                                 data-url="{{ route('rosters.reassign-vehicle', $row->id) }}"
+                                data-availability-url="{{ route('rosters.availability.roster', $row->id) }}"
                                 data-vehicle="{{ $row->vehicle_id }}">Reassign Vehicle</a></li>
                         <li><a class="dropdown-item attendance-btn" href="#!" data-id="{{ $row->id }}"
                                 data-attendance="{{ $row->attendance_status }}">Mark Attendance</a></li>

@@ -133,11 +133,11 @@
                         @foreach($drivers as $driver)
                             @php
                                 $driverSelected = old('driver_profile_id', $record->driver_profile_id ?? '') == $driver->id;
-                                $driverAssigned = in_array($driver->id, $assignedDriverIds ?? [], true) && ! $driverSelected;
                                 $driverExpired = ! $driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay());
+                                $driverLabel = $driver->user?->name ?: '-';
                             @endphp
-                            <option value="{{ $driver->id }}" {{ $driverSelected ? 'selected' : '' }} {{ $driverAssigned || $driverExpired ? 'disabled' : '' }}>
-                                {{ $driver->user?->name }}{{ $driverExpired ? ' - Licence Expired' : ($driverAssigned ? ' - Already Associated' : '') }}
+                            <option value="{{ $driver->id }}" data-base-label="{{ $driverLabel }}" data-expired="{{ $driverExpired ? 1 : 0 }}" {{ $driverSelected ? 'selected' : '' }} {{ $driverExpired ? 'disabled' : '' }}>
+                                {{ $driverLabel }}{{ $driverExpired ? ' - Licence Expired' : '' }}
                             </option>
                         @endforeach
                     </select>
@@ -151,10 +151,10 @@
                         @foreach($vehicles as $vehicle)
                             @php
                                 $vehicleSelected = old('vehicle_id', $record->vehicle_id ?? '') == $vehicle->id;
-                                $vehicleAssigned = in_array($vehicle->id, $assignedVehicleIds ?? [], true) && ! $vehicleSelected;
+                                $vehicleLabel = $vehicle->vehicle_no ?: '-';
                             @endphp
-                            <option value="{{ $vehicle->id }}" {{ $vehicleSelected ? 'selected' : '' }} {{ $vehicleAssigned ? 'disabled' : '' }}>
-                                {{ $vehicle->vehicle_no }}{{ $vehicleAssigned ? ' - Already Associated' : '' }}
+                            <option value="{{ $vehicle->id }}" data-base-label="{{ $vehicleLabel }}" {{ $vehicleSelected ? 'selected' : '' }}>
+                                {{ $vehicleLabel }}
                             </option>
                         @endforeach
                     </select>

@@ -66,14 +66,13 @@
                     @foreach($drivers as $driver)
                         @php
                             $licenseExpired = ! $driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay());
-                            $alreadyAssigned = in_array($driver->id, $assignedDriverIds ?? [], true);
                             $driverSearch = strtolower(trim(($driver->user?->code ?: '') . ' ' . ($driver->user?->name ?: '') . ' ' . ($driver->aadhaar_number ?: '') . ' ' . ($driver->license_number ?: '')));
                         @endphp
                         <button type="button"
                             class="assignment-card driver-card {{ $licenseExpired ? 'is-disabled' : '' }}"
                             data-id="{{ $driver->id }}"
                             data-search="{{ $driverSearch }}"
-                            data-assigned="{{ $alreadyAssigned ? 1 : 0 }}"
+                            data-assigned="0"
                             data-expired="{{ $licenseExpired ? 1 : 0 }}">
                             <strong>{{ $driver->user?->code ?: '-' }} - {{ $driver->user?->name ?: '-' }}</strong>
                             <span>Aadhaar Number: {{ $driver->aadhaar_number ?: '-' }}</span>
@@ -108,7 +107,6 @@
                 <div class="assignment-card-list" id="vehicleCardList">
                     @foreach($vehicles as $vehicle)
                         @php
-                            $alreadyAssigned = in_array($vehicle->id, $assignedVehicleIds ?? [], true);
                             $capacity = trim(($vehicle->capacity_seating !== null ? $vehicle->capacity_seating . ' Seats' : '') . ($vehicle->capacity_load !== null ? ' / ' . $vehicle->capacity_load . ' Load' : ''));
                             $vehicleSearch = strtolower(trim(($vehicle->vehicle_code ?: '') . ' ' . ($vehicle->vehicle_no ?: '') . ' ' . ($vehicle->chassis_no ?: '')));
                         @endphp
@@ -116,7 +114,7 @@
                             class="assignment-card vehicle-card"
                             data-id="{{ $vehicle->id }}"
                             data-search="{{ $vehicleSearch }}"
-                            data-assigned="{{ $alreadyAssigned ? 1 : 0 }}">
+                            data-assigned="0">
                             <strong>{{ $vehicle->vehicle_code ?: '-' }} - {{ $vehicle->vehicle_no ?: '-' }}</strong>
                             <span>Capacity: {{ $capacity ?: '-' }}</span>
                             <span>Chassis Number: {{ $vehicle->chassis_no ?: '-' }}</span>

@@ -1,9 +1,11 @@
 <script>
     var selectedTrips = @json($selectedTrips ?? []);
+    var rosterAvailabilityUrl = "{{ isset($record) ? route('rosters.availability.roster', $record->id) : route('rosters.availability') }}";
 
     $(function () {
         $('.select2').select2({ placeholder: 'Select an option', allowClear: true, width: '100%' });
         renderSelectedTrips();
+        refreshAvailability();
 
         $('#openTripModal').on('click', function () {
             if (!$('#duty_date').val()) {
@@ -27,7 +29,10 @@
             selectedTrips = [];
             renderSelectedTrips();
             $('#driver_profile_id, #vehicle_id').val('').trigger('change');
+            refreshAvailability();
         });
+
+        $('#shift_start_time, #shift_end_time').on('change', refreshAvailability);
 
         $(document).on('click', '.choose-trip-entry', function () {
             applyTrip($(this).data());
@@ -122,7 +127,72 @@
         if (selectedTrips.length === 1) {
             $('#driver_profile_id').val(row.driver || '').trigger('change');
             $('#vehicle_id').val(row.vehicle || '').trigger('change');
+            refreshAvailability();
         }
+    }
+
+    function refreshAvailability() {
+        var payload = availabilityPayload();
+
+        if (!payload.duty_date || !payload.shift_start_time || !payload.shift_end_time) {
+            applyAvailability([], []);
+            return;
+        }
+
+        $.get(rosterAvailabilityUrl, payload)
+            .done(function (response) {
+                applyAvailability(response.driver_ids || [], response.vehicle_ids || []);
+            })
+            .fail(function () {
+                showToast('error', 'Unable to load driver and vehicle availability.');
+            });
+    }
+
+    function availabilityPayload() {
+        return {
+            duty_date: $('#duty_date').val(),
+            shift_start_time: $('#shift_start_time').val(),
+            shift_end_time: $('#shift_end_time').val()
+        };
+    }
+
+    function applyAvailability(driverIds, vehicleIds) {
+        applySelectAvailability('#driver_profile_id', driverIds, ' - Already Associated in this Time Slot');
+        applySelectAvailability('#vehicle_id', vehicleIds, ' - Already Associated in this Time Slot');
+    }
+
+    function applySelectAvailability(selector, unavailableIds, suffix) {
+        var unavailable = unavailableIds.map(String);
+        var select = $(selector);
+        var selected = String(select.val() || '');
+        var shouldClear = false;
+
+        select.find('option').each(function () {
+            var option = $(this);
+            var value = String(option.val() || '');
+
+            if (!value) {
+                return;
+            }
+
+            var baseLabel = option.data('base-label') || option.text().replace(/ - .*/, '');
+            var expired = option.data('expired') == 1;
+            var unavailableForSlot = unavailable.indexOf(value) !== -1;
+
+            option.text(baseLabel + (expired ? ' - Licence Expired' : (unavailableForSlot ? suffix : '')));
+            option.prop('disabled', expired || unavailableForSlot);
+
+            if (selected === value && (expired || unavailableForSlot)) {
+                shouldClear = true;
+            }
+        });
+
+        if (shouldClear) {
+            select.val('');
+            showToast('warning', 'Selected driver or vehicle is not available for this time slot.');
+        }
+
+        select.trigger('change.select2');
     }
 
     function renderSelectedTrips() {

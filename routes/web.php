@@ -261,6 +261,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/rosters/export', [RosterController::class, 'export'])->name('rosters.export');
     Route::get('/rosters/trip-entries', [RosterController::class, 'tripEntries'])->name('rosters.trip-entries');
     Route::get('/rosters/trip-entries/{tripSheetEntry}', [RosterController::class, 'tripEntryDetails'])->name('rosters.trip-entry-details');
+    Route::get('/rosters/availability', [RosterController::class, 'availability'])->name('rosters.availability');
+    Route::get('/rosters/{roster}/availability', [RosterController::class, 'availability'])->name('rosters.availability.roster');
     Route::get('/rosters/{roster}/download-pdf', [RosterController::class, 'downloadPdf'])->name('rosters.download-pdf');
     Route::post('/rosters/{roster}/reassign-driver', [RosterController::class, 'reassignDriver'])->name('rosters.reassign-driver');
     Route::post('/rosters/{roster}/reassign-vehicle', [RosterController::class, 'reassignVehicle'])->name('rosters.reassign-vehicle');

@@ -15,6 +15,7 @@ use App\Models\SupervisorProfile;
 use App\Models\TripAssignment;
 use App\Models\TripSheetEntry;
 use App\Models\Vehicle;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -28,6 +29,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RosterController extends Controller implements HasMiddleware
 {
+    private const BLOCKING_STATUSES = ['assigned', 'in_progress'];
+
     public static function middleware(): array
     {
         return [
@@ -189,7 +192,7 @@ class RosterController extends Controller implements HasMiddleware
         ]);
 
         DB::transaction(function () use ($roster, $validated) {
-            $this->ensureDriverCanBeAssigned((int) $validated['driver_profile_id'], $roster);
+            $this->ensureDriverCanBeAssigned((int) $validated['driver_profile_id'], $roster, $roster);
             $roster->update($validated + ['updated_by' => auth()->id()]);
             $this->syncTripSheetEntry($roster);
         });
@@ -204,7 +207,7 @@ class RosterController extends Controller implements HasMiddleware
         ]);
 
         DB::transaction(function () use ($roster, $validated) {
-            $this->ensureVehicleCanBeAssigned((int) $validated['vehicle_id'], $roster);
+            $this->ensureVehicleCanBeAssigned((int) $validated['vehicle_id'], $roster, $roster);
             $roster->update($validated + ['updated_by' => auth()->id()]);
             $this->syncTripSheetEntry($roster);
         });
@@ -246,6 +249,33 @@ class RosterController extends Controller implements HasMiddleware
         $tripSheetEntry->load(['driverProfile.user', 'vehicle', 'sheet.trip.assignments.driverProfile.user', 'sheet.trip.assignments.vehicle']);
 
         return response()->json($this->entryPayload($tripSheetEntry, $request->input('duty_date')));
+    }
+
+    public function availability(Request $request, ?Roster $roster = null)
+    {
+        $data = $request->validate([
+            'duty_date' => ['nullable', 'date'],
+            'shift_start_time' => ['nullable', 'date_format:H:i'],
+            'shift_end_time' => ['nullable', 'date_format:H:i'],
+        ]);
+
+        $context = [
+            'duty_date' => $data['duty_date'] ?? $roster?->duty_date?->format('Y-m-d'),
+            'shift_start_time' => $data['shift_start_time'] ?? $this->time($roster?->shift_start_time),
+            'shift_end_time' => $data['shift_end_time'] ?? $this->time($roster?->shift_end_time),
+        ];
+
+        if (! $this->hasAvailabilityWindow($context)) {
+            return response()->json([
+                'driver_ids' => [],
+                'vehicle_ids' => [],
+            ]);
+        }
+
+        return response()->json([
+            'driver_ids' => $this->conflictingAssignmentIds('driver_profile_id', $context, $roster),
+            'vehicle_ids' => $this->conflictingAssignmentIds('vehicle_id', $context, $roster),
+        ]);
     }
 
     private function filteredQuery()
@@ -291,11 +321,11 @@ class RosterController extends Controller implements HasMiddleware
         unset($data['trip_sheet_entry_ids']);
 
         if ($data['driver_profile_id'] ?? null) {
-            $this->ensureDriverCanBeAssigned((int) $data['driver_profile_id'], $currentRoster);
+            $this->ensureDriverCanBeAssigned((int) $data['driver_profile_id'], $data, $currentRoster);
         }
 
         if ($data['vehicle_id'] ?? null) {
-            $this->ensureVehicleCanBeAssigned((int) $data['vehicle_id'], $currentRoster);
+            $this->ensureVehicleCanBeAssigned((int) $data['vehicle_id'], $data, $currentRoster);
         }
 
         return $data;
@@ -347,7 +377,7 @@ class RosterController extends Controller implements HasMiddleware
     private function assignmentForEntry(TripSheetEntry $entry, ?string $date): ?TripAssignment
     {
         $trip = $entry->sheet?->trip;
-        $date = $date ? \Carbon\Carbon::parse($date) : $entry->sheet?->date;
+        $date = $date ? Carbon::parse($date) : $entry->sheet?->date;
 
         if (! $trip || ! $date) {
             return null;
@@ -387,7 +417,7 @@ class RosterController extends Controller implements HasMiddleware
         }
     }
 
-    private function ensureDriverCanBeAssigned(int $driverProfileId, ?Roster $currentRoster = null): void
+    private function ensureDriverCanBeAssigned(int $driverProfileId, array|Roster $context, ?Roster $currentRoster = null): void
     {
         $driver = DriverProfile::findOrFail($driverProfileId);
 
@@ -397,28 +427,91 @@ class RosterController extends Controller implements HasMiddleware
             ]);
         }
 
-        $exists = Roster::where('driver_profile_id', $driverProfileId)
-            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
-            ->exists();
-
-        if ($exists) {
+        if ($this->assignmentConflicts('driver_profile_id', $driverProfileId, $context, $currentRoster)) {
             throw ValidationException::withMessages([
-                'driver_profile_id' => 'Driver already associated with another roaster.',
+                'driver_profile_id' => 'Driver already associated with another active roaster in this time slot.',
             ]);
         }
     }
 
-    private function ensureVehicleCanBeAssigned(int $vehicleId, ?Roster $currentRoster = null): void
+    private function ensureVehicleCanBeAssigned(int $vehicleId, array|Roster $context, ?Roster $currentRoster = null): void
     {
-        $exists = Roster::where('vehicle_id', $vehicleId)
-            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
-            ->exists();
-
-        if ($exists) {
+        if ($this->assignmentConflicts('vehicle_id', $vehicleId, $context, $currentRoster)) {
             throw ValidationException::withMessages([
-                'vehicle_id' => 'Vehicle already associated with another roaster.',
+                'vehicle_id' => 'Vehicle already associated with another active roaster in this time slot.',
             ]);
         }
+    }
+
+    private function assignmentConflicts(string $field, int $id, array|Roster $context, ?Roster $currentRoster = null): bool
+    {
+        if (! $this->hasAvailabilityWindow($context)) {
+            return false;
+        }
+
+        return in_array($id, $this->conflictingAssignmentIds($field, $context, $currentRoster), true);
+    }
+
+    private function conflictingAssignmentIds(string $field, array|Roster $context, ?Roster $currentRoster = null): array
+    {
+        [$start, $end] = $this->availabilityWindow($context);
+
+        return Roster::query()
+            ->whereNotNull($field)
+            ->whereIn('status', self::BLOCKING_STATUSES)
+            ->whereBetween('duty_date', [
+                $start->copy()->subDay()->toDateString(),
+                $end->copy()->toDateString(),
+            ])
+            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
+            ->get(['id', $field, 'duty_date', 'shift_start_time', 'shift_end_time'])
+            ->filter(function (Roster $roster) use ($start, $end) {
+                if (! $roster->duty_date || ! $roster->shift_start_time || ! $roster->shift_end_time) {
+                    return false;
+                }
+
+                [$rosterStart, $rosterEnd] = $this->availabilityWindow($roster);
+
+                return $rosterStart->lt($end) && $rosterEnd->gt($start);
+            })
+            ->pluck($field)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function hasAvailabilityWindow(array|Roster $context): bool
+    {
+        return filled($this->contextValue($context, 'duty_date'))
+            && filled($this->contextValue($context, 'shift_start_time'))
+            && filled($this->contextValue($context, 'shift_end_time'));
+    }
+
+    private function availabilityWindow(array|Roster $context): array
+    {
+        $date = $this->contextValue($context, 'duty_date');
+        $startTime = $this->time($this->contextValue($context, 'shift_start_time'));
+        $endTime = $this->time($this->contextValue($context, 'shift_end_time'));
+
+        $start = Carbon::parse($date . ' ' . $startTime);
+        $end = Carbon::parse($date . ' ' . $endTime);
+
+        if ($end->lessThanOrEqualTo($start)) {
+            $end->addDay();
+        }
+
+        return [$start, $end];
+    }
+
+    private function contextValue(array|Roster $context, string $field): mixed
+    {
+        if ($context instanceof Roster) {
+            $value = $context->{$field};
+
+            return $value instanceof Carbon ? $value->format('Y-m-d') : $value;
+        }
+
+        return $context[$field] ?? null;
     }
 
     private function formData(array $extra = []): array
@@ -432,9 +525,6 @@ class RosterController extends Controller implements HasMiddleware
 
     private function lookupData(): array
     {
-        $assignedDriverIds = Roster::whereNotNull('driver_profile_id')->pluck('driver_profile_id')->all();
-        $assignedVehicleIds = Roster::whereNotNull('vehicle_id')->pluck('vehicle_id')->all();
-
         return [
             'states' => State::orderBy('name')->get(['id', 'name']),
             'oems' => Oem::orderBy('oem_name')->get(['id', 'oem_name']),
@@ -443,8 +533,8 @@ class RosterController extends Controller implements HasMiddleware
             'vehicles' => Vehicle::where('status', 'Active')->orderBy('vehicle_no')->get(['id', 'vehicle_code', 'vehicle_no', 'capacity_seating', 'capacity_load', 'chassis_no', 'registration_valid_upto', 'fitness_expiry', 'pollution_expiry', 'insurance_expiry', 'oem_id', 'depot_id', 'state_id']),
             'supervisors' => SupervisorProfile::with('user')->orderBy('id')->get(),
             'controllers' => ControllerProfile::with('user')->orderBy('id')->get(),
-            'assignedDriverIds' => $assignedDriverIds,
-            'assignedVehicleIds' => $assignedVehicleIds,
+            'assignedDriverIds' => [],
+            'assignedVehicleIds' => [],
         ];
     }
 
