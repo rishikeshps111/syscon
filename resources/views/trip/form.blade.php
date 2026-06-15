@@ -117,6 +117,13 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-2">
+        <label for="schedule_km" class="form-label m-0">Schedule Km</label>
+        <input type="number" class="form-control shadow-none" id="schedule_km" name="schedule_km" min="0" step="any"
+            value="{{ old('schedule_km', $record->schedule_km ?? '') }}">
+        <span class="text-danger error-text schedule_km_error">@error('schedule_km'){{ $message }}@enderror</span>
+    </div>
+
+    <div class="col-lg-4 o-f-inp mb-2">
         <label for="state_id" class="form-label m-0">State <span class="text-danger">*</span></label>
         <select class="form-select shadow-none select2" id="state_id" name="state_id">
             <option value="">--- Select ---</option>

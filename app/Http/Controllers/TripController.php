@@ -9,6 +9,8 @@ use App\Http\Requests\StoreTripRequest;
 use App\Http\Requests\UpdateTripRequest;
 use App\Models\ControllerProfile;
 use App\Models\Depot;
+use App\Models\DorAccountResponsible;
+use App\Models\DorKilometerLossReason;
 use App\Models\DriverProfile;
 use App\Models\Oem;
 use App\Models\Route as RouteModel;
@@ -340,6 +342,8 @@ class TripController extends Controller implements HasMiddleware
             'entry' => $entry,
             'dor' => $entry->dor,
             'fields' => $this->dorFields($entry),
+            'accountResponsibles' => DorAccountResponsible::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'kilometerLossReasons' => DorKilometerLossReason::where('is_active', true)->orderBy('name')->get(['id', 'dor_account_responsible_id', 'name']),
             'odometerImages' => $this->dorImageUrls($entry->dor),
         ]);
     }
@@ -348,6 +352,7 @@ class TripController extends Controller implements HasMiddleware
     {
         $entry = $this->dorEntry($trip, $tripSheetEntry);
         $validated = $request->validate($this->dorRules());
+        $this->validateDorReasonAccount($validated);
         $payload = $this->dorPayload($entry, $validated);
 
         $dor = $entry->dor;
@@ -930,16 +935,18 @@ class TripController extends Controller implements HasMiddleware
             'schedule_km' => ['nullable', 'numeric', 'min:0'],
             'route_km_loss' => ['nullable', 'numeric', 'min:0'],
             'actual_route_km' => ['nullable', 'numeric', 'min:0'],
-            'schedule_trip' => ['nullable', 'alpha_num', 'max:255'],
-            'actual_trip' => ['nullable', 'alpha_num', 'max:255'],
-            'miss_trip' => ['nullable', 'alpha_num', 'max:255'],
+            'schedule_trip' => ['nullable', 'integer', 'min:0'],
+            'actual_trip' => ['nullable', 'integer', 'min:0'],
+            'miss_trip' => ['nullable', 'integer', 'min:0'],
             'odometer_start_reading' => ['nullable', 'numeric', 'min:0'],
             'odometer_start_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'odometer_end_reading' => ['nullable', 'numeric', 'min:0'],
             'odometer_end_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'odometer_diff_km' => ['nullable', 'numeric', 'min:0'],
             'difference' => ['nullable', 'numeric'],
+            'dor_account_responsible_id' => ['nullable', 'integer', 'exists:dor_account_responsibles,id'],
             'account_responsible' => ['nullable', 'string', 'max:255'],
+            'dor_kilometer_loss_reason_id' => ['nullable', 'integer', 'exists:dor_kilometer_loss_reasons,id'],
             'reason_for_kilometer_loss' => ['nullable', 'string'],
             'after_sales_reason' => ['nullable', 'string'],
             'penalty_infraction' => ['nullable', 'string'],
@@ -951,6 +958,9 @@ class TripController extends Controller implements HasMiddleware
             'run_kilometer_per_soc' => ['nullable', 'numeric', 'min:0'],
             'dor_kwh_per_km_odo' => ['nullable', 'numeric', 'min:0'],
             'dor_kwh_per_km_act' => ['nullable', 'numeric', 'min:0'],
+            'dor_kwh' => ['nullable', 'numeric', 'min:0'],
+            'dcr_kwh_per_km_odo' => ['nullable', 'numeric', 'min:0'],
+            'dcr_kwh_per_km_act' => ['nullable', 'numeric', 'min:0'],
             'dcr_kwh' => ['nullable', 'numeric', 'min:0'],
             'dcr_charged_soc' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'energy_absorption' => ['nullable', 'numeric', 'min:0'],
@@ -963,19 +973,53 @@ class TripController extends Controller implements HasMiddleware
         ];
     }
 
+    private function validateDorReasonAccount(array $data): void
+    {
+        if (empty($data['dor_kilometer_loss_reason_id']) || empty($data['dor_account_responsible_id'])) {
+            return;
+        }
+
+        $matches = DorKilometerLossReason::whereKey($data['dor_kilometer_loss_reason_id'])
+            ->where('dor_account_responsible_id', $data['dor_account_responsible_id'])
+            ->exists();
+
+        if (! $matches) {
+            throw ValidationException::withMessages([
+                'dor_kilometer_loss_reason_id' => 'The selected reason does not belong to the selected account responsible.',
+            ]);
+        }
+    }
+
     private function dorPayload(TripSheetEntry $entry, array $data): array
     {
         $assignment = self::assignmentForCompletedEntry($entry);
         $trip = $entry->sheet?->trip;
         $driver = $entry->driverProfile ?: $assignment?->driverProfile;
         $vehicle = $entry->vehicle ?: $assignment?->vehicle;
+        $account = ! empty($data['dor_account_responsible_id'])
+            ? DorAccountResponsible::find($data['dor_account_responsible_id'])
+            : null;
+        $reason = ! empty($data['dor_kilometer_loss_reason_id'])
+            ? DorKilometerLossReason::find($data['dor_kilometer_loss_reason_id'])
+            : null;
+        $scheduleKm = $this->nullableFloat($trip?->schedule_km ?? ($data['schedule_km'] ?? null));
+        $routeKmLoss = $this->nullableFloat($data['route_km_loss'] ?? null);
+        $actualRouteKm = $this->calculatedActualRouteKm($scheduleKm, $routeKmLoss, $data['actual_route_km'] ?? null);
+        $scheduleTrip = $this->nullableInt($data['schedule_trip'] ?? null);
+        $actualTrip = $this->nullableInt($data['actual_trip'] ?? null);
+        $odometerStart = $this->nullableFloat($data['odometer_start_reading'] ?? null);
+        $odometerEnd = $this->nullableFloat($data['odometer_end_reading'] ?? null);
+        $odometerDiff = $this->calculatedOdometerDiff($odometerStart, $odometerEnd, $data['odometer_diff_km'] ?? null);
+        $routeStartSoc = $this->nullableFloat($data['route_start_soc_percent'] ?? null);
+        $routeEndSoc = $this->nullableFloat($data['route_end_soc_percent'] ?? null);
+        $socConsumption = $this->calculatedSocConsumption($routeStartSoc, $routeEndSoc, $data['soc_consumption_on_route_percent'] ?? null);
 
         return [
             'depot_name' => $trip?->depot?->name,
             'dor_date' => $entry->sheet?->date?->format('Y-m-d'),
             'bus_no' => $vehicle?->vehicle_no,
             'route_no' => $trip?->route?->route_code ?: $trip?->route?->code,
-            'duty' => $entry->roster?->code,
+            'duty' => $trip?->trip_title,
             'shift' => ucfirst((string) $entry->side),
             'driver_badge_no' => $driver?->badge_number ?: $driver?->user?->code,
             'schedule_start_time' => $this->formatSheetTime($entry->departure_time) ?: null,
@@ -984,28 +1028,33 @@ class TripController extends Controller implements HasMiddleware
             'actual_end_time' => $this->formatSheetTime($entry->actual_reach_time) ?: null,
             'start_punc' => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time),
             'route_completion_time' => $this->formatSheetTime($entry->actual_reach_time ?: $entry->arrival_time) ?: null,
-            'schedule_km' => $this->nullableFloat($data['schedule_km'] ?? null),
-            'route_km_loss' => $this->nullableFloat($data['route_km_loss'] ?? null),
-            'actual_route_km' => $this->nullableFloat($data['actual_route_km'] ?? null),
-            'schedule_trip' => $data['schedule_trip'] ?? null,
-            'actual_trip' => $data['actual_trip'] ?? null,
-            'miss_trip' => $data['miss_trip'] ?? null,
-            'odometer_start_reading' => $this->nullableFloat($data['odometer_start_reading'] ?? null),
-            'odometer_end_reading' => $this->nullableFloat($data['odometer_end_reading'] ?? null),
-            'odometer_diff_km' => $this->nullableFloat($data['odometer_diff_km'] ?? null),
-            'difference' => $this->nullableFloat($data['difference'] ?? null),
-            'account_responsible' => $data['account_responsible'] ?? null,
-            'reason_for_kilometer_loss' => $data['reason_for_kilometer_loss'] ?? null,
+            'schedule_km' => $scheduleKm,
+            'route_km_loss' => $routeKmLoss,
+            'actual_route_km' => $actualRouteKm,
+            'schedule_trip' => $scheduleTrip,
+            'actual_trip' => $actualTrip,
+            'miss_trip' => $this->calculatedMissTrip($scheduleTrip, $actualTrip, $data['miss_trip'] ?? null),
+            'odometer_start_reading' => $odometerStart,
+            'odometer_end_reading' => $odometerEnd,
+            'odometer_diff_km' => $odometerDiff,
+            'difference' => $this->calculatedDifference($actualRouteKm, $odometerDiff, $data['difference'] ?? null),
+            'dor_account_responsible_id' => $account?->id,
+            'account_responsible' => $account?->name ?: ($data['account_responsible'] ?? null),
+            'dor_kilometer_loss_reason_id' => $reason?->id,
+            'reason_for_kilometer_loss' => $reason?->name ?: ($data['reason_for_kilometer_loss'] ?? null),
             'after_sales_reason' => $data['after_sales_reason'] ?? null,
             'penalty_infraction' => $data['penalty_infraction'] ?? null,
             'remarks' => $data['remarks'] ?? null,
-            'route_start_soc_percent' => $this->nullableFloat($data['route_start_soc_percent'] ?? null),
-            'route_end_soc_percent' => $this->nullableFloat($data['route_end_soc_percent'] ?? null),
-            'soc_consumption_on_route_percent' => $this->nullableFloat($data['soc_consumption_on_route_percent'] ?? null),
-            'soc_per_km' => $this->nullableFloat($data['soc_per_km'] ?? null),
-            'run_kilometer_per_soc' => $this->nullableFloat($data['run_kilometer_per_soc'] ?? null),
+            'route_start_soc_percent' => $routeStartSoc,
+            'route_end_soc_percent' => $routeEndSoc,
+            'soc_consumption_on_route_percent' => $socConsumption,
+            'soc_per_km' => $this->calculatedSocPerKm($socConsumption, $actualRouteKm, $data['soc_per_km'] ?? null),
+            'run_kilometer_per_soc' => $this->calculatedRunKmPerSoc($actualRouteKm, $socConsumption, $data['run_kilometer_per_soc'] ?? null),
             'dor_kwh_per_km_odo' => $this->nullableFloat($data['dor_kwh_per_km_odo'] ?? null),
             'dor_kwh_per_km_act' => $this->nullableFloat($data['dor_kwh_per_km_act'] ?? null),
+            'dor_kwh' => $this->nullableFloat($data['dor_kwh'] ?? null),
+            'dcr_kwh_per_km_odo' => $this->nullableFloat($data['dcr_kwh_per_km_odo'] ?? null),
+            'dcr_kwh_per_km_act' => $this->nullableFloat($data['dcr_kwh_per_km_act'] ?? null),
             'dcr_kwh' => $this->nullableFloat($data['dcr_kwh'] ?? null),
             'dcr_charged_soc' => $this->nullableFloat($data['dcr_charged_soc'] ?? null),
             'energy_absorption' => $this->nullableFloat($data['energy_absorption'] ?? null),
@@ -1056,6 +1105,15 @@ class TripController extends Controller implements HasMiddleware
     private function dorFields(TripSheetEntry $entry): array
     {
         $saved = $entry->dor;
+        $savedAccountId = $saved?->dor_account_responsible_id
+            ?: ($saved?->account_responsible ? DorAccountResponsible::where('name', $saved->account_responsible)->value('id') : null);
+        $savedReasonId = $saved?->dor_kilometer_loss_reason_id;
+
+        if (! $savedReasonId && $saved?->reason_for_kilometer_loss) {
+            $savedReasonId = DorKilometerLossReason::where('name', $saved->reason_for_kilometer_loss)
+                ->when($savedAccountId, fn ($query) => $query->where('dor_account_responsible_id', $savedAccountId))
+                ->value('id');
+        }
         $values = $this->dorPayload($entry, [
             'schedule_km' => $saved?->schedule_km,
             'route_km_loss' => $saved?->route_km_loss,
@@ -1067,7 +1125,9 @@ class TripController extends Controller implements HasMiddleware
             'odometer_end_reading' => $saved?->odometer_end_reading,
             'odometer_diff_km' => $saved?->odometer_diff_km,
             'difference' => $saved?->difference,
+            'dor_account_responsible_id' => $savedAccountId,
             'account_responsible' => $saved?->account_responsible,
+            'dor_kilometer_loss_reason_id' => $savedReasonId,
             'reason_for_kilometer_loss' => $saved?->reason_for_kilometer_loss,
             'after_sales_reason' => $saved?->after_sales_reason,
             'penalty_infraction' => $saved?->penalty_infraction,
@@ -1079,6 +1139,9 @@ class TripController extends Controller implements HasMiddleware
             'run_kilometer_per_soc' => $saved?->run_kilometer_per_soc,
             'dor_kwh_per_km_odo' => $saved?->dor_kwh_per_km_odo,
             'dor_kwh_per_km_act' => $saved?->dor_kwh_per_km_act,
+            'dor_kwh' => $saved?->dor_kwh,
+            'dcr_kwh_per_km_odo' => $saved?->dcr_kwh_per_km_odo,
+            'dcr_kwh_per_km_act' => $saved?->dcr_kwh_per_km_act,
             'dcr_kwh' => $saved?->dcr_kwh,
             'dcr_charged_soc' => $saved?->dcr_charged_soc,
             'energy_absorption' => $saved?->energy_absorption,
@@ -1104,39 +1167,42 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Actual End Time', 'name' => 'actual_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['actual_end_time']],
             ['label' => 'Start Punc.', 'name' => 'start_punc', 'type' => 'text', 'disabled' => true, 'value' => $values['start_punc']],
             ['label' => 'Route Completion Time', 'name' => 'route_completion_time', 'type' => 'time', 'disabled' => true, 'value' => $values['route_completion_time']],
-            ['label' => 'Schedule Km', 'name' => 'schedule_km', 'type' => 'number', 'value' => $values['schedule_km']],
+            ['label' => 'Schedule Km', 'name' => 'schedule_km', 'type' => 'number', 'disabled' => true, 'value' => $values['schedule_km']],
             ['label' => 'Route Km Loss', 'name' => 'route_km_loss', 'type' => 'number', 'value' => $values['route_km_loss']],
-            ['label' => 'Act. Route Km', 'name' => 'actual_route_km', 'type' => 'number', 'value' => $values['actual_route_km']],
-            ['label' => 'Schedule Trip', 'name' => 'schedule_trip', 'type' => 'text', 'value' => $values['schedule_trip']],
-            ['label' => 'Actual Trip', 'name' => 'actual_trip', 'type' => 'text', 'value' => $values['actual_trip']],
-            ['label' => 'Miss Trip', 'name' => 'miss_trip', 'type' => 'text', 'value' => $values['miss_trip']],
+            ['label' => 'Act. Route Km', 'name' => 'actual_route_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['actual_route_km']],
+            ['label' => 'Schedule Trip', 'name' => 'schedule_trip', 'type' => 'number', 'value' => $values['schedule_trip']],
+            ['label' => 'Actual Trip', 'name' => 'actual_trip', 'type' => 'number', 'value' => $values['actual_trip']],
+            ['label' => 'Miss Trip', 'name' => 'miss_trip', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['miss_trip']],
             ['label' => 'Odometer Start Reading (A)', 'name' => 'odometer_start_reading', 'type' => 'number', 'value' => $saved?->odometer_start_reading],
             ['label' => 'Upload Start Odometer Image', 'name' => 'odometer_start_image', 'type' => 'file', 'target' => 'odometer_start_reading', 'image_url' => $this->dorImageUrls($saved)['odometer_start_image']],
             ['label' => 'Odometer End Reading (B)', 'name' => 'odometer_end_reading', 'type' => 'number', 'value' => $saved?->odometer_end_reading],
             ['label' => 'Upload End Odometer Image', 'name' => 'odometer_end_image', 'type' => 'file', 'target' => 'odometer_end_reading', 'image_url' => $this->dorImageUrls($saved)['odometer_end_image']],
-            ['label' => 'Odometer Diff. Km', 'name' => 'odometer_diff_km', 'type' => 'number', 'value' => $values['odometer_diff_km']],
-            ['label' => 'Difference', 'name' => 'difference', 'type' => 'number', 'value' => $values['difference']],
-            ['label' => 'Account Responsible', 'name' => 'account_responsible', 'type' => 'text', 'value' => $saved?->account_responsible],
-            ['label' => 'Reason For Kilometer Loss', 'name' => 'reason_for_kilometer_loss', 'type' => 'text', 'value' => $saved?->reason_for_kilometer_loss],
+            ['label' => 'Odometer Diff. Km', 'name' => 'odometer_diff_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['odometer_diff_km']],
+            ['label' => 'Difference', 'name' => 'difference', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['difference']],
+            ['label' => 'Account Responsible', 'name' => 'dor_account_responsible_id', 'type' => 'account_responsible', 'value' => $values['dor_account_responsible_id']],
+            ['label' => 'Reason For Kilometer Loss', 'name' => 'dor_kilometer_loss_reason_id', 'type' => 'kilometer_loss_reason', 'value' => $values['dor_kilometer_loss_reason_id']],
             ['label' => 'After Sales Reason', 'name' => 'after_sales_reason', 'type' => 'text', 'value' => $saved?->after_sales_reason],
             ['label' => 'Penalty Infraction', 'name' => 'penalty_infraction', 'type' => 'text', 'value' => $saved?->penalty_infraction],
-            ['label' => 'Remarks', 'name' => 'remarks', 'type' => 'text', 'value' => $saved?->remarks],
+            ['label' => 'Remarks', 'name' => 'remarks', 'type' => 'textarea', 'value' => $saved?->remarks],
             ['label' => 'Route Start SOC %', 'name' => 'route_start_soc_percent', 'type' => 'number', 'value' => $saved?->route_start_soc_percent],
             ['label' => 'Route End SOC %', 'name' => 'route_end_soc_percent', 'type' => 'number', 'value' => $saved?->route_end_soc_percent],
-            ['label' => 'SOC Consumption On Route %', 'name' => 'soc_consumption_on_route_percent', 'type' => 'number', 'value' => $values['soc_consumption_on_route_percent']],
-            ['label' => 'SOC Per KM', 'name' => 'soc_per_km', 'type' => 'number', 'value' => $values['soc_per_km']],
-            ['label' => 'Run Kilometer Per SOC', 'name' => 'run_kilometer_per_soc', 'type' => 'number', 'value' => $values['run_kilometer_per_soc']],
-            ['label' => 'DOR KWh/km (odo)', 'name' => 'dor_kwh_per_km_odo', 'type' => 'number', 'value' => $values['dor_kwh_per_km_odo']],
-            ['label' => 'DOR KWH/KM (ACT)', 'name' => 'dor_kwh_per_km_act', 'type' => 'number', 'value' => $values['dor_kwh_per_km_act']],
-            ['label' => 'DCR KWH', 'name' => 'dcr_kwh', 'type' => 'number', 'value' => $saved?->dcr_kwh],
-            ['label' => 'DCR Charged SOC', 'name' => 'dcr_charged_soc', 'type' => 'number', 'value' => $saved?->dcr_charged_soc],
-            ['label' => 'Energy Absorption', 'name' => 'energy_absorption', 'type' => 'number', 'value' => $values['energy_absorption']],
+            ['label' => 'SOC Consumption On Route %', 'name' => 'soc_consumption_on_route_percent', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_consumption_on_route_percent']],
+            ['label' => 'SOC Per KM', 'name' => 'soc_per_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_per_km']],
+            ['label' => 'Run Kilometer Per SOC', 'name' => 'run_kilometer_per_soc', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['run_kilometer_per_soc']],
+            ['label' => 'DOR KWh/km (odo)', 'name' => 'dor_kwh_per_km_odo', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dor_kwh_per_km_odo']],
+            ['label' => 'DOR KWH/KM (ACT)', 'name' => 'dor_kwh_per_km_act', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dor_kwh_per_km_act']],
+            ['label' => 'DCR KWh/km (odo)', 'name' => 'dcr_kwh_per_km_odo', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dcr_kwh_per_km_odo']],
+            ['label' => 'DCR KWH/KM (ACT)', 'name' => 'dcr_kwh_per_km_act', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dcr_kwh_per_km_act']],
+            ['label' => 'DOR KWH', 'name' => 'dor_kwh', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dor_kwh']],
+            ['label' => 'DCR KWH', 'name' => 'dcr_kwh', 'type' => 'number', 'manual_formula' => true, 'value' => $saved?->dcr_kwh],
+            ['label' => 'DCR Charged SOC', 'name' => 'dcr_charged_soc', 'type' => 'number', 'manual_formula' => true, 'value' => $saved?->dcr_charged_soc],
+            ['label' => 'Energy Absorption', 'name' => 'energy_absorption', 'type' => 'number', 'manual_formula' => true, 'value' => $values['energy_absorption']],
             ['label' => 'Battery size In KWH', 'name' => 'battery_size_kwh', 'type' => 'number', 'value' => $saved?->battery_size_kwh],
-            ['label' => 'VP1', 'name' => 'vp1', 'type' => 'number', 'value' => $values['vp1']],
-            ['label' => 'VP2', 'name' => 'vp2', 'type' => 'number', 'value' => $values['vp2']],
-            ['label' => 'DP', 'name' => 'dp', 'type' => 'number', 'value' => $values['dp']],
+            ['label' => 'VP1', 'name' => 'vp1', 'type' => 'number', 'manual_formula' => true, 'value' => $values['vp1']],
+            ['label' => 'VP2', 'name' => 'vp2', 'type' => 'number', 'manual_formula' => true, 'value' => $values['vp2']],
+            ['label' => 'DP', 'name' => 'dp', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dp']],
             ['label' => 'Penalty', 'name' => 'penalty', 'type' => 'number', 'value' => $saved?->penalty],
-            ['label' => 'Model 9M/12M', 'name' => 'model_9m_12m', 'type' => 'text', 'value' => $saved?->model_9m_12m],
+            ['label' => 'Model 9M/12M', 'name' => 'model_9m_12m', 'type' => 'select', 'options' => ['9 meter' => '9 meter', '12 meter' => '12 meter'], 'value' => $saved?->model_9m_12m],
         ];
     }
 
@@ -1148,6 +1214,69 @@ class TripController extends Controller implements HasMiddleware
     private function nullableInt(mixed $value): ?int
     {
         return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    private function calculatedActualRouteKm(?float $scheduleKm, ?float $routeKmLoss, mixed $fallback): ?float
+    {
+        if ($scheduleKm !== null && $routeKmLoss !== null) {
+            return max(0, $scheduleKm - $routeKmLoss);
+        }
+
+        return $this->nullableFloat($fallback);
+    }
+
+    private function calculatedMissTrip(?int $scheduleTrip, ?int $actualTrip, mixed $fallback): ?int
+    {
+        if ($scheduleTrip !== null && $actualTrip !== null) {
+            return max(0, $scheduleTrip - $actualTrip);
+        }
+
+        return $this->nullableInt($fallback);
+    }
+
+    private function calculatedOdometerDiff(?float $start, ?float $end, mixed $fallback): ?float
+    {
+        if ($start !== null && $end !== null) {
+            return max(0, $end - $start);
+        }
+
+        return $this->nullableFloat($fallback);
+    }
+
+    private function calculatedDifference(?float $actualRouteKm, ?float $odometerDiff, mixed $fallback): ?float
+    {
+        if ($actualRouteKm !== null && $odometerDiff !== null) {
+            return $actualRouteKm - $odometerDiff;
+        }
+
+        return $this->nullableFloat($fallback);
+    }
+
+    private function calculatedSocConsumption(?float $startSoc, ?float $endSoc, mixed $fallback): ?float
+    {
+        if ($startSoc !== null && $endSoc !== null) {
+            return max(0, $startSoc - $endSoc);
+        }
+
+        return $this->nullableFloat($fallback);
+    }
+
+    private function calculatedSocPerKm(?float $socConsumption, ?float $actualRouteKm, mixed $fallback): ?float
+    {
+        if ($socConsumption !== null && $actualRouteKm && $actualRouteKm > 0) {
+            return $socConsumption / $actualRouteKm;
+        }
+
+        return $this->nullableFloat($fallback);
+    }
+
+    private function calculatedRunKmPerSoc(?float $actualRouteKm, ?float $socConsumption, mixed $fallback): ?float
+    {
+        if ($actualRouteKm !== null && $socConsumption && $socConsumption > 0) {
+            return $actualRouteKm / $socConsumption;
+        }
+
+        return $this->nullableFloat($fallback);
     }
 
     private function dorPreviewGroups(TripSheetEntryDor $dor): array
@@ -1197,6 +1326,9 @@ class TripController extends Controller implements HasMiddleware
                 'Run KM per SOC' => $this->dorDisplay($dor->run_kilometer_per_soc),
                 'DOR KWh/km' => $this->dorDisplay($dor->dor_kwh_per_km_odo),
                 'DOR KWH/KM (ACT)' => $this->dorDisplay($dor->dor_kwh_per_km_act),
+                'DCR KWh/km (odo)' => $this->dorDisplay($dor->dcr_kwh_per_km_odo),
+                'DCR KWH/KM (ACT)' => $this->dorDisplay($dor->dcr_kwh_per_km_act),
+                'DOR KWH' => $this->dorDisplay($dor->dor_kwh),
                 'DCR KWH' => $this->dorDisplay($dor->dcr_kwh),
                 'DCR Charged SOC' => $this->dorDisplay($dor->dcr_charged_soc),
                 'Energy Absorption' => $this->dorDisplay($dor->energy_absorption),

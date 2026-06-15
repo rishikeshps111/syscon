@@ -2,20 +2,27 @@
     DOR
 @endsection
 <x-app-layout>
+    <style>
+        .fw-semibold {
+            color: red !important;
+        }
+    </style>
     <div class="page-title">
         <h3>DOR</h3>
         <nav>
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('trips.index') }}">Trip Management</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('trips.sheet.view', $record->id) }}">View Trip Sheet</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('trips.sheet.view', $record->id) }}">View Trip Sheet</a>
+                </li>
                 <li class="breadcrumb-item active">DOR</li>
             </ol>
         </nav>
     </div>
 
     <section class="section dashboard">
-        <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}" id="dorForm" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}"
+            id="dorForm" enctype="multipart/form-data">
             @csrf
 
             <div class="col-lg-12 mb-3">
@@ -35,50 +42,70 @@
                                         $name = $field['name'];
                                         $value = old($name, $field['value'] ?? '');
                                         $disabled = (bool) ($field['disabled'] ?? false);
+                                        $type = $field['type'] ?? 'text';
                                     @endphp
                                     <tr>
                                         <td class="text-muted">{{ $loop->iteration }}</td>
-                                        <td class="text-muted">{{ $field['label'] }}</td>
+                                        <td class="{{ !empty($field['manual_formula'] ?? false) ? '' : 'text-muted' }}"
+                                            @if(!empty($field['manual_formula'] ?? false))
+                                            style="color: #dc3545 !important;" @endif>
+                                            {{ $field['label'] }}
+                                        </td>
                                         <td>
-                                            @if(($field['type'] ?? 'text') === 'select')
+                                            @if($disabled)
+                                                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                                            @endif
+
+                                            @if($type === 'select')
                                                 <select name="{{ $name }}" class="form-select" @disabled($disabled)>
                                                     <option value="">Select</option>
                                                     @foreach(($field['options'] ?? []) as $optionValue => $optionLabel)
                                                         <option value="{{ $optionValue }}" @selected((string) $value === (string) $optionValue)>{{ $optionLabel }}</option>
                                                     @endforeach
                                                 </select>
-                                            @elseif(($field['type'] ?? 'text') === 'file')
-                                                <input
-                                                    type="file"
-                                                    name="{{ $name }}"
-                                                    id="{{ $name }}"
+                                            @elseif($type === 'account_responsible')
+                                                <select name="{{ $name }}" id="{{ $name }}"
+                                                    class="form-select @error($name) is-invalid @enderror">
+                                                    <option value="">Select</option>
+                                                    @foreach($accountResponsibles as $account)
+                                                        <option value="{{ $account->id }}" @selected((string) $value === (string) $account->id)>{{ $account->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            @elseif($type === 'kilometer_loss_reason')
+                                                <select name="{{ $name }}" id="{{ $name }}"
+                                                    class="form-select @error($name) is-invalid @enderror">
+                                                    <option value="">Select</option>
+                                                    @foreach($kilometerLossReasons as $reason)
+                                                        <option value="{{ $reason->id }}"
+                                                            data-account="{{ $reason->dor_account_responsible_id }}"
+                                                            @selected((string) $value === (string) $reason->id)>{{ $reason->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            @elseif($type === 'file')
+                                                <input type="file" name="{{ $name }}" id="{{ $name }}"
                                                     class="form-control odometer-image-input @error($name) is-invalid @enderror"
-                                                    accept="image/*"
-                                                    data-preview="{{ $name }}_preview"
-                                                    data-target="{{ $field['target'] ?? '' }}"
-                                                    @disabled($disabled)
-                                                >
+                                                    accept="image/*" data-preview="{{ $name }}_preview"
+                                                    data-target="{{ $field['target'] ?? '' }}" @disabled($disabled)>
                                                 <div class="mt-2 d-flex align-items-start gap-3 flex-wrap">
-                                                    <img id="{{ $name }}_preview"
-                                                        src="{{ $field['image_url'] ?? '' }}"
-                                                        alt="{{ $field['label'] }} preview"
-                                                        class="odometer-preview"
+                                                    <img id="{{ $name }}_preview" src="{{ $field['image_url'] ?? '' }}"
+                                                        alt="{{ $field['label'] }} preview" class="odometer-preview"
                                                         style="{{ empty($field['image_url'] ?? null) ? 'display:none;' : '' }} max-width: 220px; max-height: 140px; border-radius: 6px; border: 1px solid #d9dee3; object-fit: cover;">
-                                                    @if(! empty($field['image_url'] ?? null))
-                                                        <a href="{{ $field['image_url'] }}" target="_blank" class="btn btn-sm btn-outline-primary">View saved image</a>
+                                                    @if(!empty($field['image_url'] ?? null))
+                                                        <a href="{{ $field['image_url'] }}" target="_blank"
+                                                            class="btn btn-sm btn-outline-primary">View saved image</a>
                                                     @endif
                                                 </div>
-                                                <small class="text-muted d-block mt-2">Upload the meter photo for verification. If reading detection is not available, enter the reading manually.</small>
+                                                <small class="text-muted d-block mt-2">Upload the meter photo for verification.
+                                                    If reading detection is not available, enter the reading manually.</small>
+                                            @elseif($type === 'textarea')
+                                                <textarea name="{{ $name }}" id="{{ $name }}" class="form-control" rows="3"
+                                                    @disabled($disabled)>{{ $value }}</textarea>
                                             @else
-                                                <input
-                                                    type="{{ $field['type'] ?? 'text' }}"
-                                                    name="{{ $name }}"
-                                                    id="{{ $name }}"
-                                                    class="form-control"
-                                                    value="{{ $value }}"
-                                                    step="any"
-                                                    @disabled($disabled)
-                                                >
+                                                <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}"
+                                                    class="form-control" value="{{ $value }}" step="any" @disabled($disabled)
+                                                    @if(!empty($field['manual_formula'] ?? false))
+                                                    style="border-color: #dc3545 !important;" @endif>
                                             @endif
 
                                             @error($name)
@@ -97,7 +124,8 @@
                 <div class="btn-flex" style="justify-content: center;">
                     <a href="{{ route('trips.sheet.view', $record->id) }}" class="add-btn bg-filter">Back</a>
                     @if($dor)
-                        <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}" class="add-btn">Preview</a>
+                        <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
+                            class="add-btn">Preview</a>
                     @endif
                     <button type="submit" class="add-btn js-loading-submit"
                         data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
@@ -111,12 +139,75 @@
     @section('scripts')
         <script>
             $(function () {
-                function refreshOdometerDiff() {
+                function toNumber(selector) {
+                    var value = parseFloat($(selector).val());
+
+                    return Number.isNaN(value) ? null : value;
+                }
+
+                function setNumber(selector, value, decimals) {
+                    if (value === null || Number.isNaN(value)) {
+                        $(selector).val('');
+                        $('input[type="hidden"][name="' + selector.replace('#', '') + '"]').val('');
+                        return;
+                    }
+
+                    var formatted = Number(value).toFixed(decimals);
+                    $(selector).val(formatted);
+                    $('input[type="hidden"][name="' + selector.replace('#', '') + '"]').val(formatted);
+                }
+
+                function refreshCalculatedFields() {
+                    var scheduleKm = toNumber('#schedule_km');
+                    var routeKmLoss = toNumber('#route_km_loss');
+                    var actualRouteKm = null;
+
+                    if (scheduleKm !== null && routeKmLoss !== null) {
+                        actualRouteKm = Math.max(0, scheduleKm - routeKmLoss);
+                        setNumber('#actual_route_km', actualRouteKm, 2);
+                    } else {
+                        actualRouteKm = toNumber('#actual_route_km');
+                    }
+
+                    var scheduleTrip = toNumber('#schedule_trip');
+                    var actualTrip = toNumber('#actual_trip');
+
+                    if (scheduleTrip !== null && actualTrip !== null) {
+                        setNumber('#miss_trip', Math.max(0, scheduleTrip - actualTrip), 0);
+                    }
+
                     var start = parseFloat($('#odometer_start_reading').val());
                     var end = parseFloat($('#odometer_end_reading').val());
+                    var odometerDiff = null;
 
                     if (!Number.isNaN(start) && !Number.isNaN(end) && end >= start) {
-                        $('#odometer_diff_km').val((end - start).toFixed(2));
+                        odometerDiff = end - start;
+                        setNumber('#odometer_diff_km', odometerDiff, 2);
+                    } else {
+                        odometerDiff = toNumber('#odometer_diff_km');
+                    }
+
+                    if (actualRouteKm !== null && odometerDiff !== null) {
+                        setNumber('#difference', actualRouteKm - odometerDiff, 2);
+                    }
+
+                    var startSoc = toNumber('#route_start_soc_percent');
+                    var endSoc = toNumber('#route_end_soc_percent');
+                    var socConsumption = null;
+
+                    if (startSoc !== null && endSoc !== null) {
+                        socConsumption = Math.max(0, startSoc - endSoc);
+                        setNumber('#soc_consumption_on_route_percent', socConsumption, 2);
+                    } else {
+                        socConsumption = toNumber('#soc_consumption_on_route_percent');
+                    }
+
+                    if (socConsumption !== null && actualRouteKm !== null && actualRouteKm > 0) {
+                        setNumber('#soc_per_km', socConsumption / actualRouteKm, 4);
+                    }
+
+                    if (socConsumption !== null && socConsumption > 0 && actualRouteKm !== null) {
+                        setNumber('#run_kilometer_per_soc', actualRouteKm / socConsumption, 4);
                     }
                 }
 
@@ -154,12 +245,35 @@
 
                         if (reading) {
                             target.val(reading);
-                            refreshOdometerDiff();
+                            refreshCalculatedFields();
                         }
                     }
                 });
 
-                $('#odometer_start_reading, #odometer_end_reading').on('input', refreshOdometerDiff);
+                function filterKilometerReasons() {
+                    var accountId = $('#dor_account_responsible_id').val();
+                    var reason = $('#dor_kilometer_loss_reason_id');
+
+                    reason.find('option').each(function () {
+                        var option = $(this);
+
+                        if (!option.val()) {
+                            option.show();
+                            return;
+                        }
+
+                        option.toggle(!accountId || option.data('account').toString() === accountId);
+                    });
+
+                    if (reason.find('option:selected').is(':hidden')) {
+                        reason.val('');
+                    }
+                }
+
+                $('#schedule_km, #route_km_loss, #schedule_trip, #actual_trip, #odometer_start_reading, #odometer_end_reading, #route_start_soc_percent, #route_end_soc_percent').on('input', refreshCalculatedFields);
+                $('#dor_account_responsible_id').on('change', filterKilometerReasons);
+                filterKilometerReasons();
+                refreshCalculatedFields();
 
                 $('#dorForm').on('submit', function () {
                     var button = $(this).find('.js-loading-submit');

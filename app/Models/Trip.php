@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'end_time',
     'halt_time',
     'trip_side',
+    'schedule_km',
     'from_date',
     'to_date',
     'status',
@@ -61,6 +62,7 @@ class Trip extends Model
             'is_active' => 'boolean',
             'from_date' => 'date',
             'to_date' => 'date',
+            'schedule_km' => 'decimal:2',
         ];
     }
 

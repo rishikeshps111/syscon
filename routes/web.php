@@ -14,6 +14,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\DocumentTypeController;
+use App\Http\Controllers\DorAccountResponsibleController;
+use App\Http\Controllers\DorKilometerLossReasonController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
@@ -105,6 +107,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/complaint-categories/export', [ComplaintCategoryController::class, 'export'])
         ->name('complaint-categories.export');
     Route::resource('complaint-categories', ComplaintCategoryController::class)->except(['edit', 'show']);
+
+    Route::post('/dor-account-responsibles/status', [DorAccountResponsibleController::class, 'status'])->name('dor-account-responsibles.status');
+    Route::post('/dor-account-responsibles/export', [DorAccountResponsibleController::class, 'export'])
+        ->name('dor-account-responsibles.export');
+    Route::resource('dor-account-responsibles', DorAccountResponsibleController::class)->except(['edit', 'show']);
+
+    Route::post('/dor-kilometer-loss-reasons/status', [DorKilometerLossReasonController::class, 'status'])->name('dor-kilometer-loss-reasons.status');
+    Route::post('/dor-kilometer-loss-reasons/export', [DorKilometerLossReasonController::class, 'export'])
+        ->name('dor-kilometer-loss-reasons.export');
+    Route::resource('dor-kilometer-loss-reasons', DorKilometerLossReasonController::class)->except(['edit', 'show']);
 
     Route::post('/depots/status', [DepotController::class, 'status'])->name('depots.status');
     Route::get('/depots/districts-by-state', [DepotController::class, 'districtsByState'])

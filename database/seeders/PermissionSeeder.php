@@ -68,6 +68,18 @@ class PermissionSeeder extends Seeder
                 'complaint-categories.delete',
                 'complaint-categories.view',
             ],
+            'DOR Account Responsible' => [
+                'dor-account-responsibles.create',
+                'dor-account-responsibles.edit',
+                'dor-account-responsibles.delete',
+                'dor-account-responsibles.view',
+            ],
+            'DOR KM Loss Reasons' => [
+                'dor-kilometer-loss-reasons.create',
+                'dor-kilometer-loss-reasons.edit',
+                'dor-kilometer-loss-reasons.delete',
+                'dor-kilometer-loss-reasons.view',
+            ],
             'Depot' => [
                 'depots.create',
                 'depots.edit',

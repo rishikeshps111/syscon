@@ -26,7 +26,8 @@
                     </a>
                 </li>
                 @canany(['prefixes.view', 'service-types.view', 'oem-types.view', 'vehicle-classifications.view',
-                    'document-types.view', 'complaint-categories.view', 'depots.view', 'countries.view',
+                    'document-types.view', 'complaint-categories.view', 'dor-account-responsibles.view',
+                    'dor-kilometer-loss-reasons.view', 'depots.view', 'countries.view',
                     'nationalities.view', 'states.view', 'districts.view', 'locations.view', 'degree-levels.view',
                     'field-of-studies.view', 'study-modes.view', 'currencies.view', 'universities.view',
                     'university-types.view', 'intakes.view', 'program-types.view', 'program-levels.view',
@@ -35,7 +36,7 @@
                     'payment-types.view', 'payment-methods.view', 'lead-sources.view', 'lead-types.view',
                     'lead-statuses.view', 'action-plans.view', 'relations.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                             <i class="fa-solid fa-align-center"></i>
@@ -43,7 +44,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'depots.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -132,6 +133,24 @@
                                         class="{{ request()->routeIs('complaint-categories.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span> Complaint Categories </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('dor-account-responsibles.view')
+                                <li>
+                                    <a href="{{ route('dor-account-responsibles.index') }}"
+                                        class="{{ request()->routeIs('dor-account-responsibles.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> DOR Account Responsible </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('dor-kilometer-loss-reasons.view')
+                                <li>
+                                    <a href="{{ route('dor-kilometer-loss-reasons.index') }}"
+                                        class="{{ request()->routeIs('dor-kilometer-loss-reasons.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> DOR KM Loss Reasons </span>
                                     </a>
                                 </li>
                             @endcan

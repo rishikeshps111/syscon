@@ -36,7 +36,9 @@ use Illuminate\Support\Facades\Storage;
     'odometer_end_image_path',
     'odometer_diff_km',
     'difference',
+    'dor_account_responsible_id',
     'account_responsible',
+    'dor_kilometer_loss_reason_id',
     'reason_for_kilometer_loss',
     'after_sales_reason',
     'penalty_infraction',
@@ -48,6 +50,9 @@ use Illuminate\Support\Facades\Storage;
     'run_kilometer_per_soc',
     'dor_kwh_per_km_odo',
     'dor_kwh_per_km_act',
+    'dor_kwh',
+    'dcr_kwh_per_km_odo',
+    'dcr_kwh_per_km_act',
     'dcr_kwh',
     'dcr_charged_soc',
     'energy_absorption',
@@ -86,6 +91,8 @@ class TripSheetEntryDor extends Model
             'odometer_end_reading' => 'decimal:2',
             'odometer_diff_km' => 'decimal:2',
             'difference' => 'decimal:2',
+            'dor_account_responsible_id' => 'integer',
+            'dor_kilometer_loss_reason_id' => 'integer',
             'route_start_soc_percent' => 'decimal:2',
             'route_end_soc_percent' => 'decimal:2',
             'soc_consumption_on_route_percent' => 'decimal:2',
@@ -93,6 +100,9 @@ class TripSheetEntryDor extends Model
             'run_kilometer_per_soc' => 'decimal:4',
             'dor_kwh_per_km_odo' => 'decimal:4',
             'dor_kwh_per_km_act' => 'decimal:4',
+            'dor_kwh' => 'decimal:2',
+            'dcr_kwh_per_km_odo' => 'decimal:4',
+            'dcr_kwh_per_km_act' => 'decimal:4',
             'dcr_kwh' => 'decimal:2',
             'dcr_charged_soc' => 'decimal:2',
             'energy_absorption' => 'decimal:4',
@@ -109,5 +119,15 @@ class TripSheetEntryDor extends Model
     public function tripSheetEntry(): BelongsTo
     {
         return $this->belongsTo(TripSheetEntry::class);
+    }
+
+    public function accountResponsible(): BelongsTo
+    {
+        return $this->belongsTo(DorAccountResponsible::class, 'dor_account_responsible_id');
+    }
+
+    public function kilometerLossReason(): BelongsTo
+    {
+        return $this->belongsTo(DorKilometerLossReason::class, 'dor_kilometer_loss_reason_id');
     }
 }
