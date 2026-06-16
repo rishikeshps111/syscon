@@ -213,6 +213,13 @@ class RolePermissionController extends Controller implements HasMiddleware
                 ],
             ],
             [
+                'label' => 'Reports',
+                'children' => [
+                    ['label' => 'DOR Report', 'permissions' => ['dor-reports.view']],
+                    ['label' => 'License Expiry Report', 'permissions' => ['license-expiry-reports.view']],
+                ],
+            ],
+            [
                 'label' => 'Roaster',
                 'children' => [
                     ['label' => 'Create Roaster', 'permissions' => ['rosters.create']],

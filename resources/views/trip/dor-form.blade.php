@@ -1,6 +1,10 @@
 @section('title')
     DOR
 @endsection
+@php
+    $dorReadOnly = (bool) ($dorReadOnly ?? false);
+    $canCompleteDor = (bool) ($canCompleteDor ?? false);
+@endphp
 <x-app-layout>
     <style>
         .fw-semibold {
@@ -21,6 +25,12 @@
     </div>
 
     <section class="section dashboard">
+        @if($dorReadOnly)
+            <div class="alert alert-info">
+                This DOR is marked as complete and can only be edited by a Super Admin.
+            </div>
+        @endif
+
         <form method="POST" action="{{ route('trips.sheet.entries.dor.store', [$record->id, $entry->id]) }}"
             id="dorForm" enctype="multipart/form-data">
             @csrf
@@ -41,7 +51,7 @@
                                     @php
                                         $name = $field['name'];
                                         $value = old($name, $field['value'] ?? '');
-                                        $disabled = (bool) ($field['disabled'] ?? false);
+                                        $disabled = $dorReadOnly || (bool) ($field['disabled'] ?? false);
                                         $type = $field['type'] ?? 'text';
                                     @endphp
                                     <tr>
@@ -65,7 +75,7 @@
                                                 </select>
                                             @elseif($type === 'account_responsible')
                                                 <select name="{{ $name }}" id="{{ $name }}"
-                                                    class="form-select @error($name) is-invalid @enderror">
+                                                    class="form-select @error($name) is-invalid @enderror" @disabled($disabled)>
                                                     <option value="">Select</option>
                                                     @foreach($accountResponsibles as $account)
                                                         <option value="{{ $account->id }}" @selected((string) $value === (string) $account->id)>{{ $account->name }}</option>
@@ -73,7 +83,7 @@
                                                 </select>
                                             @elseif($type === 'kilometer_loss_reason')
                                                 <select name="{{ $name }}" id="{{ $name }}"
-                                                    class="form-select @error($name) is-invalid @enderror">
+                                                    class="form-select @error($name) is-invalid @enderror" @disabled($disabled)>
                                                     <option value="">Select</option>
                                                     @foreach($kilometerLossReasons as $reason)
                                                         <option value="{{ $reason->id }}"
@@ -114,6 +124,25 @@
                                         </td>
                                     </tr>
                                 @endforeach
+                                @if($canCompleteDor)
+                                    @php
+                                        $completedValue = old('is_completed', $dor?->is_completed ? '1' : '0');
+                                    @endphp
+                                    <tr>
+                                        <td class="text-muted">{{ count($fields) + 1 }}</td>
+                                        <td class="text-muted">Mark As Complete</td>
+                                        <td>
+                                            <select name="is_completed" id="is_completed"
+                                                class="form-select @error('is_completed') is-invalid @enderror">
+                                                <option value="0" @selected((string) $completedValue === '0')>No</option>
+                                                <option value="1" @selected((string) $completedValue === '1')>Yes</option>
+                                            </select>
+                                            @error('is_completed')
+                                                <div class="text-danger mt-1">{{ $message }}</div>
+                                            @enderror
+                                        </td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>
@@ -127,10 +156,12 @@
                         <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
                             class="add-btn">Preview</a>
                     @endif
-                    <button type="submit" class="add-btn js-loading-submit"
-                        data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
-                        {{ $dor ? 'Update DOR' : 'Create DOR' }}
-                    </button>
+                    @unless($dorReadOnly)
+                        <button type="submit" class="add-btn js-loading-submit"
+                            data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
+                            {{ $dor ? 'Update DOR' : 'Create DOR' }}
+                        </button>
+                    @endunless
                 </div>
             </div>
         </form>

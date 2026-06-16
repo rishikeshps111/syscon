@@ -21,6 +21,10 @@
                 <a href="#!" class="add-btn mb-3" style="background-color: #b23939; border-color: #b23939;" onclick="window.print(); return false;">Print</a>
             </div>
 
+            @if($dor->is_completed)
+                <div class="alert alert-success">DOR marked as complete.</div>
+            @endif
+
             @if(! empty($odometerImages['odometer_start_image']) || ! empty($odometerImages['odometer_end_image']))
                 <div class="dor-section">
                     <div class="dor-section-title">Odometer Images</div>

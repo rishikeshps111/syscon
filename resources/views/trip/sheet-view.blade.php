@@ -137,18 +137,25 @@
                                     {{ $delay($entry->departure_time, $entry->actual_start_time) }}</td>
                                 <td class="text-center text-muted">
                                     <div class="action-btns">
-                                        <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}"
-                                            class="btn-edit btn-nowrap btn-cstm">
-                                            {{ $entry->dor ? 'Edit DOR' : 'Create DOR' }}
-                                        </a>
-                                        @if($entry->dor)
+                                        @if($entry->dor?->is_completed && ! auth()->user()?->hasRole('Super Admin'))
                                             <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
-                                                class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View
-                                                DOR</a>
+                                                class="btn-edit btn-nowrap btn-cstm">
+                                                View DOR
+                                            </a>
                                         @else
-                                            <a href="#!" class="btn-edit btn-nowrap btn-cstm disabled"
-                                                style="background-color: #b23939; opacity: .65; pointer-events: none;">View
-                                                DOR</a>
+                                            <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}"
+                                                class="btn-edit btn-nowrap btn-cstm">
+                                                {{ $entry->dor ? 'Edit DOR' : 'Create DOR' }}
+                                            </a>
+                                            @if($entry->dor)
+                                                <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
+                                                    class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View
+                                                    DOR</a>
+                                            @else
+                                                <a href="#!" class="btn-edit btn-nowrap btn-cstm disabled"
+                                                    style="background-color: #b23939; opacity: .65; pointer-events: none;">View
+                                                    DOR</a>
+                                            @endif
                                         @endif
                                     </div>
                                 </td>

@@ -16,6 +16,7 @@ use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DorAccountResponsibleController;
 use App\Http\Controllers\DorKilometerLossReasonController;
+use App\Http\Controllers\DorReportController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
@@ -24,6 +25,7 @@ use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\LicenseExpiryReportController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OemBankDetailController;
 use App\Http\Controllers\OemController;
@@ -228,6 +230,14 @@ Route::middleware('auth')->group(function () {
         ->name('trips.report.index');
     Route::get('/trip-report/download', [TripController::class, 'downloadTripReport'])
         ->name('trips.report.download');
+    Route::get('/reports/dor', [DorReportController::class, 'index'])
+        ->name('reports.dor.index');
+    Route::get('/reports/dor/export', [DorReportController::class, 'export'])
+        ->name('reports.dor.export');
+    Route::get('/reports/license-expiry', [LicenseExpiryReportController::class, 'index'])
+        ->name('reports.license-expiry.index');
+    Route::get('/reports/license-expiry/export', [LicenseExpiryReportController::class, 'export'])
+        ->name('reports.license-expiry.export');
     Route::get('/completed-trips/{tripSheetEntry}', [TripController::class, 'completedTripView'])
         ->name('trips.completed.view');
     Route::get('/completed-trips/{tripSheetEntry}/download-pdf', [TripController::class, 'completedTripPdf'])

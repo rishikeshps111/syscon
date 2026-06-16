@@ -218,6 +218,10 @@ class PermissionSeeder extends Seeder
                 'complaints.delete',
                 'complaints.view',
             ],
+            'Reports' => [
+                'dor-reports.view',
+                'license-expiry-reports.view',
+            ],
             'Settings' => [
                 'settings.edit',
                 'settings.view',

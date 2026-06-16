@@ -336,12 +336,16 @@ class TripController extends Controller implements HasMiddleware
     public function dorForm(Trip $trip, TripSheetEntry $tripSheetEntry)
     {
         $entry = $this->dorEntry($trip, $tripSheetEntry);
+        $canCompleteDor = $this->canCompleteDor();
+        $dorReadOnly = $this->dorIsLockedForUser($entry);
 
         return view('trip.dor-form', [
             'record' => $trip->load(['route.startPoint', 'route.endPoint', 'depot']),
             'entry' => $entry,
             'dor' => $entry->dor,
             'fields' => $this->dorFields($entry),
+            'canCompleteDor' => $canCompleteDor,
+            'dorReadOnly' => $dorReadOnly,
             'accountResponsibles' => DorAccountResponsible::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'kilometerLossReasons' => DorKilometerLossReason::where('is_active', true)->orderBy('name')->get(['id', 'dor_account_responsible_id', 'name']),
             'odometerImages' => $this->dorImageUrls($entry->dor),
@@ -351,9 +355,19 @@ class TripController extends Controller implements HasMiddleware
     public function storeDor(Request $request, Trip $trip, TripSheetEntry $tripSheetEntry)
     {
         $entry = $this->dorEntry($trip, $tripSheetEntry);
-        $validated = $request->validate($this->dorRules());
+
+        if ($this->dorIsLockedForUser($entry)) {
+            return redirect()
+                ->route('trips.sheet.entries.dor', [$trip->id, $entry->id])
+                ->with('error', 'This DOR is marked as complete and can only be edited by a Super Admin.');
+        }
+
+        $validated = $request->validate($this->dorRules($this->canCompleteDor()));
         $this->validateDorReasonAccount($validated);
         $payload = $this->dorPayload($entry, $validated);
+        $payload['is_completed'] = $this->canCompleteDor()
+            ? (bool) ($validated['is_completed'] ?? false)
+            : (bool) ($entry->dor?->is_completed ?? false);
 
         $dor = $entry->dor;
         $payload += $this->dorImagePayload($request, $entry, $dor);
@@ -472,7 +486,7 @@ class TripController extends Controller implements HasMiddleware
                 ->addColumn('driver', fn($entry) => $this->entryDriverName($entry))
                 ->addColumn('vehicle', fn($entry) => $this->entryVehicleNo($entry))
                 ->addColumn('delay', fn($entry) => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time))
-                ->addColumn('action', fn() => $this->sheetViewDorButtons())
+                ->addColumn('action', fn($entry) => $this->sheetViewDorButtons($trip, $entry))
                 ->rawColumns(['action'])
                 ->make(true);
         }
@@ -928,9 +942,19 @@ class TripController extends Controller implements HasMiddleware
         ]);
     }
 
-    private function dorRules(): array
+    private function canCompleteDor(): bool
     {
-        return [
+        return (bool) auth()->user()?->hasRole('Super Admin');
+    }
+
+    private function dorIsLockedForUser(TripSheetEntry $entry): bool
+    {
+        return (bool) $entry->dor?->is_completed && ! $this->canCompleteDor();
+    }
+
+    private function dorRules(bool $canCompleteDor = false): array
+    {
+        $rules = [
             'duty' => ['nullable', 'string', 'max:255'],
             'schedule_km' => ['nullable', 'numeric', 'min:0'],
             'route_km_loss' => ['nullable', 'numeric', 'min:0'],
@@ -971,6 +995,12 @@ class TripController extends Controller implements HasMiddleware
             'penalty' => ['nullable', 'numeric', 'min:0'],
             'model_9m_12m' => ['nullable', 'string', 'max:255'],
         ];
+
+        if ($canCompleteDor) {
+            $rules['is_completed'] = ['required', 'boolean'];
+        }
+
+        return $rules;
     }
 
     private function validateDorReasonAccount(array $data): void
@@ -1401,11 +1431,27 @@ class TripController extends Controller implements HasMiddleware
             : abs($minutes) . " {$label} early";
     }
 
-    private function sheetViewDorButtons(): string
+    private function sheetViewDorButtons(Trip $trip, TripSheetEntry $entry): string
     {
+        $formUrl = route('trips.sheet.entries.dor', [$trip->id, $entry->id]);
+        $previewUrl = $entry->dor
+            ? route('trips.sheet.entries.dor.preview', [$trip->id, $entry->id])
+            : null;
+
+        if ($entry->dor?->is_completed && ! $this->canCompleteDor()) {
+            return '<div class="d-flex justify-content-center gap-1">'
+                . '<a href="' . e($previewUrl) . '" class="btn-edit btn-nowrap btn-cstm">View DOR</a>'
+                . '</div>';
+        }
+
+        $primaryLabel = $entry->dor ? 'Edit DOR' : 'Create DOR';
+        $previewButton = $previewUrl
+            ? '<a href="' . e($previewUrl) . '" class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View DOR</a>'
+            : '<a href="#!" class="btn-edit btn-nowrap btn-cstm disabled" style="background-color: #b23939; opacity: .65; pointer-events: none;">View DOR</a>';
+
         return '<div class="d-flex justify-content-center gap-1">'
-            . '<a href="#!" class="btn-edit btn-nowrap btn-cstm">Create DOR</a>'
-            . '<a href="#!" class="btn-edit btn-nowrap btn-cstm">View DOR</a>'
+            . '<a href="' . e($formUrl) . '" class="btn-edit btn-nowrap btn-cstm">' . $primaryLabel . '</a>'
+            . $previewButton
             . '</div>';
     }
 

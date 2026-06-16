@@ -401,6 +401,38 @@
                         </ul>
                     </li>
                 @endcan
+                @canany(['dor-reports.view', 'license-expiry-reports.view'])
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('reports.*') ? '' : 'collapsed' }}"
+                            data-bs-target="#sidebarReports" data-bs-toggle="collapse" href="#">
+                            <i class="fa-solid fa-chart-column"></i>
+                            <span>Reports</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <ul id="sidebarReports"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('reports.*') ? 'show' : '' }}"
+                            data-bs-parent="#sidebar-nav">
+                            @can('dor-reports.view')
+                                <li>
+                                    <a href="{{ route('reports.dor.index') }}"
+                                        class="{{ request()->routeIs('reports.dor.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>DOR Report</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('license-expiry-reports.view')
+                                <li>
+                                    <a href="{{ route('reports.license-expiry.index') }}"
+                                        class="{{ request()->routeIs('reports.license-expiry.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>License Expiry Report</span>
+                                    </a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endcanany
                 @can('rosters.view')
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('rosters.*') ? '' : 'collapsed' }}"

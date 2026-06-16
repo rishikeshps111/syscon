@@ -62,6 +62,7 @@ use Illuminate\Support\Facades\Storage;
     'dp',
     'penalty',
     'model_9m_12m',
+    'is_completed',
     'created_by',
     'updated_by',
 ])]
@@ -111,6 +112,7 @@ class TripSheetEntryDor extends Model
             'vp2' => 'decimal:4',
             'dp' => 'decimal:4',
             'penalty' => 'decimal:2',
+            'is_completed' => 'boolean',
             'created_by' => 'integer',
             'updated_by' => 'integer',
         ];
