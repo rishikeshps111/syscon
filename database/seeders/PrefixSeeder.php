@@ -32,6 +32,7 @@ class PrefixSeeder extends Seeder
             ['prefix' => 'DPT', 'module' => 'Department Module', 'is_active' => true],
             ['prefix' => 'LVL', 'module' => 'Level Module', 'is_active' => true],
             ['prefix' => 'DSG', 'module' => 'Designation Module', 'is_active' => true],
+            ['prefix' => 'SC', 'module' => 'Salary Component Module', 'is_active' => true],
             ['prefix' => 'HDT', 'module' => 'HRMS Document Type Module', 'is_active' => true],
             ['prefix' => 'LV', 'module' => 'Leave Type Module', 'is_active' => true],
             ['prefix' => 'LVM', 'module' => 'Leave Management Module', 'is_active' => true],

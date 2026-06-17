@@ -41,6 +41,7 @@ use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteAssignmentController;
 use App\Http\Controllers\RouteScheduleController;
 use App\Http\Controllers\RouteStopController;
+use App\Http\Controllers\SalaryComponentController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ShiftSettingController;
 use App\Http\Controllers\StaffDocumentController;
@@ -378,6 +379,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/designations/export', [DesignationController::class, 'export'])
         ->name('designations.export');
     Route::resource('designations', DesignationController::class)->except(['edit', 'show']);
+
+    Route::post('/salary-components/export', [SalaryComponentController::class, 'export'])
+        ->name('salary-components.export');
+    Route::resource('salary-components', SalaryComponentController::class)->except(['show']);
 
     Route::get('/role-permissions', [RolePermissionController::class, 'index'])
         ->name('role-permissions.index');

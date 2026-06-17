@@ -39,6 +39,7 @@ class PermissionRedirect
             'departments.view' => 'departments.index',
             'levels.view' => 'levels.index',
             'designations.view' => 'designations.index',
+            'salary-components.view' => 'salary-components.index',
             'role-permissions.view' => 'role-permissions.index',
             'hrms-document-types.view' => 'hrms-document-types.index',
             'leave-types.view' => 'leave-types.index',

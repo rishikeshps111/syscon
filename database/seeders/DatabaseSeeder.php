@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             LevelSeeder::class,
             DesignationSeeder::class,
+            SalaryComponentSeeder::class,
             HrmsDocumentTypeSeeder::class,
             LeaveTypeSeeder::class,
             ShiftSettingSeeder::class,

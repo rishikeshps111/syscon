@@ -11,6 +11,7 @@ use App\Models\District;
 use App\Models\Location;
 use App\Models\State;
 use App\Models\User;
+use App\Support\SalaryComponents;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -78,6 +79,7 @@ class ControllerManagementController extends Controller implements HasMiddleware
         $this->storeAvatar($request, $user);
         $user->assignRole('Controller');
         $user->controllerProfile()->create($this->profileData($data));
+        SalaryComponents::sync($user, $data['salary_components'] ?? []);
 
         return redirect()->route('controller-management.index')->with('success', 'Controller created successfully.');
     }
@@ -139,6 +141,7 @@ class ControllerManagementController extends Controller implements HasMiddleware
             ['user_id' => $controller_management->id],
             $this->profileData($data)
         );
+        SalaryComponents::sync($controller_management, $data['salary_components'] ?? []);
 
         return redirect()->route('controller-management.index')->with('success', 'Controller updated successfully.');
     }
@@ -280,18 +283,14 @@ class ControllerManagementController extends Controller implements HasMiddleware
             'districts' => District::orderBy('name')->get(['id', 'name']),
             'locations' => Location::orderBy('name')->get(['id', 'name']),
             'countries' => ['India'],
+            'salaryComponents' => SalaryComponents::forRole('Controller'),
+            'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('controller_management')),
         ];
     }
 
     private function profileData(array $data): array
     {
-        $basic = $this->salaryComponent($data, 'basic');
-        $vda = $this->salaryComponent($data, 'vda');
-        $hra = $this->salaryComponent($data, 'hra');
-        $specialAllowance = $this->salaryComponent($data, 'special_allowance');
-        $conveyanceAllowance = $this->salaryComponent($data, 'conveyance_allowance');
-        $bonus = $this->salaryComponent($data, 'bonus');
-        $basicVda = $basic + $vda;
+        $salaryData = SalaryComponents::legacyProfileSalaryData($data['salary_components'] ?? []);
 
         return collect($data)->only([
             'depot_id',
@@ -310,14 +309,14 @@ class ControllerManagementController extends Controller implements HasMiddleware
             'bank_account_number',
             'ifsc_code',
         ])->merge([
-            'basic' => $basic,
-            'vda' => $vda,
-            'basic_vda' => $basicVda,
-            'hra' => $this->nullableSalaryComponent($data, 'hra'),
-            'special_allowance' => $this->nullableSalaryComponent($data, 'special_allowance'),
-            'conveyance_allowance' => $this->nullableSalaryComponent($data, 'conveyance_allowance'),
-            'bonus' => $this->nullableSalaryComponent($data, 'bonus'),
-            'gross_salary' => $basicVda + $hra + $specialAllowance + $conveyanceAllowance + $bonus,
+            'basic' => $salaryData['basic'],
+            'vda' => $salaryData['vda'],
+            'basic_vda' => $salaryData['basic_vda'],
+            'hra' => $salaryData['hra'],
+            'special_allowance' => $salaryData['special_allowance'],
+            'conveyance_allowance' => $salaryData['conveyance_allowance'],
+            'bonus' => $salaryData['bonus'],
+            'gross_salary' => $salaryData['gross_salary'],
         ])->all();
     }
 

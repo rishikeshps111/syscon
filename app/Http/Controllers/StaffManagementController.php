@@ -11,6 +11,7 @@ use App\Models\Location;
 use App\Models\StaffProfile;
 use App\Models\State;
 use App\Models\User;
+use App\Support\SalaryComponents;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -81,6 +82,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $user->save();
         $this->storeAvatar($request, $user);
         $user->staffProfile()->create($this->profileData($data));
+        SalaryComponents::sync($user, $data['salary_components'] ?? []);
         $this->syncStaffRoles($user, (int) $data['designation_id']);
 
         return redirect()->route('staff-management.index')->with('success', 'Staff created successfully.');
@@ -138,6 +140,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             ['user_id' => $staff_management->id],
             $this->profileData($data)
         );
+        SalaryComponents::sync($staff_management, $data['salary_components'] ?? []);
         $this->syncStaffRoles($staff_management, (int) $data['designation_id']);
 
         return redirect()->route('staff-management.index')->with('success', 'Staff updated successfully.');
@@ -270,18 +273,14 @@ class StaffManagementController extends Controller implements HasMiddleware
                 '50001-100000' => '50,001 - 1,00,000',
                 '100001-' => 'Above 1,00,000',
             ],
+            'salaryComponents' => SalaryComponents::forRole('Staff'),
+            'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('staff_management')),
         ];
     }
 
     private function profileData(array $data): array
     {
-        $basic = $this->salaryComponent($data, 'basic');
-        $vda = $this->salaryComponent($data, 'vda');
-        $hra = $this->salaryComponent($data, 'hra');
-        $specialAllowance = $this->salaryComponent($data, 'special_allowance');
-        $conveyanceAllowance = $this->salaryComponent($data, 'conveyance_allowance');
-        $bonus = $this->salaryComponent($data, 'bonus');
-        $basicVda = $basic + $vda;
+        $salaryData = SalaryComponents::legacyProfileSalaryData($data['salary_components'] ?? []);
 
         return collect($data)->only([
             'designation_id',
@@ -301,14 +300,14 @@ class StaffManagementController extends Controller implements HasMiddleware
             'bank_account_number',
             'ifsc_code',
         ])->merge([
-            'basic' => $basic,
-            'vda' => $vda,
-            'basic_vda' => $basicVda,
-            'hra' => $this->nullableSalaryComponent($data, 'hra'),
-            'special_allowance' => $this->nullableSalaryComponent($data, 'special_allowance'),
-            'conveyance_allowance' => $this->nullableSalaryComponent($data, 'conveyance_allowance'),
-            'bonus' => $this->nullableSalaryComponent($data, 'bonus'),
-            'gross_salary' => $basicVda + $hra + $specialAllowance + $conveyanceAllowance + $bonus,
+            'basic' => $salaryData['basic'],
+            'vda' => $salaryData['vda'],
+            'basic_vda' => $salaryData['basic_vda'],
+            'hra' => $salaryData['hra'],
+            'special_allowance' => $salaryData['special_allowance'],
+            'conveyance_allowance' => $salaryData['conveyance_allowance'],
+            'bonus' => $salaryData['bonus'],
+            'gross_salary' => $salaryData['gross_salary'],
         ])->all();
     }
 

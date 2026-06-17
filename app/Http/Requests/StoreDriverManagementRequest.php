@@ -60,7 +60,8 @@ class StoreDriverManagementRequest extends FormRequest
 
             'employment_type' => ['required', Rule::in(array_keys(DriverProfile::EMPLOYMENT_TYPES))],
             'joining_date' => ['required', 'date'],
-            'salary' => ['required', 'numeric', 'min:0'],
+            'salary_components' => ['nullable', 'array'],
+            'salary_components.*' => ['nullable', 'numeric', 'min:0'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'branch_location_id' => ['required', 'integer', 'exists:branch_locations,id'],
 

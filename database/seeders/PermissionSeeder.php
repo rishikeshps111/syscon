@@ -148,6 +148,12 @@ class PermissionSeeder extends Seeder
                 'designations.delete',
                 'designations.view',
             ],
+            'Salary Components' => [
+                'salary-components.create',
+                'salary-components.edit',
+                'salary-components.delete',
+                'salary-components.view',
+            ],
             'Role Permissions' => [
                 'role-permissions.edit',
                 'role-permissions.view',

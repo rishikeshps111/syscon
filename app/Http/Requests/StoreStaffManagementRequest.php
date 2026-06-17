@@ -48,14 +48,8 @@ class StoreStaffManagementRequest extends FormRequest
             ],
             'bank_account_number' => ['required', 'string', 'max:50'],
             'ifsc_code' => ['required', 'string', 'max:20'],
-            'basic' => ['required', 'numeric', 'min:0'],
-            'vda' => ['required', 'numeric', 'min:0'],
-            'basic_vda' => ['nullable', 'numeric', 'min:0'],
-            'hra' => ['nullable', 'numeric', 'min:0'],
-            'special_allowance' => ['nullable', 'numeric', 'min:0'],
-            'conveyance_allowance' => ['nullable', 'numeric', 'min:0'],
-            'bonus' => ['nullable', 'numeric', 'min:0'],
-            'gross_salary' => ['nullable', 'numeric', 'min:0'],
+            'salary_components' => ['nullable', 'array'],
+            'salary_components.*' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['required', 'boolean'],
         ];
     }

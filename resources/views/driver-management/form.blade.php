@@ -56,6 +56,7 @@
         'drv5' => 'Bank Details',
         'drv6' => 'Emergency & Medical',
         'drv7' => 'Status & Verification',
+        'drv8' => 'Salary Structure',
     ] as $target => $label)
                                 <li class="nav-item {{ $loop->first ? 'ps-0 ms-0' : '' }}" role="presentation">
                                     <button type="button"
@@ -356,15 +357,6 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="salary">Salary <span class="text-danger">*</span></label>
-                                        <input type="number" step="0.01" min="0" id="salary"
-                                            name="salary" class="form-control shadow-none"
-                                            value="{{ old('salary', $profile->salary ?? '') }}" required>
-                                        @error('salary')
-                                            <span class="text-danger">{{ $message }}</span>
-                                        @enderror
-                                    </div>
                                     <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="depot_id">Depot <span class="text-danger">*</span></label>
                                         <select name="depot_id" id="depot_id"
@@ -522,6 +514,10 @@
                                         @enderror
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="tab-pane fade" id="drv8" role="tabpanel">
+                                @include('components.dynamic-salary-structure')
                             </div>
                         </div>
 
@@ -694,6 +690,26 @@
                     .val('')
                     .trigger('change.select2');
             }
+
+            function calculateDynamicSalary() {
+                var total = 0;
+                document.querySelectorAll('.js-dynamic-salary-field').forEach(function(input) {
+                    var value = parseFloat(input.value);
+                    if (!Number.isFinite(value)) {
+                        value = 0;
+                    }
+                    total += input.dataset.type === 'deduction' ? -value : value;
+                });
+                var preview = document.getElementById('gross_salary_preview');
+                if (preview) {
+                    preview.value = total.toFixed(2);
+                }
+            }
+
+            document.querySelectorAll('.js-dynamic-salary-field').forEach(function(input) {
+                input.addEventListener('input', calculateDynamicSalary);
+            });
+            calculateDynamicSalary();
 
             document.querySelectorAll('.js-loading-form').forEach(function(form) {
                 form.addEventListener('submit', function() {

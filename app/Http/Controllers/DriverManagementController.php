@@ -12,6 +12,7 @@ use App\Models\DriverProfile;
 use App\Models\Location;
 use App\Models\State;
 use App\Models\User;
+use App\Support\SalaryComponents;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -82,6 +83,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         $this->storeAvatar($request, $user);
         $user->assignRole('Driver');
         $user->driverProfile()->create($this->profileData($data));
+        SalaryComponents::sync($user, $data['salary_components'] ?? []);
 
         return redirect()->route('driver-management.index')->with('success', 'Driver created successfully.');
     }
@@ -143,6 +145,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             ['user_id' => $driver_management->id],
             $this->profileData($data)
         );
+        SalaryComponents::sync($driver_management, $data['salary_components'] ?? []);
 
         return redirect()->route('driver-management.index')->with('success', 'Driver updated successfully.');
     }
@@ -293,6 +296,8 @@ class DriverManagementController extends Controller implements HasMiddleware
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'branches' => BranchLocation::orderBy('name')->get(['id', 'name']),
             'countries' => ['India'],
+            'salaryComponents' => SalaryComponents::forRole('Driver'),
+            'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('driver_management')),
         ];
     }
 
@@ -316,7 +321,6 @@ class DriverManagementController extends Controller implements HasMiddleware
             'badge_expiry_date',
             'employment_type',
             'joining_date',
-            'salary',
             'depot_id',
             'branch_location_id',
             'account_number',
@@ -327,6 +331,8 @@ class DriverManagementController extends Controller implements HasMiddleware
             'medical_fitness_expiry',
             'police_verification_status',
             'verification_status',
+        ])->merge([
+            'salary' => SalaryComponents::legacyProfileSalaryData($data['salary_components'] ?? [])['salary'],
         ])->all();
     }
 

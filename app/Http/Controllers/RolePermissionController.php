@@ -184,6 +184,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Leave Type', 'permissions' => $this->crud('leave-types')],
                     ['label' => 'Shift Setting', 'permissions' => $this->crud('shift-settings')],
                     ['label' => 'Holiday', 'permissions' => $this->crud('holidays')],
+                    ['label' => 'Salary Components', 'permissions' => $this->crud('salary-components')],
                     ['label' => 'Staff Management', 'permissions' => $this->crud('staff-management')],
                     ['label' => 'Driver Management', 'permissions' => $this->crud('driver-management')],
                     ['label' => 'Controller Management', 'permissions' => $this->crud('controller-management')],
