@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
+    'depot_id',
     'designation_id',
     'category',
     'employment_type',
@@ -58,6 +59,7 @@ class StaffProfile extends Model
             'date_of_birth' => 'date',
             'date_of_joining' => 'date',
             'designation_id' => 'integer',
+            'depot_id' => 'integer',
             'state_id' => 'integer',
             'district_id' => 'integer',
             'location_id' => 'integer',
@@ -80,6 +82,11 @@ class StaffProfile extends Model
     public function designation(): BelongsTo
     {
         return $this->belongsTo(Designation::class);
+    }
+
+    public function depot(): BelongsTo
+    {
+        return $this->belongsTo(Depot::class);
     }
 
     public function state(): BelongsTo

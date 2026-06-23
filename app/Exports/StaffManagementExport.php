@@ -13,7 +13,7 @@ class StaffManagementExport implements FromCollection, WithHeadings
 
     public function __construct($query = null)
     {
-        $this->query = $query ?: User::role('Staff')->with(['roles', 'staffProfile.designation', 'staffProfile.location']);
+        $this->query = $query ?: User::role('Staff')->with(['roles', 'staffProfile.depot', 'staffProfile.designation', 'staffProfile.location']);
     }
 
     public function collection()
@@ -26,6 +26,7 @@ class StaffManagementExport implements FromCollection, WithHeadings
                 'Staff Name' => $user->name,
                 'Email' => $user->email,
                 'Phone' => $user->phone,
+                'Depot' => $profile?->depot?->name,
                 'Designation' => $profile?->designation?->name,
                 'Category' => $profile?->category_label,
                 'Employment Type' => $profile?->employment_type_label,
@@ -45,6 +46,7 @@ class StaffManagementExport implements FromCollection, WithHeadings
             'Staff Name',
             'Email',
             'Phone',
+            'Depot',
             'Designation',
             'Category',
             'Employment Type',

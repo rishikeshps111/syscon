@@ -3,9 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Designation;
+use App\Models\Depot;
 use App\Models\Location;
-use App\Models\StaffProfile;
 use App\Models\User;
+use App\Support\SalaryComponents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -19,8 +20,9 @@ class StaffManagementSeeder extends Seeder
         $designation = Designation::where('name', 'Operations Supervisor')->first()
             ?? Designation::query()->first();
         $location = Location::query()->with(['state', 'district'])->first();
+        $depots = Depot::where('is_active', true)->orderBy('id')->get(['id']);
 
-        if (! $designation) {
+        if (! $designation || $depots->isEmpty()) {
             return;
         }
 
@@ -48,12 +50,10 @@ class StaffManagementSeeder extends Seeder
                 'ifsc_code' => 'SBIN0001234',
                 'basic' => 30000,
                 'vda' => 5000,
-                'basic_vda' => 35000,
                 'hra' => 15000,
                 'special_allowance' => 10000,
                 'conveyance_allowance' => 5000,
                 'bonus' => 10000,
-                'gross_salary' => 75000,
                 'is_active' => true,
             ],
             [
@@ -79,12 +79,10 @@ class StaffManagementSeeder extends Seeder
                 'ifsc_code' => 'SBIN0001235',
                 'basic' => 24000,
                 'vda' => 4000,
-                'basic_vda' => 28000,
                 'hra' => 11000,
                 'special_allowance' => 7000,
                 'conveyance_allowance' => 3000,
                 'bonus' => 6000,
-                'gross_salary' => 55000,
                 'is_active' => true,
             ],
             [
@@ -110,12 +108,10 @@ class StaffManagementSeeder extends Seeder
                 'ifsc_code' => 'SBIN0001236',
                 'basic' => 28000,
                 'vda' => 4500,
-                'basic_vda' => 32500,
                 'hra' => 13000,
                 'special_allowance' => 8500,
                 'conveyance_allowance' => 4000,
                 'bonus' => 8000,
-                'gross_salary' => 66000,
                 'is_active' => true,
             ],
             [
@@ -141,12 +137,10 @@ class StaffManagementSeeder extends Seeder
                 'ifsc_code' => 'SBIN0001237',
                 'basic' => 18000,
                 'vda' => 3000,
-                'basic_vda' => 21000,
                 'hra' => 8000,
                 'special_allowance' => 5000,
                 'conveyance_allowance' => 2500,
                 'bonus' => 3500,
-                'gross_salary' => 40000,
                 'is_active' => true,
             ],
             [
@@ -172,12 +166,10 @@ class StaffManagementSeeder extends Seeder
                 'ifsc_code' => 'SBIN0001238',
                 'basic' => 20000,
                 'vda' => 3500,
-                'basic_vda' => 23500,
                 'hra' => 9000,
                 'special_allowance' => 5500,
                 'conveyance_allowance' => 3000,
                 'bonus' => 4500,
-                'gross_salary' => 45500,
                 'is_active' => false,
             ],
             [
@@ -203,18 +195,17 @@ class StaffManagementSeeder extends Seeder
                 'ifsc_code' => 'SBIN0001239',
                 'basic' => 32000,
                 'vda' => 6000,
-                'basic_vda' => 38000,
                 'hra' => 16000,
                 'special_allowance' => 12000,
                 'conveyance_allowance' => 6000,
                 'bonus' => 12000,
-                'gross_salary' => 84000,
                 'is_active' => true,
             ],
         ];
 
-        DB::transaction(function () use ($records) {
-            foreach ($records as $record) {
+        DB::transaction(function () use ($records, $depots) {
+            foreach ($records as $index => $record) {
+                $record['depot_id'] = $depots[$index % $depots->count()]->id;
                 $user = User::firstOrCreate(
                     ['email' => $record['email']],
                     [
@@ -231,10 +222,26 @@ class StaffManagementSeeder extends Seeder
                     $user->save();
                 }
 
+                $componentAmounts = $this->salaryComponentAmounts($record);
+                $salaryData = SalaryComponents::legacyProfileSalaryData($componentAmounts);
+                $profileData = collect($record)
+                    ->except(['name', 'email', 'country_code', 'phone', 'is_active'])
+                    ->merge(collect($salaryData)->only([
+                        'basic',
+                        'vda',
+                        'basic_vda',
+                        'hra',
+                        'special_allowance',
+                        'conveyance_allowance',
+                        'bonus',
+                        'gross_salary',
+                    ]));
+
                 $user->staffProfile()->updateOrCreate(
                     ['user_id' => $user->id],
-                    collect($record)->except(['name', 'email', 'country_code', 'phone', 'is_active'])->all()
+                    $profileData->all()
                 );
+                SalaryComponents::sync($user, $componentAmounts);
 
                 $roles = ['Staff'];
                 $designation = Designation::with('role')->find($record['designation_id']);
@@ -246,5 +253,21 @@ class StaffManagementSeeder extends Seeder
                 $user->syncRoles($roles);
             }
         });
+    }
+
+    private function salaryComponentAmounts(array $record): array
+    {
+        return SalaryComponents::forRole('Staff', (int) $record['designation_id'])
+            ->mapWithKeys(function ($component) use ($record) {
+                $key = str($component->component_name)
+                    ->lower()
+                    ->replace([' + ', ' / ', ' ', '-'], '_')
+                    ->toString();
+
+                return [
+                    $component->id => $record[$key] ?? (float) $component->default_value,
+                ];
+            })
+            ->all();
     }
 }

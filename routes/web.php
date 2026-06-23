@@ -42,6 +42,8 @@ use App\Http\Controllers\RouteAssignmentController;
 use App\Http\Controllers\RouteScheduleController;
 use App\Http\Controllers\RouteStopController;
 use App\Http\Controllers\SalaryComponentController;
+use App\Http\Controllers\SalaryProcessingController;
+use App\Http\Controllers\SalaryReportController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ShiftSettingController;
 use App\Http\Controllers\StaffDocumentController;
@@ -383,6 +385,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/salary-components/export', [SalaryComponentController::class, 'export'])
         ->name('salary-components.export');
     Route::resource('salary-components', SalaryComponentController::class)->except(['show']);
+    Route::get('/salary-processing/users', [SalaryProcessingController::class, 'users'])
+        ->name('salary-processing.users');
+    Route::post('/salary-processing/{salaryProcessing}/approve', [SalaryProcessingController::class, 'approve'])
+        ->name('salary-processing.approve');
+    Route::resource('salary-processing', SalaryProcessingController::class)->except(['show']);
+    Route::get('/salary-reports', [SalaryReportController::class, 'index'])->name('salary-reports.index');
+    Route::get('/salary-reports/export', [SalaryReportController::class, 'export'])->name('salary-reports.export');
+    Route::get('/salary-reports/{salaryProcessingItem}', [SalaryReportController::class, 'show'])->name('salary-reports.show');
 
     Route::get('/role-permissions', [RolePermissionController::class, 'index'])
         ->name('role-permissions.index');

@@ -6,6 +6,7 @@ use App\Exports\StaffManagementExport;
 use App\Http\Requests\StoreStaffManagementRequest;
 use App\Http\Requests\UpdateStaffManagementRequest;
 use App\Models\Designation;
+use App\Models\Depot;
 use App\Models\District;
 use App\Models\Location;
 use App\Models\StaffProfile;
@@ -225,7 +226,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function filteredQuery()
     {
         $query = User::role('Staff')
-            ->with(['roles', 'staffProfile.designation', 'staffProfile.location'])
+            ->with(['roles', 'staffProfile.depot', 'staffProfile.designation', 'staffProfile.location'])
             ->select('users.*');
 
         if (request()->filled('search_text')) {
@@ -240,7 +241,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             });
         }
 
-        foreach (['designation_id', 'employment_type', 'category', 'state_id', 'district_id'] as $field) {
+        foreach (['depot_id', 'designation_id', 'employment_type', 'category', 'state_id', 'district_id'] as $field) {
             if (request()->filled($field)) {
                 $query->whereHas('staffProfile', fn($profileQuery) => $profileQuery->where($field, request($field)));
             }
@@ -261,6 +262,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     {
         return [
             'designations' => Designation::orderBy('name')->get(['id', 'name']),
+            'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'categories' => StaffProfile::CATEGORIES,
             'employmentTypes' => StaffProfile::EMPLOYMENT_TYPES,
             'states' => State::orderBy('name')->get(['id', 'name']),
@@ -283,6 +285,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $salaryData = SalaryComponents::legacyProfileSalaryData($data['salary_components'] ?? []);
 
         return collect($data)->only([
+            'depot_id',
             'designation_id',
             'category',
             'employment_type',
@@ -357,6 +360,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         return $staff->load([
             'roles',
             'staffProfile.designation',
+            'staffProfile.depot',
             'staffProfile.state',
             'staffProfile.district',
             'staffProfile.location',

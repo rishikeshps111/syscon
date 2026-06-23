@@ -22,6 +22,7 @@ class StoreStaffManagementRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30'],
             'avatar' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'string', 'min:8'],
+            'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'designation_id' => ['required', 'integer', 'exists:designations,id'],
             'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))],
             'employment_type' => ['required', Rule::in(array_keys(StaffProfile::EMPLOYMENT_TYPES))],

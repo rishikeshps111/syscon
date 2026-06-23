@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder
             ControllerManagementSeeder::class,
             SupervisorManagementSeeder::class,
             DriverManagementSeeder::class,
+            UserSalaryComponentValueSeeder::class,
             TripManagementSeeder::class,
             RosterSeeder::class,
             LeaveSeeder::class,

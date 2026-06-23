@@ -57,6 +57,7 @@
                                     <li>Father's Name : <span>{{ $profile?->father_name ?: '-' }}</span></li>
                                     <li>Role : <span>{{ $record->roles->pluck('name')->implode(', ') ?: 'Staff' }}</span></li>
                                     <li>Designation : <span>{{ $profile?->designation?->name ?: '-' }}</span></li>
+                                    <li>Depot : <span>{{ $profile?->depot?->name ?: '-' }}</span></li>
                                     <li>DOJ : <span>{{ $date($profile?->date_of_joining) }}</span></li>
                                     <li>Category : <span>{{ $profile?->category_label ?: '-' }}</span></li>
                                     <li>Aadhaar Number : <span>{{ $profile?->aadhaar_number ?: '-' }}</span></li>

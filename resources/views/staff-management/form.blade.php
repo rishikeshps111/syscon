@@ -112,6 +112,16 @@
                                         @error('password') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="depot_id">Depot <span class="text-danger">*</span></label>
+                                        <select name="depot_id" id="depot_id" class="form-select shadow-none select2 @error('depot_id') is-invalid @enderror" required>
+                                            <option value="">---Select---</option>
+                                            @foreach ($depots as $depot)
+                                                <option value="{{ $depot->id }}" {{ old('depot_id', $profile->depot_id ?? '') == $depot->id ? 'selected' : '' }}>{{ $depot->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('depot_id') <span class="text-danger">{{ $message }}</span> @enderror
+                                    </div>
+                                    <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="designation_id">Designation <span class="text-danger">*</span></label>
                                         <select name="designation_id" id="designation_id" class="form-select shadow-none select2 @error('designation_id') is-invalid @enderror" required>
                                             <option value="">---Select---</option>
