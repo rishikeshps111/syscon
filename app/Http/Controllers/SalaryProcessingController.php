@@ -56,9 +56,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 ->addColumn('created_by_name', fn($row) => $row->creator?->name ?? '-')
                 ->addColumn('created_date_time', fn($row) => $row->created_at?->format('d-m-Y h:i A') ?? '-')
                 ->addColumn('approved_by_name', fn($row) => $row->approver ? $row->approver->name . '<br><small>' . $row->approved_at?->format('d-m-Y h:i A') . '</small>' : '-')
-                ->addColumn('status_label', fn($row) => '<span class="' . ($row->status === 'Approved' ? 'status-green' : 'status-yellow') . '">' . e($row->status) . '</span>')
+                ->addColumn('approval_status_label', fn($row) => $this->approvalStatusBadge($row))
                 ->addColumn('action', fn($row) => view('salary-processing.partials.action', compact('row'))->render())
-                ->rawColumns(['checkbox', 'approved_by_name', 'status_label', 'action'])
+                ->rawColumns(['checkbox', 'approved_by_name', 'approval_status_label', 'action'])
                 ->make(true);
         }
 
@@ -195,6 +195,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'remarks' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.user_id' => ['required', 'integer', 'exists:users,id'],
+            'items.*.deduction' => ['nullable', 'numeric', 'min:0'],
+            'items.*.incentive' => ['nullable', 'numeric', 'min:0'],
             'items.*.unauthorized_leaves' => ['nullable', 'numeric', 'min:0'],
             'items.*.selected_components' => ['sometimes', 'array'],
             'items.*.selected_components.*' => ['integer', 'exists:user_salary_component_values,id'],
@@ -217,6 +219,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
             $unauthorizedLeaves = (float) ($item['unauthorized_leaves'] ?? 0);
             $row = $this->applySelectedComponents($row, $item['selected_components'] ?? []);
+            $row['deduction'] = array_key_exists('deduction', $item) ? (float) $item['deduction'] : (float) $row['deduction'];
+            $row['incentive'] = array_key_exists('incentive', $item) ? (float) $item['incentive'] : (float) $row['incentive'];
             $calculated = $this->applyUnauthorizedLeave($row, $unauthorizedLeaves);
 
             $salaryItem = SalaryProcessingItem::updateOrCreate(
@@ -261,9 +265,12 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         return $users->map(function (User $user) use ($role, $start, $end, $workingDays) {
             $split = $this->salarySplit($user);
             $earningSplit = collect($split)->where('type', 'earning')->values();
-            $grossSalary = $this->grossSalary($user, $earningSplit->all());
+            $incentive = (float) $earningSplit->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
+            $grossSalary = $this->grossSalary(
+                $user,
+                $earningSplit->reject(fn($item) => $this->isIncentiveComponent($item))->all()
+            );
             $deduction = (float) collect($split)->where('type', 'deduction')->sum('amount');
-            $incentive = (float) $earningSplit->filter(fn($item) => str($item['name'])->lower()->contains('incent'))->sum('amount');
             $leaveTaken = $this->leaveTaken($user->id, $start, $end);
             $totalShifts = $role->name === 'Driver' ? $this->completedDriverShifts($user, $start, $end) : 0;
             $row = [
@@ -377,9 +384,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $selected = $split->where('selected', true);
 
         if ($split->isNotEmpty()) {
-            $row['basic_salary'] = (float) $selected->sum('amount');
-            $row['incentive'] = (float) $selected
-                ->filter(fn($item) => str($item['name'])->lower()->contains('incent'))
+            $row['incentive'] = (float) $selected->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
+            $row['basic_salary'] = (float) $selected
+                ->reject(fn($item) => $this->isIncentiveComponent($item))
                 ->sum('amount');
         }
 
@@ -421,9 +428,23 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $lop = round($perDay * $unauthorizedLeaves, 2);
         $row['unauthorized_leaves'] = $unauthorizedLeaves;
         $row['lop'] = $lop;
-        $row['net_salary'] = round((float) $row['basic_salary'] - (float) $row['deduction'] - $lop, 2);
+        $row['net_salary'] = round((float) $row['basic_salary'] + (float) $row['incentive'] - (float) $row['deduction'] - $lop, 2);
 
         return $row;
+    }
+
+    private function isIncentiveComponent(array $component): bool
+    {
+        return str($component['name'] ?? '')->lower()->contains('incent');
+    }
+
+    private function approvalStatusBadge(SalaryProcessing $salaryProcessing): string
+    {
+        $isApproved = $salaryProcessing->status === 'Approved';
+        $label = $isApproved ? 'Approved' : 'Pending';
+        $class = $isApproved ? 'status-green' : 'status-orange';
+
+        return '<span class="' . $class . '">' . e($label) . '</span>';
     }
 
     private function storedRow(SalaryProcessingItem $item): array

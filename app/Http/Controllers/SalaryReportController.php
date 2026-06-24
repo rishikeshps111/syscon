@@ -32,6 +32,23 @@ class SalaryReportController extends Controller implements HasMiddleware
         $filters = $this->validatedFilters($request, $request->boolean('generate'));
         $report = $this->hasCompleteFilters($filters) ? $this->reportData($filters) : null;
 
+        if ($request->ajax() && $request->boolean('generate')) {
+            $hasReport = $report && $report['processing'] && $report['items']->isNotEmpty();
+
+            return response()->json([
+                'success' => (bool) $hasReport,
+                'html' => view('salary-report.partials.report-table', [
+                    'report' => $report,
+                    'mailTo' => config('mail.salary_report_to'),
+                ])->render(),
+                'message' => $hasReport ? 'Salary report generated successfully.' : 'No salary report found for the selected filters.',
+                'download_pdf_url' => $hasReport ? route('salary-reports.pdf', $filters) : null,
+                'download_excel_url' => $hasReport ? route('salary-reports.export', $filters) : null,
+                'send_mail_url' => $hasReport ? route('salary-reports.send-mail') : null,
+                'filters' => $filters,
+            ]);
+        }
+
         return view('salary-report.index', $this->commonData() + [
             'filters' => $filters,
             'report' => $report,
@@ -113,6 +130,13 @@ class SalaryReportController extends Controller implements HasMiddleware
             pdfContent: $pdf,
             fileName: $this->fileName($report, 'pdf'),
         ));
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Salary report PDF sent to {$to}.",
+            ]);
+        }
 
         return redirect()
             ->route('salary-reports.index', $filters + ['generate' => 1])

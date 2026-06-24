@@ -17,7 +17,7 @@
         </div>
 
         <div class="main-table-container mb-3">
-            <form method="GET" action="{{ route('salary-files.index') }}" class="js-loading-form">
+            <form id="salaryFilesForm" method="GET" action="{{ route('salary-files.index') }}">
                 <input type="hidden" name="get_files" value="1">
                 <div class="row align-items-end">
                     <div class="col-lg-3 col-md-6 o-f-inp mb-2">
@@ -56,8 +56,7 @@
                         </select>
                     </div>
                     <div class="col-lg-12 mt-2 d-flex gap-2 justify-content-end">
-                        <a href="{{ route('salary-files.index') }}" class="btn btn-secondary js-loading-link"
-                            data-loading-text="Resetting...">Reset</a>
+                        <button type="button" id="resetSalaryFiles" class="btn btn-secondary">Reset</button>
                         <button type="submit" class="btn btn-primary" data-loading-text="Getting Files...">Get
                             Files</button>
                     </div>
@@ -65,42 +64,11 @@
             </form>
         </div>
 
-        @if (request()->boolean('get_files'))
-            <div class="row">
-                @forelse ($files as $file)
-                    <div class="col-xl-4 col-md-6 mb-3">
-                        <div class="salary-file-card h-100">
-                            <div class="d-flex justify-content-between gap-2 mb-2">
-                                <h5 class="mb-0">{{ $file->role?->name ?? '-' }}</h5>
-                                <span class="{{ $file->status === 'Approved' ? 'status-green' : 'status-yellow' }}">{{ $file->status }}</span>
-                            </div>
-                            <div class="text-muted mb-3">
-                                <div><strong>Year:</strong> {{ $file->year }}</div>
-                                <div><strong>Month:</strong> {{ \Carbon\Carbon::create(null, $file->month, 1)->format('F') }}</div>
-                                <div><strong>Depo:</strong> {{ $file->depot?->name ?? '-' }}</div>
-                                <div><strong>Users:</strong> {{ $file->items_count }}</div>
-                                <div><strong>Approved By:</strong> {{ $file->approver?->name ?? '-' }}</div>
-                                <div><strong>Approved At:</strong> {{ $file->approved_at?->format('d-m-Y h:i A') ?? '-' }}</div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <a href="{{ route('salary-files.pdf', $file->id) }}"
-                                    class="btn btn-danger flex-fill js-loading-link" data-loading-text="Downloading...">Download
-                                    PDF</a>
-                                <a href="{{ route('salary-files.excel', $file->id) }}"
-                                    class="btn btn-success flex-fill js-loading-link" data-loading-text="Downloading...">Download
-                                    Excel</a>
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="col-12">
-                        <div class="main-table-container">
-                            <div class="alert alert-warning mb-0">No completed salary files found for the selected filters.</div>
-                        </div>
-                    </div>
-                @endforelse
-            </div>
-        @endif
+        <div id="salaryFilesResults">
+            @if (request()->boolean('get_files'))
+                @include('salary-files.partials.cards', ['files' => $files])
+            @endif
+        </div>
     </section>
 
     @section('scripts')
@@ -123,23 +91,45 @@
                     $element.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + loadingText);
                 }
 
-                $('.js-loading-form').on('submit', function () {
-                    var button = $(this).find('button[type="submit"]').first();
+                function resetLoading(element) {
+                    var $element = $(element);
 
-                    if (button.length) {
-                        setLoading(button);
+                    $element.removeClass('disabled').removeAttr('aria-disabled');
+
+                    if ($element.is('button')) {
+                        $element.prop('disabled', false);
                     }
+
+                    if ($element.data('original-html')) {
+                        $element.html($element.data('original-html'));
+                    }
+                }
+
+                $('#salaryFilesForm').on('submit', function (event) {
+                    event.preventDefault();
+
+                    var form = this;
+                    var button = $(form).find('button[type="submit"]').first();
+                    setLoading(button);
+                    $('#salaryFilesResults').html('<div class="main-table-container"><div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Getting files...</div></div>');
+
+                    $.get($(form).attr('action'), $(form).serialize())
+                        .done(function (response) {
+                            $('#salaryFilesResults').html(response.html);
+                        })
+                        .fail(function (xhr) {
+                            $('#salaryFilesResults').html('<div class="main-table-container"><div class="alert alert-danger mb-0">Unable to get salary files.</div></div>');
+                            showToast('error', xhr.responseJSON?.message || 'Unable to get salary files.');
+                        })
+                        .always(function () {
+                            resetLoading(button);
+                        });
                 });
 
-                $('.js-loading-link').on('click', function () {
-                    var link = this;
-                    setLoading(link);
-
-                    setTimeout(function () {
-                        var $link = $(link);
-                        $link.removeClass('disabled').removeAttr('aria-disabled');
-                        $link.html($link.data('original-html'));
-                    }, 3500);
+                $('#resetSalaryFiles').on('click', function () {
+                    $('#month, #depot_id, #role_id').val('');
+                    $('#year').val('{{ date('Y') }}');
+                    $('#salaryFilesResults').empty();
                 });
             });
         </script>
@@ -147,12 +137,67 @@
 
     @section('styles')
         <style>
-            .salary-file-card {
+            .document-card {
                 background: #fff;
                 border: 1px solid #e6e9ef;
                 border-radius: 8px;
-                padding: 18px;
                 box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                padding: 18px;
+            }
+
+            .document-icon {
+                font-size: 34px;
+                line-height: 1;
+            }
+
+            .document-name {
+                color: #111827;
+                font-size: 14px;
+                font-weight: 700;
+                line-height: 1.35;
+                min-height: 38px;
+                overflow-wrap: anywhere;
+            }
+
+            .document-folder,
+            .document-meta-text {
+                color: #6b7280;
+                font-size: 12px;
+                line-height: 1.35;
+            }
+
+            .document-card-footer {
+                align-items: center;
+                display: flex;
+                justify-content: space-between;
+                margin-top: auto;
+                padding-top: 8px;
+            }
+
+            .document-download {
+                align-items: center;
+                background: #f9fafb;
+                border: 1px solid #e5e7eb;
+                border-radius: 50%;
+                color: #dc2626;
+                display: inline-flex;
+                height: 34px;
+                justify-content: center;
+                text-decoration: none;
+                width: 34px;
+            }
+
+            .document-download-excel {
+                color: #15803d;
+            }
+
+            .document-download.disabled {
+                color: #9ca3af;
+                cursor: not-allowed;
+                opacity: 0.65;
             }
         </style>
     @endsection

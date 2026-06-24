@@ -450,16 +450,16 @@
                         </ul>
                     </li>
                 @endcan
-                @canany(['dor-reports.view', 'license-expiry-reports.view'])
+                @canany(['dor-reports.view', 'license-expiry-reports.view', 'salary-reports.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('reports.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('reports.*', 'salary-reports.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarReports" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-chart-column"></i>
                             <span>Reports</span>
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarReports"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('reports.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('reports.*', 'salary-reports.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('dor-reports.view')
                                 <li>
@@ -476,6 +476,15 @@
                                         class="{{ request()->routeIs('reports.license-expiry.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span>License Expiry Report</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('salary-reports.view')
+                                <li>
+                                    <a href="{{ route('salary-reports.index') }}"
+                                        class="{{ request()->routeIs('salary-reports.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Salary Report</span>
                                     </a>
                                 </li>
                             @endcan

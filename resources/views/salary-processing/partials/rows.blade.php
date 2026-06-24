@@ -21,8 +21,14 @@
                 @endif
             @endforeach
         </td>
-        <td class="text-center">{{ number_format((float) $row['deduction'], 2) }}</td>
-        <td class="text-center incentive">{{ number_format((float) $row['incentive'], 2) }}</td>
+        <td class="text-center">
+            <input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment deduction-input"
+                name="items[{{ $index }}][deduction]" value="{{ number_format((float) $row['deduction'], 2, '.', '') }}">
+        </td>
+        <td class="text-center">
+            <input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment incentive-input"
+                name="items[{{ $index }}][incentive]" value="{{ number_format((float) $row['incentive'], 2, '.', '') }}">
+        </td>
         <td class="text-center">
             <input type="number" step="0.01" min="0" class="form-control shadow-none unauthorized-leaves"
                 name="items[{{ $index }}][unauthorized_leaves]" value="{{ number_format((float) $row['unauthorized_leaves'], 2, '.', '') }}">

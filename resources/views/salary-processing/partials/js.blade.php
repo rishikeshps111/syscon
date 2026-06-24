@@ -23,7 +23,7 @@
                 { data: 'created_by_name', name: 'creator.name', orderable: false, className: 'text-center' },
                 { data: 'created_date_time', name: 'created_at', className: 'text-center' },
                 { data: 'approved_by_name', name: 'approver.name', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'status_label', name: 'status', className: 'text-center' },
+                { data: 'approval_status_label', name: 'status', className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ]
         });

@@ -86,7 +86,7 @@
                                             <th class="text-center">Created By</th>
                                             <th class="text-center">Date and Time</th>
                                             <th class="text-center">Verified and Approved By</th>
-                                            <th class="text-center">Status</th>
+                                            <th class="text-center">Approval Status</th>
                                             <th class="text-center">Action</th>
                                         </tr>
                                     </thead>

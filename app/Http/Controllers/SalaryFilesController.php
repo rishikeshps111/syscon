@@ -30,6 +30,12 @@ class SalaryFilesController extends Controller implements HasMiddleware
         $filters = $this->validatedFilters($request);
         $files = $request->boolean('get_files') ? $this->files($filters) : collect();
 
+        if ($request->ajax() && $request->boolean('get_files')) {
+            return response()->json([
+                'html' => view('salary-files.partials.cards', compact('files'))->render(),
+            ]);
+        }
+
         return view('salary-files.index', [
             'filters' => $filters,
             'files' => $files,
@@ -44,6 +50,8 @@ class SalaryFilesController extends Controller implements HasMiddleware
 
     public function excel(SalaryProcessing $salaryProcessing)
     {
+        abort_unless($salaryProcessing->status === 'Approved', 403);
+
         $report = $this->reportData($salaryProcessing);
 
         return Excel::download(new SalaryReportExport($report), $this->fileName($report, 'xlsx'));
@@ -51,6 +59,8 @@ class SalaryFilesController extends Controller implements HasMiddleware
 
     public function pdf(SalaryProcessing $salaryProcessing)
     {
+        abort_unless($salaryProcessing->status === 'Approved', 403);
+
         $report = $this->reportData($salaryProcessing);
 
         return response($this->buildPdf($report), 200, [

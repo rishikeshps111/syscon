@@ -193,8 +193,8 @@
                         '<td class="text-center non-driver-only ' + (isDriver ? 'd-none' : '') + '">' + row.total_working_days + '</td>' +
                         '<td class="text-center lop">' + Number(row.lop).toFixed(2) + '</td>' +
                         '<td class="text-center"><span class="gross-salary">' + Number(row.basic_salary).toFixed(2) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
-                        '<td class="text-center">' + Number(row.deduction).toFixed(2) + '</td>' +
-                        '<td class="text-center incentive">' + Number(row.incentive).toFixed(2) + '</td>' +
+                        '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"></td>' +
+                        '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment incentive-input" name="items[' + index + '][incentive]" value="' + Number(row.incentive || 0).toFixed(2) + '"></td>' +
                         '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none unauthorized-leaves" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unauthorized_leaves || 0).toFixed(2) + '"></td>' +
                         '<td class="text-center net-salary">' + Number(row.net_salary).toFixed(2) + '</td>' +
                         '</tr>';
@@ -225,16 +225,20 @@
 
                 $(document).on('change', '.salary-filter', reloadUsers);
 
-                $(document).on('input', '.unauthorized-leaves', function () {
-                    var row = $(this).closest('tr');
+                function recalculateRow(row) {
                     var basic = Number(row.data('basic')) || 0;
-                    var deduction = Number(row.data('deduction')) || 0;
+                    var deduction = Number(row.find('.deduction-input').val()) || 0;
+                    var incentive = Number(row.find('.incentive-input').val()) || 0;
                     var workingDays = Number(row.data('working-days')) || 0;
-                    var unauthorized = Number($(this).val()) || 0;
+                    var unauthorized = Number(row.find('.unauthorized-leaves').val()) || 0;
                     var lop = workingDays > 0 ? (basic / workingDays) * unauthorized : 0;
-                    var net = basic - deduction - lop;
+                    var net = basic + incentive - deduction - lop;
                     row.find('.lop').text(lop.toFixed(2));
                     row.find('.net-salary').text(net.toFixed(2));
+                }
+
+                $(document).on('input', '.unauthorized-leaves, .salary-adjustment', function () {
+                    recalculateRow($(this).closest('tr'));
                 });
 
                 $(document).on('click', '.view-split', function () {
@@ -268,13 +272,14 @@
                         var name = userInput.attr('name').replace('[user_id]', '[selected_components][]');
                         button.after($('<input>', { type: 'hidden', class: 'selected-component-input', name: name, value: id }));
                     });
-                    var gross = split.filter(function (item) { return item.selected; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
-                    var incentive = split.filter(function (item) { return item.selected && String(item.name).toLowerCase().indexOf('incent') !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var selected = split.filter(function (item) { return item.selected; });
+                    var incentive = selected.filter(function (item) { return String(item.name).toLowerCase().indexOf('incent') !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var gross = selected.filter(function (item) { return String(item.name).toLowerCase().indexOf('incent') === -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
                     row.data('basic', gross);
                     row.data('incentive', incentive);
                     row.find('.gross-salary').text(gross.toFixed(2));
-                    row.find('.incentive').text(incentive.toFixed(2));
-                    row.find('.unauthorized-leaves').trigger('input');
+                    row.find('.incentive-input').val(incentive.toFixed(2));
+                    recalculateRow(row);
                     $('#salarySplitModal').modal('hide');
                 });
 
@@ -319,7 +324,8 @@
                 word-break: normal;
             }
 
-            .salary-table-scroll .payroll-table .unauthorized-leaves {
+            .salary-table-scroll .payroll-table .unauthorized-leaves,
+            .salary-table-scroll .payroll-table .salary-adjustment {
                 min-width: 75px;
                 padding: 5px;
             }
