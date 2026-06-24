@@ -3,6 +3,13 @@
 @endsection
 
 <x-app-layout>
+    @php
+        $hasReport = $report && $report['processing'];
+        $items = $report['items'] ?? collect();
+        $componentNames = $report['componentNames'] ?? collect();
+        $money = fn ($value) => number_format((float) $value, 2);
+    @endphp
+
     <section class="section dashboard section-top-padding">
         <div class="page-title">
             <h3>Salary Report</h3>
@@ -16,229 +23,197 @@
             </nav>
         </div>
 
-        <div class="main-table-container">
-            <form id="salaryReportFilterForm" method="GET">
+        <div class="main-table-container mb-3">
+            <form method="GET" action="{{ route('salary-reports.index') }}" class="js-loading-form">
+                <input type="hidden" name="generate" value="1">
                 <div class="row align-items-end">
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-3">
-                        <label for="yearFilter">Year</label>
-                        <select id="yearFilter" class="form-select shadow-none report-filter">
+                    <div class="col-lg-3 col-md-6 o-f-inp mb-2">
+                        <label for="year">Year <span class="text-danger">*</span></label>
+                        <select name="year" id="year" class="form-select shadow-none" required>
                             @foreach ($years as $year)
-                                <option value="{{ $year }}" @selected((int) $filters['year'] === $year)>{{ $year }}</option>
+                                <option value="{{ $year }}" @selected((int) $filters['year'] === (int) $year)>{{ $year }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-3">
-                        <label for="monthFilter">Month</label>
-                        <select id="monthFilter" class="form-select shadow-none report-filter">
-                            <option value="">All Months</option>
+                    <div class="col-lg-3 col-md-6 o-f-inp mb-2">
+                        <label for="month">Month <span class="text-danger">*</span></label>
+                        <select name="month" id="month" class="form-select shadow-none" required>
+                            <option value="">--- Select ---</option>
                             @foreach ($months as $value => $label)
-                                <option value="{{ $value }}" @selected((int) $filters['month'] === $value)>{{ $label }}</option>
+                                <option value="{{ $value }}" @selected((int) $filters['month'] === (int) $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-4 o-f-inp mb-3">
-                        <label for="depotFilter">Depo</label>
-                        <select id="depotFilter" class="form-select shadow-none report-filter">
-                            <option value="">All Depos</option>
+                    <div class="col-lg-3 col-md-6 o-f-inp mb-2">
+                        <label for="depot_id">Depo <span class="text-danger">*</span></label>
+                        <select name="depot_id" id="depot_id" class="form-select shadow-none" required>
+                            <option value="">--- Select ---</option>
                             @foreach ($depots as $depot)
-                                <option value="{{ $depot->id }}" @selected((int) $filters['depot_id'] === $depot->id)>{{ $depot->name }}</option>
+                                <option value="{{ $depot->id }}" @selected((int) $filters['depot_id'] === (int) $depot->id)>{{ $depot->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-4 o-f-inp mb-3">
-                        <label for="roleFilter">User Type</label>
-                        <select id="roleFilter" class="form-select shadow-none report-filter">
-                            <option value="">All User Types</option>
+                    <div class="col-lg-3 col-md-6 o-f-inp mb-2">
+                        <label for="role_id">Role <span class="text-danger">*</span></label>
+                        <select name="role_id" id="role_id" class="form-select shadow-none" required>
+                            <option value="">--- Select ---</option>
                             @foreach ($roles as $role)
-                                <option value="{{ $role->id }}" @selected((int) $filters['role_id'] === $role->id)>{{ $role->name }}</option>
+                                <option value="{{ $role->id }}" @selected((int) $filters['role_id'] === (int) $role->id)>{{ $role->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-8 mb-3">
-                        <div class="filter-btns-top justify-content-start">
-                            <button type="button" id="resetFilters" class="reset-btn border-0">Reset</button>
-                            <button type="button" id="exportSalaryReport" class="exp-btn">Export</button>
-                        </div>
+                    <div class="col-lg-12 mt-2 d-flex gap-2 justify-content-end">
+                        <a href="{{ route('salary-reports.index') }}" class="btn btn-secondary js-loading-link"
+                            data-loading-text="Resetting...">Reset</a>
+                        <button type="submit" class="btn btn-primary" data-loading-text="Generating...">Generate
+                            Report</button>
                     </div>
                 </div>
             </form>
-
-            <div class="table-over salary-report-scroll mt-3">
-                <table id="salaryReportTable" class="align-middle mb-0 table tble-cstm bg-transparent">
-                    <thead>
-                        <tr>
-                            <th class="text-center">SL No</th>
-                            <th class="text-center">User Code</th>
-                            <th class="text-center">User Name</th>
-                            <th class="text-center">Month</th>
-                            <th class="text-center">Year</th>
-                            <th class="text-center">Depo</th>
-                            <th class="text-center">User Type</th>
-                            <th class="text-center">Gross Salary</th>
-                            <th class="text-center">Deduction</th>
-                            <th class="text-center">LOP</th>
-                            <th class="text-center">Net Salary</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
         </div>
 
-        <div class="modal fade" id="salaryDetailModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content cnt-modal-cs">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Salary Details</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        @if ($report)
+            <div class="main-table-container">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1">Full Salary Sheet</h5>
+                        <div class="text-muted">
+                            <strong>Year:</strong> {{ $report['year'] }} |
+                            <strong>Month:</strong> {{ $report['monthName'] }} |
+                            <strong>Depo:</strong> {{ $report['depot']?->name ?? '-' }} |
+                            <strong>Role:</strong> {{ $report['role']?->name ?? '-' }}
+                        </div>
                     </div>
-                    <div class="modal-body" id="salaryDetailContent">
-                        <p class="text-center text-muted mb-0">Loading...</p>
-                    </div>
+                    @if ($hasReport && $items->isNotEmpty())
+                        <div class="d-flex flex-wrap gap-2">
+                            <a class="btn btn-success js-loading-link" href="{{ route('salary-reports.export', $filters) }}"
+                                data-loading-text="Downloading...">Download Excel</a>
+                            <a class="btn btn-danger js-loading-link" href="{{ route('salary-reports.pdf', $filters) }}"
+                                data-loading-text="Downloading...">Download PDF</a>
+                            <form method="POST" action="{{ route('salary-reports.send-mail') }}"
+                                class="d-inline js-loading-form">
+                                @csrf
+                                @foreach ($filters as $key => $value)
+                                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                @endforeach
+                                <button type="submit" class="btn btn-primary" data-loading-text="Sending...">Send PDF
+                                    Mail</button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
+
+                @if (! $hasReport)
+                    <div class="alert alert-warning mb-0">
+                        No completed salary processing found for the selected Year, Month, Depo and Role.
+                    </div>
+                @elseif ($items->isEmpty())
+                    <div class="alert alert-warning mb-0">
+                        Salary processing exists, but no completed user salary records are available.
+                    </div>
+                @else
+                    <div class="table-over salary-report-scroll">
+                        <table class="align-middle mb-0 table table-striped tble-cstm bg-transparent salary-report-table">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">SL No</th>
+                                    <th class="text-center">User Code</th>
+                                    <th class="text-center">User Name</th>
+                                    <th class="text-center">Aadhaar No</th>
+                                    <th class="text-center">Total Leave Taken</th>
+                                    <th class="text-center">Unauthorized Leaves</th>
+                                    <th class="text-center">Total Shifts Completed</th>
+                                    <th class="text-center">Total Working Days</th>
+                                    @foreach ($componentNames as $componentName)
+                                        <th class="text-center">{{ $componentName }}</th>
+                                    @endforeach
+                                    <th class="text-center">Gross Salary</th>
+                                    <th class="text-center">Incentive</th>
+                                    <th class="text-center">Deduction</th>
+                                    <th class="text-center">LOP</th>
+                                    <th class="text-center">Net Salary</th>
+                                    <th class="text-center">Payment Method</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Approved By</th>
+                                    <th class="text-center">Approved At</th>
+                                    <th class="text-center">Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($items as $item)
+                                    @php
+                                        $components = collect($item->salary_split ?: [])->where('type', 'earning')->keyBy('name');
+                                    @endphp
+                                    <tr>
+                                        <td class="text-center">{{ $loop->iteration }}</td>
+                                        <td class="text-center">{{ $item->user?->code ?: '-' }}</td>
+                                        <td>{{ $item->user?->name ?: '-' }}</td>
+                                        <td class="text-center">{{ $item->aadhaar_no ?: '-' }}</td>
+                                        <td class="text-center">{{ $item->total_leave_taken }}</td>
+                                        <td class="text-center">{{ $item->unauthorized_leaves }}</td>
+                                        <td class="text-center">{{ $item->total_shifts_completed }}</td>
+                                        <td class="text-center">{{ $item->total_working_days }}</td>
+                                        @foreach ($componentNames as $componentName)
+                                            <td class="text-end">{{ $money($components->get($componentName)['amount'] ?? 0) }}</td>
+                                        @endforeach
+                                        <td class="text-end">{{ $money($item->basic_salary) }}</td>
+                                        <td class="text-end">{{ $money($item->incentive) }}</td>
+                                        <td class="text-end">{{ $money($item->deduction) }}</td>
+                                        <td class="text-end">{{ $money($item->lop) }}</td>
+                                        <td class="text-end">{{ $money($item->net_salary) }}</td>
+                                        <td class="text-center">{{ $report['processing']->payment_method ?: '-' }}</td>
+                                        <td class="text-center">{{ $report['processing']->status }}</td>
+                                        <td class="text-center">{{ $report['processing']->approver?->name ?: '-' }}</td>
+                                        <td class="text-center">{{ $report['processing']->approved_at?->format('d-m-Y h:i A') ?: '-' }}</td>
+                                        <td>{{ $report['processing']->remarks ?: '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted mt-2">PDF mail recipient: {{ $mailTo }}</div>
+                @endif
             </div>
-        </div>
+        @endif
     </section>
 
     @section('scripts')
         <script>
             $(function () {
-                var currentYear = "{{ date('Y') }}";
-                var filters = $('.report-filter');
+                function setLoading(element) {
+                    var $element = $(element);
+                    var loadingText = $element.data('loading-text') || 'Loading...';
 
-                function filterData() {
-                    return {
-                        year: $('#yearFilter').val(),
-                        month: $('#monthFilter').val(),
-                        depot_id: $('#depotFilter').val(),
-                        role_id: $('#roleFilter').val()
-                    };
+                    if (!$element.data('original-html')) {
+                        $element.data('original-html', $element.html());
+                    }
+
+                    $element.addClass('disabled').attr('aria-disabled', 'true');
+
+                    if ($element.is('button')) {
+                        $element.prop('disabled', true);
+                    }
+
+                    $element.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + loadingText);
                 }
 
-                function escapeHtml(value) {
-                    return $('<div>').text(value == null ? '-' : value).html();
-                }
+                $('.js-loading-form').on('submit', function () {
+                    var button = $(this).find('button[type="submit"]').first();
 
-                function money(value) {
-                    return Number(value || 0).toFixed(2);
-                }
-
-                function detailItem(label, value) {
-                    return '<div class="col-lg-3 col-md-4 col-sm-6 mb-3"><small class="text-muted d-block">' +
-                        escapeHtml(label) + '</small><strong>' + escapeHtml(value) + '</strong></div>';
-                }
-
-                function renderDetails(data) {
-                    var components = data.salary.components.length
-                        ? data.salary.components.map(function (component) {
-                            return '<tr><td>' + escapeHtml(component.name) + '</td><td class="text-end">' + money(component.amount) + '</td></tr>';
-                        }).join('')
-                        : '<tr><td colspan="2" class="text-center text-muted">No earning components recorded.</td></tr>';
-
-                    return '<h6 class="fw-bold mb-3">Employee and Processing</h6><div class="row">' +
-                        detailItem('User Code', data.user.code) + detailItem('User Name', data.user.name) +
-                        detailItem('Aadhaar No', data.user.aadhaar_no) + detailItem('User Type', data.processing.role) +
-                        detailItem('Depo', data.processing.depot) + detailItem('Salary Period', data.processing.month + ' ' + data.processing.year) +
-                        detailItem('Salary Date', data.processing.salary_date) + detailItem('Payment Method', data.processing.payment_method) +
-                        detailItem('Status', data.processing.status) + detailItem('Approved By', data.processing.approved_by) +
-                        detailItem('Approved At', data.processing.approved_at) + detailItem('Remarks', data.processing.remarks) +
-                        '</div><hr><h6 class="fw-bold mb-3">Attendance</h6><div class="row">' +
-                        detailItem('Total Leave Taken', data.attendance.total_leave_taken) +
-                        detailItem('Unauthorized Leaves', data.attendance.unauthorized_leaves) +
-                        detailItem('Total Shifts Completed', data.attendance.total_shifts_completed) +
-                        detailItem('Total Working Days', data.attendance.total_working_days) +
-                        '</div><hr><div class="row"><div class="col-lg-6 mb-3"><h6 class="fw-bold">Earning Components</h6>' +
-                        '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Component</th><th class="text-end">Amount</th></tr></thead><tbody>' +
-                        components + '</tbody></table></div></div><div class="col-lg-6"><h6 class="fw-bold mb-3">Salary Summary</h6><div class="row">' +
-                        detailItem('Gross Salary', money(data.salary.gross_salary)) + detailItem('Incentive (Included)', money(data.salary.incentive)) +
-                        detailItem('Deduction', money(data.salary.deduction)) + detailItem('LOP', money(data.salary.lop)) +
-                        detailItem('Net Salary', money(data.salary.net_salary)) + '</div></div></div>';
-                }
-
-                var table = $('#salaryReportTable').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    ajax: {
-                        url: "{{ route('salary-reports.index') }}",
-                        data: function (data) {
-                            $.extend(data, filterData());
-                        }
-                    },
-                    columns: [
-                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'user_code', name: 'user_code', orderable: false, className: 'text-center' },
-                        { data: 'user_name', name: 'user_name', orderable: false, className: 'text-center' },
-                        { data: 'month_name', name: 'salaryProcessing.month', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'year', name: 'salaryProcessing.year', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'depot_name', name: 'salaryProcessing.depot.name', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'role_name', name: 'salaryProcessing.role.name', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'basic_salary', name: 'basic_salary', className: 'text-center' },
-                        { data: 'deduction', name: 'deduction', className: 'text-center' },
-                        { data: 'lop', name: 'lop', className: 'text-center' },
-                        { data: 'net_salary', name: 'net_salary', className: 'text-center' },
-                        { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
-                    ]
+                    if (button.length) {
+                        setLoading(button);
+                    }
                 });
 
-                filters.on('change', function () {
-                    table.ajax.reload();
-                });
+                $('.js-loading-link').on('click', function () {
+                    var link = this;
+                    setLoading(link);
 
-                $('#resetFilters').on('click', function () {
-                    $('#yearFilter').val(currentYear);
-                    $('#monthFilter, #depotFilter, #roleFilter').val('');
-                    table.ajax.reload();
-                });
-
-                $(document).on('click', '.view-salary', function () {
-                    $('#salaryDetailContent').html('<p class="text-center text-muted mb-0">Loading...</p>');
-                    $('#salaryDetailModal').modal('show');
-
-                    $.get($(this).data('url')).done(function (data) {
-                        $('#salaryDetailContent').html(renderDetails(data));
-                    }).fail(function () {
-                        $('#salaryDetailContent').html('<p class="text-center text-danger mb-0">Unable to load salary details.</p>');
-                    });
-                });
-
-                $('#exportSalaryReport').on('click', function () {
-                    var button = $(this);
-                    var originalText = button.text();
-                    button.prop('disabled', true).text('Exporting...');
-
-                    $.ajax({
-                        url: "{{ route('salary-reports.export') }}",
-                        type: 'GET',
-                        data: filterData(),
-                        xhrFields: { responseType: 'blob' },
-                        success: function (data, status, xhr) {
-                            var disposition = xhr.getResponseHeader('Content-Disposition') || '';
-                            var match = disposition.match(/filename="?([^";]+)"?/);
-                            var fileName = match && match[1] ? match[1] : 'salary-report.xlsx';
-                            var url = window.URL.createObjectURL(new Blob([data]));
-                            var link = document.createElement('a');
-                            link.href = url;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(link);
-                        },
-                        error: function () {
-                            showToast('error', 'Salary report export failed.');
-                        },
-                        complete: function () {
-                            button.prop('disabled', false).text(originalText);
-                        }
-                    });
-                });
-
-                $('#salaryReportFilterForm').on('submit', function (event) {
-                    event.preventDefault();
-                    table.ajax.reload();
+                    setTimeout(function () {
+                        var $link = $(link);
+                        $link.removeClass('disabled').removeAttr('aria-disabled');
+                        $link.html($link.data('original-html'));
+                    }, 3500);
                 });
             });
         </script>
@@ -249,14 +224,18 @@
             .salary-report-scroll {
                 overflow-x: auto;
                 width: 100%;
+                -webkit-overflow-scrolling: touch;
             }
 
-            .salary-report-scroll table {
-                min-width: 1350px;
+            .salary-report-table {
+                min-width: 1500px;
+                font-size: 12px;
             }
 
-            #salaryDetailModal .modal-body {
-                max-height: 75vh;
+            .salary-report-table th,
+            .salary-report-table td {
+                vertical-align: middle;
+                white-space: nowrap;
             }
         </style>
     @endsection

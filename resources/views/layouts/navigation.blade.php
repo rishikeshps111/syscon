@@ -181,14 +181,14 @@
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
                     'supervisor-management.view', 'attendance-management.view',
-                    'salary-components.view', 'salary-processing.view', 'salary-reports.view', 'role-permissions.view', 'settings.view'])
+                    'salary-components.view', 'salary-processing.view', 'salary-reports.view', 'salary-files.view', 'role-permissions.view', 'settings.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav6"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('branch-locations.view')
                                 <li>
@@ -345,15 +345,15 @@
                                     </a>
                                 </li>
                             @endcan
-                            @canany(['salary-components.view', 'salary-processing.view', 'salary-reports.view'])
+                            @canany(['salary-components.view', 'salary-processing.view', 'salary-reports.view', 'salary-files.view'])
                                 <li>
-                                    <a class="nav-link {{ request()->routeIs('salary-components.*', 'salary-processing.*', 'salary-reports.*') ? '' : 'collapsed' }}"
+                                    <a class="nav-link {{ request()->routeIs('salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*') ? '' : 'collapsed' }}"
                                         data-bs-target="#sidebarNavPayroll" data-bs-toggle="collapse" href="#">
                                         <i class="fa-solid fa-money-check-dollar mn-0"></i><span>Payroll</span><i
                                             class="bi bi-chevron-down ms-auto"></i>
                                     </a>
                                     <ul id="sidebarNavPayroll"
-                                        class="nav-content collapse sub-menu {{ request()->routeIs('salary-components.*', 'salary-processing.*', 'salary-reports.*') ? 'show' : '' }}"
+                                        class="nav-content collapse sub-menu {{ request()->routeIs('salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*') ? 'show' : '' }}"
                                         data-bs-parent="#sidebar-nav1">
                                         @can('salary-components.view')
                                             <li>
@@ -373,7 +373,7 @@
                                                 </a>
                                             </li>
                                         @endcan
-                                        {{-- @can('salary-reports.view')
+                                        @can('salary-reports.view')
                                             <li>
                                                 <a href="{{ route('salary-reports.index') }}"
                                                     class="{{ request()->routeIs('salary-reports.*') ? 'sub-active' : '' }}">
@@ -381,7 +381,16 @@
                                                         Report</span>
                                                 </a>
                                             </li>
-                                        @endcan --}}
+                                        @endcan
+                                        @can('salary-files.view')
+                                            <li>
+                                                <a href="{{ route('salary-files.index') }}"
+                                                    class="{{ request()->routeIs('salary-files.*') ? 'sub-active' : '' }}">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Salary
+                                                        Files</span>
+                                                </a>
+                                            </li>
+                                        @endcan
                                     </ul>
                                 </li>
                             @endcanany

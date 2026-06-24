@@ -56,9 +56,7 @@
                                     @endphp
                                     <tr>
                                         <td class="text-muted">{{ $loop->iteration }}</td>
-                                        <td class="{{ !empty($field['manual_formula'] ?? false) ? '' : 'text-muted' }}"
-                                            @if(!empty($field['manual_formula'] ?? false))
-                                            style="color: #dc3545 !important;" @endif>
+                                        <td class="{{ !empty($field['manual_formula'] ?? false) ? '' : 'text-muted' }}">
                                             {{ $field['label'] }}
                                         </td>
                                         <td>
@@ -113,9 +111,7 @@
                                                     @disabled($disabled)>{{ $value }}</textarea>
                                             @else
                                                 <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}"
-                                                    class="form-control" value="{{ $value }}" step="any" @disabled($disabled)
-                                                    @if(!empty($field['manual_formula'] ?? false))
-                                                    style="border-color: #dc3545 !important;" @endif>
+                                                    class="form-control" value="{{ $value }}" step="any" @disabled($disabled)>
                                             @endif
 
                                             @error($name)
@@ -240,6 +236,28 @@
                     if (socConsumption !== null && socConsumption > 0 && actualRouteKm !== null) {
                         setNumber('#run_kilometer_per_soc', actualRouteKm / socConsumption, 4);
                     }
+
+                    var dcrChargedSoc = toNumber('#dcr_charged_soc');
+                    var dcrKwh = toNumber('#dcr_kwh');
+                    var batterySizeKwh = toNumber('#battery_size_kwh');
+
+                    if (dcrChargedSoc !== null && socConsumption !== null && odometerDiff !== null && odometerDiff > 0) {
+                        setNumber('#dor_kwh_per_km_odo', (dcrChargedSoc * socConsumption) / odometerDiff / 100, 4);
+                    } else {
+                        setNumber('#dor_kwh_per_km_odo', null, 4);
+                    }
+
+                    if (dcrKwh !== null && actualRouteKm !== null && actualRouteKm > 0) {
+                        setNumber('#dor_kwh_per_km_act', dcrKwh / actualRouteKm, 4);
+                    } else {
+                        setNumber('#dor_kwh_per_km_act', null, 4);
+                    }
+
+                    if (socConsumption !== null && batterySizeKwh !== null) {
+                        setNumber('#dor_kwh', (socConsumption * batterySizeKwh) / 100, 2);
+                    } else {
+                        setNumber('#dor_kwh', null, 2);
+                    }
                 }
 
                 function readingFromFileName(fileName) {
@@ -301,7 +319,7 @@
                     }
                 }
 
-                $('#schedule_km, #route_km_loss, #schedule_trip, #actual_trip, #odometer_start_reading, #odometer_end_reading, #route_start_soc_percent, #route_end_soc_percent').on('input', refreshCalculatedFields);
+                $('#schedule_km, #route_km_loss, #schedule_trip, #actual_trip, #odometer_start_reading, #odometer_end_reading, #route_start_soc_percent, #route_end_soc_percent, #dcr_charged_soc, #dcr_kwh, #battery_size_kwh').on('input', refreshCalculatedFields);
                 $('#dor_account_responsible_id').on('change', filterKilometerReasons);
                 filterKilometerReasons();
                 refreshCalculatedFields();

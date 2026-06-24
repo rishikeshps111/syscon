@@ -1043,6 +1043,10 @@ class TripController extends Controller implements HasMiddleware
         $routeStartSoc = $this->nullableFloat($data['route_start_soc_percent'] ?? null);
         $routeEndSoc = $this->nullableFloat($data['route_end_soc_percent'] ?? null);
         $socConsumption = $this->calculatedSocConsumption($routeStartSoc, $routeEndSoc, $data['soc_consumption_on_route_percent'] ?? null);
+        $dcrKwh = $this->nullableFloat($data['dcr_kwh'] ?? null);
+        $dcrChargedSoc = $this->nullableFloat($data['dcr_charged_soc'] ?? null);
+        $batterySizeKwh = $this->nullableFloat($data['battery_size_kwh'] ?? null);
+        $dorKwh = $this->calculatedDorKwh($socConsumption, $batterySizeKwh);
 
         return [
             'depot_name' => $trip?->depot?->name,
@@ -1080,15 +1084,15 @@ class TripController extends Controller implements HasMiddleware
             'soc_consumption_on_route_percent' => $socConsumption,
             'soc_per_km' => $this->calculatedSocPerKm($socConsumption, $actualRouteKm, $data['soc_per_km'] ?? null),
             'run_kilometer_per_soc' => $this->calculatedRunKmPerSoc($actualRouteKm, $socConsumption, $data['run_kilometer_per_soc'] ?? null),
-            'dor_kwh_per_km_odo' => $this->nullableFloat($data['dor_kwh_per_km_odo'] ?? null),
-            'dor_kwh_per_km_act' => $this->nullableFloat($data['dor_kwh_per_km_act'] ?? null),
-            'dor_kwh' => $this->nullableFloat($data['dor_kwh'] ?? null),
+            'dor_kwh_per_km_odo' => $this->calculatedDorKwhPerKmOdo($dcrChargedSoc, $socConsumption, $odometerDiff),
+            'dor_kwh_per_km_act' => $this->calculatedDorKwhPerKmAct($dcrKwh, $actualRouteKm),
+            'dor_kwh' => $dorKwh,
             'dcr_kwh_per_km_odo' => $this->nullableFloat($data['dcr_kwh_per_km_odo'] ?? null),
             'dcr_kwh_per_km_act' => $this->nullableFloat($data['dcr_kwh_per_km_act'] ?? null),
-            'dcr_kwh' => $this->nullableFloat($data['dcr_kwh'] ?? null),
-            'dcr_charged_soc' => $this->nullableFloat($data['dcr_charged_soc'] ?? null),
+            'dcr_kwh' => $dcrKwh,
+            'dcr_charged_soc' => $dcrChargedSoc,
             'energy_absorption' => $this->nullableFloat($data['energy_absorption'] ?? null),
-            'battery_size_kwh' => $this->nullableFloat($data['battery_size_kwh'] ?? null),
+            'battery_size_kwh' => $batterySizeKwh,
             'vp1' => $this->nullableFloat($data['vp1'] ?? null),
             'vp2' => $this->nullableFloat($data['vp2'] ?? null),
             'dp' => $this->nullableFloat($data['dp'] ?? null),
@@ -1219,11 +1223,11 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'SOC Consumption On Route %', 'name' => 'soc_consumption_on_route_percent', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_consumption_on_route_percent']],
             ['label' => 'SOC Per KM', 'name' => 'soc_per_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_per_km']],
             ['label' => 'Run Kilometer Per SOC', 'name' => 'run_kilometer_per_soc', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['run_kilometer_per_soc']],
-            ['label' => 'DOR KWh/km (odo)', 'name' => 'dor_kwh_per_km_odo', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dor_kwh_per_km_odo']],
-            ['label' => 'DOR KWH/KM (ACT)', 'name' => 'dor_kwh_per_km_act', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dor_kwh_per_km_act']],
+            ['label' => 'DOR KWh/km (odo)', 'name' => 'dor_kwh_per_km_odo', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['dor_kwh_per_km_odo']],
+            ['label' => 'DOR KWH/KM (ACT)', 'name' => 'dor_kwh_per_km_act', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['dor_kwh_per_km_act']],
             ['label' => 'DCR KWh/km (odo)', 'name' => 'dcr_kwh_per_km_odo', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dcr_kwh_per_km_odo']],
             ['label' => 'DCR KWH/KM (ACT)', 'name' => 'dcr_kwh_per_km_act', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dcr_kwh_per_km_act']],
-            ['label' => 'DOR KWH', 'name' => 'dor_kwh', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dor_kwh']],
+            ['label' => 'DOR KWH', 'name' => 'dor_kwh', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['dor_kwh']],
             ['label' => 'DCR KWH', 'name' => 'dcr_kwh', 'type' => 'number', 'manual_formula' => true, 'value' => $saved?->dcr_kwh],
             ['label' => 'DCR Charged SOC', 'name' => 'dcr_charged_soc', 'type' => 'number', 'manual_formula' => true, 'value' => $saved?->dcr_charged_soc],
             ['label' => 'Energy Absorption', 'name' => 'energy_absorption', 'type' => 'number', 'manual_formula' => true, 'value' => $values['energy_absorption']],
@@ -1307,6 +1311,33 @@ class TripController extends Controller implements HasMiddleware
         }
 
         return $this->nullableFloat($fallback);
+    }
+
+    private function calculatedDorKwhPerKmOdo(?float $dcrChargedSoc, ?float $socConsumption, ?float $odometerDiff): ?float
+    {
+        if ($dcrChargedSoc !== null && $socConsumption !== null && $odometerDiff !== null && $odometerDiff > 0) {
+            return ($dcrChargedSoc * $socConsumption) / $odometerDiff / 100;
+        }
+
+        return null;
+    }
+
+    private function calculatedDorKwhPerKmAct(?float $dcrKwh, ?float $actualRouteKm): ?float
+    {
+        if ($dcrKwh !== null && $actualRouteKm !== null && $actualRouteKm > 0) {
+            return $dcrKwh / $actualRouteKm;
+        }
+
+        return null;
+    }
+
+    private function calculatedDorKwh(?float $socConsumption, ?float $batterySizeKwh): ?float
+    {
+        if ($socConsumption !== null && $batterySizeKwh !== null) {
+            return ($socConsumption * $batterySizeKwh) / 100;
+        }
+
+        return null;
     }
 
     private function dorPreviewGroups(TripSheetEntryDor $dor): array

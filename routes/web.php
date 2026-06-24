@@ -42,6 +42,7 @@ use App\Http\Controllers\RouteAssignmentController;
 use App\Http\Controllers\RouteScheduleController;
 use App\Http\Controllers\RouteStopController;
 use App\Http\Controllers\SalaryComponentController;
+use App\Http\Controllers\SalaryFilesController;
 use App\Http\Controllers\SalaryProcessingController;
 use App\Http\Controllers\SalaryReportController;
 use App\Http\Controllers\ServiceTypeController;
@@ -392,7 +393,12 @@ Route::middleware('auth')->group(function () {
     Route::resource('salary-processing', SalaryProcessingController::class)->except(['show']);
     Route::get('/salary-reports', [SalaryReportController::class, 'index'])->name('salary-reports.index');
     Route::get('/salary-reports/export', [SalaryReportController::class, 'export'])->name('salary-reports.export');
+    Route::get('/salary-reports/pdf', [SalaryReportController::class, 'pdf'])->name('salary-reports.pdf');
+    Route::post('/salary-reports/send-mail', [SalaryReportController::class, 'sendMail'])->name('salary-reports.send-mail');
     Route::get('/salary-reports/{salaryProcessingItem}', [SalaryReportController::class, 'show'])->name('salary-reports.show');
+    Route::get('/salary-files', [SalaryFilesController::class, 'index'])->name('salary-files.index');
+    Route::get('/salary-files/{salaryProcessing}/excel', [SalaryFilesController::class, 'excel'])->name('salary-files.excel');
+    Route::get('/salary-files/{salaryProcessing}/pdf', [SalaryFilesController::class, 'pdf'])->name('salary-files.pdf');
 
     Route::get('/role-permissions', [RolePermissionController::class, 'index'])
         ->name('role-permissions.index');

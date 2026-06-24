@@ -3,18 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Exports\SalaryReportExport;
+use App\Mail\SalaryReportMail;
 use App\Models\Attendance;
 use App\Models\Depot;
+use App\Models\SalaryProcessing;
 use App\Models\SalaryProcessingItem;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Models\Role;
-use Yajra\DataTables\Facades\DataTables;
 
 class SalaryReportController extends Controller implements HasMiddleware
 {
@@ -22,48 +23,19 @@ class SalaryReportController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('salary-reports.view'), ['index', 'show', 'export']),
+            new Middleware(PermissionMiddleware::using('salary-reports.view'), ['index', 'show', 'export', 'pdf', 'sendMail']),
         ];
     }
 
     public function index(Request $request)
     {
-        $filters = $this->validatedFilters($request);
+        $filters = $this->validatedFilters($request, $request->boolean('generate'));
+        $report = $this->hasCompleteFilters($filters) ? $this->reportData($filters) : null;
 
-        if ($request->ajax()) {
-            return DataTables::of($this->query($filters))
-                ->addIndexColumn()
-                ->addColumn('user_name', fn (SalaryProcessingItem $item) => $item->user?->name ?: '-')
-                ->addColumn('user_code', fn (SalaryProcessingItem $item) => $item->user?->code ?: '-')
-                ->addColumn('month_name', fn (SalaryProcessingItem $item) => Carbon::create(null, $item->salaryProcessing->month, 1)->format('F'))
-                ->addColumn('year', fn (SalaryProcessingItem $item) => $item->salaryProcessing->year)
-                ->addColumn('depot_name', fn (SalaryProcessingItem $item) => $item->salaryProcessing->depot?->name ?: '-')
-                ->addColumn('role_name', fn (SalaryProcessingItem $item) => $item->salaryProcessing->role?->name ?: '-')
-                ->editColumn('basic_salary', fn (SalaryProcessingItem $item) => number_format((float) $item->basic_salary, 2))
-                ->editColumn('deduction', fn (SalaryProcessingItem $item) => number_format((float) $item->deduction, 2))
-                ->editColumn('lop', fn (SalaryProcessingItem $item) => number_format((float) $item->lop, 2))
-                ->editColumn('net_salary', fn (SalaryProcessingItem $item) => number_format((float) $item->net_salary, 2))
-                ->addColumn('status', function (SalaryProcessingItem $item) {
-                    $status = $item->salaryProcessing->status;
-                    $class = $status === 'Approved' ? 'status-green' : 'status-yellow';
-
-                    return '<span class="' . $class . '">' . e($status) . '</span>';
-                })
-                ->addColumn('action', fn (SalaryProcessingItem $item) => '<button type="button" class="btn-nowrap btn-cstm border-0 view-salary" data-url="' . route('salary-reports.show', $item) . '">View</button>')
-                ->filterColumn('user_name', fn (Builder $query, string $keyword) => $query->whereHas('user', fn (Builder $userQuery) => $userQuery->where('name', 'like', "%{$keyword}%")))
-                ->filterColumn('user_code', fn (Builder $query, string $keyword) => $query->whereHas('user', fn (Builder $userQuery) => $userQuery->where('code', 'like', "%{$keyword}%")))
-                ->rawColumns(['status', 'action'])
-                ->make(true);
-        }
-
-        return view('salary-report.index', [
+        return view('salary-report.index', $this->commonData() + [
             'filters' => $filters,
-            'years' => range((int) date('Y'), (int) date('Y') - 5),
-            'months' => collect(range(1, 12))->mapWithKeys(fn ($month) => [
-                $month => Carbon::create(null, $month, 1)->format('F'),
-            ])->all(),
-            'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'roles' => Role::whereIn('name', array_keys(Attendance::ROLES))->orderBy('name')->get(['id', 'name']),
+            'report' => $report,
+            'mailTo' => config('mail.salary_report_to'),
         ]);
     }
 
@@ -109,45 +81,212 @@ class SalaryReportController extends Controller implements HasMiddleware
 
     public function export(Request $request)
     {
-        $filters = $this->validatedFilters($request);
-        $suffix = collect([$filters['year'], $filters['month'] ?: null])->filter()->implode('-');
+        $filters = $this->validatedFilters($request, true);
+        $report = $this->reportData($filters);
 
-        return Excel::download(
-            new SalaryReportExport($this->query($filters)),
-            "salary-report-{$suffix}.xlsx"
-        );
+        return Excel::download(new SalaryReportExport($report), $this->fileName($report, 'xlsx'));
     }
 
-    private function validatedFilters(Request $request): array
+    public function pdf(Request $request)
     {
+        $filters = $this->validatedFilters($request, true);
+        $report = $this->reportData($filters);
+        $pdf = $this->buildPdf($report);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $this->fileName($report, 'pdf') . '"',
+        ]);
+    }
+
+    public function sendMail(Request $request)
+    {
+        $filters = $this->validatedFilters($request, true);
+        $report = $this->reportData($filters);
+        $pdf = $this->buildPdf($report);
+        $to = config('mail.salary_report_to');
+
+        Mail::to($to)->send(new SalaryReportMail(
+            period: $this->periodLabel($report),
+            depot: $report['depot']?->name ?? '-',
+            role: $report['role']?->name ?? '-',
+            pdfContent: $pdf,
+            fileName: $this->fileName($report, 'pdf'),
+        ));
+
+        return redirect()
+            ->route('salary-reports.index', $filters + ['generate' => 1])
+            ->with('success', "Salary report PDF sent to {$to}.");
+    }
+
+    private function validatedFilters(Request $request, bool $required): array
+    {
+        $presence = $required ? 'required' : 'nullable';
         $validated = $request->validate([
-            'year' => ['nullable', 'integer', 'between:2000,2100'],
-            'month' => ['nullable', 'integer', 'between:1,12'],
-            'depot_id' => ['nullable', 'integer', 'exists:depots,id'],
-            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+            'year' => [$presence, 'integer', 'between:2000,2100'],
+            'month' => [$presence, 'integer', 'between:1,12'],
+            'depot_id' => [$presence, 'integer', 'exists:depots,id'],
+            'role_id' => [$presence, 'integer', 'exists:roles,id'],
         ]);
 
         return [
-            'year' => (int) ($validated['year'] ?? date('Y')),
+            'year' => isset($validated['year']) ? (int) $validated['year'] : (int) date('Y'),
             'month' => isset($validated['month']) ? (int) $validated['month'] : null,
             'depot_id' => isset($validated['depot_id']) ? (int) $validated['depot_id'] : null,
             'role_id' => isset($validated['role_id']) ? (int) $validated['role_id'] : null,
         ];
     }
 
-    private function query(array $filters): Builder
+    private function reportData(array $filters): array
     {
-        return SalaryProcessingItem::query()
-            ->with(['user', 'salaryProcessing.depot', 'salaryProcessing.role', 'salaryProcessing.approver'])
-            ->whereHas('salaryProcessing', function (Builder $query) use ($filters) {
-                $query->where('year', $filters['year']);
+        $processing = SalaryProcessing::with(['depot', 'role', 'approver', 'items.user'])
+            ->where($filters)
+            ->whereIn('status', ['Completed', 'Approved'])
+            ->first();
 
-                foreach (['month', 'depot_id', 'role_id'] as $field) {
-                    if ($filters[$field]) {
-                        $query->where($field, $filters[$field]);
-                    }
-                }
-            })
-            ->latest('salary_processing_items.id');
+        $items = $processing
+            ? $processing->items->sortBy(fn(SalaryProcessingItem $item) => $item->user?->name ?? '')->values()
+            : collect();
+
+        $componentNames = $items
+            ->flatMap(fn(SalaryProcessingItem $item) => collect($item->salary_split ?: [])->where('type', 'earning')->pluck('name'))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        return [
+            'filters' => $filters,
+            'processing' => $processing,
+            'items' => $items,
+            'componentNames' => $componentNames,
+            'monthName' => $filters['month'] ? Carbon::create(null, $filters['month'], 1)->format('F') : '-',
+            'year' => $filters['year'],
+            'depot' => $processing?->depot ?: Depot::find($filters['depot_id']),
+            'role' => $processing?->role ?: Role::find($filters['role_id']),
+        ];
+    }
+
+    private function commonData(): array
+    {
+        return [
+            'years' => range((int) date('Y'), (int) date('Y') - 5),
+            'months' => collect(range(1, 12))->mapWithKeys(fn($month) => [
+                $month => Carbon::create(null, $month, 1)->format('F'),
+            ])->all(),
+            'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'roles' => Role::whereIn('name', array_keys(Attendance::ROLES))->orderBy('name')->get(['id', 'name']),
+        ];
+    }
+
+    private function hasCompleteFilters(array $filters): bool
+    {
+        return $filters['year'] && $filters['month'] && $filters['depot_id'] && $filters['role_id'];
+    }
+
+    private function fileName(array $report, string $extension): string
+    {
+        return $this->fileBaseName($report) . ".{$extension}";
+    }
+
+    private function fileBaseName(array $report): string
+    {
+        $depot = $report['depot']?->short_name
+            ?: $report['depot']?->code
+            ?: $report['depot']?->name
+            ?: 'Depot';
+        $month = $report['monthName'] ?: 'Month';
+        $year = $report['year'] ?: date('Y');
+        $role = $report['role']?->name ?: 'Role';
+
+        $depot = str($depot)->replaceMatches('/[^A-Za-z0-9]/', '')->toString();
+        $month = str($month)->replaceMatches('/[^A-Za-z0-9]/', '')->toString();
+        $role = str($role)->replaceMatches('/[^A-Za-z0-9]/', '')->headline()->replace(' ', '')->toString();
+
+        return "{$depot}{$month}{$year}_{$role}";
+    }
+
+    private function periodLabel(array $report): string
+    {
+        return $report['monthName'] . ' ' . $report['year'];
+    }
+
+    private function money(mixed $value): string
+    {
+        return number_format((float) $value, 2);
+    }
+
+    private function buildPdf(array $report): string
+    {
+        $lines = [
+            'SYSCON Salary Report',
+            'Period: ' . $this->periodLabel($report),
+            'Depo: ' . ($report['depot']?->name ?? '-'),
+            'Role: ' . ($report['role']?->name ?? '-'),
+            'Generated: ' . now()->format('d-m-Y h:i A'),
+            '',
+            'SL  Code        Name                         Gross       Deduction   LOP        Net        Status',
+        ];
+
+        foreach ($report['items'] as $index => $item) {
+            $lines[] = sprintf(
+                '%-3s %-11s %-28s %10s %10s %10s %10s %s',
+                $index + 1,
+                substr((string) ($item->user?->code ?: '-'), 0, 11),
+                substr((string) ($item->user?->name ?: '-'), 0, 28),
+                $this->money($item->basic_salary),
+                $this->money($item->deduction),
+                $this->money($item->lop),
+                $this->money($item->net_salary),
+                $item->salaryProcessing?->status ?: '-'
+            );
+        }
+
+        if ($report['items']->isEmpty()) {
+            $lines[] = 'No completed salary records found for the selected filters.';
+        }
+
+        return $this->simplePdf($lines);
+    }
+
+    private function simplePdf(array $lines): string
+    {
+        $content = "%PDF-1.4\n";
+        $objects = [];
+        $stream = "BT\n/F1 9 Tf\n50 550 Td\n";
+
+        foreach ($lines as $line) {
+            $stream .= '(' . $this->pdfEscape($line) . ") Tj\n0 -15 Td\n";
+        }
+
+        $stream .= "ET";
+        $objects[] = "<< /Type /Catalog /Pages 2 0 R >>";
+        $objects[] = "<< /Type /Pages /Kids [3 0 R] /Count 1 >>";
+        $objects[] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>";
+        $objects[] = "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>";
+        $objects[] = "<< /Length " . strlen($stream) . " >>\nstream\n{$stream}\nendstream";
+
+        $offsets = [0];
+
+        foreach ($objects as $index => $object) {
+            $offsets[] = strlen($content);
+            $content .= ($index + 1) . " 0 obj\n{$object}\nendobj\n";
+        }
+
+        $xref = strlen($content);
+        $content .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+
+        foreach (array_slice($offsets, 1) as $offset) {
+            $content .= str_pad((string) $offset, 10, '0', STR_PAD_LEFT) . " 00000 n \n";
+        }
+
+        $content .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
+
+        return $content;
+    }
+
+    private function pdfEscape(string $value): string
+    {
+        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $value);
     }
 }
