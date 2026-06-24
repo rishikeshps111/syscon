@@ -286,7 +286,9 @@
                 $(document).on('click', '.view-user-details', function () {
                     var details = $(this).data('details') || {};
                     var labels = { name: 'Name', code: 'Employee Code', role: 'Role', phone: 'Phone', email: 'Email', aadhaar_number: 'Aadhaar Number', depot: 'Depot', designation: 'Designation', employment_type: 'Employment Type', joining_date: 'Joining Date' };
-                    var html = '<div class="row">' + Object.keys(labels).map(function (key) {
+                    var avatarUrl = details.avatar_url || '{{ asset('assets/img/user.png') }}';
+                    var html = '<div class="user-details-avatar-wrap"><img src="' + escapeHtml(avatarUrl) + '" alt="' + escapeHtml((details.name || 'User') + ' image') + '" class="user-details-avatar"></div>' +
+                        '<div class="row">' + Object.keys(labels).map(function (key) {
                         return '<div class="col-sm-6 mb-3"><small class="text-muted d-block">' + labels[key] + '</small><strong>' + $('<div>').text(details[key] || '-').html() + '</strong></div>';
                     }).join('') + '</div>';
                     $('#userDetailsContent').html(html);
@@ -335,6 +337,21 @@
                 display: block;
                 font-size: 11px;
                 margin: 2px auto 0;
+            }
+
+            .user-details-avatar-wrap {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+                margin-bottom: 18px;
+            }
+
+            .user-details-avatar {
+                border: 1px solid #d9dee3;
+                border-radius: 50%;
+                height: 92px;
+                object-fit: cover;
+                width: 92px;
             }
         </style>
     @endsection

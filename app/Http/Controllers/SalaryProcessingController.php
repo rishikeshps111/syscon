@@ -306,7 +306,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 };
             })
             ->orderBy('name')
-            ->get(['id', 'code', 'name', 'email', 'phone', 'country_code', 'is_active']);
+            ->get(['id', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active']);
     }
 
     private function salarySplit(User $user): array
@@ -361,6 +361,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
         return [
             'name' => $user->name,
+            'avatar_url' => $user->avatar_url,
             'code' => $user->code ?: '-',
             'role' => $roleName,
             'phone' => $user->full_phone ?: '-',
