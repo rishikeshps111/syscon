@@ -1,4 +1,9 @@
 <header id="header" class="header fixed-top header-blur ">
+    @php
+        $chatUnreadCount = auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Staff'])
+            ? app(\App\Http\Controllers\ChatController::class)->unreadCountFor(auth()->user())
+            : 0;
+    @endphp
     <div class="header-top-cs">
         <div class="header-section-right" style="justify-content: flex-start;">
             <div class="digital-time-container">
@@ -12,7 +17,14 @@
             </div>
         </div>
         <div class="header-section-right">
-            <a href="#"><i class="fa-regular fa-bell"></i></a>
+            @if(auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Staff']))
+                <a href="{{ route('chat.index') }}" class="chat-nav-bell" title="Chat notifications">
+                    <i class="fa-regular fa-bell"></i>
+                    <span id="chatUnreadBadge" class="chat-nav-badge {{ $chatUnreadCount ? '' : 'd-none' }}">{{ $chatUnreadCount }}</span>
+                </a>
+            @else
+                <a href="#"><i class="fa-regular fa-bell"></i></a>
+            @endif
             <div class="headertogle">
                 <i class="bi bi-list toggle-sidebar-btn"></i>
             </div>

@@ -28,3 +28,30 @@
 <link href="{{ asset('assets/css/dashboard.css') }}" rel="stylesheet">
 
 @yield('styles')
+<style>
+    .chat-nav-bell {
+        display: inline-flex;
+        position: relative;
+    }
+
+    .chat-nav-badge,
+    .chat-sidebar-badge {
+        align-items: center;
+        background: #dc3545;
+        border-radius: 999px;
+        color: #fff;
+        display: inline-flex;
+        font-size: 10px;
+        font-weight: 700;
+        height: 18px;
+        justify-content: center;
+        min-width: 18px;
+        padding: 0 5px;
+    }
+
+    .chat-nav-badge {
+        position: absolute;
+        right: -8px;
+        top: -8px;
+    }
+</style>

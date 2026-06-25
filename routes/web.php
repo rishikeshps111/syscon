@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchLocationController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ControllerDocumentController;
@@ -71,6 +72,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/remove-avatar', [ProfileController::class, 'removeAvatar'])->name('profile.remove-avatar');
+
+    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+    Route::get('/chat/unread-count', [ChatController::class, 'unreadCount'])->name('chat.unread-count');
+    Route::get('/chat/conversations/{conversation}', [ChatController::class, 'show'])->name('chat.conversations.show');
+    Route::post('/chat/messages', [ChatController::class, 'store'])->name('chat.messages.store');
+    Route::post('/chat/conversations/{conversation}/seen', [ChatController::class, 'seen'])->name('chat.conversations.seen');
 
     Route::post('/prefixes/status', [PrefixController::class, 'status'])->name('prefixes.status');
     Route::post('/prefixes/export', [PrefixController::class, 'export'])

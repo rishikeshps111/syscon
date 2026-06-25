@@ -590,6 +590,19 @@
                         </ul>
                     </li>
                 @endcanany
+                 @if(auth()->user()?->hasAnyRole(['Super Admin', 'Staff']))
+                    @php
+                        $sidebarChatUnreadCount = app(\App\Http\Controllers\ChatController::class)->unreadCountFor(auth()->user());
+                    @endphp
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('chat.*') ? '' : 'collapsed' }}"
+                            href="{{ route('chat.index') }}">
+                            <i class="fa-solid fa-comments"></i>
+                            <span>{{ auth()->user()->hasRole('Staff') ? 'Chat with Admin' : 'Chat' }}</span>
+                            <span id="chatSidebarBadge" class="chat-sidebar-badge ms-auto {{ $sidebarChatUnreadCount ? '' : 'd-none' }}">{{ $sidebarChatUnreadCount }}</span>
+                        </a>
+                    </li>
+                @endif
             </ul>
         </div>
     </div>

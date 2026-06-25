@@ -23,6 +23,93 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
 <script src="https://kit.fontawesome.com/111740f521.js" crossorigin="anonymous"></script>
 <script src="{{ asset('assets/js/common.js')}}"></script>
+@if(auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Staff']) && filled(config('broadcasting.connections.pusher.key')))
+    <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
+@endif
+<script>
+    window.updateChatUnreadBadge = function (count) {
+        count = Number(count || 0);
+        $('#chatUnreadBadge, #chatSidebarBadge')
+            .toggleClass('d-none', count <= 0)
+            .text(count);
+    };
+
+    window.playChatBeep = function () {
+        try {
+            var soundUrl = @json(asset('assets/audio/chat-notification.mp3'));
+
+            if (!window.chatNotificationAudio) {
+                window.chatNotificationAudio = new Audio(soundUrl);
+                window.chatNotificationAudio.preload = 'auto';
+            }
+
+            window.chatNotificationAudio.currentTime = 0;
+            window.chatNotificationAudio.play().catch(function () {
+                window.playFallbackChatBeep();
+            });
+        } catch (error) {
+            window.playFallbackChatBeep();
+        }
+    };
+
+    window.playFallbackChatBeep = function () {
+        try {
+            var AudioContext = window.AudioContext || window.webkitAudioContext;
+
+            if (!AudioContext) {
+                return;
+            }
+
+            var context = new AudioContext();
+            var oscillator = context.createOscillator();
+            var gain = context.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, context.currentTime);
+            gain.gain.setValueAtTime(0.001, context.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.18);
+
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.start(context.currentTime);
+            oscillator.stop(context.currentTime + 0.2);
+        } catch (error) {
+            // Browsers may block audio until the user interacts with the page.
+        }
+    };
+</script>
+@if(auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Staff']) && filled(config('broadcasting.connections.pusher.key')))
+    <script>
+        $(function () {
+            var currentChatUserId = {{ auth()->id() }};
+            var globalPusher = new Pusher(@json(config('broadcasting.connections.pusher.key')), {
+                cluster: @json(config('broadcasting.connections.pusher.options.cluster') ?: 'mt1'),
+                channelAuthorization: {
+                    endpoint: '/broadcasting/auth',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                }
+            });
+            var globalChannelName = @json(auth()->user()->hasRole('Super Admin') ? 'private-chat.admin' : 'private-chat.user.' . auth()->id());
+            var globalChannel = globalPusher.subscribe(globalChannelName);
+
+            function refreshGlobalChatCount() {
+                $.get(@json(route('chat.unread-count'))).done(function (response) {
+                    window.updateChatUnreadBadge(response.count || 0);
+                });
+            }
+
+            globalChannel.bind('message.sent', function (data) {
+                if (Number(data.message?.sender_id) !== currentChatUserId) {
+                    window.playChatBeep();
+                }
+
+                refreshGlobalChatCount();
+            });
+            globalChannel.bind('messages.seen', refreshGlobalChatCount);
+        });
+    </script>
+@endif
 
 @yield('scripts')
 
