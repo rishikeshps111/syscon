@@ -8,15 +8,15 @@ class PermissionRedirect
 {
     public static function routeNameFor(User $user): string
     {
-        if ($user->hasRole('Super Admin')) {
-            return 'dashboard';
-        }
+        // if ($user->hasRole('Super Admin')) {
+        //     return 'dashboard';
+        // }
 
-        foreach (self::routes() as $permission => $route) {
-            if ($user->can($permission)) {
-                return $route;
-            }
-        }
+        // foreach (self::routes() as $permission => $route) {
+        //     if ($user->can($permission)) {
+        //         return $route;
+        //     }
+        // }
 
         return 'dashboard';
     }

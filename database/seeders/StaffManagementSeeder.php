@@ -17,7 +17,9 @@ class StaffManagementSeeder extends Seeder
      */
     public function run(): void
     {
-        $designation = Designation::where('name', 'Operations Supervisor')->first()
+        $designation = Designation::where('name', 'Operations')->first()
+            ?? Designation::query()->first();
+        $designationTwo = Designation::where('name', 'HR')->first()
             ?? Designation::query()->first();
         $location = Location::query()->with(['state', 'district'])->first();
         $depots = Depot::where('is_active', true)->orderBy('id')->get(['id']);
@@ -28,8 +30,8 @@ class StaffManagementSeeder extends Seeder
 
         $records = [
             [
-                'name' => 'Arun Kumar',
-                'email' => 'arun.staff@example.com',
+                'name' => 'Sachin',
+                'email' => 'sachin@gmail.com',
                 'country_code' => '+91',
                 'phone' => '9876543210',
                 'designation_id' => $designation->id,
@@ -57,11 +59,11 @@ class StaffManagementSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Meera Nair',
-                'email' => 'meera.staff@example.com',
+                'name' => 'Divya',
+                'email' => 'divya@gmail.com',
                 'country_code' => '+91',
                 'phone' => '9876543211',
-                'designation_id' => $designation->id,
+                'designation_id' => $designationTwo->id,
                 'category' => 'skilled',
                 'employment_type' => 'full_time',
                 'father_name' => 'Suresh Nair',

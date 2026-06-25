@@ -184,13 +184,27 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Leave Type', 'permissions' => $this->crud('leave-types')],
                     ['label' => 'Shift Setting', 'permissions' => $this->crud('shift-settings')],
                     ['label' => 'Holiday', 'permissions' => $this->crud('holidays')],
-                    ['label' => 'Salary Components', 'permissions' => $this->crud('salary-components')],
                     ['label' => 'Staff Management', 'permissions' => $this->crud('staff-management')],
                     ['label' => 'Driver Management', 'permissions' => $this->crud('driver-management')],
                     ['label' => 'Controller Management', 'permissions' => $this->crud('controller-management')],
                     ['label' => 'Supervisor Management', 'permissions' => $this->crud('supervisor-management')],
                     ['label' => 'Leave Management', 'permissions' => $this->crud('leaves')],
                     ['label' => 'Attendance Management', 'permissions' => $this->crud('attendance-management')],
+                ],
+            ],
+            [
+                'label' => 'Payroll',
+                'children' => [
+                    ['label' => 'Salary Components', 'permissions' => $this->crud('salary-components')],
+                    ['label' => 'Salary Processing', 'permissions' => [
+                        'salary-processing.view',
+                        'salary-processing.create',
+                        'salary-processing.edit',
+                        'salary-processing.delete',
+                        'salary-processing.approve',
+                    ]],
+                    ['label' => 'Salary Reports', 'permissions' => ['salary-reports.view']],
+                    ['label' => 'Salary Files', 'permissions' => ['salary-files.view']],
                 ],
             ],
             [

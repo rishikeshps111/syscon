@@ -154,6 +154,13 @@ class PermissionSeeder extends Seeder
                 'salary-components.delete',
                 'salary-components.view',
             ],
+            'Salary Processing' => [
+                'salary-processing.create',
+                'salary-processing.edit',
+                'salary-processing.delete',
+                'salary-processing.view',
+                'salary-processing.approve',
+            ],
             'Salary Reports' => [
                 'salary-reports.view',
             ],
