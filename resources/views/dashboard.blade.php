@@ -15,7 +15,7 @@
         <div class="row">
             @forelse($cards as $card)
                 <div class="col-lg-4 mb-3">
-                    <a href="{{ route($card['route']) }}" class="card-dashboard-widget {{ $card['class'] }} d-flex text-decoration-none">
+                    <a href="{{ route($card['route'], $card['route_params'] ?? []) }}" class="card-dashboard-widget {{ $card['class'] }} d-flex text-decoration-none">
                         <div class="card-dashboard-widget-icon">
                             <i class="{{ $card['icon'] }}"></i>
                         </div>

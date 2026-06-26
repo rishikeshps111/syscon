@@ -6,6 +6,10 @@
             width: '100%'
         });
 
+        if ($('#expiryFilter').val()) {
+            $('#filterCollapse').collapse('show');
+        }
+
         var table = $('#table').DataTable({
             processing: true,
             serverSide: true,

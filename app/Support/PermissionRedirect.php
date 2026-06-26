@@ -42,6 +42,7 @@ class PermissionRedirect
             'salary-components.view' => 'salary-components.index',
             'salary-processing.view' => 'salary-processing.index',
             'salary-files.view' => 'salary-files.index',
+            'salary-slips.view' => 'salary-slips.index',
             'role-permissions.view' => 'role-permissions.index',
             'hrms-document-types.view' => 'hrms-document-types.index',
             'leave-types.view' => 'leave-types.index',

@@ -14,7 +14,6 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Yajra\DataTables\Facades\DataTables;
 
 class DorReportController extends Controller implements HasMiddleware
 {
@@ -29,21 +28,26 @@ class DorReportController extends Controller implements HasMiddleware
     public function index(Request $request)
     {
         $filters = $this->validatedFilters($request);
+        $selectedColumns = $this->selectedColumns($filters['columns'] ?? []);
 
-        if ($request->ajax()) {
-            return DataTables::of($this->query($filters))
-                ->addIndexColumn()
-                ->addColumn('trip_sheet_code', fn (TripSheetEntryDor $dor) => $dor->tripSheetEntry?->sheet?->code ?: '-')
-                ->addColumn('sheet_date', fn (TripSheetEntryDor $dor) => $dor->tripSheetEntry?->sheet?->date?->format('d M Y') ?: ($dor->dor_date?->format('d M Y') ?: '-'))
-                ->addColumn('side', fn (TripSheetEntryDor $dor) => ucfirst((string) ($dor->tripSheetEntry?->side ?: $dor->shift)) ?: '-')
-                ->addColumn('depot_name', fn (TripSheetEntryDor $dor) => $dor->depot_name ?: ($dor->tripSheetEntry?->sheet?->trip?->depot?->name ?: '-'))
-                ->addColumn('vehicle_no', fn (TripSheetEntryDor $dor) => $this->vehicleNo($dor))
-                ->addColumn('driver', fn (TripSheetEntryDor $dor) => $this->driverName($dor))
-                ->make(true);
+        if ($request->ajax() && $request->boolean('generate')) {
+            $report = $this->reportData($filters, $selectedColumns);
+
+            return response()->json([
+                'success' => $report['rows']->isNotEmpty(),
+                'html' => view('reports.partials.dor-report-table', $report)->render(),
+                'message' => $report['rows']->isNotEmpty()
+                    ? 'DOR report generated successfully.'
+                    : 'No DOR records found for the selected filters.',
+                'download_excel_url' => route('reports.dor.export', $filters + ['columns' => $selectedColumns]),
+                'filters' => $filters,
+            ]);
         }
 
         return view('reports.dor', [
             'filters' => $filters,
+            'dorColumns' => $this->dorColumns(),
+            'selectedColumns' => $selectedColumns,
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'trips' => Trip::orderBy('code')->orderBy('title')->get(['id', 'code', 'title', 'route_id']),
             'vehicles' => Vehicle::orderBy('vehicle_no')->get(['id', 'vehicle_no']),
@@ -54,11 +58,12 @@ class DorReportController extends Controller implements HasMiddleware
     public function export(Request $request)
     {
         $filters = $this->validatedFilters($request);
+        $selectedColumns = $this->selectedColumns($filters['columns'] ?? []);
         $from = $filters['date_from'] ?? 'all';
         $to = $filters['date_to'] ?? 'all';
 
         return Excel::download(
-            new DorReportExport($this->query($filters)),
+            new DorReportExport($this->query($filters), $this->reportColumns($selectedColumns)),
             "dor-report-{$from}-{$to}.xlsx"
         );
     }
@@ -72,6 +77,8 @@ class DorReportController extends Controller implements HasMiddleware
             'trip_id' => ['nullable', 'integer', 'exists:trips,id'],
             'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
             'driver_profile_id' => ['nullable', 'integer', 'exists:driver_profiles,id'],
+            'columns' => ['nullable', 'array'],
+            'columns.*' => ['string'],
         ]);
     }
 
@@ -153,5 +160,143 @@ class DorReportController extends Controller implements HasMiddleware
         $driver = $entry?->driverProfile ?: $assignment?->driverProfile;
 
         return $driver?->user?->name ?: ($dor->driver_badge_no ?: '-');
+    }
+
+    private function reportData(array $filters, array $selectedColumns): array
+    {
+        $columns = $this->reportColumns($selectedColumns);
+        $rows = $this->query($filters)
+            ->get()
+            ->values()
+            ->map(fn (TripSheetEntryDor $dor, int $index) => $this->rowData($dor, $index, $columns));
+
+        return [
+            'columns' => $columns,
+            'rows' => $rows,
+        ];
+    }
+
+    public function rowData(TripSheetEntryDor $dor, int $index, array $columns): array
+    {
+        $data = [
+            'sl_no' => $index + 1,
+            'trip_sheet_code' => $dor->tripSheetEntry?->sheet?->code ?: '-',
+            'sheet_date' => $dor->tripSheetEntry?->sheet?->date?->format('d-m-Y') ?: ($dor->dor_date?->format('d-m-Y') ?: '-'),
+            'side' => ucfirst((string) ($dor->tripSheetEntry?->side ?: $dor->shift)) ?: '-',
+            'report_depot_name' => $dor->depot_name ?: ($dor->tripSheetEntry?->sheet?->trip?->depot?->name ?: '-'),
+            'vehicle_no' => $this->vehicleNo($dor),
+            'driver' => $this->driverName($dor),
+        ];
+
+        foreach ($this->dorColumns() as $key => $label) {
+            $value = $dor->{$key};
+
+            if ($value instanceof \Carbon\CarbonInterface) {
+                $value = $value->format(str_contains($key, '_at') ? 'd-m-Y H:i:s' : 'd-m-Y');
+            } elseif (is_bool($value)) {
+                $value = $value ? 'Yes' : 'No';
+            } elseif (is_string($value) && str_contains($key, '_time')) {
+                $value = substr($value, 0, 5);
+            }
+
+            $data[$key] = filled($value) ? $value : '-';
+        }
+
+        return collect($columns)
+            ->mapWithKeys(fn (string $label, string $key) => [$key => $data[$key] ?? '-'])
+            ->all();
+    }
+
+    private function reportColumns(array $selectedColumns): array
+    {
+        return $this->baseColumns() + collect($this->dorColumns())
+            ->only($selectedColumns)
+            ->all();
+    }
+
+    private function selectedColumns(array $columns): array
+    {
+        return collect($columns)
+            ->filter(fn ($column) => is_string($column) && array_key_exists($column, $this->dorColumns()))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function baseColumns(): array
+    {
+        return [
+            'sl_no' => 'SL No',
+            'trip_sheet_code' => 'Trip Sheet Code',
+            'sheet_date' => 'Date',
+            'side' => 'Side',
+            'report_depot_name' => 'Depot Name',
+            'vehicle_no' => 'Vehicle No',
+            'driver' => 'Driver',
+        ];
+    }
+
+    private function dorColumns(): array
+    {
+        return [
+            'id' => 'DOR ID',
+            'trip_sheet_entry_id' => 'Trip Sheet Entry ID',
+            'depot_name' => 'DOR Depot Name',
+            'dor_date' => 'DOR Date',
+            'bus_no' => 'Bus No',
+            'route_no' => 'Route No',
+            'duty' => 'Duty',
+            'shift' => 'Shift',
+            'driver_badge_no' => 'Driver Badge No',
+            'schedule_start_time' => 'Schedule Start Time',
+            'schedule_end_time' => 'Schedule End Time',
+            'actual_start_time' => 'Actual Start Time',
+            'actual_end_time' => 'Actual End Time',
+            'start_punc' => 'Start Punc',
+            'route_completion_time' => 'Route Completion Time',
+            'schedule_km' => 'Schedule Km',
+            'route_km_loss' => 'Route Km Loss',
+            'actual_route_km' => 'Actual Route Km',
+            'schedule_trip' => 'Schedule Trip',
+            'actual_trip' => 'Actual Trip',
+            'miss_trip' => 'Miss Trip',
+            'odometer_start_reading' => 'Odometer Start Reading',
+            'odometer_start_image_path' => 'Odometer Start Image Path',
+            'odometer_end_reading' => 'Odometer End Reading',
+            'odometer_end_image_path' => 'Odometer End Image Path',
+            'odometer_diff_km' => 'Odometer Diff Km',
+            'difference' => 'Difference',
+            'dor_account_responsible_id' => 'DOR Account Responsible ID',
+            'account_responsible' => 'Account Responsible',
+            'dor_kilometer_loss_reason_id' => 'DOR Kilometer Loss Reason ID',
+            'reason_for_kilometer_loss' => 'Reason For Kilometer Loss',
+            'after_sales_reason' => 'After Sales Reason',
+            'penalty_infraction' => 'Penalty Infraction',
+            'remarks' => 'Remarks',
+            'route_start_soc_percent' => 'Route Start SOC Percent',
+            'route_end_soc_percent' => 'Route End SOC Percent',
+            'soc_consumption_on_route_percent' => 'SOC Consumption On Route Percent',
+            'soc_per_km' => 'SOC Per KM',
+            'run_kilometer_per_soc' => 'Run Kilometer Per SOC',
+            'dor_kwh_per_km_odo' => 'DOR KWh Per KM Odo',
+            'dor_kwh_per_km_act' => 'DOR KWh Per KM Act',
+            'dor_kwh' => 'DOR KWh',
+            'dcr_kwh_per_km_odo' => 'DCR KWh Per KM Odo',
+            'dcr_kwh_per_km_act' => 'DCR KWh Per KM Act',
+            'dcr_kwh' => 'DCR KWh',
+            'dcr_charged_soc' => 'DCR Charged SOC',
+            'energy_absorption' => 'Energy Absorption',
+            'battery_size_kwh' => 'Battery Size KWh',
+            'vp1' => 'VP1',
+            'vp2' => 'VP2',
+            'dp' => 'DP',
+            'penalty' => 'Penalty',
+            'model_9m_12m' => 'Model 9M/12M',
+            'is_completed' => 'Is Completed',
+            'created_by' => 'Created By',
+            'updated_by' => 'Updated By',
+            'created_at' => 'Created At',
+            'updated_at' => 'Updated At',
+        ];
     }
 }

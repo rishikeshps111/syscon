@@ -205,6 +205,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ]],
                     ['label' => 'Salary Reports', 'permissions' => ['salary-reports.view']],
                     ['label' => 'Salary Files', 'permissions' => ['salary-files.view']],
+                    ['label' => 'Generate Pay Slip', 'permissions' => ['salary-slips.view']],
                 ],
             ],
             [

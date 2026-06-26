@@ -18,6 +18,7 @@
             <div class="col-lg-12">
                 <div class="main-table-container">
                     <form id="dorReportFilterForm" action="{{ route('reports.dor.index') }}" method="GET">
+                        <input type="hidden" name="generate" value="1">
                         <div class="row align-items-end">
                             <div class="col-lg-2 col-md-4 mb-3">
                                 <div class="o-f-inp">
@@ -87,30 +88,82 @@
                                     @error('driver_profile_id')<span class="text-danger">{{ $message }}</span>@enderror
                                 </div>
                             </div>
+                            <div class="col-lg-6 col-md-8 mb-3">
+                                <div class="o-f-inp">
+                                    <label>DOR Columns</label>
+                                    <div id="selectedDorColumnsInputs"></div>
+                                    <div class="dor-column-picker">
+                                        <div>
+                                            <strong id="selectedDorColumnsCount">{{ count($selectedColumns) ?: count($dorColumns) }}</strong>
+                                            <span>columns selected</span>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                            data-bs-target="#dorColumnModal">
+                                            Choose Columns
+                                        </button>
+                                    </div>
+                                    <div id="selectedDorColumnsPreview" class="dor-column-preview"></div>
+                                </div>
+                            </div>
                             <div class="col-lg-12 mb-3">
-                                <div class="filter-btns-top justify-content-start">
-                                    <button type="button" id="resetFilters" class="reset-btn border-0">Reset</button>
-                                    <button type="button" id="exportDorReport" class="exp-btn">Export</button>
+                                <div class="filter-btns-top justify-content-end">
+                                    <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
+                                    <button type="submit" class="btn btn-primary" data-loading-text="Generating...">Generate Report</button>
                                 </div>
                             </div>
                         </div>
                     </form>
 
-                    <div class="table-over mt-3">
-                        <table id="dorReportTable" class="align-middle mb-0 table tble-cstm bg-transparent">
-                            <thead>
-                                <tr class="payroll-table">
-                                    <th class="text-center nowrap">SL No</th>
-                                    <th class="text-center nowrap">Trip Sheet Code</th>
-                                    <th class="text-center nowrap">Date</th>
-                                    <th class="text-center nowrap">Side</th>
-                                    <th class="text-center nowrap">Depot Name</th>
-                                    <th class="text-center nowrap">Vehicle No</th>
-                                    <th class="text-center nowrap">Driver</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                    <div class="text-muted small">Select filters if needed, then generate. Leave filters empty to show all DOR records.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="dorReportModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Generated DOR Report</h5>
+                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
+                            <a href="#" id="downloadDorReportExcel" class="btn btn-success disabled" aria-disabled="true"
+                                data-loading-text="Downloading...">
+                                Download Excel
+                            </a>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="dorReportModalBody">
+                        <div class="text-center py-5 text-muted">Generate a report to view details.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="dorColumnModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Choose DOR Columns</h5>
+                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
+                            <button type="button" id="checkAllDorColumns" class="btn btn-sm btn-primary">Check All</button>
+                            <button type="button" id="uncheckAllDorColumns" class="btn btn-sm btn-secondary">Uncheck All</button>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="dor-column-grid">
+                            @foreach($dorColumns as $value => $label)
+                                <label class="dor-column-option">
+                                    <input type="checkbox" class="dor-column-check" value="{{ $value }}"
+                                        data-label="{{ $label }}"
+                                        @checked(empty($selectedColumns) || in_array($value, $selectedColumns, true))>
+                                    <span>{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Apply Columns</button>
                     </div>
                 </div>
             </div>
@@ -120,6 +173,7 @@
     @section('scripts')
         <script>
             $(function () {
+                var reportModal = new bootstrap.Modal(document.getElementById('dorReportModal'));
                 var form = $('#dorReportFilterForm');
                 var filters = $('#date_from, #date_to, #depot_id, #trip_id, #vehicle_id, #driver_profile_id');
 
@@ -129,95 +183,205 @@
                     allowClear: true
                 });
 
-                var table = $('#dorReportTable').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    searching: false,
-                    ajax: {
-                        url: "{{ route('reports.dor.index') }}",
-                        data: function (data) {
-                            Object.assign(data, currentFilters());
-                        }
-                    },
-                    columns: [
-                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'trip_sheet_code', name: 'trip_sheets.code', className: 'text-center nowrap' },
-                        { data: 'sheet_date', name: 'trip_sheets.date', className: 'text-center nowrap' },
-                        { data: 'side', name: 'trip_sheet_entries.side', className: 'text-center' },
-                        { data: 'depot_name', name: 'trip_sheet_entry_dors.depot_name', className: 'text-center' },
-                        { data: 'vehicle_no', name: 'trip_sheet_entry_dors.bus_no', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'driver', name: 'trip_sheet_entry_dors.driver_badge_no', orderable: false, searchable: false, className: 'text-center' }
-                    ],
-                    order: [[2, 'desc']]
+                function syncSelectedColumns() {
+                    var selected = $('.dor-column-check:checked').map(function () {
+                        return {
+                            value: $(this).val(),
+                            label: $(this).data('label')
+                        };
+                    }).get();
+
+                    $('#selectedDorColumnsInputs').html(selected.map(function (column) {
+                        return '<input type="hidden" name="columns[]" value="' + column.value + '">';
+                    }).join(''));
+
+                    $('#selectedDorColumnsCount').text(selected.length);
+                    $('#selectedDorColumnsPreview').text(
+                        selected.length
+                            ? selected.slice(0, 8).map(function (column) { return column.label; }).join(', ') + (selected.length > 8 ? ' +' + (selected.length - 8) + ' more' : '')
+                            : 'No extra DOR columns selected'
+                    );
+                }
+
+                syncSelectedColumns();
+
+                $('.dor-column-check').on('change', syncSelectedColumns);
+
+                $('#checkAllDorColumns').on('click', function () {
+                    $('.dor-column-check').prop('checked', true);
+                    syncSelectedColumns();
                 });
 
-                filters.on('change', function () {
-                    table.ajax.reload();
+                $('#uncheckAllDorColumns').on('click', function () {
+                    $('.dor-column-check').prop('checked', false);
+                    syncSelectedColumns();
                 });
+
+                function setLoading(element, text) {
+                    var $element = $(element);
+                    var loadingText = text || $element.data('loading-text') || 'Loading...';
+
+                    if (!$element.data('original-html')) {
+                        $element.data('original-html', $element.html());
+                    }
+
+                    $element.addClass('disabled').attr('aria-disabled', 'true');
+
+                    if ($element.is('button')) {
+                        $element.prop('disabled', true);
+                    }
+
+                    $element.html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + loadingText);
+                }
+
+                function resetLoading(element) {
+                    var $element = $(element);
+
+                    $element.removeClass('disabled').removeAttr('aria-disabled');
+
+                    if ($element.is('button')) {
+                        $element.prop('disabled', false);
+                    }
+
+                    if ($element.data('original-html')) {
+                        $element.html($element.data('original-html'));
+                    }
+                }
+
+                function setDownloadState(enabled, url) {
+                    $('#downloadDorReportExcel')
+                        .toggleClass('disabled', !enabled)
+                        .attr('aria-disabled', enabled ? 'false' : 'true')
+                        .attr('href', enabled ? url : '#');
+                }
 
                 $('#resetFilters').on('click', function () {
                     filters.val('');
                     $('.select2-filter').trigger('change.select2');
-                    table.ajax.reload();
-                });
-
-                $('#exportDorReport').on('click', function () {
-                    var button = $(this);
-                    var originalText = button.text();
-
-                    button.prop('disabled', true).text('Exporting...');
-
-                    $.ajax({
-                        url: "{{ route('reports.dor.export') }}",
-                        type: 'GET',
-                        data: currentFilters(),
-                        xhrFields: { responseType: 'blob' },
-                        success: function (data, status, xhr) {
-                            var fileName = 'dor-report.xlsx';
-                            var disposition = xhr.getResponseHeader('Content-Disposition') || '';
-                            var match = disposition.match(/filename="?([^"]+)"?/);
-
-                            if (match && match[1]) {
-                                fileName = match[1];
-                            }
-
-                            var blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                            var url = window.URL.createObjectURL(blob);
-                            var link = document.createElement('a');
-                            link.href = url;
-                            link.download = fileName;
-                            document.body.appendChild(link);
-                            link.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(link);
-                        },
-                        error: function () {
-                            if (typeof showToast === 'function') {
-                                showToast('error', 'Export failed.');
-                            }
-                        },
-                        complete: function () {
-                            button.prop('disabled', false).text(originalText);
-                        }
-                    });
+                    $('.dor-column-check').prop('checked', true);
+                    syncSelectedColumns();
+                    $('#dorReportModalBody').html('<div class="text-center py-5 text-muted">Generate a report to view details.</div>');
+                    setDownloadState(false, '#');
                 });
 
                 form.on('submit', function (event) {
                     event.preventDefault();
-                    table.ajax.reload();
+
+                    var button = form.find('button[type="submit"]').first();
+                    setLoading(button);
+                    $('#dorReportModalBody').html('<div class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Generating report...</div>');
+                    setDownloadState(false, '#');
+                    reportModal.show();
+
+                    $.get(form.attr('action'), form.serialize())
+                        .done(function (response) {
+                            $('#dorReportModalBody').html(response.html);
+                            setDownloadState(response.success, response.download_excel_url);
+
+                            if (response.message) {
+                                showToast(response.success ? 'success' : 'warning', response.message);
+                            }
+                        })
+                        .fail(function (xhr) {
+                            $('#dorReportModalBody').html('<div class="alert alert-danger mb-0">Unable to generate DOR report.</div>');
+                            showToast('error', xhr.responseJSON?.message || 'Unable to generate DOR report.');
+                        })
+                        .always(function () {
+                            resetLoading(button);
+                        });
                 });
 
-                function currentFilters() {
-                    return {
-                        date_from: $('#date_from').val(),
-                        date_to: $('#date_to').val(),
-                        depot_id: $('#depot_id').val(),
-                        trip_id: $('#trip_id').val(),
-                        vehicle_id: $('#vehicle_id').val(),
-                        driver_profile_id: $('#driver_profile_id').val()
-                    };
-                }
+                $('#downloadDorReportExcel').on('click', function (event) {
+                    var link = this;
+
+                    if ($(link).hasClass('disabled')) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    setLoading(link);
+
+                    setTimeout(function () {
+                        resetLoading(link);
+                    }, 3500);
+                });
             });
         </script>
+    @endsection
+
+    @section('styles')
+        <style>
+            .dor-report-scroll {
+                overflow-x: auto;
+                width: 100%;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .dor-report-table {
+                font-size: 12px;
+                min-width: 1000px;
+            }
+
+            .dor-report-table th,
+            .dor-report-table td {
+                vertical-align: middle;
+                white-space: nowrap;
+            }
+
+            .dor-column-picker {
+                align-items: center;
+                border: 1px solid #dfe3ea;
+                border-radius: 6px;
+                display: flex;
+                justify-content: space-between;
+                min-height: 42px;
+                padding: 7px 10px;
+            }
+
+            .dor-column-picker strong {
+                color: #1f2937;
+                font-size: 16px;
+            }
+
+            .dor-column-picker span,
+            .dor-column-preview {
+                color: #6b7280;
+                font-size: 12px;
+            }
+
+            .dor-column-preview {
+                line-height: 1.35;
+                margin-top: 6px;
+            }
+
+            .dor-column-grid {
+                display: grid;
+                gap: 10px;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                max-height: 60vh;
+                overflow-y: auto;
+                padding-right: 4px;
+            }
+
+            .dor-column-option {
+                align-items: flex-start;
+                border: 1px solid #e5e7eb;
+                border-radius: 6px;
+                display: flex;
+                gap: 8px;
+                min-height: 40px;
+                padding: 9px 10px;
+            }
+
+            .dor-column-option input {
+                margin-top: 3px;
+            }
+
+            .dor-column-option span {
+                color: #374151;
+                font-size: 13px;
+                line-height: 1.25;
+            }
+        </style>
     @endsection
 </x-app-layout>

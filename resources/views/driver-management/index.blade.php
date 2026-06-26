@@ -78,8 +78,9 @@
                                     <label for="expiryFilter">Expiry Filters</label>
                                     <select id="expiryFilter" class="form-select shadow-none">
                                         <option value="">--- Select ---</option>
-                                        <option value="license_expiring">License Expiring</option>
-                                        <option value="medical_expiring">Medical Expiring</option>
+                                        <option value="license_expired" @selected(request('expiry_filter') === 'license_expired')>License Expired</option>
+                                        <option value="license_expiring" @selected(request('expiry_filter') === 'license_expiring')>License Expiring</option>
+                                        <option value="medical_expiring" @selected(request('expiry_filter') === 'medical_expiring')>Medical Expiring</option>
                                     </select>
                                 </div>
                             </div>

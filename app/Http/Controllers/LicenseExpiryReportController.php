@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\LicenseExpiryReportExport;
+use App\Models\Depot;
 use App\Models\DriverProfile;
 use App\Models\TripAssignment;
 use Carbon\Carbon;
@@ -12,7 +13,6 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Yajra\DataTables\Facades\DataTables;
 
 class LicenseExpiryReportController extends Controller implements HasMiddleware
 {
@@ -26,34 +26,35 @@ class LicenseExpiryReportController extends Controller implements HasMiddleware
 
     public function index(Request $request)
     {
-        $filters = $this->validatedFilters($request);
+        $filters = $this->validatedFilters($request, $request->boolean('generate'));
 
-        if ($request->ajax()) {
-            return DataTables::of($this->query($filters))
-                ->addIndexColumn()
-                ->addColumn('driver_name', fn (DriverProfile $driver) => $driver->user?->name ?: '-')
-                ->addColumn('assigned', fn (DriverProfile $driver) => $this->assignmentLabel($driver))
-                ->addColumn('depot_name', fn (DriverProfile $driver) => $driver->depot?->name ?: '-')
-                ->addColumn('license_no', fn (DriverProfile $driver) => $driver->license_number ?: '-')
-                ->addColumn('badge_no', fn (DriverProfile $driver) => $driver->badge_number ?: '-')
-                ->addColumn('license_expiry_date', fn (DriverProfile $driver) => $driver->expiry_date?->format('d M Y') ?: '-')
-                ->addColumn('badge_expiry_date', fn (DriverProfile $driver) => $driver->badge_expiry_date?->format('d M Y') ?: '-')
-                ->addColumn('phone_no', fn (DriverProfile $driver) => $driver->user?->full_phone ?: '-')
-                ->addColumn('action', fn () => '<button type="button" class="btn btn-sm btn-secondary" disabled>Send Reminder</button>')
-                ->rawColumns(['action'])
-                ->make(true);
+        if ($request->ajax() && $request->boolean('generate')) {
+            $report = $this->reportData($filters);
+
+            return response()->json([
+                'success' => $report['rows']->isNotEmpty(),
+                'html' => view('reports.partials.license-expiry-report-table', $report)->render(),
+                'message' => $report['rows']->isNotEmpty()
+                    ? 'License expiry report generated successfully.'
+                    : 'No license expiry records found for the selected filters.',
+                'download_excel_url' => $report['rows']->isNotEmpty()
+                    ? route('reports.license-expiry.export', $filters)
+                    : null,
+                'filters' => $filters,
+            ]);
         }
 
         return view('reports.license-expiry', [
             'filters' => $filters,
             'expiryFilters' => $this->expiryFilters(),
+            'depots' => Depot::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
     public function export(Request $request)
     {
-        $filters = $this->validatedFilters($request);
-        $filter = $filters['expiry_filter'] ?? '6_months';
+        $filters = $this->validatedFilters($request, true);
+        $filter = $filters['expiry_filter'];
 
         return Excel::download(
             new LicenseExpiryReportExport($this->query($filters)),
@@ -61,16 +62,30 @@ class LicenseExpiryReportController extends Controller implements HasMiddleware
         );
     }
 
-    private function validatedFilters(Request $request): array
+    private function validatedFilters(Request $request, bool $required): array
     {
-        return $request->validate([
-            'expiry_filter' => ['nullable', 'in:6_months,3_months,1_month,expired'],
+        $presence = $required ? 'required' : 'nullable';
+
+        $validated = $request->validate([
+            'expiry_filter' => [$presence, 'in:6_months,3_months,1_month,expired'],
+            'depot_id' => ['nullable', 'integer', 'exists:depots,id'],
+            'name' => ['nullable', 'string', 'max:100'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'license' => ['nullable', 'string', 'max:50'],
         ]);
+
+        return [
+            'expiry_filter' => $validated['expiry_filter'] ?? null,
+            'depot_id' => isset($validated['depot_id']) ? (int) $validated['depot_id'] : null,
+            'name' => isset($validated['name']) ? trim((string) $validated['name']) : null,
+            'phone' => isset($validated['phone']) ? trim((string) $validated['phone']) : null,
+            'license' => isset($validated['license']) ? trim((string) $validated['license']) : null,
+        ];
     }
 
     private function query(array $filters): Builder
     {
-        $filter = $filters['expiry_filter'] ?? '6_months';
+        $filter = $filters['expiry_filter'];
         $today = Carbon::today();
 
         $query = DriverProfile::query()
@@ -96,6 +111,34 @@ class LicenseExpiryReportController extends Controller implements HasMiddleware
             });
         }
 
+        if (! empty($filters['depot_id'])) {
+            $query->where('depot_id', $filters['depot_id']);
+        }
+
+        if (! empty($filters['name'])) {
+            $name = $filters['name'];
+
+            $query->whereHas('user', fn (Builder $userQuery) => $userQuery
+                ->where('name', 'like', '%' . $name . '%'));
+        }
+
+        if (! empty($filters['phone'])) {
+            $phone = $filters['phone'];
+
+            $query->whereHas('user', fn (Builder $userQuery) => $userQuery
+                ->where('phone', 'like', '%' . $phone . '%')
+                ->orWhere('country_code', 'like', '%' . $phone . '%'));
+        }
+
+        if (! empty($filters['license'])) {
+            $license = $filters['license'];
+
+            $query->where(function (Builder $subQuery) use ($license) {
+                $subQuery->where('license_number', 'like', '%' . $license . '%')
+                    ->orWhere('badge_number', 'like', '%' . $license . '%');
+            });
+        }
+
         return $query
             ->orderByRaw('COALESCE(expiry_date, badge_expiry_date) asc')
             ->orderBy('id');
@@ -108,6 +151,49 @@ class LicenseExpiryReportController extends Controller implements HasMiddleware
             '3_months' => 'Next 3 Months',
             '1_month' => 'Next 1 Month',
             'expired' => 'Expired List',
+        ];
+    }
+
+    private function reportData(array $filters): array
+    {
+        $rows = $this->query($filters)
+            ->get()
+            ->values()
+            ->map(fn (DriverProfile $driver, int $index) => $this->rowData($driver, $index));
+
+        return [
+            'rows' => $rows,
+            'columns' => $this->columns(),
+        ];
+    }
+
+    public function rowData(DriverProfile $driver, int $index): array
+    {
+        return [
+            'sl_no' => $index + 1,
+            'driver_name' => $driver->user?->name ?: '-',
+            'assigned' => self::assignmentLabel($driver),
+            'depot_name' => $driver->depot?->name ?: '-',
+            'license_no' => $driver->license_number ?: '-',
+            'badge_no' => $driver->badge_number ?: '-',
+            'license_expiry_date' => $driver->expiry_date?->format('d-m-Y') ?: '-',
+            'badge_expiry_date' => $driver->badge_expiry_date?->format('d-m-Y') ?: '-',
+            'phone_no' => $driver->user?->full_phone ?: '-',
+        ];
+    }
+
+    public function columns(): array
+    {
+        return [
+            'sl_no' => 'SL No',
+            'driver_name' => 'Driver Name',
+            'assigned' => 'Assigned',
+            'depot_name' => 'Depot',
+            'license_no' => 'License No',
+            'badge_no' => 'Badge No',
+            'license_expiry_date' => 'License Expiry Date',
+            'badge_expiry_date' => 'Badge Expiry Date',
+            'phone_no' => 'Phone No',
         ];
     }
 

@@ -54,4 +54,27 @@
         right: -8px;
         top: -8px;
     }
+
+    .driver-license-expired-toast {
+        border-radius: 8px;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, .18);
+        padding: 12px 14px;
+    }
+
+    .driver-license-expired-toast .swal2-title {
+        font-size: 15px;
+        margin: 0 0 4px;
+        text-align: left;
+    }
+
+    .driver-license-expired-toast .swal2-html-container {
+        font-size: 13px;
+        margin: 0;
+        text-align: left;
+    }
+
+    .driver-license-expired-toast .swal2-actions {
+        margin: 8px 0 0;
+        justify-content: flex-start;
+    }
 </style>

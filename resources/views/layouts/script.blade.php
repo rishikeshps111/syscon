@@ -23,7 +23,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.8.0/dist/chart.min.js"></script>
 <script src="https://kit.fontawesome.com/111740f521.js" crossorigin="anonymous"></script>
 <script src="{{ asset('assets/js/common.js')}}"></script>
-@if(auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Staff']) && filled(config('broadcasting.connections.pusher.key')))
+@if(auth()->check() && (auth()->user()->hasAnyRole(['Super Admin', 'Staff']) || auth()->user()->can('driver-management.view')) && filled(config('broadcasting.connections.pusher.key')))
     <script src="https://js.pusher.com/8.4.0/pusher.min.js"></script>
 @endif
 <script>
@@ -107,6 +107,86 @@
                 refreshGlobalChatCount();
             });
             globalChannel.bind('messages.seen', refreshGlobalChatCount);
+        });
+    </script>
+@endif
+@if(auth()->check() && auth()->user()->can('driver-management.view'))
+    @php
+        $driverLicenseExpiryAlert = \App\Models\DriverLicenseExpiryAlert::where('user_id', auth()->id())
+            ->where('notified_at', '>=', now()->subDays(3))
+            ->latest('notified_at')
+            ->first();
+        $driverLicenseExpiryAlertPayload = $driverLicenseExpiryAlert ? [
+            'id' => $driverLicenseExpiryAlert->id,
+            'expired_count' => $driverLicenseExpiryAlert->expired_count,
+            'message' => $driverLicenseExpiryAlert->expired_count . ' driver license' . ($driverLicenseExpiryAlert->expired_count === 1 ? ' has' : 's have') . ' expired.',
+            'url' => route('driver-management.index', ['expiry_filter' => 'license_expired']),
+            'notified_at' => $driverLicenseExpiryAlert->notified_at?->toIso8601String(),
+        ] : null;
+    @endphp
+    <script>
+        $(function () {
+            var expiredLicenseUrl = @json(route('driver-management.index', ['expiry_filter' => 'license_expired']));
+            var initialLicenseAlert = @json($driverLicenseExpiryAlertPayload);
+
+            function alertStorageKey(data) {
+                return 'driver_license_expired_alert_' + (data.id || data.notified_at || 'latest');
+            }
+
+            function showDriverLicenseExpiredToast(data) {
+                var count = Number(data.expired_count || 0);
+
+                if (count <= 0) {
+                    return;
+                }
+
+                var url = data.url || expiredLicenseUrl;
+                var message = data.message || (count + ' driver licenses have expired.');
+
+                Swal.fire({
+                    toast: true,
+                    position: 'bottom-end',
+                    icon: 'warning',
+                    title: 'Expired Driver Licenses',
+                    html: message,
+                    showConfirmButton: true,
+                    confirmButtonText: 'View Expired Licenses',
+                    showCloseButton: true,
+                    timer: 12000,
+                    timerProgressBar: true,
+                    customClass: {
+                        popup: 'driver-license-expired-toast'
+                    }
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        window.location.href = url;
+                    }
+                });
+            }
+
+            if (initialLicenseAlert) {
+                var key = alertStorageKey(initialLicenseAlert);
+
+                if (localStorage.getItem(key) !== 'shown') {
+                    showDriverLicenseExpiredToast(initialLicenseAlert);
+                    localStorage.setItem(key, 'shown');
+                }
+            }
+
+            @if(filled(config('broadcasting.connections.pusher.key')))
+                var licensePusher = new Pusher(@json(config('broadcasting.connections.pusher.key')), {
+                    cluster: @json(config('broadcasting.connections.pusher.options.cluster') ?: 'mt1'),
+                    channelAuthorization: {
+                        endpoint: '/broadcasting/auth',
+                        headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+                    }
+                });
+                var licenseChannel = licensePusher.subscribe(@json('private-license-alert.user.' . auth()->id()));
+
+                licenseChannel.bind('driver-license.expired', function (data) {
+                    showDriverLicenseExpiredToast(data || {});
+                });
+            @endif
         });
     </script>
 @endif

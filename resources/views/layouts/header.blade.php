@@ -22,8 +22,6 @@
                     <i class="fa-regular fa-bell"></i>
                     <span id="chatUnreadBadge" class="chat-nav-badge {{ $chatUnreadCount ? '' : 'd-none' }}">{{ $chatUnreadCount }}</span>
                 </a>
-            @else
-                <a href="#"><i class="fa-regular fa-bell"></i></a>
             @endif
             <div class="headertogle">
                 <i class="bi bi-list toggle-sidebar-btn"></i>

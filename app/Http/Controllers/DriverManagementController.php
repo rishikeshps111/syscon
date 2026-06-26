@@ -275,6 +275,10 @@ class DriverManagementController extends Controller implements HasMiddleware
                 ->whereDate('expiry_date', '<=', now()->addMonth()->toDateString()));
         }
 
+        if (request('expiry_filter') === 'license_expired') {
+            $query->whereHas('driverProfile', fn($profileQuery) => $profileQuery->expiredLicense());
+        }
+
         if (request('expiry_filter') === 'medical_expiring') {
             $query->whereHas('driverProfile', fn($profileQuery) => $profileQuery
                 ->whereDate('medical_fitness_expiry', '>=', now()->toDateString())

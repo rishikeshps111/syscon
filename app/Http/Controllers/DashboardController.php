@@ -138,11 +138,10 @@ class DashboardController extends Controller
                 'permission' => 'driver-management.view',
                 'icon' => 'fa-solid fa-id-card',
                 'class' => 'card-orange',
-                'label' => 'License Expiry Alerts',
-                'value' => DriverProfile::whereDate('expiry_date', '>=', $today)
-                    ->whereDate('expiry_date', '<=', $today->copy()->addDays(30))
-                    ->count(),
+                'label' => 'Expired Driver Licenses',
+                'value' => DriverProfile::expiredLicenseCount(),
                 'route' => 'driver-management.index',
+                'route_params' => ['expiry_filter' => 'license_expired'],
             ],
         ];
     }

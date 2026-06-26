@@ -21,6 +21,7 @@ use App\Http\Controllers\DorReportController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
+use App\Http\Controllers\GeneratePaySlipController;
 use App\Http\Controllers\HrmsDocumentTypeController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
@@ -406,6 +407,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/salary-files', [SalaryFilesController::class, 'index'])->name('salary-files.index');
     Route::get('/salary-files/{salaryProcessing}/excel', [SalaryFilesController::class, 'excel'])->name('salary-files.excel');
     Route::get('/salary-files/{salaryProcessing}/pdf', [SalaryFilesController::class, 'pdf'])->name('salary-files.pdf');
+    Route::get('/salary-slips', [GeneratePaySlipController::class, 'index'])->name('salary-slips.index');
+    Route::get('/salary-slips/users', [GeneratePaySlipController::class, 'users'])->name('salary-slips.users');
+    Route::get('/salary-slips/preview', [GeneratePaySlipController::class, 'preview'])->name('salary-slips.preview');
+    Route::get('/salary-slips/pdf', [GeneratePaySlipController::class, 'pdf'])->name('salary-slips.pdf');
 
     Route::get('/role-permissions', [RolePermissionController::class, 'index'])
         ->name('role-permissions.index');

@@ -167,6 +167,9 @@ class PermissionSeeder extends Seeder
             'Salary Files' => [
                 'salary-files.view',
             ],
+            'Generate Pay Slip' => [
+                'salary-slips.view',
+            ],
             'Role Permissions' => [
                 'role-permissions.edit',
                 'role-permissions.view',
