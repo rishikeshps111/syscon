@@ -89,4 +89,9 @@ class TripSheetEntry extends Model
         return $this->belongsToMany(Roster::class, 'roster_trip_sheet_entries')
             ->withTimestamps();
     }
+
+    public function driverVerifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'driver_verified_by');
+    }
 }

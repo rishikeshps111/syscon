@@ -13,6 +13,7 @@ use App\Models\Location;
 use App\Models\State;
 use App\Models\User;
 use App\Support\SalaryComponents;
+use App\Support\SimpleQrCode;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -27,7 +28,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('driver-management.view'), ['index', 'show', 'export', 'downloadPdf', 'districtsByState', 'locationsByDistrict']),
+            new Middleware(PermissionMiddleware::using('driver-management.view'), ['index', 'show', 'export', 'downloadPdf', 'qrCode', 'districtsByState', 'locationsByDistrict']),
             new Middleware(PermissionMiddleware::using('driver-management.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('driver-management.edit'), ['edit', 'update', 'status', 'regeneratePasscode']),
             new Middleware(PermissionMiddleware::using('driver-management.delete'), ['destroy']),
@@ -108,6 +109,19 @@ class DriverManagementController extends Controller implements HasMiddleware
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
+    }
+
+    public function qrCode(User $driver_management)
+    {
+        abort_unless($driver_management->hasRole('Driver'), 404);
+        abort_if(blank($driver_management->code), 422, 'Driver code is not available.');
+
+        return response()->json([
+            'success' => true,
+            'code' => $driver_management->code,
+            'name' => $driver_management->name,
+            'svg' => SimpleQrCode::svg($driver_management->code, 10),
         ]);
     }
 

@@ -577,6 +577,8 @@ Route::middleware('auth')->group(function () {
         ->name('driver-management.export');
     Route::get('/driver-management/{driver_management}/download-pdf', [DriverManagementController::class, 'downloadPdf'])
         ->name('driver-management.download-pdf');
+    Route::get('/driver-management/{driver_management}/qr-code', [DriverManagementController::class, 'qrCode'])
+        ->name('driver-management.qr-code');
     Route::get('/driver-management/{driver}/documents', [DriverDocumentController::class, 'index'])
         ->name('driver-management.documents.index');
     Route::post('/driver-management/{driver}/documents', [DriverDocumentController::class, 'store'])

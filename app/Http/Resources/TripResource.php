@@ -60,6 +60,19 @@ class TripResource extends JsonResource
                     'parts' => 2,
                 ])
                 : null,
+            'is_driver_verified' => $this->is_driver_verified,
+            'driver_verified_by' => $this->driverVerifiedBy?->name,
+            'driver_verified_at' => $this->formatDateTime($this->driver_verified_at),
+            'is_vehicle_verified' => $this->is_vehicle_verified,
+            'vehicle_verified_by' => $this->vehicle_verified_by,
+            'vehicle_verified_at' => $this->formatDateTime($this->vehicle_verified_at),
+            'is_verified_by_supervisor' => $this->is_verified_by_supervisor,
+            'verified_by_supervisor' => $this->verified_by_supervisor,
+            'verified_by_supervisor_at' => $this->formatDateTime($this->verified_by_supervisor_at),
+            'is_verified_by_controller' => $this->is_verified_by_controller,
+            'verified_by_controller' => $this->verified_by_controller,
+            'verified_by_controller_at' => $this->formatDateTime($this->verified_by_controller_at),
+            'notes' => $this->notes,
         ];
 
         if ($this->includeDetails) {

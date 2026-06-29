@@ -14,6 +14,7 @@
                 </button>
                 <ul class="dropdown-menu dromenu-cs">
                     <li><a class="dropdown-item" href="{{ route('driver-management.show', $row->id) }}">View Details</a></li>
+                    <li><a class="dropdown-item view-driver-qr" href="#!" data-url="{{ route('driver-management.qr-code', $row->id) }}">View QR</a></li>
                     <li><a class="dropdown-item" href="{{ route('driver-management.documents.index', $row->id) }}">Documents</a>
                     </li>
                     <li><a class="dropdown-item" href="{{ route('driver-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>

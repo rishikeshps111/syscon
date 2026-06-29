@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
 use App\Models\TripSheetEntry;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -131,6 +133,61 @@ class TripController extends Controller
         return (new TripResource($record))->withDetails();
     }
 
+    public function verifyDriver(Request $request)
+    {
+        $validated = $request->validate([
+            'trip_id' => ['required', 'integer'],
+            'driver_code' => ['required', 'string', 'max:255'],
+        ]);
+
+        $controllerProfileId = $request->user()->controllerProfile?->id;
+
+        abort_if(! $controllerProfileId, 404);
+
+        $driver = User::role('Driver')
+            ->with('driverProfile')
+            ->where('code', trim($validated['driver_code']))
+            ->first();
+
+        if (! $driver?->driverProfile) {
+            $this->invalidDriverQr();
+        }
+
+        $record = $this->tripQuery($controllerProfileId)
+            ->with([
+                'driverVerifiedBy',
+                'sheet.trip.assignments.driverProfile.user',
+                'sheet.trip.assignments.vehicle',
+            ])
+            ->whereKey($validated['trip_id'])
+            ->firstOrFail();
+
+        if (! $this->driverBelongsToTrip($record, (int) $driver->driverProfile->id)) {
+            $this->invalidDriverQr();
+        }
+
+        $record->forceFill([
+            'is_driver_verified' => true,
+            'driver_verified_by' => (string) $request->user()->id,
+            'driver_verified_at' => now(),
+        ])->save();
+
+        $record->load([
+            'driverVerifiedBy',
+            'driverProfile.user',
+            'vehicle',
+            'sheet.trip.route.startPoint',
+            'sheet.trip.route.endPoint',
+            'sheet.trip.depot',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Driver verified successfully.',
+            'data' => (new TripResource($record))->resolve($request),
+        ]);
+    }
+
     private function tripQuery(int $controllerProfileId): Builder
     {
         return TripSheetEntry::query()
@@ -145,5 +202,34 @@ class TripController extends Controller
             ->whereHas('rosters', function (Builder $query) use ($controllerProfileId): void {
                 $query->where('controller_profile_id', $controllerProfileId);
             });
+    }
+
+    private function driverBelongsToTrip(TripSheetEntry $record, int $driverProfileId): bool
+    {
+        if ((int) $record->driver_profile_id === $driverProfileId) {
+            return true;
+        }
+
+        if ($record->rosters?->contains(fn($roster) => (int) $roster->driver_profile_id === $driverProfileId)) {
+            return true;
+        }
+
+        $tripDate = $record->sheet?->date;
+
+        if (! $tripDate) {
+            return false;
+        }
+
+        $assignment = $record->sheet?->trip?->assignments
+            ?->first(fn($assignment) => $assignment->from_date?->lte($tripDate) && $assignment->to_date?->gte($tripDate));
+
+        return (int) $assignment?->driver_profile_id === $driverProfileId;
+    }
+
+    private function invalidDriverQr(): never
+    {
+        throw ValidationException::withMessages([
+            'driver_code' => 'Invalid driver QR.',
+        ]);
     }
 }

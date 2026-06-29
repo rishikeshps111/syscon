@@ -164,6 +164,54 @@
             });
         });
 
+        $(document).on('click', '.view-driver-qr', function (event) {
+            event.preventDefault();
+            var url = $(this).data('url');
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function (res) {
+                    showDriverQrAlert(res);
+                },
+                error: function (xhr) {
+                    let message = xhr.responseJSON?.message || 'Unable to generate driver QR.';
+                    showToast('error', message);
+                }
+            });
+        });
+
+        function showDriverQrAlert(data) {
+            Swal.fire({
+                title: 'Driver QR',
+                html: '<div class="driver-qr-modal">'
+                    + '<div class="driver-qr-box">' + data.svg + '</div>'
+                    + '<div class="driver-qr-code">Driver Code: <strong>' + escapeHtml(data.code) + '</strong></div>'
+                    + '<div class="driver-qr-name">' + escapeHtml(data.name || '') + '</div>'
+                    + '</div>',
+                showCancelButton: true,
+                confirmButtonText: 'Copy Driver Code',
+                cancelButtonText: 'Close',
+                width: 420
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    copyPasscode(data.code);
+                }
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, function (char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[char];
+            });
+        }
+
         function showPasscodeAlert(passcode) {
             Swal.fire({
                 icon: 'success',
@@ -261,6 +309,36 @@
         font-size: 12px;
         font-weight: 700;
         padding: 5px 10px;
+    }
+
+    .driver-qr-modal {
+        align-items: center;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .driver-qr-box {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    .driver-qr-box svg {
+        display: block;
+        height: 290px;
+        width: 290px;
+    }
+
+    .driver-qr-code {
+        color: #111827;
+        font-size: 15px;
+    }
+
+    .driver-qr-name {
+        color: #6b7280;
+        font-size: 13px;
     }
 
     @keyframes driverBadgeBlink {
