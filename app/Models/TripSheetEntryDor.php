@@ -44,7 +44,9 @@ use Illuminate\Support\Facades\Storage;
     'penalty_infraction',
     'remarks',
     'route_start_soc_percent',
+    'route_start_soc_percent_image',
     'route_end_soc_percent',
+    'route_end_soc_percent_image',
     'soc_consumption_on_route_percent',
     'soc_per_km',
     'run_kilometer_per_soc',
@@ -77,6 +79,8 @@ class TripSheetEntryDor extends Model
             Storage::disk('public')->delete(array_filter([
                 $dor->odometer_start_image_path,
                 $dor->odometer_end_image_path,
+                $dor->route_start_soc_percent_image,
+                $dor->route_end_soc_percent_image,
             ]));
         });
     }
