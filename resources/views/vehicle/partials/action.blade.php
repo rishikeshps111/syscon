@@ -14,6 +14,9 @@
                     <li>
                         <a class="dropdown-item" href="{{ route('vehicles.show', $row->id) }}">View Details</a>
                     </li>
+                    <li>
+                        <a class="dropdown-item view-vehicle-qr" href="#!" data-url="{{ route('vehicles.qr-code', $row->id) }}">View QR</a>
+                    </li>
                     @can('vehicles.edit')
                         <li>
                             <a class="dropdown-item change-status-btn" href="#!"

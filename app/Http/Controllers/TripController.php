@@ -976,7 +976,9 @@ class TripController extends Controller implements HasMiddleware
             'penalty_infraction' => ['nullable', 'string'],
             'remarks' => ['nullable', 'string'],
             'route_start_soc_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'route_start_soc_percent_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'route_end_soc_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'route_end_soc_percent_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'soc_consumption_on_route_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'soc_per_km' => ['nullable', 'numeric', 'min:0'],
             'run_kilometer_per_soc' => ['nullable', 'numeric', 'min:0'],
@@ -1109,6 +1111,8 @@ class TripController extends Controller implements HasMiddleware
         foreach ([
             'odometer_start_image' => 'odometer_start_image_path',
             'odometer_end_image' => 'odometer_end_image_path',
+            'route_start_soc_percent_image' => 'route_start_soc_percent_image',
+            'route_end_soc_percent_image' => 'route_end_soc_percent_image',
         ] as $input => $column) {
             if (! $request->hasFile($input)) {
                 continue;
@@ -1132,6 +1136,12 @@ class TripController extends Controller implements HasMiddleware
                 : null,
             'odometer_end_image' => $dor?->odometer_end_image_path
                 ? Storage::disk('public')->url($dor->odometer_end_image_path)
+                : null,
+            'route_start_soc_percent_image' => $dor?->route_start_soc_percent_image
+                ? Storage::disk('public')->url($dor->route_start_soc_percent_image)
+                : null,
+            'route_end_soc_percent_image' => $dor?->route_end_soc_percent_image
+                ? Storage::disk('public')->url($dor->route_end_soc_percent_image)
                 : null,
         ];
     }
@@ -1219,7 +1229,9 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Penalty Infraction', 'name' => 'penalty_infraction', 'type' => 'text', 'value' => $saved?->penalty_infraction],
             ['label' => 'Remarks', 'name' => 'remarks', 'type' => 'textarea', 'value' => $saved?->remarks],
             ['label' => 'Route Start SOC %', 'name' => 'route_start_soc_percent', 'type' => 'number', 'value' => $saved?->route_start_soc_percent],
+            ['label' => 'Upload Route Start SOC Image', 'name' => 'route_start_soc_percent_image', 'type' => 'file', 'target' => 'route_start_soc_percent', 'image_url' => $this->dorImageUrls($saved)['route_start_soc_percent_image']],
             ['label' => 'Route End SOC %', 'name' => 'route_end_soc_percent', 'type' => 'number', 'value' => $saved?->route_end_soc_percent],
+            ['label' => 'Upload Route End SOC Image', 'name' => 'route_end_soc_percent_image', 'type' => 'file', 'target' => 'route_end_soc_percent', 'image_url' => $this->dorImageUrls($saved)['route_end_soc_percent_image']],
             ['label' => 'SOC Consumption On Route %', 'name' => 'soc_consumption_on_route_percent', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_consumption_on_route_percent']],
             ['label' => 'SOC Per KM', 'name' => 'soc_per_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_per_km']],
             ['label' => 'Run Kilometer Per SOC', 'name' => 'run_kilometer_per_soc', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['run_kilometer_per_soc']],

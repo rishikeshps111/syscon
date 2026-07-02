@@ -46,6 +46,7 @@ class TripResource extends JsonResource
             'driver_name' => $this->driverProfile?->user?->name,
             'depot_name' => $trip?->depot?->name,
             'vehicle_number' => $this->vehicle?->vehicle_no,
+            'vehicle_code' => $this->vehicle?->vehicle_code,
             'date' => $this->formatDate($sheet?->date),
             'trip_sheet_status' => $sheet?->status,
             'trip_sheet_status_label' => $this->tripSheetStatusLabel($sheet?->status),

@@ -10,6 +10,7 @@ use App\Models\Depot;
 use App\Models\Oem;
 use App\Models\State;
 use App\Models\Vehicle;
+use App\Support\SimpleQrCode;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -24,7 +25,7 @@ class VehicleController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('vehicles.view'), ['index', 'show', 'export', 'downloadPdf']),
+            new Middleware(PermissionMiddleware::using('vehicles.view'), ['index', 'show', 'export', 'downloadPdf', 'qrCode']),
             new Middleware(PermissionMiddleware::using('vehicles.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('vehicles.edit'), ['edit', 'update', 'changeStatus']),
             new Middleware(PermissionMiddleware::using('vehicles.delete'), ['destroy']),
@@ -93,6 +94,19 @@ class VehicleController extends Controller implements HasMiddleware
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
+    }
+
+    public function qrCode(Vehicle $vehicle)
+    {
+        abort_if(blank($vehicle->vehicle_code), 422, 'Vehicle code is not available.');
+        abort_if(strlen($vehicle->vehicle_code) > 17 || ! mb_check_encoding($vehicle->vehicle_code, 'ASCII'), 422, 'Vehicle code is not valid for QR generation.');
+
+        return response()->json([
+            'success' => true,
+            'code' => $vehicle->vehicle_code,
+            'name' => $vehicle->vehicle_no,
+            'svg' => SimpleQrCode::svg($vehicle->vehicle_code, 10),
         ]);
     }
 

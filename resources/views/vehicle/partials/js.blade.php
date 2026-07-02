@@ -62,6 +62,21 @@
             $('#changeStatusModal').modal('show');
         });
 
+        $(document).on('click', '.view-vehicle-qr', function (event) {
+            event.preventDefault();
+
+            $.ajax({
+                url: $(this).data('url'),
+                type: 'GET',
+                success: function (res) {
+                    showVehicleQrAlert(res);
+                },
+                error: function (xhr) {
+                    showToast('error', xhr.responseJSON?.message || 'Unable to generate vehicle QR.');
+                }
+            });
+        });
+
         $('#changeStatusForm').on('submit', function (e) {
             e.preventDefault();
 
@@ -156,6 +171,191 @@
         function reloadTable() {
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
+        }
+
+        function showVehicleQrAlert(data) {
+            Swal.fire({
+                title: 'Vehicle QR',
+                html: '<div class="vehicle-qr-modal">'
+                    + '<div id="vehicleQrBox" class="vehicle-qr-box">' + data.svg + '</div>'
+                    + '<div class="vehicle-qr-code">Vehicle Code: <strong>' + escapeHtml(data.code) + '</strong></div>'
+                    + '<div class="vehicle-qr-name">' + escapeHtml(data.name || '') + '</div>'
+                    + '<div class="d-flex justify-content-center gap-2 flex-wrap mt-3">'
+                    + '<button type="button" class="btn btn-sm btn-primary" id="downloadVehicleQrImage">Download Image</button>'
+                    + '<button type="button" class="btn btn-sm btn-outline-primary" id="downloadVehicleQrPdf">Download PDF</button>'
+                    + '</div>'
+                    + '</div>',
+                showCancelButton: true,
+                confirmButtonText: 'Copy Vehicle Code',
+                cancelButtonText: 'Close',
+                width: 420,
+                didOpen: function () {
+                    $('#downloadVehicleQrImage').on('click', function () {
+                        downloadQrImage(data);
+                    });
+                    $('#downloadVehicleQrPdf').on('click', function () {
+                        downloadQrPdf(data);
+                    });
+                }
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    copyText(data.code, 'Vehicle code copied.');
+                }
+            });
+        }
+
+        function downloadQrImage(data) {
+            var svgBlob = new Blob([data.svg], { type: 'image/svg+xml;charset=utf-8' });
+            var url = URL.createObjectURL(svgBlob);
+            var image = new Image();
+
+            image.onload = function () {
+                var canvas = document.createElement('canvas');
+                canvas.width = image.width || 290;
+                canvas.height = image.height || 290;
+                var context = canvas.getContext('2d');
+                context.fillStyle = '#fff';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(image, 0, 0);
+                URL.revokeObjectURL(url);
+
+                canvas.toBlob(function (blob) {
+                    if (!blob) {
+                        showToast('error', 'Unable to download QR image.');
+                        return;
+                    }
+
+                    downloadBlob(blob, fileSafe(data.code || 'vehicle') + '-qr.png');
+                }, 'image/png');
+            };
+
+            image.onerror = function () {
+                URL.revokeObjectURL(url);
+                showToast('error', 'Unable to download QR image.');
+            };
+
+            image.src = url;
+        }
+
+        function downloadQrPdf(data) {
+            var pdf = buildQrPdf(data);
+            downloadBlob(new Blob([pdf], { type: 'application/pdf' }), fileSafe(data.code || 'vehicle') + '-qr.pdf');
+        }
+
+        function buildQrPdf(data) {
+            var qrSize = Number((data.svg.match(/viewBox="0 0 (\d+) \d+"/) || [])[1] || 290);
+            var targetSize = 220;
+            var left = 187;
+            var top = 195;
+            var pageHeight = 842;
+            var scale = targetSize / qrSize;
+            var content = '0.96 0.97 0.99 rg\n0 0 595 842 re f\n'
+                + pdfText('SYSCON', 50, 795, 18, 'F2')
+                + pdfText('Vehicle QR', 50, 765, 24, 'F2')
+                + pdfText('Vehicle Code: ' + (data.code || '-'), 50, 725, 12, 'F2')
+                + pdfText('Vehicle No: ' + (data.name || '-'), 50, 705, 11, 'F1')
+                + '1 1 1 rg\n172 397 250 270 re f\n0.84 0.86 0.90 RG\n172 397 250 270 re S\n'
+                + qrPdfRects(data.svg, left, top, pageHeight, scale)
+                + pdfText('Scan this QR to identify the vehicle.', 194, 425, 10, 'F1');
+
+            return pdfDocument(content);
+        }
+
+        function qrPdfRects(svg, left, top, pageHeight, scale) {
+            var path = (svg.match(/<path[^>]* d="([^"]+)"/) || [])[1] || '';
+            var regex = /M(\d+) (\d+)h(\d+)v(\d+)h-\d+z/g;
+            var match;
+            var content = '0 0 0 rg\n';
+
+            while ((match = regex.exec(path)) !== null) {
+                var x = left + (Number(match[1]) * scale);
+                var y = pageHeight - top - ((Number(match[2]) + Number(match[4])) * scale);
+                var size = Number(match[3]) * scale;
+                content += x.toFixed(2) + ' ' + y.toFixed(2) + ' ' + size.toFixed(2) + ' ' + size.toFixed(2) + ' re f\n';
+            }
+
+            return content;
+        }
+
+        function pdfDocument(content) {
+            var objects = [
+                '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+                '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+                '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>\nendobj\n',
+                '4 0 obj\n<< /Length ' + content.length + ' >>\nstream\n' + content + 'endstream\nendobj\n',
+                '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+                '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+            ];
+            var pdf = '%PDF-1.4\n';
+            var offsets = [0];
+
+            objects.forEach(function (object) {
+                offsets.push(pdf.length);
+                pdf += object;
+            });
+
+            var xref = pdf.length;
+            pdf += 'xref\n0 7\n0000000000 65535 f \n';
+            offsets.slice(1).forEach(function (offset) {
+                pdf += String(offset).padStart(10, '0') + ' 00000 n \n';
+            });
+
+            return pdf + 'trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+        }
+
+        function pdfText(text, x, y, size, font) {
+            return '0.08 0.10 0.14 rg\nBT\n/' + font + ' ' + size + ' Tf\n' + x + ' ' + y + ' Td\n(' + pdfEscape(text).slice(0, 90) + ') Tj\nET\n';
+        }
+
+        function pdfEscape(value) {
+            return String(value).replace(/[^\x20-\x7E]/g, '').replace(/[\\()]/g, '\\$&');
+        }
+
+        function downloadBlob(blob, fileName) {
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function fileSafe(value) {
+            return String(value).replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'vehicle';
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, function (char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[char];
+            });
+        }
+
+        function copyText(value, message) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(value).then(function () {
+                    showToast('success', message);
+                });
+
+                return;
+            }
+
+            var input = document.createElement('textarea');
+            input.value = value;
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showToast('success', message);
         }
     });
 

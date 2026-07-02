@@ -90,6 +90,16 @@ class TripController extends Controller
         $query = $this->tripQuery($controllerProfileId)
             ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
+        $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
+
+        if ($vehicleCode !== '') {
+            $query->where(function (Builder $query) use ($vehicleCode): void {
+                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
+            });
+        }
+
         $totalCount = (clone $query)->count();
         $controllerUnverifiedCount = (clone $query)
             ->where(function (Builder $query): void {

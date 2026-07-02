@@ -173,6 +173,8 @@ Route::middleware('auth')->group(function () {
         ->name('vehicles.change-status');
     Route::get('/vehicles/{vehicle}/download-pdf', [VehicleController::class, 'downloadPdf'])
         ->name('vehicles.download-pdf');
+    Route::get('/vehicles/{vehicle}/qr-code', [VehicleController::class, 'qrCode'])
+        ->name('vehicles.qr-code');
     Route::get('/vehicles/{vehicle}/documents', [VehicleDocumentController::class, 'index'])
         ->name('vehicles.documents.index');
     Route::post('/vehicles/{vehicle}/documents', [VehicleDocumentController::class, 'store'])

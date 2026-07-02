@@ -25,13 +25,15 @@
                 <div class="alert alert-success">DOR marked as complete.</div>
             @endif
 
-            @if(! empty($odometerImages['odometer_start_image']) || ! empty($odometerImages['odometer_end_image']))
+            @if(! empty($odometerImages['odometer_start_image']) || ! empty($odometerImages['odometer_end_image']) || ! empty($odometerImages['route_start_soc_percent_image']) || ! empty($odometerImages['route_end_soc_percent_image']))
                 <div class="dor-section">
-                    <div class="dor-section-title">Odometer Images</div>
+                    <div class="dor-section-title">Verification Images</div>
                     <div class="dor-grid">
                         @foreach([
                             'odometer_start_image' => 'Odometer Start Image',
                             'odometer_end_image' => 'Odometer End Image',
+                            'route_start_soc_percent_image' => 'Route Start SOC Image',
+                            'route_end_soc_percent_image' => 'Route End SOC Image',
                         ] as $imageName => $imageLabel)
                             @if(! empty($odometerImages[$imageName]))
                                 <div class="dor-card">
