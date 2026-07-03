@@ -6,9 +6,22 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Collection;
 
 class VehicleResource extends JsonResource
 {
+    private ?Collection $todayTrips = null;
+
+    private array $todayTripsMeta = [];
+
+    public function withTodayTrips(Collection $trips, array $meta = []): self
+    {
+        $this->todayTrips = $trips;
+        $this->todayTripsMeta = $meta;
+
+        return $this;
+    }
+
     /**
      * Transform the resource into an array.
      *
@@ -16,7 +29,7 @@ class VehicleResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'vehicle_code' => $this->vehicle_code,
             'vehicle_no' => $this->vehicle_no,
@@ -48,6 +61,13 @@ class VehicleResource extends JsonResource
             'is_verified' => $this->is_verified,
             'remarks' => $this->remarks,
         ];
+
+        if ($this->todayTrips !== null) {
+            $data['today_trips'] = TripResource::collection($this->todayTrips)->resolve($request);
+            $data['today_trips_meta'] = $this->todayTripsMeta;
+        }
+
+        return $data;
     }
 
     private function formatDate($value): ?string

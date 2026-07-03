@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\VehicleResource;
+use App\Models\TripSheetEntry;
 use App\Models\Vehicle;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -26,7 +29,49 @@ class VehicleController extends Controller
             $this->invalidVehicle();
         }
 
-        return new VehicleResource($vehicle);
+        $today = Carbon::today()->toDateString();
+        $todayTrips = collect();
+        $controllerUnverifiedCount = 0;
+        $controllerProfileId = $request->user()->controllerProfile?->id;
+
+        if ($controllerProfileId) {
+            $todayQuery = $this->todayTripsForVehicleQuery($controllerProfileId, $vehicleCode, $today);
+            $controllerUnverifiedCount = (clone $todayQuery)
+                ->where(function (Builder $query): void {
+                    $query->where('is_verified_by_controller', false)
+                        ->orWhereNull('is_verified_by_controller');
+                })
+                ->count();
+            $todayTrips = $todayQuery->latest()->get();
+        }
+
+        return (new VehicleResource($vehicle))->withTodayTrips($todayTrips, [
+            'date' => Carbon::parse($today)->format('d M Y'),
+            'total_count' => $todayTrips->count(),
+            'is_verified_by_controller_false_count' => $controllerUnverifiedCount,
+        ]);
+    }
+
+    private function todayTripsForVehicleQuery(int $controllerProfileId, string $vehicleCode, string $today): Builder
+    {
+        return TripSheetEntry::query()
+            ->with([
+                'driverProfile.user',
+                'vehicle',
+                'sheet.trip.route.startPoint',
+                'sheet.trip.route.endPoint',
+                'sheet.trip.depot',
+                'rosters' => fn($rosterQuery) => $rosterQuery->where('controller_profile_id', $controllerProfileId),
+            ])
+            ->whereHas('rosters', function (Builder $query) use ($controllerProfileId): void {
+                $query->where('controller_profile_id', $controllerProfileId);
+            })
+            ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today))
+            ->where(function (Builder $query) use ($vehicleCode): void {
+                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
+            });
     }
 
     private function invalidVehicle(): never
