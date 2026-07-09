@@ -14,6 +14,12 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+        Route::prefix('driver/trips')->name('driver.trips.')->group(function () {
+            Route::get('/today', [TripController::class, 'driverToday'])->name('today');
+            Route::get('/{tripSheetEntry}', [TripController::class, 'driverShow'])->name('show');
+            Route::get('/', [TripController::class, 'driverIndex'])->name('index');
+        });
+
         Route::prefix('trips')->name('trips.')->group(function () {
             Route::get('/today', [TripController::class, 'today'])->name('today');
             Route::post('/verify-driver', [TripController::class, 'verifyDriver'])->name('verify-driver');
