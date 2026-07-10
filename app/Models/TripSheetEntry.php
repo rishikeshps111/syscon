@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'actual_reach_time',
     'driver_profile_id',
     'vehicle_id',
+    'trip_order_sequence_no',
     'starting_km',
     'starting_electric_charge',
     'vehicle_condition',
@@ -52,6 +53,7 @@ class TripSheetEntry extends Model
             'verified_by_supervisor_at' => 'datetime',
             'is_verified_by_controller' => 'boolean',
             'verified_by_controller_at' => 'datetime',
+            'trip_order_sequence_no' => 'integer',
         ];
     }
 

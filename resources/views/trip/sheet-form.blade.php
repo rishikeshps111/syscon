@@ -154,7 +154,13 @@
                         </select>
                         @error('vehicle_id') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3"></div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="tripOrderSequenceNo">Trip Order Sequence No</label>
+                        <input type="number" min="0" id="tripOrderSequenceNo" name="trip_order_sequence_no"
+                            class="form-control shadow-none"
+                            value="{{ old('trip_order_sequence_no', $entry?->trip_order_sequence_no) }}">
+                        @error('trip_order_sequence_no') <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                    </div>
                     <div class="col-lg-12 o-f-inp mb-3">
                         <hr />
                     </div>

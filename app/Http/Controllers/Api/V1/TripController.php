@@ -108,7 +108,7 @@ class TripController extends Controller
             })
             ->count();
 
-        $records = $query->latest()->get();
+        $records = $this->applyTodayTripOrder($query)->get();
 
         return TripResource::collection($records)->additional([
             'meta' => [
@@ -236,7 +236,7 @@ class TripController extends Controller
             })
             ->count();
 
-        $records = $query->latest()->get();
+        $records = $this->applyTodayTripOrder($query)->get();
 
         return TripResource::collection($records)->additional([
             'meta' => [
@@ -310,7 +310,7 @@ class TripController extends Controller
 
         $record->forceFill([
             'is_driver_verified' => true,
-            'driver_verified_by' => (string) $request->user()->id,
+            'driver_verified_by' => (string) $request->user()->name,
             'driver_verified_at' => now(),
         ])->save();
 
@@ -382,10 +382,13 @@ class TripController extends Controller
                 'actual_reach_time' => $validated['actual_end_time'] ?? $record->actual_reach_time,
                 'vehicle_condition' => array_key_exists('remarks', $validated) ? $validated['remarks'] : $record->vehicle_condition,
                 'is_vehicle_verified' => $this->requestBoolean($validated, 'is_vehical_verified', 'is_vehicle_verified', true),
-                'vehicle_verified_by' => (string) $request->user()->id,
+                'vehicle_verified_by' => (string) $request->user()->name,
                 'vehicle_verified_at' => now(),
+                'is_driver_verified' => true,
+                'driver_verified_by' => (string) $request->user()->name,
+                'driver_verified_at' => now(),
                 'is_verified_by_controller' => true,
-                'verified_by_controller' => (string) $request->user()->id,
+                'verified_by_controller' => (string) $request->user()->name,
                 'verified_by_controller_at' => now(),
             ])->save();
 
@@ -462,6 +465,14 @@ class TripController extends Controller
             ->whereHas('rosters', function (Builder $query) use ($driverProfileId): void {
                 $query->where('driver_profile_id', $driverProfileId);
             });
+    }
+
+    private function applyTodayTripOrder(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('trip_order_sequence_no IS NULL')
+            ->orderBy('trip_order_sequence_no')
+            ->orderByDesc('id');
     }
 
     private function driverBelongsToTrip(TripSheetEntry $record, int $driverProfileId): bool

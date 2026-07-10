@@ -300,6 +300,7 @@ class TripController extends Controller implements HasMiddleware
                 ->editColumn('actual_reach_time', fn($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
                 ->addColumn('driver_name', fn($entry) => $this->entryDriverName($entry))
                 ->addColumn('vehicle_no', fn($entry) => $this->entryVehicleNo($entry))
+                ->editColumn('trip_order_sequence_no', fn($entry) => $entry->trip_order_sequence_no ?? '-')
                 ->editColumn('starting_km', fn($entry) => $entry->starting_km ?? '-')
                 ->editColumn('starting_electric_charge', fn($entry) => $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-')
                 ->editColumn('is_vehicle_verified', fn($entry) => $this->yesNoBadge((bool) $entry->is_vehicle_verified))
@@ -556,6 +557,7 @@ class TripController extends Controller implements HasMiddleware
                 $this->formatSheetTime($trip->end_time) ?: '17:00',
                 $side === 'up' ? ($this->formatSheetTime($trip->start_time) ?: '09:00') : '',
                 $side === 'down' ? ($this->formatSheetTime($trip->end_time) ?: '17:00') : '',
+                '1',
                 '1200',
                 '85',
                 'Good',
@@ -592,6 +594,7 @@ class TripController extends Controller implements HasMiddleware
             'actual_reach_time' => ['nullable', 'date_format:H:i'],
             'driver_profile_id' => ['nullable', 'integer', 'exists:driver_profiles,id'],
             'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
+            'trip_order_sequence_no' => ['nullable', 'integer', 'min:0'],
             'starting_km' => ['nullable', 'integer', 'min:0'],
             'starting_electric_charge' => ['nullable', 'integer', 'min:0', 'max:100'],
             'vehicle_condition' => ['nullable', 'string'],
@@ -853,8 +856,7 @@ class TripController extends Controller implements HasMiddleware
             ->with(['sheet.trip.assignments.driverProfile.user', 'sheet.trip.assignments.vehicle', 'driverProfile.user', 'vehicle'])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->where('trip_sheets.trip_id', $trip->id)
-            ->orderBy('trip_sheets.date')
-            ->orderBy('trip_sheet_entries.side')
+            ->orderByDesc('trip_sheet_entries.id')
             ->select('trip_sheet_entries.*');
     }
 
@@ -888,6 +890,7 @@ class TripController extends Controller implements HasMiddleware
             'actual_reach_time' => $this->formatSheetTime($entry->actual_reach_time),
             'driver_profile_id' => $entry->driver_profile_id,
             'vehicle_id' => $entry->vehicle_id,
+            'trip_order_sequence_no' => $entry->trip_order_sequence_no,
             'starting_km' => $entry->starting_km,
             'starting_electric_charge' => $entry->starting_electric_charge,
             'vehicle_condition' => $entry->vehicle_condition,
@@ -1563,6 +1566,7 @@ class TripController extends Controller implements HasMiddleware
             'arrival_time',
             'actual_start_time',
             'actual_reach_time',
+            'trip_order_sequence_no',
             'starting_km',
             'starting_electric_charge',
             'vehicle_condition',
@@ -1684,6 +1688,10 @@ class TripController extends Controller implements HasMiddleware
                 $errors[] = "Row {$line}: starting_km must be a whole number.";
             }
 
+            if (($data['trip_order_sequence_no'] ?? '') !== '' && (! ctype_digit((string) $data['trip_order_sequence_no']))) {
+                $errors[] = "Row {$line}: trip_order_sequence_no must be a whole number.";
+            }
+
             if (($data['starting_electric_charge'] ?? '') !== '') {
                 if (! ctype_digit((string) $data['starting_electric_charge']) || (int) $data['starting_electric_charge'] > 100) {
                     $errors[] = "Row {$line}: starting_electric_charge must be a whole number from 0 to 100.";
@@ -1720,6 +1728,7 @@ class TripController extends Controller implements HasMiddleware
                 'arrival_time' => $arrivalTime,
                 'actual_start_time' => $actualStartTime,
                 'actual_reach_time' => $actualReachTime,
+                'trip_order_sequence_no' => ($data['trip_order_sequence_no'] ?? '') !== '' ? (int) $data['trip_order_sequence_no'] : null,
                 'starting_km' => ($data['starting_km'] ?? '') !== '' ? (int) $data['starting_km'] : null,
                 'starting_electric_charge' => ($data['starting_electric_charge'] ?? '') !== '' ? (int) $data['starting_electric_charge'] : null,
                 'vehicle_condition' => ($data['vehicle_condition'] ?? '') ?: null,
@@ -1810,6 +1819,7 @@ class TripController extends Controller implements HasMiddleware
             'actual_reach_time' => ($data['actual_reach_time'] ?? null) ?: ($side === 'down' ? $this->formatSheetTime($trip->end_time) : null),
             'driver_profile_id' => ($data['driver_profile_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->driver_profile_id,
             'vehicle_id' => ($data['vehicle_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->vehicle_id,
+            'trip_order_sequence_no' => $data['trip_order_sequence_no'] ?? null,
             'starting_km' => $data['starting_km'] ?? null,
             'starting_electric_charge' => $data['starting_electric_charge'] ?? null,
             'vehicle_condition' => $data['vehicle_condition'] ?? null,

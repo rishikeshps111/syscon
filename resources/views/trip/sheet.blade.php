@@ -79,6 +79,7 @@
                             <th class="text-center nowrap">Side</th>
                             <th class="text-center nowrap">Driver</th>
                             <th class="text-center nowrap">Vehicle</th>
+                            <th class="text-center nowrap">Trip Order Sequence No</th>
                             <th class="text-center nowrap" style="min-width: 130px;">Date</th>
                             <th class="text-center nowrap">Actual Start</th>
                             <th class="text-center nowrap">Actual Reach</th>
@@ -113,6 +114,7 @@
                         { data: 'side', name: 'side', className: 'text-center' },
                         { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'trip_order_sequence_no', name: 'trip_order_sequence_no', className: 'text-center' },
                         { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
                         { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
                         { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
@@ -125,7 +127,7 @@
                     language: {
                         emptyTable: 'No trip sheet entries found.'
                     },
-                    order: [[1, 'asc']]
+                    order: []
                 });
 
                 $(document).on('submit', '.delete-sheet-entry', function (event) {
