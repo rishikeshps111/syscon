@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
@@ -93,6 +94,11 @@ class ControllerProfile extends Model
     public function rosters()
     {
         return $this->hasMany(Roster::class, 'controller_profile_id');
+    }
+
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(ControllerTripNotificationLog::class);
     }
 
     public function getEmploymentTypeLabelAttribute(): string

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GeneralSettingController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleImageReadController;
@@ -15,6 +16,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        Route::put('/device-token', [AuthController::class, 'updateDeviceToken'])->name('device-token.update');
+        Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
 
         Route::prefix('driver/trips')->name('driver.trips.')->group(function () {
             Route::get('/today', [TripController::class, 'driverToday'])->name('today');

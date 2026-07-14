@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\User;
+use App\Models\UserDeviceToken;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -90,6 +91,10 @@ class AuthController extends Controller
             ['type:' . $type]
         )->plainTextToken;
 
+        if (! empty($data['fcm_token'])) {
+            $this->storeDeviceToken($user, $data['fcm_token'], $data['platform'] ?? null);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Login successful.',
@@ -117,12 +122,38 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        if ($request->filled('fcm_token')) {
+            $request->user()->deviceTokens()
+                ->where('token_hash', hash('sha256', (string) $request->input('fcm_token')))
+                ->delete();
+        }
+
         $request->user()->currentAccessToken()?->delete();
 
         return response()->json([
             'success' => true,
             'message' => 'Logout successful.',
         ]);
+    }
+
+    public function updateDeviceToken(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'fcm_token' => ['required', 'string', 'max:4096'],
+            'platform' => ['nullable', 'string', 'in:android,ios,web'],
+        ]);
+
+        $this->storeDeviceToken($request->user(), $data['fcm_token'], $data['platform'] ?? null);
+
+        return response()->json(['success' => true, 'message' => 'Device token saved successfully.']);
+    }
+
+    private function storeDeviceToken(User $user, string $token, ?string $platform): void
+    {
+        UserDeviceToken::updateOrCreate(
+            ['token_hash' => hash('sha256', $token)],
+            ['user_id' => $user->id, 'token' => $token, 'platform' => $platform, 'last_used_at' => now()]
+        );
     }
 
     private function userTypeFor(User $user): ?string

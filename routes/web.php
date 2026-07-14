@@ -644,4 +644,21 @@ Route::get('system/migrate-fresh', function () {
     return  "Database migrated fresh and seeded successfully!";
 })->name('system.migrate-fresh');
 
+Route::get('system/today-trip-notifications', function () {
+    $exitCode = Artisan::call('controllers:today-trip-notifications', [
+        '--force' => true,
+    ]);
+
+    $successful = $exitCode === 0;
+
+    return response()->json([
+        'success' => $successful,
+        'message' => $successful
+            ? 'Today trip notifications command executed successfully.'
+            : 'Today trip notifications command completed with delivery failures. Check controller_trip_notification_logs.error.',
+        'exit_code' => $exitCode,
+        'output' => Artisan::output(),
+    ], $successful ? 200 : 422);
+})->name('system.today-trip-notifications');
+
 require __DIR__ . '/auth.php';

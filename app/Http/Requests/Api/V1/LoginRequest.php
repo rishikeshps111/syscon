@@ -40,6 +40,8 @@ class LoginRequest extends FormRequest
             'passcode' => ['required', 'digits:6'],
             'type' => ['required', 'string', Rule::in(['driver', 'controller', 'supervisor'])],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'fcm_token' => ['nullable', 'string', 'max:4096'],
+            'platform' => ['nullable', 'string', Rule::in(['android', 'ios', 'web'])],
         ];
     }
 }

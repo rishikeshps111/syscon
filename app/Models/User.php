@@ -79,6 +79,11 @@ class User extends Authenticatable
         return $this->hasMany(UserLog::class);
     }
 
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(UserDeviceToken::class);
+    }
+
     public function salaryComponentValues(): HasMany
     {
         return $this->hasMany(UserSalaryComponentValue::class);

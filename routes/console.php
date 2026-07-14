@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('drivers:expired-license-alerts')->daily();
+Schedule::command('controllers:today-trip-notifications')
+    ->dailyAt('06:00')
+    ->withoutOverlapping();
