@@ -107,8 +107,10 @@
                         <div class="trip-select-summary">
                             <div>
                                 <input type="text" class="trip-select-title" id="tripLabel"
-                                    value="{{ count($selectedTrips) ? count($selectedTrips) . ' trip selected' : 'No trip selected' }}" readonly>
-                                <span class="trip-select-subtitle">Select one or more trip sheet entries for this duty date.</span>
+                                    value="{{ count($selectedTrips) ? count($selectedTrips) . ' trip selected' : 'No trip selected' }}"
+                                    readonly>
+                                <span class="trip-select-subtitle">Select one or more trip sheet entries for this duty
+                                    date.</span>
                             </div>
                             <button class="btn btn-primary" type="button" id="openTripModal">
                                 <i class="fa-solid fa-route me-1"></i> Choose Trip
@@ -118,7 +120,8 @@
                             @foreach($selectedTrips as $trip)
                                 <div class="selected-trip-pill" data-id="{{ $trip['id'] }}" data-side="{{ $trip['side'] }}">
                                     <span>{{ $trip['label'] }} <small>({{ $trip['side'] }})</small></span>
-                                    <button type="button" class="remove-selected-trip" data-id="{{ $trip['id'] }}">x</button>
+                                    <button type="button" class="remove-selected-trip"
+                                        data-id="{{ $trip['id'] }}">x</button>
                                 </div>
                             @endforeach
                         </div>
@@ -133,10 +136,11 @@
                         @foreach($drivers as $driver)
                             @php
                                 $driverSelected = old('driver_profile_id', $record->driver_profile_id ?? '') == $driver->id;
-                                $driverExpired = ! $driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay());
+                                $driverExpired = !$driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay());
                                 $driverLabel = $driver->user?->name ?: '-';
                             @endphp
-                            <option value="{{ $driver->id }}" data-base-label="{{ $driverLabel }}" data-expired="{{ $driverExpired ? 1 : 0 }}" {{ $driverSelected ? 'selected' : '' }} {{ $driverExpired ? 'disabled' : '' }}>
+                            <option value="{{ $driver->id }}" data-base-label="{{ $driverLabel }}"
+                                data-expired="{{ $driverExpired ? 1 : 0 }}" {{ $driverSelected ? 'selected' : '' }} {{ $driverExpired ? 'disabled' : '' }}>
                                 {{ $driverLabel }}{{ $driverExpired ? ' - Licence Expired' : '' }}
                             </option>
                         @endforeach
@@ -161,7 +165,7 @@
                     <span
                         class="text-danger error-text vehicle_id_error">@error('vehicle_id'){{ $message }}@enderror</span>
                 </div>
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-4 o-f-inp mb-3 d-none">
                     <label for="supervisor_profile_id">Supervisor</label>
                     <select class="form-select shadow-none select2" id="supervisor_profile_id"
                         name="supervisor_profile_id">
@@ -173,7 +177,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-4 o-f-inp mb-3 d-none">
                     <label for="controller_profile_id">Controller</label>
                     <select class="form-select shadow-none select2" id="controller_profile_id"
                         name="controller_profile_id">

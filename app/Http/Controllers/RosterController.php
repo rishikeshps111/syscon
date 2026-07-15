@@ -47,16 +47,16 @@ class RosterController extends Controller implements HasMiddleware
         if ($request->ajax()) {
             return DataTables::of($this->filteredQuery())
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
-                ->addColumn('date', fn ($row) => $row->duty_date?->format('d M Y') ?: '-')
-                ->addColumn('shift_type_label', fn ($row) => Roster::SHIFT_TYPES[$row->shift_type] ?? '-')
-                ->addColumn('driver_name', fn ($row) => $row->driverProfile?->user?->name ?: '-')
-                ->addColumn('vehicle_no', fn ($row) => $row->vehicle?->vehicle_no ?: '-')
-                ->addColumn('trip_code', fn ($row) => $row->primaryTripSheetEntry()?->sheet?->code ?: '-')
-                ->addColumn('reporting_time_label', fn ($row) => $this->time($row->reporting_time) ?: '-')
-                ->addColumn('status', fn ($row) => $this->statusBadge($row->status))
-                ->addColumn('attendance_status', fn ($row) => $this->attendanceBadge($row->attendance_status))
-                ->addColumn('action', fn ($row) => view('roster.partials.action', compact('row'))->render())
+                ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
+                ->addColumn('date', fn($row) => $row->duty_date?->format('d M Y') ?: '-')
+                ->addColumn('shift_type_label', fn($row) => Roster::SHIFT_TYPES[$row->shift_type] ?? '-')
+                ->addColumn('driver_name', fn($row) => $row->driverProfile?->user?->name ?: '-')
+                ->addColumn('vehicle_no', fn($row) => $row->vehicle?->vehicle_no ?: '-')
+                ->addColumn('trip_code', fn($row) => $row->primaryTripSheetEntry()?->sheet?->code ?: '-')
+                ->addColumn('reporting_time_label', fn($row) => $this->time($row->reporting_time) ?: '-')
+                ->addColumn('status', fn($row) => $this->statusBadge($row->status))
+                ->addColumn('attendance_status', fn($row) => $this->attendanceBadge($row->attendance_status))
+                ->addColumn('action', fn($row) => view('roster.partials.action', compact('row'))->render())
                 ->rawColumns(['checkbox', 'status', 'attendance_status', 'action'])
                 ->make(true);
         }
@@ -231,17 +231,17 @@ class RosterController extends Controller implements HasMiddleware
                 if ($search !== '') {
                     $query->where(function ($subQuery) use ($search) {
                         $subQuery->where('code', 'like', '%' . $search . '%')
-                            ->orWhereHas('trip', fn ($tripQuery) => $tripQuery
+                            ->orWhereHas('trip', fn($tripQuery) => $tripQuery
                                 ->where('code', 'like', '%' . $search . '%')
                                 ->orWhere('title', 'like', '%' . $search . '%'));
                     });
                 }
             })
-            ->when($selectedIds, fn ($query) => $query->orWhereIn('id', $selectedIds))
+            ->when($selectedIds, fn($query) => $query->orWhereIn('id', $selectedIds))
             ->limit(30 + count($selectedIds))
             ->get();
 
-        return response()->json($entries->map(fn (TripSheetEntry $entry) => $this->entryPayload($entry, $date))->values());
+        return response()->json($entries->map(fn(TripSheetEntry $entry) => $this->entryPayload($entry, $date))->values());
     }
 
     public function tripEntryDetails(Request $request, TripSheetEntry $tripSheetEntry)
@@ -286,10 +286,10 @@ class RosterController extends Controller implements HasMiddleware
             $search = request('search_text');
             $query->where(function ($subQuery) use ($search) {
                 $subQuery->where('code', 'like', '%' . $search . '%')
-                    ->orWhereHas('driverProfile.user', fn ($userQuery) => $userQuery->where('name', 'like', '%' . $search . '%'))
-                    ->orWhereHas('vehicle', fn ($vehicleQuery) => $vehicleQuery->where('vehicle_no', 'like', '%' . $search . '%'))
-                    ->orWhereHas('tripSheetEntries.sheet', fn ($sheetQuery) => $sheetQuery->where('code', 'like', '%' . $search . '%'))
-                    ->orWhereHas('tripSheetEntries.sheet.trip', fn ($tripQuery) => $tripQuery->where('title', 'like', '%' . $search . '%'));
+                    ->orWhereHas('driverProfile.user', fn($userQuery) => $userQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('vehicle', fn($vehicleQuery) => $vehicleQuery->where('vehicle_no', 'like', '%' . $search . '%'))
+                    ->orWhereHas('tripSheetEntries.sheet', fn($sheetQuery) => $sheetQuery->where('code', 'like', '%' . $search . '%'))
+                    ->orWhereHas('tripSheetEntries.sheet.trip', fn($tripQuery) => $tripQuery->where('title', 'like', '%' . $search . '%'));
             });
         }
 
@@ -360,7 +360,7 @@ class RosterController extends Controller implements HasMiddleware
     {
         $entries = $roster->tripSheetEntries;
 
-        return $entries->map(fn (TripSheetEntry $entry) => [
+        return $entries->map(fn(TripSheetEntry $entry) => [
             'id' => $entry->id,
             'label' => trim(($entry->sheet?->code ?: '') . ' - ' . ($entry->sheet?->trip?->trip_title ?: '')),
             'side' => ucfirst((string) $entry->side),
@@ -384,7 +384,7 @@ class RosterController extends Controller implements HasMiddleware
         }
 
         return $trip->assignments
-            ->first(fn (TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
+            ->first(fn(TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
     }
 
     private function syncTripSheetEntry(Roster $roster): void
@@ -397,7 +397,7 @@ class RosterController extends Controller implements HasMiddleware
             return;
         }
 
-        $entries->each(fn (TripSheetEntry $entry) => $this->syncTripSheetEntryColumns($entry, $roster));
+        $entries->each(fn(TripSheetEntry $entry) => $this->syncTripSheetEntryColumns($entry, $roster));
     }
 
     private function syncTripSheetEntryColumns(TripSheetEntry $entry, Roster $roster): void
@@ -463,7 +463,7 @@ class RosterController extends Controller implements HasMiddleware
                 $start->copy()->subDay()->toDateString(),
                 $end->copy()->toDateString(),
             ])
-            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
+            ->when($currentRoster, fn($query) => $query->whereKeyNot($currentRoster->id))
             ->get(['id', $field, 'duty_date', 'shift_start_time', 'shift_end_time'])
             ->filter(function (Roster $roster) use ($start, $end) {
                 if (! $roster->duty_date || ! $roster->shift_start_time || ! $roster->shift_end_time) {

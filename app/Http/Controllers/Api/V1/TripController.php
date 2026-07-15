@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
+use App\Models\ControllerProfile;
 use App\Models\TripSheetEntry;
 use App\Models\TripSheetEntryDor;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -444,6 +445,8 @@ class TripController extends Controller
 
     private function tripQuery(int $controllerProfileId): Builder
     {
+        $controller = ControllerProfile::findOrFail($controllerProfileId);
+
         return TripSheetEntry::query()
             ->with([
                 'driverProfile.user',
@@ -451,11 +454,12 @@ class TripController extends Controller
                 'sheet.trip.route.startPoint',
                 'sheet.trip.route.endPoint',
                 'sheet.trip.depot',
-                'rosters' => fn($rosterQuery) => $rosterQuery->where('controller_profile_id', $controllerProfileId),
             ])
-            ->whereHas('rosters', function (Builder $query) use ($controllerProfileId): void {
-                $query->where('controller_profile_id', $controllerProfileId);
-            });
+            ->whereRelation(
+                'sheet.trip',
+                'depot_id',
+                $controller->depot_id
+            );
     }
 
     private function driverTripQuery(int $driverProfileId): Builder
