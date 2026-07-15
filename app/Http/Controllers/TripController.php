@@ -1111,12 +1111,14 @@ class TripController extends Controller implements HasMiddleware
         $payload = [];
         $directory = 'trip-dor-odometer/' . $entry->id;
 
-        foreach ([
-            'odometer_start_image' => 'odometer_start_image_path',
-            'odometer_end_image' => 'odometer_end_image_path',
-            'route_start_soc_percent_image' => 'route_start_soc_percent_image',
-            'route_end_soc_percent_image' => 'route_end_soc_percent_image',
-        ] as $input => $column) {
+        foreach (
+            [
+                'odometer_start_image' => 'odometer_start_image_path',
+                'odometer_end_image' => 'odometer_end_image_path',
+                'route_start_soc_percent_image' => 'route_start_soc_percent_image',
+                'route_end_soc_percent_image' => 'route_end_soc_percent_image',
+            ] as $input => $column
+        ) {
             if (! $request->hasFile($input)) {
                 continue;
             }
@@ -1158,7 +1160,7 @@ class TripController extends Controller implements HasMiddleware
 
         if (! $savedReasonId && $saved?->reason_for_kilometer_loss) {
             $savedReasonId = DorKilometerLossReason::where('name', $saved->reason_for_kilometer_loss)
-                ->when($savedAccountId, fn ($query) => $query->where('dor_account_responsible_id', $savedAccountId))
+                ->when($savedAccountId, fn($query) => $query->where('dor_account_responsible_id', $savedAccountId))
                 ->value('id');
         }
         $values = $this->dorPayload($entry, [

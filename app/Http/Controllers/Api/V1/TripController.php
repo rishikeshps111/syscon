@@ -280,7 +280,10 @@ class TripController extends Controller
         $validated = $request->validate([
             'trip_id' => ['required', 'integer'],
             'driver_code' => ['required', 'string', 'max:255'],
+            'is_driver_verified' => ['required', 'boolean'],
         ]);
+
+        $isDriverVerified = $request->boolean('is_driver_verified');
 
         $controllerProfileId = $request->user()->controllerProfile?->id;
 
@@ -309,9 +312,9 @@ class TripController extends Controller
         }
 
         $record->forceFill([
-            'is_driver_verified' => true,
-            'driver_verified_by' => (string) $request->user()->name,
-            'driver_verified_at' => now(),
+            'is_driver_verified' => $isDriverVerified,
+            'driver_verified_by' => $isDriverVerified ? (string) $request->user()->name : null,
+            'driver_verified_at' => $isDriverVerified ? now() : null,
         ])->save();
 
         $record->load([
@@ -325,7 +328,9 @@ class TripController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Driver verified successfully.',
+            'message' => $isDriverVerified
+                ? 'Driver verified successfully.'
+                : 'Driver verification removed successfully.',
             'data' => (new TripResource($record))->resolve($request),
         ]);
     }
@@ -381,6 +386,8 @@ class TripController extends Controller
                 'actual_start_time' => $validated['actual_start_time'] ?? $record->actual_start_time,
                 'actual_reach_time' => $validated['actual_end_time'] ?? $record->actual_reach_time,
                 'vehicle_condition' => array_key_exists('remarks', $validated) ? $validated['remarks'] : $record->vehicle_condition,
+                'starting_electric_charge' => $validated['route_start_soc_percent'] ?? $record->starting_electric_charge,
+                'starting_km' =>  $validated['odometer_start_reading'] ?? $record->starting_km,
                 'is_vehicle_verified' => $this->requestBoolean($validated, 'is_vehical_verified', 'is_vehicle_verified', true),
                 'vehicle_verified_by' => (string) $request->user()->name,
                 'vehicle_verified_at' => now(),
