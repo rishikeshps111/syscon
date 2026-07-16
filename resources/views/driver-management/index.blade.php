@@ -104,6 +104,7 @@
                             <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="true" aria-controls="filterCollapse">Filters</a>
                             @can('driver-management.create')
+                                <a href="{{ route('bulk-import.form', 'drivers') }}" class="add-btn">Import Drivers</a>
                                 <a href="{{ route('driver-management.create') }}" class="add-btn">Add New Driver</a>
                             @endcan
                         </div>

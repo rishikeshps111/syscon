@@ -101,6 +101,7 @@
                             <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
                             @can('supervisor-management.create')
+                                <a href="{{ route('bulk-import.form', 'supervisors') }}" class="add-btn">Import Supervisors</a>
                                 <a href="{{ route('supervisor-management.create') }}" class="add-btn">Add New Supervisor</a>
                             @endcan
                         </div>
@@ -151,6 +152,5 @@
         @include('supervisor-management.partials.js')
     @endsection
 </x-app-layout>
-
 
 

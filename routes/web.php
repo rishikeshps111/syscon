@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchLocationController;
+use App\Http\Controllers\BulkImportController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
@@ -215,6 +216,9 @@ Route::middleware('auth')->group(function () {
         ->name('vehicle-fuel-logs.update');
     Route::delete('/vehicle-fuel-logs/{vehicleFuelLog}', [VehicleFuelLogController::class, 'destroy'])
         ->name('vehicle-fuel-logs.destroy');
+    Route::get('/bulk-import/{module}', [BulkImportController::class, 'form'])->name('bulk-import.form');
+    Route::post('/bulk-import/{module}', [BulkImportController::class, 'import'])->name('bulk-import.store');
+    Route::get('/bulk-import/{module}/sample', [BulkImportController::class, 'sample'])->name('bulk-import.sample');
     Route::resource('vehicles', VehicleController::class);
 
     Route::get('/financial-year-settings', [FinancialYearSettingController::class, 'index'])

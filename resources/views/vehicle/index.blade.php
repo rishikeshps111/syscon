@@ -103,6 +103,7 @@
                             <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="true" aria-controls="filterCollapse">Filters</a>
                             @can('vehicles.create')
+                                <a href="{{ route('bulk-import.form', 'vehicles') }}" class="add-btn">Import Vehicles</a>
                                 <a href="{{ route('vehicles.create') }}" class="add-btn">Add Vehicle</a>
                             @endcan
                         </div>

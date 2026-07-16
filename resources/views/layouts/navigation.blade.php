@@ -177,18 +177,22 @@
                         </ul>
                     </li>
                 @endcan
+                @php
+                    $bulkImportModule = request()->routeIs('bulk-import.*') ? request()->route('module') : null;
+                    $bulkImportIsHrms = in_array($bulkImportModule, ['staff', 'drivers', 'controllers', 'supervisors'], true);
+                @endphp
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
                     'supervisor-management.view', 'attendance-management.view',
                     'salary-components.view', 'salary-processing.view', 'salary-reports.view', 'salary-files.view', 'salary-slips.view', 'role-permissions.view', 'settings.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav6"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') || $bulkImportIsHrms ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('branch-locations.view')
                                 <li>
@@ -297,7 +301,7 @@
                             @can('staff-management.view')
                                 <li>
                                     <a href="{{ route('staff-management.index') }}"
-                                        class="{{ request()->routeIs('staff-management.*') ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('staff-management.*') || $bulkImportModule === 'staff' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Staff Management</span>
                                     </a>
                                 </li>
@@ -305,7 +309,7 @@
                             @can('driver-management.view')
                                 <li>
                                     <a href="{{ route('driver-management.index') }}"
-                                        class="{{ request()->routeIs('driver-management.*') ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('driver-management.*') || $bulkImportModule === 'drivers' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Driver Management</span>
                                     </a>
                                 </li>
@@ -313,7 +317,7 @@
                             @can('controller-management.view')
                                 <li>
                                     <a href="{{ route('controller-management.index') }}"
-                                        class="{{ request()->routeIs('controller-management.*') ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('controller-management.*') || $bulkImportModule === 'controllers' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Controller
                                             Management</span>
                                     </a>
@@ -322,7 +326,7 @@
                             @can('supervisor-management.view')
                                 <li>
                                     <a href="{{ route('supervisor-management.index') }}"
-                                        class="{{ request()->routeIs('supervisor-management.*') ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('supervisor-management.*') || $bulkImportModule === 'supervisors' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Supervisor
                                             Management</span>
                                     </a>
@@ -417,7 +421,7 @@
                 @endcan
                 @can('vehicles.view')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('vehicles.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('vehicles.*') || $bulkImportModule === 'vehicles' ? '' : 'collapsed' }}"
                             href="{{ route('vehicles.index') }}">
                             <i class="fa-solid fa-bus"></i>
                             <span>Vehicle Management</span>

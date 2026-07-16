@@ -112,6 +112,7 @@
                             <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
                             @can('staff-management.create')
+                                <a href="{{ route('bulk-import.form', 'staff') }}" class="add-btn">Import Staff</a>
                                 <a href="{{ route('staff-management.create') }}" class="add-btn">Add New Employee</a>
                             @endcan
                         </div>
