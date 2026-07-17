@@ -32,10 +32,10 @@ class VehicleController extends Controller
         $today = Carbon::today()->toDateString();
         $todayTrips = collect();
         $controllerUnverifiedCount = 0;
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $depotId = $this->userDepotId($request);
 
-        if ($controllerProfileId) {
-            $todayQuery = $this->todayTripsForVehicleQuery($controllerProfileId, $vehicleCode, $today);
+        if ($depotId) {
+            $todayQuery = $this->todayTripsForVehicleQuery($depotId, $vehicleCode, $today);
             $controllerUnverifiedCount = (clone $todayQuery)
                 ->where(function (Builder $query): void {
                     $query->where('is_verified_by_controller', false)
@@ -52,7 +52,7 @@ class VehicleController extends Controller
         ]);
     }
 
-    private function todayTripsForVehicleQuery(int $controllerProfileId, string $vehicleCode, string $today): Builder
+    private function todayTripsForVehicleQuery(int $depotId, string $vehicleCode, string $today): Builder
     {
         return TripSheetEntry::query()
             ->with([
@@ -61,17 +61,25 @@ class VehicleController extends Controller
                 'sheet.trip.route.startPoint',
                 'sheet.trip.route.endPoint',
                 'sheet.trip.depot',
-                'rosters' => fn($rosterQuery) => $rosterQuery->where('controller_profile_id', $controllerProfileId),
+                'rosters',
             ])
-            ->whereHas('rosters', function (Builder $query) use ($controllerProfileId): void {
-                $query->where('controller_profile_id', $controllerProfileId);
-            })
+            ->whereRelation('sheet.trip', 'depot_id', $depotId)
             ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today))
             ->where(function (Builder $query) use ($vehicleCode): void {
                 $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
                     ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
                     ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
             });
+    }
+
+    private function userDepotId(Request $request): ?int
+    {
+        $user = $request->user();
+        $depotId = $user->hasRole('Controller')
+            ? $user->controllerProfile?->depot_id
+            : ($user->hasRole('Supervisor') ? $user->supervisorProfile?->depot_id : null);
+
+        return $depotId ? (int) $depotId : null;
     }
 
     private function invalidVehicle(): never

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
-use App\Models\ControllerProfile;
 use App\Models\TripSheetEntry;
 use App\Models\TripSheetEntryDor;
 use App\Models\User;
@@ -20,15 +19,50 @@ use Spatie\QueryBuilder\QueryBuilder;
 
 class TripController extends Controller
 {
+    public function controllers(Request $request)
+    {
+        $depotId = $this->userDepotId($request);
+
+        if (! $depotId) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        $controllers = User::role('Controller')
+            ->where('is_active', true)
+            ->whereHas('controllerProfile', fn(Builder $query) => $query->where('depot_id', $depotId))
+            ->with('controllerProfile:id,user_id,depot_id')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name'])
+            ->map(fn(User $controller): array => [
+                'id' => $controller->id,
+                'controller_profile_id' => $controller->controllerProfile?->id,
+                'code' => $controller->code,
+                'name' => $controller->name,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $controllers,
+        ]);
+    }
+
     public function index(Request $request)
     {
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $depotId = $this->userDepotId($request);
 
-        if (! $controllerProfileId) {
+        if (! $depotId) {
             return TripResource::collection(collect());
         }
 
-        $query = $this->tripQuery($controllerProfileId);
+        $query = $this->depotTripQuery($depotId);
+
+        if ($request->user()->hasRole('Controller')) {
+            $query->where('is_verified_by_controller', true)
+                ->where('verified_by_controller', (string) $request->user()->name);
+        }
 
         $records = QueryBuilder::for($query)
             ->allowedFilters(
@@ -54,6 +88,9 @@ class TripController extends Controller
                 AllowedFilter::callback('roster_status', function (Builder $query, $value): void {
                     $query->whereHas('rosters', fn(Builder $rosterQuery) => $rosterQuery->where('status', $value));
                 }),
+                AllowedFilter::callback('controller', function (Builder $query, $value): void {
+                    $this->filterByController($query, $value);
+                }),
                 AllowedFilter::callback('search', function (Builder $query, $value): void {
                     $search = trim((string) $value);
 
@@ -75,10 +112,10 @@ class TripController extends Controller
 
     public function today(Request $request)
     {
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $depotId = $this->userDepotId($request);
         $today = Carbon::today()->toDateString();
 
-        if (! $controllerProfileId) {
+        if (! $depotId) {
             return TripResource::collection(collect())->additional([
                 'meta' => [
                     'date' => Carbon::parse($today)->format('d M Y'),
@@ -88,7 +125,7 @@ class TripController extends Controller
             ]);
         }
 
-        $query = $this->tripQuery($controllerProfileId)
+        $query = $this->depotTripQuery($depotId)
             ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
@@ -122,11 +159,11 @@ class TripController extends Controller
 
     public function show(Request $request, TripSheetEntry $tripSheetEntry)
     {
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $depotId = $this->userDepotId($request);
 
-        abort_if(! $controllerProfileId, 404);
+        abort_if(! $depotId, 404);
 
-        $record = $this->tripQuery($controllerProfileId)
+        $record = $this->depotTripQuery($depotId)
             ->with([
                 'dor',
                 'driverProfile.state',
@@ -286,9 +323,9 @@ class TripController extends Controller
 
         $isDriverVerified = $request->boolean('is_driver_verified');
 
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $depotId = $this->userDepotId($request);
 
-        abort_if(! $controllerProfileId, 404);
+        abort_if(! $depotId, 404);
 
         $driver = User::role('Driver')
             ->with('driverProfile')
@@ -299,7 +336,7 @@ class TripController extends Controller
             $this->invalidDriverQr();
         }
 
-        $record = $this->tripQuery($controllerProfileId)
+        $record = $this->depotTripQuery($depotId)
             ->with([
                 'driverVerifiedBy',
                 'sheet.trip.assignments.driverProfile.user',
@@ -366,11 +403,11 @@ class TripController extends Controller
             ]
         );
 
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $depotId = $this->userDepotId($request);
 
-        abort_if(! $controllerProfileId, 404);
+        abort_if(! $depotId, 404);
 
-        $record = $this->tripQuery($controllerProfileId)
+        $record = $this->depotTripQuery($depotId)
             ->with([
                 'dor',
                 'driverProfile.user',
@@ -392,13 +429,7 @@ class TripController extends Controller
                 'is_vehicle_verified' => $this->requestBoolean($validated, 'is_vehical_verified', 'is_vehicle_verified', true),
                 'vehicle_verified_by' => (string) $request->user()->name,
                 'vehicle_verified_at' => now(),
-                // 'is_driver_verified' => true,
-                // 'driver_verified_by' => (string) $request->user()->name,
-                // 'driver_verified_at' => now(),
-                'is_verified_by_controller' => true,
-                'verified_by_controller' => (string) $request->user()->name,
-                'verified_by_controller_at' => now(),
-            ])->save();
+            ] + $this->roleVerificationPayload($request))->save();
 
             $record->refresh()->load([
                 'dor',
@@ -443,10 +474,8 @@ class TripController extends Controller
         ]);
     }
 
-    private function tripQuery(int $controllerProfileId): Builder
+    private function depotTripQuery(int $depotId): Builder
     {
-        $controller = ControllerProfile::findOrFail($controllerProfileId);
-
         return TripSheetEntry::query()
             ->with([
                 'driverProfile.user',
@@ -458,8 +487,64 @@ class TripController extends Controller
             ->whereRelation(
                 'sheet.trip',
                 'depot_id',
-                $controller->depot_id
+                $depotId
             );
+    }
+
+    private function userDepotId(Request $request): ?int
+    {
+        $user = $request->user();
+        $depotId = $user->hasRole('Controller')
+            ? $user->controllerProfile?->depot_id
+            : ($user->hasRole('Supervisor') ? $user->supervisorProfile?->depot_id : null);
+
+        return $depotId ? (int) $depotId : null;
+    }
+
+    private function roleVerificationPayload(Request $request): array
+    {
+        if ($request->user()->hasRole('Supervisor')) {
+            return [
+                'is_verified_by_supervisor' => true,
+                'verified_by_supervisor' => (string) $request->user()->name,
+                'verified_by_supervisor_at' => now(),
+                'is_verified_by_controller' => true,
+                'verified_by_controller' => (string) $request->user()->name,
+                'verified_by_controller_at' => now(),
+            ];
+        }
+
+        return [
+            'is_verified_by_controller' => true,
+            'verified_by_controller' => (string) $request->user()->name,
+            'verified_by_controller_at' => now(),
+            'is_verified_by_supervisor' => true,
+            'verified_by_supervisor' => (string) $request->user()->name,
+            'verified_by_supervisor_at' => now(),
+        ];
+    }
+
+    private function filterByController(Builder $query, mixed $value): void
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return;
+        }
+
+        $controllerNames = User::role('Controller')
+            ->where(function (Builder $userQuery) use ($value): void {
+                $userQuery->where('name', $value)
+                    ->orWhere('code', $value);
+
+                if (ctype_digit($value)) {
+                    $userQuery->orWhereKey((int) $value);
+                }
+            })
+            ->pluck('name');
+
+        $query->where('is_verified_by_controller', true)
+            ->whereIn('verified_by_controller', $controllerNames);
     }
 
     private function driverTripQuery(int $driverProfileId): Builder

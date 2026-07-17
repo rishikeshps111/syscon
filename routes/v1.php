@@ -27,6 +27,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         Route::prefix('trips')->name('trips.')->group(function () {
             Route::get('/today', [TripController::class, 'today'])->name('today');
+            Route::get('/controllers', [TripController::class, 'controllers'])->name('controllers');
             Route::post('/verify-driver', [TripController::class, 'verifyDriver'])->name('verify-driver');
             Route::post('/start-verification', [TripController::class, 'startVerification'])->name('start-verification');
             Route::get('/{tripSheetEntry}', [TripController::class, 'show'])->name('show');
