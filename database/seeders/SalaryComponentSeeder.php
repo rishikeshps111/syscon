@@ -28,41 +28,49 @@ class SalaryComponentSeeder extends Seeder
             ->keyBy('name');
         $staffDesignations = Designation::orderBy('name')->get(['id']);
 
-        foreach ($components as $index => $componentData) {
-            $component = SalaryComponent::firstOrCreate(
-                ['component_name' => $componentData['component_name']],
-                $componentData + [
-                    'code' => null,
-                    'is_applicable' => true,
-                    'is_editable_in_payroll' => true,
-                ]
-            );
+        $targets = collect(['Driver', 'Controller', 'Supervisor'])
+            ->map(fn ($roleName) => $roles->get($roleName))
+            ->filter()
+            ->map(fn ($role) => ['role_id' => $role->id, 'designation_id' => null]);
 
-            if (! $component->code) {
-                $component->code = generate_code(SalaryComponent::PREFIX_MODULE, $component->id, 3, 'SC');
-                $component->save();
-            }
+        if ($roles->has('Staff')) {
+            $targets = $targets->concat($staffDesignations->map(fn ($designation) => [
+                'role_id' => $roles['Staff']->id,
+                'designation_id' => $designation->id,
+            ]));
+        }
 
-            foreach (['Driver', 'Controller', 'Supervisor'] as $roleName) {
-                if (! $roles->has($roleName)) {
-                    continue;
-                }
+        foreach ($targets as $target) {
+            foreach ($components as $componentData) {
+                $component = SalaryComponent::query()
+                    ->where('component_name', $componentData['component_name'])
+                    ->whereHas('assignments', fn ($query) => $query
+                        ->where('role_id', $target['role_id'])
+                        ->where('designation_id', $target['designation_id']))
+                    ->first();
 
-                SalaryComponentAssignment::firstOrCreate([
-                    'salary_component_id' => $component->id,
-                    'role_id' => $roles[$roleName]->id,
-                    'designation_id' => null,
-                ]);
-            }
-
-            if ($roles->has('Staff')) {
-                foreach ($staffDesignations as $designation) {
-                    SalaryComponentAssignment::firstOrCreate([
-                        'salary_component_id' => $component->id,
-                        'role_id' => $roles['Staff']->id,
-                        'designation_id' => $designation->id,
+                if (! $component) {
+                    $component = SalaryComponent::create($componentData + [
+                        'code' => null,
+                        'is_applicable' => true,
+                        'is_editable_in_payroll' => true,
+                    ]);
+                } else {
+                    $component->update($componentData + [
+                        'is_applicable' => true,
+                        'is_editable_in_payroll' => true,
                     ]);
                 }
+
+                if (! $component->code) {
+                    $component->code = generate_code(SalaryComponent::PREFIX_MODULE, $component->id, 3, 'SC');
+                    $component->save();
+                }
+
+                $component->assignments()->delete();
+                SalaryComponentAssignment::create($target + [
+                    'salary_component_id' => $component->id,
+                ]);
             }
         }
     }

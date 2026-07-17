@@ -24,6 +24,8 @@ use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
 use App\Http\Controllers\GeneratePaySlipController;
 use App\Http\Controllers\HrmsDocumentTypeController;
+use App\Http\Controllers\HrLetterController;
+use App\Http\Controllers\HrLetterTemplateController;
 use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LeaveTypeController;
@@ -400,6 +402,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/salary-components/export', [SalaryComponentController::class, 'export'])
         ->name('salary-components.export');
     Route::resource('salary-components', SalaryComponentController::class)->except(['show']);
+    Route::resource('hr-letter-templates', HrLetterTemplateController::class)->except(['show']);
+    Route::get('/users/{user}/hr-letters', [HrLetterController::class, 'index'])->name('hr-letters.index');
+    Route::get('/hr-letters/generate/{user}', [HrLetterController::class, 'create'])->name('hr-letters.create');
+    Route::post('/hr-letters/generate/{user}', [HrLetterController::class, 'store'])->name('hr-letters.store');
+    Route::get('/hr-letters/{hrLetter}', [HrLetterController::class, 'show'])->name('hr-letters.show');
+    Route::get('/hr-letters/{hrLetter}/pdf', [HrLetterController::class, 'pdf'])->name('hr-letters.pdf');
     Route::get('/salary-processing/users', [SalaryProcessingController::class, 'users'])
         ->name('salary-processing.users');
     Route::post('/salary-processing/{salaryProcessing}/approve', [SalaryProcessingController::class, 'approve'])
@@ -647,6 +655,28 @@ Route::get('system/migrate-fresh', function () {
     Artisan::call('migrate:fresh', ['--seed' => true]);
     return  "Database migrated fresh and seeded successfully!";
 })->name('system.migrate-fresh');
+
+Route::get('system/run-seeder/{seeder}', function (string $seeder) {
+    $seederClass = "Database\\Seeders\\{$seeder}";
+
+    if (!class_exists($seederClass)) {
+        return response()->json([
+            'success' => false,
+            'message' => "Seeder {$seeder} not found.",
+        ], 404);
+    }
+
+    Artisan::call('db:seed', [
+        '--class' => $seederClass,
+        '--force' => true,
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => "{$seeder} executed successfully.",
+        'output' => Artisan::output(),
+    ]);
+})->name('system.run-seeder');
 
 Route::get('system/today-trip-notifications', function () {
     $exitCode = Artisan::call('controllers:today-trip-notifications', [

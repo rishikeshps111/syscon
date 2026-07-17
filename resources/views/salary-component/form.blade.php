@@ -3,12 +3,12 @@
 @endsection
 <x-app-layout>
     @php
-        $selectedRoleIds = collect(old('role_ids', isset($record) ? $record->assignments->pluck('role_id')->unique()->values()->all() : []))
+        $selectedRoleId = collect(old('role_ids', isset($record) ? $record->assignments->pluck('role_id')->unique()->values()->all() : []))
             ->map(fn ($roleId) => (int) $roleId)
-            ->all();
-        $selectedDesignationIds = collect(old('designation_ids', isset($record) ? $record->assignments->pluck('designation_id')->filter()->unique()->values()->all() : []))
+            ->first();
+        $selectedDesignationId = collect(old('designation_ids', isset($record) ? $record->assignments->pluck('designation_id')->filter()->unique()->values()->all() : []))
             ->map(fn ($designationId) => (int) $designationId)
-            ->all();
+            ->first();
     @endphp
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -42,11 +42,12 @@
                             </div>
 
                             <div class="col-lg-6 o-f-inp mb-3">
-                                <label for="role_ids">User Roles <span class="text-danger">*</span></label>
-                                <select name="role_ids[]" id="role_ids" class="form-select shadow-none select2" multiple>
+                                <label for="role_ids">User Role <span class="text-danger">*</span></label>
+                                <select name="role_ids[]" id="role_ids" class="form-select shadow-none select2">
+                                    <option value=""></option>
                                     @foreach ($roles as $role)
                                         <option value="{{ $role->id }}" data-role-name="{{ $role->name }}"
-                                            {{ in_array($role->id, $selectedRoleIds, true) ? 'selected' : '' }}>
+                                            {{ $role->id === $selectedRoleId ? 'selected' : '' }}>
                                             {{ $role->name }}
                                         </option>
                                     @endforeach
@@ -60,11 +61,12 @@
                             </div>
 
                             <div class="col-lg-12 o-f-inp mb-3 staff-designation-field d-none">
-                                <label for="designation_ids">Staff Designations <span class="text-danger">*</span></label>
-                                <select name="designation_ids[]" id="designation_ids" class="form-select shadow-none select2" multiple>
+                                <label for="designation_ids">HR Designation <span class="text-danger">*</span></label>
+                                <select name="designation_ids[]" id="designation_ids" class="form-select shadow-none select2">
+                                    <option value=""></option>
                                     @foreach ($designations as $designation)
                                         <option value="{{ $designation->id }}"
-                                            {{ in_array($designation->id, $selectedDesignationIds, true) ? 'selected' : '' }}>
+                                            {{ $designation->id === $selectedDesignationId ? 'selected' : '' }}>
                                             {{ $designation->name }}
                                         </option>
                                     @endforeach
@@ -177,26 +179,25 @@
             $(function () {
                 $('#role_ids').select2({
                     width: '100%',
-                    placeholder: '--- Select Roles ---',
+                    placeholder: '--- Select Role ---',
                     allowClear: true
                 });
 
                 $('#designation_ids').select2({
                     width: '100%',
-                    placeholder: '--- Select Staff Designations ---',
+                    placeholder: '--- Select HR Designation ---',
                     allowClear: true
                 });
 
                 function toggleDesignation() {
-                    var hasStaffRole = $('#role_ids option:selected').toArray().some(function (option) {
-                        return $(option).data('role-name') === 'Staff';
-                    });
+                    var hasStaffRole = $('#role_ids option:selected').data('role-name') === 'Staff';
 
                     if (hasStaffRole) {
                         $('.staff-designation-field').removeClass('d-none');
+                        $('#designation_ids').prop('disabled', false);
                     } else {
                         $('.staff-designation-field').addClass('d-none');
-                        $('#designation_ids').val(null).trigger('change.select2');
+                        $('#designation_ids').val(null).prop('disabled', true).trigger('change.select2');
                     }
                 }
 

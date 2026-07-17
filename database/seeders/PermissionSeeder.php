@@ -154,6 +154,16 @@ class PermissionSeeder extends Seeder
                 'salary-components.delete',
                 'salary-components.view',
             ],
+            'HR Letter Templates' => [
+                'hr-letter-templates.create',
+                'hr-letter-templates.edit',
+                'hr-letter-templates.delete',
+                'hr-letter-templates.view',
+            ],
+            'HR Letters' => [
+                'hr-letters.generate',
+                'hr-letters.view',
+            ],
             'Salary Processing' => [
                 'salary-processing.create',
                 'salary-processing.edit',

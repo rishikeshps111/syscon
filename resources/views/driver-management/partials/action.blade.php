@@ -17,6 +17,8 @@
                     <li><a class="dropdown-item view-driver-qr" href="#!" data-url="{{ route('driver-management.qr-code', $row->id) }}">View QR</a></li>
                     <li><a class="dropdown-item" href="{{ route('driver-management.documents.index', $row->id) }}">Documents</a>
                     </li>
+                    @can('hr-letters.generate')<li><a class="dropdown-item" href="{{ route('hr-letters.create', $row->id) }}">Generate Letter</a></li>@endcan
+                    @can('hr-letters.view')<li><a class="dropdown-item" href="{{ route('hr-letters.index', $row->id) }}">View Letters</a></li>@endcan
                     <li><a class="dropdown-item" href="{{ route('driver-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>
                     @can('driver-management.edit')
                         <li><a class="dropdown-item regenerate-passcode" href="#!" data-url="{{ route('driver-management.regenerate-passcode', $row->id) }}">Regenerate Passcode</a></li>

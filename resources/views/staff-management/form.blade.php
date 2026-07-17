@@ -432,6 +432,10 @@
             function calculateDynamicSalary() {
                 var total = 0;
                 document.querySelectorAll('.js-dynamic-salary-field').forEach(function (input) {
+                    if (input.disabled) {
+                        return;
+                    }
+
                     var value = parseFloat(input.value);
                     if (!Number.isFinite(value)) {
                         value = 0;
@@ -447,6 +451,25 @@
             document.querySelectorAll('.js-dynamic-salary-field').forEach(function (input) {
                 input.addEventListener('input', calculateDynamicSalary);
             });
+
+            function filterSalaryComponentsByDesignation() {
+                var designationId = document.getElementById('designation_id').value;
+
+                document.querySelectorAll('.js-salary-component-item').forEach(function (item) {
+                    var designationIds = (item.dataset.designationIds || '').split(',').filter(Boolean);
+                    var visible = designationId !== '' && designationIds.includes(designationId);
+                    var input = item.querySelector('.js-dynamic-salary-field');
+
+                    item.classList.toggle('d-none', !visible);
+                    input.disabled = !visible;
+                    input.required = visible && input.dataset.required === '1';
+                });
+
+                calculateDynamicSalary();
+            }
+
+            document.getElementById('designation_id').addEventListener('change', filterSalaryComponentsByDesignation);
+            filterSalaryComponentsByDesignation();
             calculateDynamicSalary();
 
             document.querySelectorAll('.js-loading-form').forEach(function (form) {

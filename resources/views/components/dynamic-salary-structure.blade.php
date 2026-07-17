@@ -9,8 +9,10 @@
             $oldKey = "salary_components.{$salaryComponent->id}";
             $value = old($oldKey, $componentValues[$salaryComponent->id] ?? $salaryComponent->default_value);
             $isRequired = $salaryComponent->is_mandatory || $salaryComponent->type === 'earning';
+            $designationIds = $salaryComponent->assignments->pluck('designation_id')->filter()->unique()->implode(',');
         @endphp
-        <div class="col-lg-4 o-f-inp mb-3">
+        <div class="col-lg-4 o-f-inp mb-3 js-salary-component-item"
+            data-designation-ids="{{ $designationIds }}">
             <label for="salary_component_{{ $salaryComponent->id }}">
                 {{ $salaryComponent->component_name }}
                 <small class="text-muted">({{ ucfirst($salaryComponent->type) }})</small>
@@ -21,6 +23,7 @@
             <input type="number" step="0.01" min="0" id="salary_component_{{ $salaryComponent->id }}"
                 name="{{ $fieldName }}" class="form-control shadow-none js-dynamic-salary-field"
                 data-type="{{ $salaryComponent->type }}"
+                data-required="{{ $isRequired ? '1' : '0' }}"
                 value="{{ $value }}"
                 @if ($isRequired) required @endif
                 @if (! $salaryComponent->is_editable_in_payroll) readonly @endif>

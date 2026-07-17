@@ -190,6 +190,8 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Supervisor Management', 'permissions' => $this->crud('supervisor-management')],
                     ['label' => 'Leave Management', 'permissions' => $this->crud('leaves')],
                     ['label' => 'Attendance Management', 'permissions' => $this->crud('attendance-management')],
+                    ['label' => 'Letter Templates', 'permissions' => $this->crud('hr-letter-templates')],
+                    ['label' => 'HR Letters', 'permissions' => ['hr-letters.view', 'hr-letters.generate']],
                 ],
             ],
             [

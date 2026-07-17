@@ -16,6 +16,8 @@
                     <li><a class="dropdown-item" href="{{ route('staff-management.show', $row->id) }}">View Details</a></li>
                     <li><a class="dropdown-item" href="{{ route('staff-management.documents.index', $row->id) }}">Documents</a>
                     </li>
+                    @can('hr-letters.generate')<li><a class="dropdown-item" href="{{ route('hr-letters.create', $row->id) }}">Generate Letter</a></li>@endcan
+                    @can('hr-letters.view')<li><a class="dropdown-item" href="{{ route('hr-letters.index', $row->id) }}">View Letters</a></li>@endcan
                 </ul>
             </div>
         @endcan

@@ -180,19 +180,31 @@
                 @php
                     $bulkImportModule = request()->routeIs('bulk-import.*') ? request()->route('module') : null;
                     $bulkImportIsHrms = in_array($bulkImportModule, ['staff', 'drivers', 'controllers', 'supervisors'], true);
+                    $letterUser = request()->routeIs('hr-letters.*') ? request()->route('user') : null;
+                    if (! $letterUser && request()->routeIs('hr-letters.*') && request()->route('hrLetter')) {
+                        $letterUser = request()->route('hrLetter')->user;
+                    }
+                    $letterUserRole = $letterUser?->roles?->pluck('name')->first(fn ($role) => in_array($role, ['Staff', 'Driver', 'Controller', 'Supervisor'], true));
+                    $letterUserModule = match ($letterUserRole) {
+                        'Staff' => 'staff',
+                        'Driver' => 'drivers',
+                        'Controller' => 'controllers',
+                        'Supervisor' => 'supervisors',
+                        default => null,
+                    };
                 @endphp
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
-                    'supervisor-management.view', 'attendance-management.view',
+                    'supervisor-management.view', 'attendance-management.view', 'hr-letter-templates.view',
                     'salary-components.view', 'salary-processing.view', 'salary-reports.view', 'salary-files.view', 'salary-slips.view', 'role-permissions.view', 'settings.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav6"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') || $bulkImportIsHrms ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('branch-locations.view')
                                 <li>
@@ -216,15 +228,15 @@
                                 </li>
                             @endcan
                             @canany(['departments.view', 'levels.view', 'designations.view', 'role-permissions.view',
-                                'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view'])
+                                'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view', 'hr-letter-templates.view'])
                                 <li>
-                                    <a class="nav-link {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*') ? '' : 'collapsed' }}"
+                                    <a class="nav-link {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'hr-letter-templates.*') ? '' : 'collapsed' }}"
                                         data-bs-target="#sidebarNavInner2" data-bs-toggle="collapse" href="#">
                                         <i class="fa-solid fa-gear mn-0"></i><span>Settings</span><i
                                             class="bi bi-chevron-down ms-auto"></i>
                                     </a>
                                     <ul id="sidebarNavInner2"
-                                        class="nav-content collapse sub-menu {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*') ? 'show' : '' }}"
+                                        class="nav-content collapse sub-menu {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'hr-letter-templates.*') ? 'show' : '' }}"
                                         data-bs-parent="#sidebar-nav1">
 
                                         @can('departments.view')
@@ -294,6 +306,14 @@
                                                 </a>
                                             </li>
                                         @endcan
+                                        @can('hr-letter-templates.view')
+                                            <li>
+                                                <a href="{{ route('hr-letter-templates.index') }}"
+                                                    class="{{ request()->routeIs('hr-letter-templates.*') ? 'sub-active' : '' }}">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Letter Templates</span>
+                                                </a>
+                                            </li>
+                                        @endcan
 
                                     </ul>
                                 </li>
@@ -301,7 +321,7 @@
                             @can('staff-management.view')
                                 <li>
                                     <a href="{{ route('staff-management.index') }}"
-                                        class="{{ request()->routeIs('staff-management.*') || $bulkImportModule === 'staff' ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('staff-management.*') || $bulkImportModule === 'staff' || $letterUserModule === 'staff' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Staff Management</span>
                                     </a>
                                 </li>
@@ -309,7 +329,7 @@
                             @can('driver-management.view')
                                 <li>
                                     <a href="{{ route('driver-management.index') }}"
-                                        class="{{ request()->routeIs('driver-management.*') || $bulkImportModule === 'drivers' ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('driver-management.*') || $bulkImportModule === 'drivers' || $letterUserModule === 'drivers' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Driver Management</span>
                                     </a>
                                 </li>
@@ -317,7 +337,7 @@
                             @can('controller-management.view')
                                 <li>
                                     <a href="{{ route('controller-management.index') }}"
-                                        class="{{ request()->routeIs('controller-management.*') || $bulkImportModule === 'controllers' ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('controller-management.*') || $bulkImportModule === 'controllers' || $letterUserModule === 'controllers' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Controller
                                             Management</span>
                                     </a>
@@ -326,7 +346,7 @@
                             @can('supervisor-management.view')
                                 <li>
                                     <a href="{{ route('supervisor-management.index') }}"
-                                        class="{{ request()->routeIs('supervisor-management.*') || $bulkImportModule === 'supervisors' ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('supervisor-management.*') || $bulkImportModule === 'supervisors' || $letterUserModule === 'supervisors' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Supervisor
                                             Management</span>
                                     </a>

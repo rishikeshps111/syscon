@@ -1,0 +1,1 @@
+<div class="action-btns"><a href="{{ route('hr-letters.show', $row->id) }}" class="btn-edit" title="View"><i class="fa-solid fa-eye"></i></a><a href="{{ route('hr-letters.pdf', $row->id) }}" class="btn-delete" title="Download PDF"><i class="fa-solid fa-file-pdf"></i></a></div>
