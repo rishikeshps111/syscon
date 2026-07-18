@@ -23,6 +23,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'starting_km',
     'starting_electric_charge',
     'vehicle_condition',
+    'energy_status',
+    'accident_status',
+    'accident_remarks',
+    'vehicle_breakdown',
+    'medical_emergency',
+    'passenger_issue',
+    'security_threat',
     'is_vehicle_verified',
     'vehicle_verified_by',
     'vehicle_verified_at',
@@ -45,6 +52,12 @@ class TripSheetEntry extends Model
     protected function casts(): array
     {
         return [
+            'energy_status' => 'boolean',
+            'accident_status' => 'boolean',
+            'vehicle_breakdown' => 'boolean',
+            'medical_emergency' => 'boolean',
+            'passenger_issue' => 'boolean',
+            'security_threat' => 'boolean',
             'is_vehicle_verified' => 'boolean',
             'vehicle_verified_at' => 'datetime',
             'is_driver_verified' => 'boolean',

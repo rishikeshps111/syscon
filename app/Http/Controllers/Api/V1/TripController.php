@@ -361,6 +361,7 @@ class TripController extends Controller
             'vehicle',
             'sheet.trip.route.startPoint',
             'sheet.trip.route.endPoint',
+            'sheet.trip.route.stops',
             'sheet.trip.depot',
         ]);
 
@@ -482,6 +483,7 @@ class TripController extends Controller
                 'vehicle',
                 'sheet.trip.route.startPoint',
                 'sheet.trip.route.endPoint',
+                'sheet.trip.route.stops',
                 'sheet.trip.depot',
             ])
             ->whereRelation(
@@ -555,6 +557,7 @@ class TripController extends Controller
                 'vehicle',
                 'sheet.trip.route.startPoint',
                 'sheet.trip.route.endPoint',
+                'sheet.trip.route.stops',
                 'sheet.trip.depot',
                 'rosters' => fn($rosterQuery) => $rosterQuery->where('driver_profile_id', $driverProfileId),
             ])

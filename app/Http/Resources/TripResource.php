@@ -43,6 +43,7 @@ class TripResource extends JsonResource
             'trip_title' => $trip?->trip_title,
             'starting_point' => $side === 'down' ? $route?->endPoint?->name : $route?->startPoint?->name,
             'ending_point' => $side === 'down' ? $route?->startPoint?->name : $route?->endPoint?->name,
+            'stops' => $this->stops(),
             'driver_name' => $this->driverProfile?->user?->name,
             'depot_name' => $trip?->depot?->name,
             'vehicle_number' => $this->vehicle?->vehicle_no,
@@ -111,6 +112,7 @@ class TripResource extends JsonResource
             'route_name' => $route?->route_name,
             'starting_point' => $side === 'down' ? $route?->endPoint?->name : $route?->startPoint?->name,
             'ending_point' => $side === 'down' ? $route?->startPoint?->name : $route?->endPoint?->name,
+            'stops' => $this->stops(),
             'depot_id' => $trip?->depot?->id,
             'depot_name' => $trip?->depot?->name,
             'side' => $this->side,
@@ -122,6 +124,13 @@ class TripResource extends JsonResource
             'actual_start_time' => $this->formatTime($this->actual_start_time),
             'actual_end_time' => $this->formatTime($this->actual_reach_time),
             'trip_order_sequence_no' => $this->trip_order_sequence_no,
+            'energy_status' => $this->energy_status,
+            'accident_status' => $this->accident_status,
+            'accident_remarks' => $this->accident_remarks,
+            'vehicle_breakdown' => $this->vehicle_breakdown,
+            'medical_emergency' => $this->medical_emergency,
+            'passenger_issue' => $this->passenger_issue,
+            'security_threat' => $this->security_threat,
             'trip_side' => $trip?->trip_side,
             'trip_side_label' => $trip ? (Trip::TRIP_SIDES[$trip->trip_side] ?? $trip->trip_side) : null,
             'from_date' => $this->formatDate($trip?->from_date),
@@ -129,6 +138,51 @@ class TripResource extends JsonResource
             'status' => $trip?->status,
             'notes' => $this->notes,
         ];
+    }
+
+    private function stops(): array
+    {
+        $trip = $this->sheet?->trip;
+        $route = $trip?->route;
+
+        if (! $route) {
+            return [];
+        }
+
+        $isDown = strtolower((string) $this->side) === 'down';
+        $startingPoint = $isDown ? $route->endPoint : $route->startPoint;
+        $endingPoint = $isDown ? $route->startPoint : $route->endPoint;
+        $intermediateStops = $route->stops->sortBy('position');
+
+        if ($isDown) {
+            $intermediateStops = $intermediateStops->reverse();
+        }
+
+        $stops = $intermediateStops->values()->map(fn($stop): array => [
+            'type' => 'stop',
+            'id' => $stop->id,
+            'name' => $stop->name,
+            'position' => $stop->position,
+            'expected_reach_time' => $this->formatTime($stop->expected_reach_time),
+        ])->all();
+
+        array_unshift($stops, [
+            'type' => 'start',
+            'id' => $startingPoint?->id,
+            'name' => $startingPoint?->name,
+            'position' => 0,
+            'expected_reach_time' => $this->formatTime($trip?->start_time),
+        ]);
+
+        $stops[] = [
+            'type' => 'end',
+            'id' => $endingPoint?->id,
+            'name' => $endingPoint?->name,
+            'position' => count($stops),
+            'expected_reach_time' => $this->formatTime($trip?->end_time),
+        ];
+
+        return $stops;
     }
 
     private function dorDetails(): ?array

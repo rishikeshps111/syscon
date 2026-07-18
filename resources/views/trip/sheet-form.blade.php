@@ -32,6 +32,14 @@
             ['is_verified_by_supervisor', 'verified_by_supervisor', 'verified_by_supervisor_at', 'Verified By Supervisor'],
             ['is_verified_by_controller', 'verified_by_controller', 'verified_by_controller_at', 'Verified By Controller'],
         ];
+        $incidentStatusFields = [
+            'energy_status' => 'Energy Status',
+            'accident_status' => 'Accident Status',
+            'vehicle_breakdown' => 'Vehicle Breakdown',
+            'medical_emergency' => 'Medical Emergency',
+            'passenger_issue' => 'Passenger Issue',
+            'security_threat' => 'Security Threat',
+        ];
     @endphp
 
     <section class="section dashboard section-top-padding">
@@ -187,6 +195,7 @@
                             name="starting_electric_charge" class="form-control shadow-none"
                             value="{{ old('starting_electric_charge', $entry?->starting_electric_charge) }}">
                     </div>
+
                     <div class="col-lg-12 o-f-inp mb-3">
                         <hr />
                     </div>
@@ -233,7 +242,36 @@
                         <textarea id="vehicleCondition" name="vehicle_condition" rows="2"
                             class="form-control shadow-none">{{ old('vehicle_condition', $entry?->vehicle_condition) }}</textarea>
                     </div>
+                      <div class="col-lg-12 o-f-inp mb-3">
+                        <hr />
+                    </div>
+
+                    @foreach($incidentStatusFields as $field => $label)
+                        @php($isChecked = old($field, $entry?->{$field}))
+                        <div class="col-lg-4 o-f-inp mb-3">
+                            <label>{{ $label }}</label>
+                            <div class="mt-2">
+                                <input class="btn-check sheet-toggle-input" type="checkbox" value="1"
+                                    id="{{ $field }}" name="{{ $field }}" autocomplete="off"
+                                    {{ $isChecked ? 'checked' : '' }}>
+                                <label class="btn btn-sm {{ $isChecked ? 'btn-success' : 'btn-outline-secondary' }} sheet-toggle-btn"
+                                    for="{{ $field }}">
+                                    <i class="fa-solid {{ $isChecked ? 'fa-toggle-on' : 'fa-toggle-off' }} me-1"></i>
+                                    <span>{{ $isChecked ? 'Yes' : 'No' }}</span>
+                                </label>
+                            </div>
+                            @error($field) <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                        </div>
+                    @endforeach
+
+                    <div class="col-lg-12 o-f-inp mb-3">
+                        <label for="accidentRemarks">Accident Remarks</label>
+                        <textarea id="accidentRemarks" name="accident_remarks" rows="3"
+                            class="form-control shadow-none">{{ old('accident_remarks', $entry?->accident_remarks) }}</textarea>
+                        @error('accident_remarks') <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                    </div>
                 </div>
+
 
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('trips.sheet', $record->id) }}" class="btn btn-secondary">
