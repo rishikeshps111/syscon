@@ -402,7 +402,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/salary-components/export', [SalaryComponentController::class, 'export'])
         ->name('salary-components.export');
     Route::resource('salary-components', SalaryComponentController::class)->except(['show']);
-    Route::resource('hr-letter-templates', HrLetterTemplateController::class)->except(['show']);
+    Route::resource('hr-letter-templates', HrLetterTemplateController::class);
     Route::get('/users/{user}/hr-letters', [HrLetterController::class, 'index'])->name('hr-letters.index');
     Route::get('/hr-letters/generate/{user}', [HrLetterController::class, 'create'])->name('hr-letters.create');
     Route::post('/hr-letters/generate/{user}', [HrLetterController::class, 'store'])->name('hr-letters.store');

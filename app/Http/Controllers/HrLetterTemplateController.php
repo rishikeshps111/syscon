@@ -18,7 +18,7 @@ class HrLetterTemplateController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('hr-letter-templates.view'), ['index']),
+            new Middleware(PermissionMiddleware::using('hr-letter-templates.view'), ['index', 'show']),
             new Middleware(PermissionMiddleware::using('hr-letter-templates.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('hr-letter-templates.edit'), ['edit', 'update']),
             new Middleware(PermissionMiddleware::using('hr-letter-templates.delete'), ['destroy']),
@@ -48,6 +48,11 @@ class HrLetterTemplateController extends Controller implements HasMiddleware
     public function create()
     {
         return view('hr-letter-template.form', $this->formData());
+    }
+
+    public function show(HrLetterTemplate $hrLetterTemplate)
+    {
+        return view('hr-letter-template.show', ['template' => $hrLetterTemplate]);
     }
 
     public function store(Request $request)
