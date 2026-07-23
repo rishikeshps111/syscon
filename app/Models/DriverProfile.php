@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
@@ -107,6 +108,16 @@ class DriverProfile extends Model
     public function branchLocation(): BelongsTo
     {
         return $this->belongsTo(BranchLocation::class);
+    }
+
+    public function rosters(): HasMany
+    {
+        return $this->hasMany(Roster::class);
+    }
+
+    public function tripNotificationLogs(): HasMany
+    {
+        return $this->hasMany(DriverTripNotificationLog::class);
     }
 
     public function scopeExpiredLicense(Builder $query): Builder

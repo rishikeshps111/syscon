@@ -695,4 +695,39 @@ Route::get('system/today-trip-notifications', function () {
     ], $successful ? 200 : 422);
 })->name('system.today-trip-notifications');
 
+Route::get('system/driver-today-trip-notifications', function () {
+    $exitCode = Artisan::call('drivers:today-trip-notifications', [
+        '--force' => true,
+    ]);
+
+    $successful = $exitCode === 0;
+
+    return response()->json([
+        'success' => $successful,
+        'message' => $successful
+            ? 'Driver today trip notifications command executed successfully.'
+            : 'Driver today trip notifications command completed with delivery failures. Check driver_trip_notification_logs.error.',
+        'exit_code' => $exitCode,
+        'output' => Artisan::output(),
+    ], $successful ? 200 : 422);
+})->name('system.driver-today-trip-notifications');
+
+Route::get('system/driver-document-expiry-notifications', function () {
+    $exitCode = Artisan::call('drivers:document-expiry-notifications', [
+        '--force' => true,
+    ]);
+
+    $successful = $exitCode === 0;
+
+    return response()->json([
+        'success' => $successful,
+        'message' => $successful
+            ? 'Driver document expiry notifications command executed successfully.'
+            : 'Driver document expiry notifications command completed with delivery failures. Check driver_document_expiry_notification_logs.error.',
+        'exit_code' => $exitCode,
+        'output' => Artisan::output(),
+    ], $successful ? 200 : 422);
+})->name('system.driver-document-expiry-notifications');
+
+
 require __DIR__ . '/auth.php';

@@ -65,6 +65,14 @@ class UserResource extends JsonResource
             $badgeDocument = $this->documentPayload($type, ['badge']);
             $medicalCertificateDocument = $this->documentPayload($type, ['medical certificate', 'medical fitness', 'medical']);
 
+            if ($licenceDocument) {
+                $licenceDocument['status'] = $this->documentExpiryStatus($licenceDocument['expiry_date']);
+            }
+
+            if ($badgeDocument) {
+                $badgeDocument['status'] = $this->documentExpiryStatus($badgeDocument['expiry_date']);
+            }
+
             $data['licence_file_url'] = $licenceDocument['file_url'] ?? null;
             $data['licence_document'] = $licenceDocument;
             $data['badge_file_url'] = $badgeDocument['file_url'] ?? null;
@@ -115,6 +123,26 @@ class UserResource extends JsonResource
             'is_verified' => $document->is_verified,
             'expiry_date' => $this->formatDate($document->expiry_date),
         ];
+    }
+
+    private function documentExpiryStatus(?string $expiryDate): string
+    {
+        if (! $expiryDate) {
+            return 'active';
+        }
+
+        $expiry = Carbon::createFromFormat('d M Y', $expiryDate)->startOfDay();
+        $today = Carbon::today();
+
+        if ($expiry->lt($today)) {
+            return 'expired';
+        }
+
+        if ($expiry->lt($today->copy()->addMonths(6))) {
+            return 'expire_soon';
+        }
+
+        return 'active';
     }
 
     private function documentsFor(?string $type)

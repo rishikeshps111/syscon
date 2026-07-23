@@ -16,7 +16,9 @@ class NotificationController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $controllerProfileId = $request->user()->controllerProfile?->id;
+        $user = $request->user();
+        $controllerProfileId = $user->controllerProfile?->id;
+        $driverProfileId = $user->driverProfile?->id;
 
         $notifications = TripSheetEntry::query()
             ->with([
@@ -24,8 +26,13 @@ class NotificationController extends Controller
                 'sheet.trip.route.endPoint',
                 'vehicle',
             ])
-            ->whereHas('rosters', fn(Builder $query) => $query
-                ->where('controller_profile_id', $controllerProfileId ?? 0))
+            ->whereHas('rosters', function (Builder $query) use ($controllerProfileId, $driverProfileId): void {
+                if ($driverProfileId) {
+                    $query->where('driver_profile_id', $driverProfileId);
+                } else {
+                    $query->where('controller_profile_id', $controllerProfileId ?? 0);
+                }
+            })
             ->whereHas('sheet', fn(Builder $query) => $query
                 ->whereDate('date', today()))
             ->latest('id')
