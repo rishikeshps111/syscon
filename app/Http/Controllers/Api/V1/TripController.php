@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
+use App\Models\TripSheet;
 use App\Models\TripSheetEntry;
 use App\Models\TripSheetEntryDor;
 use App\Models\User;
@@ -119,6 +120,10 @@ class TripController extends Controller
 
     public function today(Request $request)
     {
+        $validated = $request->validate([
+            'status' => ['nullable', 'string', 'in:' . implode(',', array_keys(TripSheet::STATUSES))],
+        ]);
+
         $depotId = $this->userDepotId($request);
         $today = Carbon::today()->toDateString();
 
@@ -135,6 +140,18 @@ class TripController extends Controller
         $query = $this->depotTripQuery($depotId)
             ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
+        $totalCount = (clone $query)->count();
+        $controllerUnverifiedCount = (clone $query)
+            ->where(function (Builder $query): void {
+                $query->where('is_final_verified', false)
+                    ->orWhereNull('is_final_verified');
+            })
+            ->count();
+
+        if (! empty($validated['status'])) {
+            $query->whereRelation('sheet', 'status', $validated['status']);
+        }
+
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
 
         if ($vehicleCode !== '') {
@@ -145,13 +162,7 @@ class TripController extends Controller
             });
         }
 
-        $totalCount = (clone $query)->count();
-        $controllerUnverifiedCount = (clone $query)
-            ->where(function (Builder $query): void {
-                $query->where('is_final_verified', false)
-                    ->orWhereNull('is_final_verified');
-            })
-            ->count();
+
 
         $records = $this->applyTodayTripOrder($query)->get();
 
@@ -569,13 +580,13 @@ class TripController extends Controller
                         ->where('trip_side', 'both')
                         ->where('depot_id', $depotId));
                 })->orWhere(function (Builder $query) use ($depotId): void {
-                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereIn('status', ['pending', 'initial_verification_completed', 'verification_completed']))
+                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereIn('status', ['pending', 'initial_verification_completed', 'verification_completed', 'cancelled']))
                         ->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
                             ->whereIn('trip_side', ['up', 'down'])
                             ->where('from_depot_id', $depotId));
                 })->orWhere(function (Builder $query) use ($depotId): void {
                     $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
-                        ->whereIn('status', ['initial_verification_completed', 'verification_completed']))
+                        ->whereIn('status', ['initial_verification_completed', 'verification_completed', 'cancelled']))
                         ->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
                             ->whereIn('trip_side', ['up', 'down'])
                             ->where('to_depot_id', $depotId));
