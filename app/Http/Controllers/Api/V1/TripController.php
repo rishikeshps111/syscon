@@ -682,9 +682,9 @@ class TripController extends Controller
     private function applyTodayTripOrder(Builder $query): Builder
     {
         return $query
-            ->orderByRaw('trip_order_sequence_no IS NULL')
-            ->orderBy('trip_order_sequence_no')
-            ->orderByDesc('id');
+            ->orderByRaw('actual_start_time IS NULL')
+            ->orderBy('actual_start_time')
+            ->orderBy('id');
     }
 
     private function driverBelongsToTrip(TripSheetEntry $record, int $driverProfileId): bool
