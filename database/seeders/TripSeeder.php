@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Depot;
 use App\Models\Route;
 use App\Models\ServiceType;
 use App\Models\Trip;
@@ -63,13 +64,24 @@ class TripSeeder extends Seeder
                     continue;
                 }
 
-                $trip = Trip::firstOrCreate(
+                $usesSingleDepot = $record['trip_side'] === 'both';
+                $fromDepot = Depot::where('location_id', $route->start_point_id)->first();
+                $toDepot = Depot::where('location_id', $route->end_point_id)->first();
+
+                if (! $fromDepot || (! $usesSingleDepot && ! $toDepot)) {
+                    continue;
+                }
+
+                $trip = Trip::updateOrCreate(
                     [
                         'service_type_id' => $serviceType->id,
                         'route_id' => $route->id,
                         'schedule_type' => $record['schedule_type'],
                     ],
                     [
+                        'depot_id' => $usesSingleDepot ? $fromDepot->id : null,
+                        'from_depot_id' => $usesSingleDepot ? null : $fromDepot->id,
+                        'to_depot_id' => $usesSingleDepot ? null : $toDepot->id,
                         'start_time' => $record['start_time'],
                         'end_time' => $record['end_time'],
                         'halt_time' => $this->minutesToTime($record['halt_time']),
@@ -78,11 +90,6 @@ class TripSeeder extends Seeder
                         'is_active' => true,
                     ]
                 );
-
-                if (! $trip->state_id) {
-                    $trip->state_id = $route->state_id;
-                    $trip->save();
-                }
 
                 if (! $trip->code) {
                     $trip->code = generate_code(Trip::PREFIX_MODULE, $trip->id, 4);

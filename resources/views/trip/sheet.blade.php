@@ -29,6 +29,24 @@
                     <input type="text" class="form-control shadow-none"
                         value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
                 </div>
+                @if($record->trip_side === 'both')
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label>Depot</label>
+                        <input type="text" class="form-control shadow-none"
+                            value="{{ $record->depot?->name ?? '-' }}" disabled>
+                    </div>
+                @else
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label>From Depot</label>
+                        <input type="text" class="form-control shadow-none"
+                            value="{{ $record->fromDepot?->name ?? '-' }}" disabled>
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label>To Depot</label>
+                        <input type="text" class="form-control shadow-none"
+                            value="{{ $record->toDepot?->name ?? '-' }}" disabled>
+                    </div>
+                @endif
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>Date Range</label>
                     <input type="text" class="form-control shadow-none"
@@ -76,15 +94,16 @@
                             <th class="text-center nowrap">SL No</th>
                             <th class="text-center nowrap">Code</th>
                             <th class="text-center nowrap">Status</th>
-                            <th class="text-center nowrap">Side</th>
                             <th class="text-center nowrap">Driver</th>
                             <th class="text-center nowrap">Vehicle</th>
-                            <th class="text-center nowrap">Trip Order Sequence No</th>
+                            {{-- <th class="text-center nowrap">Trip Order Sequence No</th> --}}
                             <th class="text-center nowrap" style="min-width: 130px;">Date</th>
                             <th class="text-center nowrap">Actual Start</th>
                             <th class="text-center nowrap">Actual Reach</th>
                             <th class="text-center nowrap">Starting Km</th>
-                            <th class="text-center nowrap">Charge</th>
+                            <th class="text-center nowrap">Ending Km</th>
+                            <th class="text-center nowrap">Starting Charge</th>
+                            <th class="text-center nowrap">Ending Charge</th>
                             <th class="text-center nowrap">Vehicle Verified</th>
                             <th class="text-center nowrap">Driver Verified</th>
                             <th class="text-center nowrap">Action</th>
@@ -111,15 +130,16 @@
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
                         { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
-                        { data: 'side', name: 'side', className: 'text-center' },
                         { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'trip_order_sequence_no', name: 'trip_order_sequence_no', className: 'text-center' },
+                        //{ data: 'trip_order_sequence_no', name: 'trip_order_sequence_no', className: 'text-center' },
                         { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
                         { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
                         { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
                         { data: 'starting_km', name: 'starting_km', className: 'text-center' },
+                        { data: 'ending_km', name: 'ending_km', className: 'text-center' },
                         { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
+                        { data: 'ending_electric_charge', name: 'ending_electric_charge', className: 'text-center' },
                         { data: 'is_vehicle_verified', name: 'is_vehicle_verified', className: 'text-center' },
                         { data: 'is_driver_verified', name: 'is_driver_verified', className: 'text-center' },
                         { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }

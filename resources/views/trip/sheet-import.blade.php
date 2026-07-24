@@ -109,12 +109,7 @@
                                 <tr>
                                     <td>status</td>
                                     <td>No</td>
-                                    <td>Use pending, partial, completed, or cancelled. Blank defaults to pending.</td>
-                                </tr>
-                                <tr>
-                                    <td>side</td>
-                                    <td>Yes</td>
-                                    <td>Use up/down. Both-side trips can import one row for each side per date.</td>
+                                    <td>Use pending, initial_verification_completed, verification_completed, or cancelled. Blank defaults to pending.</td>
                                 </tr>
                                 <tr>
                                     <td>departure_time / arrival_time</td>
@@ -124,10 +119,10 @@
                                 <tr>
                                     <td>actual_start_time / actual_reach_time</td>
                                     <td>No</td>
-                                    <td>Use HH:MM. Blank actual_start_time defaults from trip start time for up; blank actual_reach_time defaults from trip end time for down.</td>
+                                    <td>Use HH:MM. Blank values default from the trip start and end times.</td>
                                 </tr>
                                 <tr>
-                                    <td>starting_km / starting_electric_charge</td>
+                                    <td>starting_km / ending_km / starting_electric_charge / ending_electric_charge</td>
                                     <td>No</td>
                                     <td>Use whole numbers. Electric charge must be 0 to 100.</td>
                                 </tr>

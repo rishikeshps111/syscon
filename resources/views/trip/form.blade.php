@@ -31,19 +31,6 @@
             value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
     </div>
 
-     <div class="col-lg-4 o-f-inp mb-2">
-        <label for="depot_id" class="form-label m-0">Depot</label>
-        <select class="form-select shadow-none select2" id="depot_id" name="depot_id">
-            <option value="">--- Select ---</option>
-            @foreach($depots as $depot)
-                <option value="{{ $depot->id }}" {{ old('depot_id', $record->depot_id ?? '') == $depot->id ? 'selected' : '' }}>
-                    {{ $depot->name }}
-                </option>
-            @endforeach
-        </select>
-        <span class="text-danger error-text depot_id_error">@error('depot_id'){{ $message }}@enderror</span>
-    </div>
-
     <div class="col-lg-4 o-f-inp mb-2">
         <label for="service_type_id" class="form-label m-0">Service Type <span class="text-danger">*</span></label>
         <select class="form-select shadow-none select2" id="service_type_id" name="service_type_id">
@@ -114,6 +101,45 @@
             @endforeach
         </select>
         <span class="text-danger error-text trip_side_error">@error('trip_side'){{ $message }}@enderror</span>
+    </div>
+
+    <div class="col-lg-4 o-f-inp mb-2" id="singleDepotWrap">
+        <label for="depot_id" class="form-label m-0">Depot <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none select2" id="depot_id" name="depot_id">
+            <option value="">--- Select ---</option>
+            @foreach($depots as $depot)
+                <option value="{{ $depot->id }}" {{ old('depot_id', $record->depot_id ?? '') == $depot->id ? 'selected' : '' }}>
+                    {{ $depot->name }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text depot_id_error">@error('depot_id'){{ $message }}@enderror</span>
+    </div>
+
+    <div class="col-lg-4 o-f-inp mb-2 directional-depot-wrap">
+        <label for="from_depot_id" class="form-label m-0">From Depot <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none select2" id="from_depot_id" name="from_depot_id">
+            <option value="">--- Select ---</option>
+            @foreach($depots as $depot)
+                <option value="{{ $depot->id }}" {{ old('from_depot_id', $record->from_depot_id ?? '') == $depot->id ? 'selected' : '' }}>
+                    {{ $depot->name }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text from_depot_id_error">@error('from_depot_id'){{ $message }}@enderror</span>
+    </div>
+
+    <div class="col-lg-4 o-f-inp mb-2 directional-depot-wrap">
+        <label for="to_depot_id" class="form-label m-0">To Depot <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none select2" id="to_depot_id" name="to_depot_id">
+            <option value="">--- Select ---</option>
+            @foreach($depots as $depot)
+                <option value="{{ $depot->id }}" {{ old('to_depot_id', $record->to_depot_id ?? '') == $depot->id ? 'selected' : '' }}>
+                    {{ $depot->name }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text to_depot_id_error">@error('to_depot_id'){{ $message }}@enderror</span>
     </div>
 
     <div class="col-lg-4 o-f-inp mb-2">

@@ -21,7 +21,9 @@ class StoreTripRequest extends FormRequest
         return [
             'service_type_id' => ['required', 'integer', 'exists:service_types,id'],
             'route_id' => ['required', 'integer', 'exists:routes,id'],
-            'depot_id' => ['nullable', 'integer', 'exists:depots,id'],
+            'depot_id' => ['nullable', 'required_if:trip_side,both', 'integer', 'exists:depots,id'],
+            'from_depot_id' => ['nullable', 'required_if:trip_side,up,down', 'integer', 'exists:depots,id'],
+            'to_depot_id' => ['nullable', 'required_if:trip_side,up,down', 'integer', 'different:from_depot_id', 'exists:depots,id'],
             'title' => ['nullable', 'string', 'max:255'],
             'schedule_type' => ['nullable', Rule::in(['daily', 'weekly', 'monthly'])],
             'start_time' => ['required', 'date_format:H:i'],

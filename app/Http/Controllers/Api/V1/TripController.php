@@ -58,12 +58,19 @@ class TripController extends Controller
         }
 
         $query = $this->depotTripQuery($depotId);
-
         if ($request->user()->hasRole('Controller')) {
-            $query->where('is_verified_by_controller', true)
-                ->where('verified_by_controller', (string) $request->user()->name);
-        }
+            $userName = (string) $request->user()->name;
 
+            $query->where(function (Builder $query) use ($userName): void {
+                $query->Where(function (Builder $query) use ($userName): void {
+                    $query->where('is_initial_verified', true)
+                        ->where('initial_verification_by', $userName);
+                })->orWhere(function (Builder $query) use ($userName): void {
+                    $query->where('is_final_verified', true)
+                        ->where('final_verification_by', $userName);
+                });
+            });
+        }
         $records = QueryBuilder::for($query)
             ->allowedFilters(
                 AllowedFilter::callback('date', function (Builder $query, $value): void {
@@ -120,7 +127,7 @@ class TripController extends Controller
                 'meta' => [
                     'date' => Carbon::parse($today)->format('d M Y'),
                     'total_count' => 0,
-                    'is_verified_by_controller_false_count' => 0,
+                    'is_final_verified_false_count' => 0,
                 ],
             ]);
         }
@@ -141,8 +148,8 @@ class TripController extends Controller
         $totalCount = (clone $query)->count();
         $controllerUnverifiedCount = (clone $query)
             ->where(function (Builder $query): void {
-                $query->where('is_verified_by_controller', false)
-                    ->orWhereNull('is_verified_by_controller');
+                $query->where('is_final_verified', false)
+                    ->orWhereNull('is_final_verified');
             })
             ->count();
 
@@ -152,7 +159,7 @@ class TripController extends Controller
             'meta' => [
                 'date' => Carbon::parse($today)->format('d M Y'),
                 'total_count' => $totalCount,
-                'is_verified_by_controller_false_count' => $controllerUnverifiedCount,
+                'is_final_verified_false_count' => $controllerUnverifiedCount,
             ],
         ]);
     }
@@ -248,7 +255,7 @@ class TripController extends Controller
                 'meta' => [
                     'date' => Carbon::parse($today)->format('d M Y'),
                     'total_count' => 0,
-                    'is_verified_by_controller_false_count' => 0,
+                    'is_final_verified_false_count' => 0,
                 ],
             ]);
         }
@@ -269,8 +276,8 @@ class TripController extends Controller
         $totalCount = (clone $query)->count();
         $controllerUnverifiedCount = (clone $query)
             ->where(function (Builder $query): void {
-                $query->where('is_verified_by_controller', false)
-                    ->orWhereNull('is_verified_by_controller');
+                $query->where('is_final_verified', false)
+                    ->orWhereNull('is_final_verified');
             })
             ->count();
 
@@ -280,7 +287,7 @@ class TripController extends Controller
             'meta' => [
                 'date' => Carbon::parse($today)->format('d M Y'),
                 'total_count' => $totalCount,
-                'is_verified_by_controller_false_count' => $controllerUnverifiedCount,
+                'is_final_verified_false_count' => $controllerUnverifiedCount,
             ],
         ]);
     }
@@ -376,61 +383,112 @@ class TripController extends Controller
 
     public function startVerification(Request $request)
     {
-        $validated = $request->validate(
-            [
-                'trip_id' => ['required', 'integer'],
-                'actual_start_time' => ['nullable', 'date_format:H:i'],
-                'actual_end_time' => ['nullable', 'date_format:H:i'],
-                'odometer_start_reading' => ['nullable', 'numeric', 'min:0'],
-                'odometer_start_image_path' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-                'odometer_end_reading' => ['nullable', 'numeric', 'min:0'],
-                'odometer_end_image_path' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-                'route_start_soc_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'route_start_soc_percent_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-                'route_end_soc_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-                'route_end_soc_percent_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
-                'remarks' => ['nullable', 'string'],
-                'is_vehical_verified' => ['nullable', 'boolean'],
-                'start_punc' => ['nullable', 'string', 'max:255'],
-                'reason_for_kilometer_loss' => ['nullable', 'string'],
-            ],
-            [
-                'route_start_soc_percent.numeric' => 'Battery Percentage is invalid.',
-                'route_start_soc_percent.min' => 'Battery Percentage must be at least 0.',
-                'route_start_soc_percent.max' => 'Battery Percentage must not be greater than 100.',
-                'route_end_soc_percent.numeric' => 'Battery Percentage is invalid.',
-                'route_end_soc_percent.min' => 'Battery Percentage must be at least 0.',
-                'route_end_soc_percent.max' => 'Battery Percentage must not be greater than 100.',
-            ]
-        );
+        $tripId = $request->validate([
+            'trip_id' => ['required', 'integer', 'exists:trip_sheet_entries,id'],
+        ])['trip_id'];
 
         $depotId = $this->userDepotId($request);
 
-        abort_if(! $depotId, 404);
+        abort_unless($request->user()->hasRole(['Controller', 'Supervisor']) && $depotId, 403);
 
-        $record = $this->depotTripQuery($depotId)
+        $record = TripSheetEntry::query()
             ->with([
                 'dor',
                 'driverProfile.user',
                 'vehicle',
                 'sheet.trip.route',
+                'sheet.trip.depot',
+                'sheet.trip.fromDepot',
+                'sheet.trip.toDepot',
                 'sheet.trip.assignments.driverProfile.user',
                 'sheet.trip.assignments.vehicle',
             ])
-            ->whereKey($validated['trip_id'])
+            ->whereKey($tripId)
             ->firstOrFail();
 
-        DB::transaction(function () use ($request, $record, $validated): void {
-            $record->forceFill([
-                'actual_start_time' => $validated['actual_start_time'] ?? $record->actual_start_time,
-                'actual_reach_time' => $validated['actual_end_time'] ?? $record->actual_reach_time,
-                'vehicle_condition' => array_key_exists('remarks', $validated) ? $validated['remarks'] : $record->vehicle_condition,
-                'starting_electric_charge' => $validated['route_start_soc_percent'] ?? $record->starting_electric_charge,
-                'starting_km' =>  $validated['odometer_start_reading'] ?? $record->starting_km,
-                'is_vehicle_verified' => $this->requestBoolean($validated, 'is_vehical_verified', 'is_vehicle_verified', true),
-                'vehicle_verified_by' => (string) $request->user()->name,
-                'vehicle_verified_at' => now(),
-            ] + $this->roleVerificationPayload($request))->save();
+        $stage = $record->sheet?->status;
+        $this->authorizeVerificationDepot($record, $depotId, $stage);
+
+        $commonRules = [
+            'trip_id' => ['required', 'integer'],
+            'remarks' => ['nullable', 'string'],
+        ];
+        $imageRule = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'];
+
+        $rules = match ($stage) {
+            'pending' => $commonRules + [
+                'actual_start_time' => ['required', 'date_format:H:i'],
+                'odometer_start_reading' => ['required', 'numeric', 'min:0'],
+                'odometer_start_image_path' => $imageRule,
+                'route_start_soc_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+                'route_start_soc_percent_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+                'is_vehicle_verified' => ['required', 'boolean'],
+            ],
+            'initial_verification_completed' => $commonRules + [
+                'actual_end_time' => ['required', 'date_format:H:i'],
+                'odometer_end_reading' => ['required', 'numeric', 'min:0'],
+                'odometer_end_image_path' => $imageRule,
+                'route_end_soc_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+                'route_end_soc_percent_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+                'start_punc' => ['nullable', 'string', 'max:255'],
+                'reason_for_kilometer_loss' => ['nullable', 'string'],
+            ],
+            default => throw ValidationException::withMessages([
+                'trip_id' => 'This trip sheet entry is not available for verification.',
+            ]),
+        };
+
+        $validated = $request->validate($rules, [
+            'route_start_soc_percent.numeric' => 'Battery Percentage is invalid.',
+            'route_start_soc_percent.min' => 'Battery Percentage must be at least 0.',
+            'route_start_soc_percent.max' => 'Battery Percentage must not be greater than 100.',
+            'route_end_soc_percent.numeric' => 'Battery Percentage is invalid.',
+            'route_end_soc_percent.min' => 'Battery Percentage must be at least 0.',
+            'route_end_soc_percent.max' => 'Battery Percentage must not be greater than 100.',
+        ]);
+
+        DB::transaction(function () use ($request, $record, $validated, $stage): void {
+            $record = TripSheetEntry::query()->lockForUpdate()->findOrFail($record->id);
+            $record->load(['sheet.trip.route', 'sheet.trip.depot', 'sheet.trip.fromDepot', 'sheet.trip.toDepot']);
+
+            if ($record->sheet?->status !== $stage) {
+                throw ValidationException::withMessages([
+                    'trip_id' => 'The verification stage has already changed. Please refresh and try again.',
+                ]);
+            }
+
+            $userName = (string) $request->user()->name;
+            $isVehicleVerified = $this->requestBoolean(
+                $validated,
+                'is_vehicle_verified',
+                'is_vehicle_verified',
+                false
+            );
+            // $isVehicleVerified = true;
+            $entryPayload = $stage === 'pending'
+                ? [
+                    'actual_start_time' => $validated['actual_start_time'],
+                    'starting_km' => $validated['odometer_start_reading'],
+                    'starting_electric_charge' => $validated['route_start_soc_percent'],
+                    'vehicle_condition' => $validated['remarks'] ?? $record->vehicle_condition,
+                    'is_vehicle_verified' => $isVehicleVerified,
+                    'vehicle_verified_by' => $isVehicleVerified ? $userName : null,
+                    'vehicle_verified_at' => $isVehicleVerified ? now() : null,
+
+                    'is_initial_verified' => true,
+                    'initial_verification_by' => $userName,
+                    'initial_verification_at' => now(),
+                ]
+                : [
+                    'actual_reach_time' => $validated['actual_end_time'],
+                    'ending_km' => $validated['odometer_end_reading'],
+                    'ending_electric_charge' => $validated['route_end_soc_percent'],
+                    'is_final_verified' => true,
+                    'final_verification_by' => $userName,
+                    'final_verification_at' => now(),
+                ];
+
+            $record->forceFill($entryPayload)->save();
 
             $record->refresh()->load([
                 'dor',
@@ -438,6 +496,8 @@ class TripController extends Controller
                 'vehicle',
                 'sheet.trip.route',
                 'sheet.trip.depot',
+                'sheet.trip.fromDepot',
+                'sheet.trip.toDepot',
                 'sheet.trip.assignments.driverProfile.user',
                 'sheet.trip.assignments.vehicle',
                 'rosters.driverProfile.user',
@@ -446,7 +506,14 @@ class TripController extends Controller
 
             $dor = $record->dor;
             $payload = $this->apiDorPayload($record, $validated, $dor)
-                + $this->apiDorImagePayload($request, $record, $dor);
+                + $this->apiDorImagePayload(
+                    $request,
+                    $record,
+                    $dor,
+                    $stage === 'pending'
+                        ? ['odometer_start_image_path', 'route_start_soc_percent_image']
+                        : ['odometer_end_image_path', 'route_end_soc_percent_image']
+                );
 
             if ($dor) {
                 $dor->update($payload + ['updated_by' => $request->user()->id]);
@@ -456,21 +523,31 @@ class TripController extends Controller
                     'updated_by' => $request->user()->id,
                 ]);
             }
+
+            $record->sheet->update([
+                'status' => $stage === 'pending'
+                    ? 'initial_verification_completed'
+                    : 'verification_completed',
+            ]);
         });
 
-        $record->load([
+        $record->refresh()->load([
             'dor',
             'driverProfile.user',
             'vehicle',
             'sheet.trip.route.startPoint',
             'sheet.trip.route.endPoint',
             'sheet.trip.depot',
+            'sheet.trip.fromDepot',
+            'sheet.trip.toDepot',
             'driverVerifiedBy',
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Trip verification saved successfully.',
+            'message' => $stage === 'pending'
+                ? 'Initial verification completed successfully.'
+                : 'Final verification completed successfully.',
             'data' => (new TripResource($record))->withDetails()->resolve($request),
         ]);
     }
@@ -486,11 +563,24 @@ class TripController extends Controller
                 'sheet.trip.route.stops',
                 'sheet.trip.depot',
             ])
-            ->whereRelation(
-                'sheet.trip',
-                'depot_id',
-                $depotId
-            );
+            ->where(function (Builder $query) use ($depotId): void {
+                $query->where(function (Builder $query) use ($depotId): void {
+                    $query->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
+                        ->where('trip_side', 'both')
+                        ->where('depot_id', $depotId));
+                })->orWhere(function (Builder $query) use ($depotId): void {
+                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereIn('status', ['pending', 'initial_verification_completed', 'verification_completed']))
+                        ->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
+                            ->whereIn('trip_side', ['up', 'down'])
+                            ->where('from_depot_id', $depotId));
+                })->orWhere(function (Builder $query) use ($depotId): void {
+                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
+                        ->whereIn('status', ['initial_verification_completed', 'verification_completed']))
+                        ->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
+                            ->whereIn('trip_side', ['up', 'down'])
+                            ->where('to_depot_id', $depotId));
+                });
+            });
     }
 
     private function userDepotId(Request $request): ?int
@@ -503,27 +593,39 @@ class TripController extends Controller
         return $depotId ? (int) $depotId : null;
     }
 
-    private function roleVerificationPayload(Request $request): array
-    {
-        if ($request->user()->hasRole('Supervisor')) {
-            return [
-                'is_verified_by_supervisor' => true,
-                'verified_by_supervisor' => (string) $request->user()->name,
-                'verified_by_supervisor_at' => now(),
-                'is_verified_by_controller' => true,
-                'verified_by_controller' => (string) $request->user()->name,
-                'verified_by_controller_at' => now(),
-            ];
+    private function authorizeVerificationDepot(
+        TripSheetEntry $entry,
+        int $userDepotId,
+        ?string $stage
+    ): void {
+        $trip = $entry->sheet?->trip;
+
+        if (! $trip) {
+            abort(404, 'Trip details were not found for this trip sheet entry.');
         }
 
-        return [
-            'is_verified_by_controller' => true,
-            'verified_by_controller' => (string) $request->user()->name,
-            'verified_by_controller_at' => now(),
-            'is_verified_by_supervisor' => true,
-            'verified_by_supervisor' => (string) $request->user()->name,
-            'verified_by_supervisor_at' => now(),
-        ];
+        $requiredDepotId = match (true) {
+            $trip->trip_side === 'both' => $trip->depot_id,
+            $stage === 'pending' => $trip->from_depot_id,
+            $stage === 'initial_verification_completed' => $trip->to_depot_id,
+            default => null,
+        };
+
+        if (! $requiredDepotId) {
+            throw ValidationException::withMessages([
+                'trip_id' => 'This trip is not currently available for verification.',
+            ]);
+        }
+
+        if ((int) $requiredDepotId !== $userDepotId) {
+            $message = match ($stage) {
+                'pending' => 'You cannot perform the initial verification because this trip does not belong to your departure depot.',
+                'initial_verification_completed' => 'You cannot perform the final verification because this trip does not belong to your destination depot.',
+                default => 'You are not authorized to verify this trip for your depot.',
+            };
+
+            abort(403, $message);
+        }
     }
 
     private function filterByController(Builder $query, mixed $value): void
@@ -545,8 +647,8 @@ class TripController extends Controller
             })
             ->pluck('name');
 
-        $query->where('is_verified_by_controller', true)
-            ->whereIn('verified_by_controller', $controllerNames);
+        $query->where('is_final_verified', true)
+            ->whereIn('final_verification_by', $controllerNames);
     }
 
     private function driverTripQuery(int $driverProfileId): Builder
@@ -623,9 +725,12 @@ class TripController extends Controller
         $dcrKwh = $this->nullableFloat($dor?->dcr_kwh);
         $dcrChargedSoc = $this->nullableFloat($dor?->dcr_charged_soc);
         $batterySizeKwh = $this->nullableFloat($dor?->battery_size_kwh);
+        $verificationDepot = $trip?->trip_side === 'both'
+            ? $trip?->depot
+            : ($entry->sheet?->status === 'pending' ? $trip?->fromDepot : $trip?->toDepot);
 
         return [
-            'depot_name' => $trip?->depot?->name,
+            'depot_name' => $verificationDepot?->name,
             'dor_date' => $entry->sheet?->date?->format('Y-m-d'),
             'bus_no' => $vehicle?->vehicle_no,
             'route_no' => $trip?->route?->route_code ?: $trip?->route?->code,
@@ -677,19 +782,21 @@ class TripController extends Controller
         ];
     }
 
-    private function apiDorImagePayload(Request $request, TripSheetEntry $entry, ?TripSheetEntryDor $dor): array
-    {
+    private function apiDorImagePayload(
+        Request $request,
+        TripSheetEntry $entry,
+        ?TripSheetEntryDor $dor,
+        array $columns = [
+            'odometer_start_image_path',
+            'odometer_end_image_path',
+            'route_start_soc_percent_image',
+            'route_end_soc_percent_image',
+        ]
+    ): array {
         $payload = [];
         $directory = 'trip-dor-verification/' . $entry->id;
 
-        foreach (
-            [
-                'odometer_start_image_path',
-                'odometer_end_image_path',
-                'route_start_soc_percent_image',
-                'route_end_soc_percent_image',
-            ] as $column
-        ) {
+        foreach ($columns as $column) {
             $file = $request->file($column);
 
             if (! $file instanceof UploadedFile) {

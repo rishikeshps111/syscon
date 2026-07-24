@@ -8,9 +8,11 @@
 
         refreshRoutePreview();
         toggleCancellationReason();
+        toggleDepotFields();
 
         $('#route_id').on('change', refreshRoutePreview);
         $('#status').on('change', toggleCancellationReason);
+        $('#trip_side').on('change', toggleDepotFields);
 
         $('#commonForm').on('submit', function () {
             var submitBtn = $(this).find('.trip-submit-btn');
@@ -47,5 +49,17 @@
 
     function toggleCancellationReason() {
         $('#cancellationReasonWrap').toggle($('#status').val() === 'Cancelled');
+    }
+
+    function toggleDepotFields() {
+        var tripSide = $('#trip_side').val();
+        var usesSingleDepot = tripSide === 'both';
+        var usesDirectionalDepots = tripSide === 'up' || tripSide === 'down';
+
+        $('#singleDepotWrap').toggle(usesSingleDepot);
+        $('.directional-depot-wrap').toggle(usesDirectionalDepots);
+
+        $('#depot_id').prop('required', usesSingleDepot);
+        $('#from_depot_id, #to_depot_id').prop('required', usesDirectionalDepots);
     }
 </script>

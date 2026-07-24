@@ -12,7 +12,6 @@
         $entryId = $isEdit ? $entry?->id : null;
         $selectedDate = old('date', $entry?->sheet?->date?->format('Y-m-d'));
         $selectedStatus = old('status', $entry?->sheet?->status ?? 'pending');
-        $selectedSide = old('side', $entry?->side ?? array_key_first($sideOptions));
         $defaultAssignment = $selectedDate
             ? $record->assignments->first(fn($assignment) => $assignment->from_date?->format('Y-m-d') <= $selectedDate && $assignment->to_date?->format('Y-m-d') >= $selectedDate)
             : null;
@@ -29,8 +28,8 @@
         $verificationGroups = [
             ['is_vehicle_verified', 'vehicle_verified_by', 'vehicle_verified_at', 'Vehicle Verified'],
             ['is_driver_verified', 'driver_verified_by', 'driver_verified_at', 'Driver Verified'],
-            ['is_verified_by_supervisor', 'verified_by_supervisor', 'verified_by_supervisor_at', 'Verified By Supervisor'],
-            ['is_verified_by_controller', 'verified_by_controller', 'verified_by_controller_at', 'Verified By Controller'],
+            ['is_initial_verified', 'initial_verification_by', 'initial_verification_at', 'Initial Verification'],
+            ['is_final_verified', 'final_verification_by', 'final_verification_at', 'Final Verification'],
         ];
         $incidentStatusFields = [
             'energy_status' => 'Energy Status',
@@ -70,6 +69,24 @@
                     <input type="text" class="form-control shadow-none"
                         value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
                 </div>
+                @if($record->trip_side === 'both')
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label>Depot</label>
+                        <input type="text" class="form-control shadow-none"
+                            value="{{ $record->depot?->name ?? '-' }}" disabled>
+                    </div>
+                @else
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label>From Depot</label>
+                        <input type="text" class="form-control shadow-none"
+                            value="{{ $record->fromDepot?->name ?? '-' }}" disabled>
+                    </div>
+                    <div class="col-lg-3 o-f-inp mb-3">
+                        <label>To Depot</label>
+                        <input type="text" class="form-control shadow-none"
+                            value="{{ $record->toDepot?->name ?? '-' }}" disabled>
+                    </div>
+                @endif
                 <div class="col-lg-3 o-f-inp mb-3">
                     <label>Date Range</label>
                     <input type="text" class="form-control shadow-none"
@@ -107,16 +124,19 @@
                             max="{{ $record->to_date?->format('Y-m-d') }}">
                         @error('date') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="actualStartTime">Actual Start Time</label>
-                        <input type="time" id="actualStartTime" name="actual_start_time"
-                            class="form-control shadow-none" value="{{ $timeValue('actual_start_time') }}">
+
+                         <div class="col-lg-3 o-f-inp mb-3">
+                        <label for="departureTime">Departure Time</label>
+                        <input type="time" id="departureTime" name="departure_time" class="form-control shadow-none"
+                            value="{{ $timeValue('departure_time') }}">
                     </div>
+
                     <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="actualReachTime">Actual Reach Time</label>
-                        <input type="time" id="actualReachTime" name="actual_reach_time"
-                            class="form-control shadow-none" value="{{ $timeValue('actual_reach_time') }}">
+                        <label for="arrivalTime">Arrival Time</label>
+                        <input type="time" id="arrivalTime" name="arrival_time" class="form-control shadow-none"
+                            value="{{ $timeValue('arrival_time') }}">
                     </div>
+                  
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="sheetStatus">Status <span class="text-danger">*</span></label>
                         <select id="sheetStatus" name="status" class="form-select shadow-none sheet-select">
@@ -126,16 +146,6 @@
                             @endforeach
                         </select>
                         @error('status') <div class="text-danger mt-1">{{ $message }}</div> @enderror
-                    </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="sheetSide">Side <span class="text-danger">*</span></label>
-                        <select id="sheetSide" name="side" class="form-select shadow-none sheet-select">
-                            @foreach($sideOptions as $value => $label)
-                                <option value="{{ $value }}" {{ $selectedSide === $value ? 'selected' : '' }}>{{ $label }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('side') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="driverProfileId">Driver</label>
@@ -162,7 +172,7 @@
                         </select>
                         @error('vehicle_id') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
+                    <div class="col-lg-3 o-f-inp mb-3 d-none">
                         <label for="tripOrderSequenceNo">Trip Order Sequence No</label>
                         <input type="number" min="0" id="tripOrderSequenceNo" name="trip_order_sequence_no"
                             class="form-control shadow-none"
@@ -172,28 +182,41 @@
                     <div class="col-lg-12 o-f-inp mb-3">
                         <hr />
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="departureTime">Departure Time</label>
-                        <input type="time" id="departureTime" name="departure_time" class="form-control shadow-none"
-                            value="{{ $timeValue('departure_time') }}">
+
+                      <div class="col-lg-4 o-f-inp mb-3">
+                        <label for="actualStartTime">Actual Start Time</label>
+                        <input type="time" id="actualStartTime" name="actual_start_time"
+                            class="form-control shadow-none" value="{{ $timeValue('actual_start_time') }}">
+                    </div>
+                    <div class="col-lg-4 o-f-inp mb-3">
+                        <label for="actualReachTime">Actual Reach Time</label>
+                        <input type="time" id="actualReachTime" name="actual_reach_time"
+                            class="form-control shadow-none" value="{{ $timeValue('actual_reach_time') }}">
                     </div>
 
-                    <div class="col-lg-3 o-f-inp mb-3">
-                        <label for="arrivalTime">Arrival Time</label>
-                        <input type="time" id="arrivalTime" name="arrival_time" class="form-control shadow-none"
-                            value="{{ $timeValue('arrival_time') }}">
-                    </div>
-
-                    <div class="col-lg-3 o-f-inp mb-3">
+                    <div class="col-lg-4 o-f-inp mb-3">
                         <label for="startingKm">Starting Km</label>
                         <input type="number" min="0" id="startingKm" name="starting_km" class="form-control shadow-none"
                             value="{{ old('starting_km', $entry?->starting_km) }}">
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
+                    <div class="col-lg-4 o-f-inp mb-3">
+                        <label for="endingKm">Ending Km</label>
+                        <input type="number" min="0" id="endingKm" name="ending_km" class="form-control shadow-none"
+                            value="{{ old('ending_km', $entry?->ending_km) }}">
+                        @error('ending_km') <div class="text-danger mt-1">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="col-lg-4 o-f-inp mb-3">
                         <label for="startingElectricCharge">Starting Electric Charge (%)</label>
                         <input type="number" min="0" max="100" id="startingElectricCharge"
                             name="starting_electric_charge" class="form-control shadow-none"
                             value="{{ old('starting_electric_charge', $entry?->starting_electric_charge) }}">
+                    </div>
+                    <div class="col-lg-4 o-f-inp mb-3">
+                        <label for="endingElectricCharge">Ending Electric Charge (%)</label>
+                        <input type="number" min="0" max="100" id="endingElectricCharge"
+                            name="ending_electric_charge" class="form-control shadow-none"
+                            value="{{ old('ending_electric_charge', $entry?->ending_electric_charge) }}">
+                        @error('ending_electric_charge') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
 
                     <div class="col-lg-12 o-f-inp mb-3">
@@ -299,10 +322,6 @@
                     width: '100%'
                 });
 
-                $('#sheetSide').on('change', function () {
-                    applySideDefaults(false);
-                });
-
                 $('#sheetDate').on('change', function () {
                     applyAssignmentDefaults(false);
                 });
@@ -319,18 +338,6 @@
                     button.find('i').toggleClass('fa-toggle-on', checked).toggleClass('fa-toggle-off', !checked);
                     button.find('span').text(checked ? 'Yes' : 'No');
                 });
-
-                function applySideDefaults(force) {
-                    var side = $('#sheetSide').val();
-
-                    if (side === 'up' && (force || !$('#actualStartTime').val())) {
-                        $('#actualStartTime').val(startTime);
-                    }
-
-                    if (side === 'down' && (force || !$('#actualReachTime').val())) {
-                        $('#actualReachTime').val(endTime);
-                    }
-                }
 
                 function applyAssignmentDefaults(force) {
                     var date = $('#sheetDate').val();
@@ -351,7 +358,12 @@
                     }
                 }
 
-                applySideDefaults(false);
+                if (!$('#departureTime').val()) {
+                    $('#departureTime').val(startTime);
+                }
+                if (!$('#arrivalTime').val()) {
+                    $('#arrivalTime').val(endTime);
+                }
                 applyAssignmentDefaults(false);
             });
         </script>

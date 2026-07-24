@@ -45,10 +45,18 @@
                         <li>Trip Code: <span>{{ $record->code ?: '-' }}</span></li>
                         <li>Route: <span>{{ $record->route?->route_name ?: '-' }}</span></li>
                         <li>Schedule: <span>{{ $record->schedule_type ?: '-' }}</span></li>
+                        <li>Trip Side:
+                            <span>{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}</span>
+                        </li>
                         <li>State:
                             <span>{{ $record->route?->startPoint?->state?->name ?: $record->depot?->state?->name ?: '-' }}</span>
                         </li>
-                        <li>Depo: <span>{{ $record->depot?->name ?: '-' }}</span></li>
+                        @if($record->trip_side === 'both')
+                            <li>Depot: <span>{{ $record->depot?->name ?: '-' }}</span></li>
+                        @else
+                            <li>From Depot: <span>{{ $record->fromDepot?->name ?: '-' }}</span></li>
+                            <li>To Depot: <span>{{ $record->toDepot?->name ?: '-' }}</span></li>
+                        @endif
                         <li>Date: <span>{{ $dateRange }}</span></li>
                         <li>Start Time: <span>{{ $time($record->start_time) }}</span></li>
                         <li>End Time: <span>{{ $time($record->end_time) }}</span></li>
@@ -97,7 +105,7 @@
                             <th class="text-center">Actual Start Time</th>
                             <th class="text-center">Reach Time</th>
                             <th class="text-center">Actual Reach Time</th>
-                            <th class="text-center">Shift</th>
+                            {{-- <th class="text-center">Shift</th> --}}
                             <th class="text-center">Driver</th>
                             <th class="text-center">Vehicle</th>
                             <th class="text-center">Delay</th>
@@ -130,7 +138,7 @@
                                 <td class="text-center text-muted">{{ $time($entry->actual_start_time) }}</td>
                                 <td class="text-center text-muted">{{ $time($entry->arrival_time) }}</td>
                                 <td class="text-center text-muted">{{ $time($entry->actual_reach_time) }}</td>
-                                <td class="text-center text-muted">{{ ucfirst((string) $entry->side) ?: '-' }}</td>
+                                {{-- <td class="text-center text-muted">{{ ucfirst((string) $entry->side) ?: '-' }}</td> --}}
                                 <td class="text-center text-muted">{{ $driver }}</td>
                                 <td class="text-center text-muted">{{ $entry->vehicle?->vehicle_no ?: '-' }}</td>
                                 <td class="text-center text-muted">

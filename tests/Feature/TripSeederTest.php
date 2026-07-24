@@ -20,5 +20,20 @@ test('Trip seeder creates Trip records', function () {
     $this->seed(RouteSeeder::class);
     $this->seed(TripSeeder::class);
 
+    Trip::query()->each(function (Trip $trip) {
+        if ($trip->trip_side === 'both') {
+            expect($trip->depot_id)->not->toBeNull()
+                ->and($trip->from_depot_id)->toBeNull()
+                ->and($trip->to_depot_id)->toBeNull();
+
+            return;
+        }
+
+        expect($trip->depot_id)->toBeNull()
+            ->and($trip->from_depot_id)->not->toBeNull()
+            ->and($trip->to_depot_id)->not->toBeNull()
+            ->and($trip->from_depot_id)->not->toBe($trip->to_depot_id);
+    });
+
     expect(Trip::count())->toBeGreaterThan(0);
 });

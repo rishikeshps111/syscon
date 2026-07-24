@@ -38,8 +38,8 @@ class VehicleController extends Controller
             $todayQuery = $this->todayTripsForVehicleQuery($depotId, $vehicleCode, $today);
             $controllerUnverifiedCount = (clone $todayQuery)
                 ->where(function (Builder $query): void {
-                    $query->where('is_verified_by_controller', false)
-                        ->orWhereNull('is_verified_by_controller');
+                    $query->where('is_final_verified', false)
+                        ->orWhereNull('is_final_verified');
                 })
                 ->count();
             $todayTrips = $todayQuery->latest()->get();
@@ -48,7 +48,7 @@ class VehicleController extends Controller
         return (new VehicleResource($vehicle))->withTodayTrips($todayTrips, [
             'date' => Carbon::parse($today)->format('d M Y'),
             'total_count' => $todayTrips->count(),
-            'is_verified_by_controller_false_count' => $controllerUnverifiedCount,
+            'is_final_verified_false_count' => $controllerUnverifiedCount,
         ]);
     }
 

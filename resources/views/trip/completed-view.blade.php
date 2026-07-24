@@ -75,7 +75,9 @@
                                 <ul>
                                     <li><label>Vehicle No :</label> <span>{{ $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span></li>
                                     <li><label>Starting KM :</label> <span>{{ $entry->starting_km ?? '-' }}</span></li>
+                                    <li><label>Ending KM :</label> <span>{{ $entry->ending_km ?? '-' }}</span></li>
                                     <li><label>Starting Charge :</label> <span>{{ $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-' }}</span></li>
+                                    <li><label>Ending Charge :</label> <span>{{ $entry->ending_electric_charge !== null ? $entry->ending_electric_charge . '%' : '-' }}</span></li>
                                     <li><label>Vehicle Condition :</label> <span>{{ $entry->vehicle_condition ?: '-' }}</span></li>
                                     <li><label>Vehicle Verified :</label> <span>{{ $entry->is_vehicle_verified ? 'Yes' : 'No' }}</span></li>
                                     <li><label>Verified By :</label> <span>{{ $entry->vehicle_verified_by ?: '-' }}</span></li>
@@ -91,9 +93,9 @@
                                     <li><label>Driver Verified :</label> <span>{{ $entry->is_driver_verified ? 'Yes' : 'No' }}</span></li>
                                     <li><label>Verified By :</label> <span>{{ $entry->driver_verified_by ?: '-' }}</span></li>
                                     <li><label>Verified At :</label> <span>{{ $dateTime($entry->driver_verified_at) }}</span></li>
-                                    <li><label>Controller Verified :</label> <span>{{ $entry->is_verified_by_controller ? 'Yes' : 'No' }}</span></li>
-                                    <li><label>Controller Verified By :</label> <span>{{ $entry->verified_by_controller ?: '-' }}</span></li>
-                                    <li><label>Controller Verified At :</label> <span>{{ $dateTime($entry->verified_by_controller_at) }}</span></li>
+                                    <li><label>Final Verification :</label> <span>{{ $entry->is_final_verified ? 'Yes' : 'No' }}</span></li>
+                                    <li><label>Final Verification By :</label> <span>{{ $entry->final_verification_by ?: '-' }}</span></li>
+                                    <li><label>Final Verification At :</label> <span>{{ $dateTime($entry->final_verification_at) }}</span></li>
                                 </ul>
                             </div>
                         </div>
@@ -102,9 +104,9 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Supervisor Verification</h6>
                                 <ul>
-                                    <li><label>Supervisor Verified :</label> <span>{{ $entry->is_verified_by_supervisor ? 'Yes' : 'No' }}</span></li>
-                                    <li><label>Verified By :</label> <span>{{ $entry->verified_by_supervisor ?: '-' }}</span></li>
-                                    <li><label>Verified At :</label> <span>{{ $dateTime($entry->verified_by_supervisor_at) }}</span></li>
+                                    <li><label>Initial Verification :</label> <span>{{ $entry->is_initial_verified ? 'Yes' : 'No' }}</span></li>
+                                    <li><label>Initial Verification By :</label> <span>{{ $entry->initial_verification_by ?: '-' }}</span></li>
+                                    <li><label>Initial Verification At :</label> <span>{{ $dateTime($entry->initial_verification_at) }}</span></li>
                                     <li><label>Vehicle Verified At :</label> <span>{{ $dateTime($entry->vehicle_verified_at) }}</span></li>
                                     <li><label>Notes :</label> <span>{{ $entry->notes ?: '-' }}</span></li>
                                 </ul>

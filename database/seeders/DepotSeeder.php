@@ -20,7 +20,9 @@ class DepotSeeder extends Seeder
             'Banjara Hills' => ['Banjara Hills Depot'],
             'Madhapur' => ['Madhapur Depot'],
             'Gachibowli' => ['Gachibowli Depot'],
+            'Shamshabad' => ['Shamshabad Depot'],
             'Hanamkonda' => ['Hanamkonda Depot'],
+            'Kazipet' => ['Kazipet Depot'],
         ];
 
         DB::transaction(function () use ($records) {

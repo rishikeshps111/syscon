@@ -88,10 +88,20 @@ class TripManagementSeeder extends Seeder
                 $serviceType = ServiceType::where('name', $record['service_type'])->first();
                 $route = Route::where('route_name', $record['route'])->first();
                 $depot = Depot::where('name', $record['depot'])->first();
+                $fromDepot = Depot::where('location_id', $route?->start_point_id)->first();
+                $toDepot = Depot::where('location_id', $route?->end_point_id)->first();
                 $vehicle = Vehicle::where('vehicle_no', $record['vehicle_no'])->first();
                 $driver = DriverProfile::whereHas('user', fn ($query) => $query->where('email', $record['driver_email']))->first();
+                $usesSingleDepot = $record['trip_side'] === 'both';
 
-                if (! $serviceType || ! $route || ! $vehicle || ! $driver) {
+                if (
+                    ! $serviceType
+                    || ! $route
+                    || ! $vehicle
+                    || ! $driver
+                    || ($usesSingleDepot && ! $depot)
+                    || (! $usesSingleDepot && (! $fromDepot || ! $toDepot))
+                ) {
                     continue;
                 }
 
@@ -101,7 +111,9 @@ class TripManagementSeeder extends Seeder
                         'route_id' => $route->id,
                     ],
                     [
-                        'depot_id' => $depot?->id,
+                        'depot_id' => $usesSingleDepot ? $depot?->id : null,
+                        'from_depot_id' => $usesSingleDepot ? null : $fromDepot->id,
+                        'to_depot_id' => $usesSingleDepot ? null : $toDepot->id,
                         'state_id' => $route->state_id,
                         'title' => $record['title'],
                         'schedule_type' => 'daily',
@@ -146,10 +158,7 @@ class TripManagementSeeder extends Seeder
                         ]
                     );
 
-                    $sheet->entries()->updateOrCreate(
-                        ['side' => $row['side']],
-                        $row['entry']
-                    );
+                    $sheet->entries()->updateOrCreate([], $row['entry']);
                 }
             }
         });
@@ -166,23 +175,23 @@ class TripManagementSeeder extends Seeder
     {
         return collect(range(0, 2))->flatMap(function (int $offset) use ($record, $controllerName, $supervisorName, $driver, $vehicle) {
             $date = Carbon::parse($record['from_date'])->addDays($offset)->toDateString();
-            $sides = $record['trip_side'] === 'both' ? ['up', 'down'] : [$record['trip_side']];
-            $status = $offset < 2 ? 'completed' : 'pending';
+            $status = $offset < 2 ? 'verification_completed' : 'pending';
 
-            return collect($sides)->map(fn (string $side) => [
+            return collect([[
                 'date' => $date,
                 'status' => $status,
-                'side' => $side,
                 'entry' => [
-                    'side' => $side,
+                    'side' => null,
                     'departure_time' => $record['start_time'],
                     'arrival_time' => $record['end_time'],
-                    'actual_start_time' => $side === 'up' ? $record['start_time'] : null,
-                    'actual_reach_time' => $side === 'down' ? $record['end_time'] : null,
+                    'actual_start_time' => $record['start_time'],
+                    'actual_reach_time' => $record['end_time'],
                     'starting_km' => 1200 + $offset,
+                    'ending_km' => 1250 + $offset,
                     'driver_profile_id' => $driver->id,
                     'vehicle_id' => $vehicle->id,
                     'starting_electric_charge' => 85,
+                    'ending_electric_charge' => 40,
                     'vehicle_condition' => 'Good',
                     'is_vehicle_verified' => true,
                     'vehicle_verified_by' => $controllerName,
@@ -190,15 +199,15 @@ class TripManagementSeeder extends Seeder
                     'is_driver_verified' => true,
                     'driver_verified_by' => $supervisorName,
                     'driver_verified_at' => now(),
-                    'is_verified_by_supervisor' => $status === 'completed',
-                    'verified_by_supervisor' => $status === 'completed' ? $supervisorName : null,
-                    'verified_by_supervisor_at' => $status === 'completed' ? now() : null,
-                    'is_verified_by_controller' => $status === 'completed',
-                    'verified_by_controller' => $status === 'completed' ? $controllerName : null,
-                    'verified_by_controller_at' => $status === 'completed' ? now() : null,
+                    'is_initial_verified' => $status === 'verification_completed',
+                    'initial_verification_by' => $status === 'verification_completed' ? $supervisorName : null,
+                    'initial_verification_at' => $status === 'verification_completed' ? now() : null,
+                    'is_final_verified' => $status === 'verification_completed',
+                    'final_verification_by' => $status === 'verification_completed' ? $controllerName : null,
+                    'final_verification_at' => $status === 'verification_completed' ? now() : null,
                     'notes' => 'Seeded trip sheet entry.',
                 ],
-            ]);
+            ]]);
         })->all();
     }
 }

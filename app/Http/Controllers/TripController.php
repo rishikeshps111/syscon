@@ -135,7 +135,7 @@ class TripController extends Controller implements HasMiddleware
 
     public function completedTripView(TripSheetEntry $tripSheetEntry)
     {
-        abort_unless($tripSheetEntry->sheet?->status === 'completed', 404);
+        abort_unless($tripSheetEntry->sheet?->status === 'verification_completed', 404);
 
         $tripSheetEntry->load([
             'sheet.trip.route.startPoint',
@@ -156,7 +156,7 @@ class TripController extends Controller implements HasMiddleware
 
     public function completedTripPdf(TripSheetEntry $tripSheetEntry)
     {
-        abort_unless($tripSheetEntry->sheet?->status === 'completed', 404);
+        abort_unless($tripSheetEntry->sheet?->status === 'verification_completed', 404);
 
         $tripSheetEntry->load([
             'sheet.trip.route.startPoint',
@@ -226,6 +226,13 @@ class TripController extends Controller implements HasMiddleware
 
     private function tripPayload(array $data): array
     {
+        if (($data['trip_side'] ?? null) === 'both') {
+            $data['from_depot_id'] = null;
+            $data['to_depot_id'] = null;
+        } else {
+            $data['depot_id'] = null;
+        }
+
         if (array_key_exists('halt_time', $data)) {
             $haltTime = $data['halt_time'];
             $data['halt_time'] = $haltTime === null || $haltTime === ''
@@ -295,14 +302,15 @@ class TripController extends Controller implements HasMiddleware
                 ->addColumn('trip_date', fn($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
                 ->addColumn('code', fn($entry) => $entry->sheet?->code ?: '-')
                 ->addColumn('status', fn($entry) => $this->sheetStatusBadge($entry->sheet?->status))
-                ->editColumn('side', fn($entry) => ucfirst((string) $entry->side))
                 ->editColumn('actual_start_time', fn($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
                 ->editColumn('actual_reach_time', fn($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
                 ->addColumn('driver_name', fn($entry) => $this->entryDriverName($entry))
                 ->addColumn('vehicle_no', fn($entry) => $this->entryVehicleNo($entry))
                 ->editColumn('trip_order_sequence_no', fn($entry) => $entry->trip_order_sequence_no ?? '-')
                 ->editColumn('starting_km', fn($entry) => $entry->starting_km ?? '-')
+                ->editColumn('ending_km', fn($entry) => $entry->ending_km ?? '-')
                 ->editColumn('starting_electric_charge', fn($entry) => $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-')
+                ->editColumn('ending_electric_charge', fn($entry) => $entry->ending_electric_charge !== null ? $entry->ending_electric_charge . '%' : '-')
                 ->editColumn('is_vehicle_verified', fn($entry) => $this->yesNoBadge((bool) $entry->is_vehicle_verified))
                 ->editColumn('is_driver_verified', fn($entry) => $this->yesNoBadge((bool) $entry->is_driver_verified))
                 ->addColumn('action', fn($entry) => $this->sheetEntryActionButtons($trip, $entry))
@@ -407,6 +415,8 @@ class TripController extends Controller implements HasMiddleware
             'route.endPoint',
             'route.stops',
             'depot.state',
+            'fromDepot.state',
+            'toDepot.state',
             'createdBy',
             'assignments.driverProfile.user',
             'assignments.vehicle.oem',
@@ -417,7 +427,7 @@ class TripController extends Controller implements HasMiddleware
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->where('trip_sheets.trip_id', $trip->id)
             ->select('trip_sheet_entries.*')
-            ->orderBy('trip_sheets.date')
+            ->orderBy('trip_sheets.date', 'desc')
             ->orderBy('trip_sheet_entries.side');
 
         if ($request->filled('date_from')) {
@@ -544,22 +554,21 @@ class TripController extends Controller implements HasMiddleware
     public function sampleSheetCsv(Trip $trip)
     {
         $tripDate = $trip->from_date ?: now();
-        $side = $trip->trip_side === 'down' ? 'down' : 'up';
-
-        return response()->streamDownload(function () use ($trip, $tripDate, $side) {
+        return response()->streamDownload(function () use ($trip, $tripDate) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $this->sheetCsvHeaders());
             fputcsv($handle, [
                 $tripDate->format('d-m-Y'),
                 'pending',
-                $side,
                 $this->formatSheetTime($trip->start_time) ?: '09:00',
                 $this->formatSheetTime($trip->end_time) ?: '17:00',
-                $side === 'up' ? ($this->formatSheetTime($trip->start_time) ?: '09:00') : '',
-                $side === 'down' ? ($this->formatSheetTime($trip->end_time) ?: '17:00') : '',
+                $this->formatSheetTime($trip->start_time) ?: '09:00',
+                $this->formatSheetTime($trip->end_time) ?: '17:00',
                 '1',
                 '1200',
+                '1250',
                 '85',
+                '40',
                 'Good',
                 'yes',
                 '',
@@ -587,7 +596,6 @@ class TripController extends Controller implements HasMiddleware
             'entry_id' => ['nullable', 'integer', 'exists:trip_sheet_entries,id'],
             'date' => ['required', 'date'],
             'status' => ['required', Rule::in(array_keys(TripSheet::STATUSES))],
-            'side' => ['required', Rule::in(array_keys($this->sideOptions($trip)))],
             'departure_time' => ['nullable', 'date_format:H:i'],
             'arrival_time' => ['nullable', 'date_format:H:i'],
             'actual_start_time' => ['nullable', 'date_format:H:i'],
@@ -596,7 +604,9 @@ class TripController extends Controller implements HasMiddleware
             'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
             'trip_order_sequence_no' => ['nullable', 'integer', 'min:0'],
             'starting_km' => ['nullable', 'integer', 'min:0'],
+            'ending_km' => ['nullable', 'integer', 'min:0', 'gte:starting_km'],
             'starting_electric_charge' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'ending_electric_charge' => ['nullable', 'integer', 'min:0', 'max:100'],
             'vehicle_condition' => ['nullable', 'string'],
             'energy_status' => ['nullable', 'boolean'],
             'accident_status' => ['nullable', 'boolean'],
@@ -611,12 +621,12 @@ class TripController extends Controller implements HasMiddleware
             'is_driver_verified' => ['nullable', 'boolean'],
             'driver_verified_by' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
             'driver_verified_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
-            'is_verified_by_supervisor' => ['nullable', 'boolean'],
-            'verified_by_supervisor' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
-            'verified_by_supervisor_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
-            'is_verified_by_controller' => ['nullable', 'boolean'],
-            'verified_by_controller' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
-            'verified_by_controller_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
+            'is_initial_verified' => ['nullable', 'boolean'],
+            'initial_verification_by' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
+            'initial_verification_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
+            'is_final_verified' => ['nullable', 'boolean'],
+            'final_verification_by' => ['nullable', 'string', 'max:255', Rule::in($verifierNames)],
+            'final_verification_at' => ['nullable', 'date_format:Y-m-d\TH:i'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -637,12 +647,12 @@ class TripController extends Controller implements HasMiddleware
             }
 
             $duplicate = $sheet->entries()
-                ->where('side', $validated['side'])
+                ->lockForUpdate()
                 ->when($entry, fn($query) => $query->whereKeyNot($entry->id))
                 ->exists();
 
             if ($duplicate) {
-                throw ValidationException::withMessages(['side' => 'This side already exists for the selected date.']);
+                throw ValidationException::withMessages(['date' => 'Only one entry can be added for this trip on the selected date.']);
             }
 
             $payload = $this->entryPayload($trip, $validated);
@@ -749,7 +759,7 @@ class TripController extends Controller implements HasMiddleware
             ])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->join('trips', 'trip_sheets.trip_id', '=', 'trips.id')
-            ->where('trip_sheets.status', 'completed')
+            ->where('trip_sheets.status', 'verification_completed')
             ->select('trip_sheet_entries.*');
 
         if ($request->filled('date_from')) {
@@ -831,7 +841,7 @@ class TripController extends Controller implements HasMiddleware
             ])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->join('trips', 'trip_sheets.trip_id', '=', 'trips.id')
-            ->where('trip_sheets.status', 'completed')
+            ->where('trip_sheets.status', 'verification_completed')
             ->select('trip_sheet_entries.*');
 
         if ($request->filled('date_from')) {
@@ -852,8 +862,8 @@ class TripController extends Controller implements HasMiddleware
         $query->where(function ($subQuery) use ($name) {
             $subQuery->where('trip_sheet_entries.vehicle_verified_by', $name)
                 ->orWhere('trip_sheet_entries.driver_verified_by', $name)
-                ->orWhere('trip_sheet_entries.verified_by_supervisor', $name)
-                ->orWhere('trip_sheet_entries.verified_by_controller', $name);
+                ->orWhere('trip_sheet_entries.initial_verification_by', $name)
+                ->orWhere('trip_sheet_entries.final_verification_by', $name);
         });
     }
 
@@ -890,7 +900,6 @@ class TripController extends Controller implements HasMiddleware
             'id' => $entry->id,
             'date' => $entry->sheet?->date?->format('Y-m-d'),
             'status' => $entry->sheet?->status,
-            'side' => $entry->side,
             'departure_time' => $this->formatSheetTime($entry->departure_time),
             'arrival_time' => $this->formatSheetTime($entry->arrival_time),
             'actual_start_time' => $this->formatSheetTime($entry->actual_start_time),
@@ -899,7 +908,9 @@ class TripController extends Controller implements HasMiddleware
             'vehicle_id' => $entry->vehicle_id,
             'trip_order_sequence_no' => $entry->trip_order_sequence_no,
             'starting_km' => $entry->starting_km,
+            'ending_km' => $entry->ending_km,
             'starting_electric_charge' => $entry->starting_electric_charge,
+            'ending_electric_charge' => $entry->ending_electric_charge,
             'vehicle_condition' => $entry->vehicle_condition,
             'is_vehicle_verified' => $entry->is_vehicle_verified,
             'vehicle_verified_by' => $entry->vehicle_verified_by,
@@ -907,12 +918,12 @@ class TripController extends Controller implements HasMiddleware
             'is_driver_verified' => $entry->is_driver_verified,
             'driver_verified_by' => $entry->driver_verified_by,
             'driver_verified_at' => $entry->driver_verified_at?->format('Y-m-d\TH:i'),
-            'is_verified_by_supervisor' => $entry->is_verified_by_supervisor,
-            'verified_by_supervisor' => $entry->verified_by_supervisor,
-            'verified_by_supervisor_at' => $entry->verified_by_supervisor_at?->format('Y-m-d\TH:i'),
-            'is_verified_by_controller' => $entry->is_verified_by_controller,
-            'verified_by_controller' => $entry->verified_by_controller,
-            'verified_by_controller_at' => $entry->verified_by_controller_at?->format('Y-m-d\TH:i'),
+            'is_initial_verified' => $entry->is_initial_verified,
+            'initial_verification_by' => $entry->initial_verification_by,
+            'initial_verification_at' => $entry->initial_verification_at?->format('Y-m-d\TH:i'),
+            'is_final_verified' => $entry->is_final_verified,
+            'final_verification_by' => $entry->final_verification_by,
+            'final_verification_at' => $entry->final_verification_at?->format('Y-m-d\TH:i'),
             'notes' => $entry->notes,
         ];
     }
@@ -1061,7 +1072,7 @@ class TripController extends Controller implements HasMiddleware
         $dorKwh = $this->calculatedDorKwh($socConsumption, $batterySizeKwh);
 
         return [
-            'depot_name' => $trip?->depot?->name,
+            'depot_name' => $trip?->depot?->name ?? $trip?->fromDepot?->name,
             'dor_date' => $entry->sheet?->date?->format('Y-m-d'),
             'bus_no' => $vehicle?->vehicle_no,
             'route_no' => $trip?->route?->route_code ?: $trip?->route?->code,
@@ -1215,7 +1226,7 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Bus No. (With full registration)', 'name' => 'bus_no', 'type' => 'text', 'disabled' => true, 'value' => $values['bus_no']],
             ['label' => 'Route No', 'name' => 'route_no', 'type' => 'text', 'disabled' => true, 'value' => $values['route_no']],
             ['label' => 'Duty', 'name' => 'duty', 'type' => 'text', 'disabled' => true, 'value' => $values['duty']],
-            ['label' => 'Shift', 'name' => 'shift', 'type' => 'text', 'disabled' => true, 'value' => $values['shift']],
+            ['label' => 'Shift', 'name' => 'shift', 'type' => 'text', 'value' => $values['shift']],
             ['label' => 'Driver ID/Badge No.', 'name' => 'driver_badge_no', 'type' => 'text', 'disabled' => true, 'value' => $values['driver_badge_no']],
             ['label' => 'Schedule Start Time', 'name' => 'schedule_start_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_start_time']],
             ['label' => 'Schedule End Time', 'name' => 'schedule_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_end_time']],
@@ -1537,7 +1548,15 @@ class TripController extends Controller implements HasMiddleware
     private function assignmentData(Trip $trip): array
     {
         return [
-            'record' => $trip->load(['route.startPoint', 'route.endPoint', 'assignments.vehicle', 'assignments.driverProfile.user']),
+            'record' => $trip->load([
+                'route.startPoint',
+                'route.endPoint',
+                'depot',
+                'fromDepot',
+                'toDepot',
+                'assignments.vehicle',
+                'assignments.driverProfile.user',
+            ]),
             'vehicles' => Vehicle::where('status', 'Active')->orderBy('vehicle_no')->get(['id', 'vehicle_no', 'vehicle_type']),
             'drivers' => DriverProfile::with('user')->orderBy('id')->get(),
         ];
@@ -1546,11 +1565,17 @@ class TripController extends Controller implements HasMiddleware
     private function sheetFormData(Trip $trip, ?TripSheetEntry $entry, string $mode): array
     {
         return $this->assignmentData($trip) + [
-            'record' => $trip->load(['route.startPoint', 'route.endPoint', 'route.stops']),
+            'record' => $trip->load([
+                'route.startPoint',
+                'route.endPoint',
+                'route.stops',
+                'depot',
+                'fromDepot',
+                'toDepot',
+            ]),
             'entry' => $entry,
             'mode' => $mode,
             'statuses' => TripSheet::STATUSES,
-            'sideOptions' => $this->sideOptions($trip),
             'verifiers' => $this->verifierNames($trip),
         ];
     }
@@ -1570,14 +1595,15 @@ class TripController extends Controller implements HasMiddleware
         return [
             'trip_date',
             'status',
-            'side',
             'departure_time',
             'arrival_time',
             'actual_start_time',
             'actual_reach_time',
             'trip_order_sequence_no',
             'starting_km',
+            'ending_km',
             'starting_electric_charge',
+            'ending_electric_charge',
             'vehicle_condition',
             'is_vehicle_verified',
             'vehicle_verified_by',
@@ -1585,12 +1611,12 @@ class TripController extends Controller implements HasMiddleware
             'is_driver_verified',
             'driver_verified_by',
             'driver_verified_at',
-            'is_verified_by_supervisor',
-            'verified_by_supervisor',
-            'verified_by_supervisor_at',
-            'is_verified_by_controller',
-            'verified_by_controller',
-            'verified_by_controller_at',
+            'is_initial_verified',
+            'initial_verification_by',
+            'initial_verification_at',
+            'is_final_verified',
+            'final_verification_by',
+            'final_verification_at',
             'notes',
         ];
     }
@@ -1655,7 +1681,6 @@ class TripController extends Controller implements HasMiddleware
         $errors = [];
         $validatedRows = [];
         $seen = [];
-        $sideOptions = array_keys($this->sideOptions($trip));
         $verifierNames = $this->verifierNames($trip);
 
         foreach ($rows as $row) {
@@ -1666,11 +1691,10 @@ class TripController extends Controller implements HasMiddleware
 
             $date = $this->csvDate($data['trip_date'] ?? null);
             $status = strtolower($data['status'] ?? 'pending') ?: 'pending';
-            $side = strtolower($data['side'] ?? ($trip->trip_side === 'down' ? 'down' : 'up'));
             $departureTime = $this->csvTime($data['departure_time'] ?? null);
             $arrivalTime = $this->csvTime($data['arrival_time'] ?? null);
-            $actualStartTime = $this->csvTime($data['actual_start_time'] ?? null) ?: ($side === 'up' ? $this->formatSheetTime($trip->start_time) : null);
-            $actualReachTime = $this->csvTime($data['actual_reach_time'] ?? null) ?: ($side === 'down' ? $this->formatSheetTime($trip->end_time) : null);
+            $actualStartTime = $this->csvTime($data['actual_start_time'] ?? null) ?: $this->formatSheetTime($trip->start_time);
+            $actualReachTime = $this->csvTime($data['actual_reach_time'] ?? null) ?: $this->formatSheetTime($trip->end_time);
             $notes = $data['notes'] ?? null;
 
             if (! $date) {
@@ -1680,11 +1704,7 @@ class TripController extends Controller implements HasMiddleware
             }
 
             if (! array_key_exists($status, TripSheet::STATUSES)) {
-                $errors[] = "Row {$line}: status must be pending, partial, completed, or cancelled.";
-            }
-
-            if (! in_array($side, $sideOptions, true)) {
-                $errors[] = "Row {$line}: side is not allowed for this trip.";
+                $errors[] = "Row {$line}: status is not valid.";
             }
 
             foreach (['departure_time', 'arrival_time', 'actual_start_time', 'actual_reach_time'] as $field) {
@@ -1696,6 +1716,9 @@ class TripController extends Controller implements HasMiddleware
             if (($data['starting_km'] ?? '') !== '' && (! ctype_digit((string) $data['starting_km']))) {
                 $errors[] = "Row {$line}: starting_km must be a whole number.";
             }
+            if (($data['ending_km'] ?? '') !== '' && (! ctype_digit((string) $data['ending_km']))) {
+                $errors[] = "Row {$line}: ending_km must be a whole number.";
+            }
 
             if (($data['trip_order_sequence_no'] ?? '') !== '' && (! ctype_digit((string) $data['trip_order_sequence_no']))) {
                 $errors[] = "Row {$line}: trip_order_sequence_no must be a whole number.";
@@ -1706,24 +1729,29 @@ class TripController extends Controller implements HasMiddleware
                     $errors[] = "Row {$line}: starting_electric_charge must be a whole number from 0 to 100.";
                 }
             }
+            if (($data['ending_electric_charge'] ?? '') !== '') {
+                if (! ctype_digit((string) $data['ending_electric_charge']) || (int) $data['ending_electric_charge'] > 100) {
+                    $errors[] = "Row {$line}: ending_electric_charge must be a whole number from 0 to 100.";
+                }
+            }
 
             if ($date) {
-                $key = $date->toDateString() . '|' . $side;
+                $key = $date->toDateString();
 
                 if (isset($seen[$key])) {
-                    $errors[] = "Row {$line}: duplicate trip sheet date and side; first seen on row {$seen[$key]}.";
+                    $errors[] = "Row {$line}: only one entry is allowed per trip date; first seen on row {$seen[$key]}.";
                 }
 
                 $seen[$key] = $line;
             }
 
-            foreach (['vehicle_verified_at', 'driver_verified_at', 'verified_by_supervisor_at', 'verified_by_controller_at'] as $field) {
+            foreach (['vehicle_verified_at', 'driver_verified_at', 'initial_verification_at', 'final_verification_at'] as $field) {
                 if (($data[$field] ?? '') !== '' && ! $this->csvDateTime($data[$field])) {
                     $errors[] = "Row {$line}: {$field} must be a valid date/time in DD-MM-YYYY HH:MM format.";
                 }
             }
 
-            foreach (['vehicle_verified_by', 'driver_verified_by', 'verified_by_supervisor', 'verified_by_controller'] as $field) {
+            foreach (['vehicle_verified_by', 'driver_verified_by', 'initial_verification_by', 'final_verification_by'] as $field) {
                 if (($data[$field] ?? '') !== '' && ! in_array($data[$field], $verifierNames, true)) {
                     $errors[] = "Row {$line}: {$field} must be an active supervisor or controller name for this depot.";
                 }
@@ -1732,14 +1760,15 @@ class TripController extends Controller implements HasMiddleware
             $validatedRows[] = [
                 'date' => $date,
                 'status' => $status,
-                'side' => $side,
                 'departure_time' => $departureTime,
                 'arrival_time' => $arrivalTime,
                 'actual_start_time' => $actualStartTime,
                 'actual_reach_time' => $actualReachTime,
                 'trip_order_sequence_no' => ($data['trip_order_sequence_no'] ?? '') !== '' ? (int) $data['trip_order_sequence_no'] : null,
                 'starting_km' => ($data['starting_km'] ?? '') !== '' ? (int) $data['starting_km'] : null,
+                'ending_km' => ($data['ending_km'] ?? '') !== '' ? (int) $data['ending_km'] : null,
                 'starting_electric_charge' => ($data['starting_electric_charge'] ?? '') !== '' ? (int) $data['starting_electric_charge'] : null,
+                'ending_electric_charge' => ($data['ending_electric_charge'] ?? '') !== '' ? (int) $data['ending_electric_charge'] : null,
                 'vehicle_condition' => ($data['vehicle_condition'] ?? '') ?: null,
                 'is_vehicle_verified' => $this->csvBoolean($data['is_vehicle_verified'] ?? null),
                 'vehicle_verified_by' => ($data['vehicle_verified_by'] ?? '') ?: null,
@@ -1747,12 +1776,12 @@ class TripController extends Controller implements HasMiddleware
                 'is_driver_verified' => $this->csvBoolean($data['is_driver_verified'] ?? null),
                 'driver_verified_by' => ($data['driver_verified_by'] ?? '') ?: null,
                 'driver_verified_at' => $this->csvDateTime($data['driver_verified_at'] ?? null),
-                'is_verified_by_supervisor' => $this->csvBoolean($data['is_verified_by_supervisor'] ?? null),
-                'verified_by_supervisor' => ($data['verified_by_supervisor'] ?? '') ?: null,
-                'verified_by_supervisor_at' => $this->csvDateTime($data['verified_by_supervisor_at'] ?? null),
-                'is_verified_by_controller' => $this->csvBoolean($data['is_verified_by_controller'] ?? null),
-                'verified_by_controller' => ($data['verified_by_controller'] ?? '') ?: null,
-                'verified_by_controller_at' => $this->csvDateTime($data['verified_by_controller_at'] ?? null),
+                'is_initial_verified' => $this->csvBoolean($data['is_initial_verified'] ?? null),
+                'initial_verification_by' => ($data['initial_verification_by'] ?? '') ?: null,
+                'initial_verification_at' => $this->csvDateTime($data['initial_verification_at'] ?? null),
+                'is_final_verified' => $this->csvBoolean($data['is_final_verified'] ?? null),
+                'final_verification_by' => ($data['final_verification_by'] ?? '') ?: null,
+                'final_verification_at' => $this->csvDateTime($data['final_verification_at'] ?? null),
                 'notes' => $notes ?: null,
             ];
         }
@@ -1818,19 +1847,19 @@ class TripController extends Controller implements HasMiddleware
 
     private function entryPayload(Trip $trip, array $data): array
     {
-        $side = $data['side'];
-
         return [
-            'side' => $side,
+            'side' => null,
             'departure_time' => $data['departure_time'] ?? null,
             'arrival_time' => $data['arrival_time'] ?? null,
-            'actual_start_time' => ($data['actual_start_time'] ?? null) ?: ($side === 'up' ? $this->formatSheetTime($trip->start_time) : null),
-            'actual_reach_time' => ($data['actual_reach_time'] ?? null) ?: ($side === 'down' ? $this->formatSheetTime($trip->end_time) : null),
+            'actual_start_time' => ($data['actual_start_time'] ?? null) ?: $this->formatSheetTime($trip->start_time),
+            'actual_reach_time' => ($data['actual_reach_time'] ?? null) ?: $this->formatSheetTime($trip->end_time),
             'driver_profile_id' => ($data['driver_profile_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->driver_profile_id,
             'vehicle_id' => ($data['vehicle_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->vehicle_id,
             'trip_order_sequence_no' => $data['trip_order_sequence_no'] ?? null,
             'starting_km' => $data['starting_km'] ?? null,
+            'ending_km' => $data['ending_km'] ?? null,
             'starting_electric_charge' => $data['starting_electric_charge'] ?? null,
+            'ending_electric_charge' => $data['ending_electric_charge'] ?? null,
             'vehicle_condition' => $data['vehicle_condition'] ?? null,
             'energy_status' => (bool) ($data['energy_status'] ?? false),
             'accident_status' => (bool) ($data['accident_status'] ?? false),
@@ -1845,12 +1874,12 @@ class TripController extends Controller implements HasMiddleware
             'is_driver_verified' => (bool) ($data['is_driver_verified'] ?? false),
             'driver_verified_by' => $data['driver_verified_by'] ?? null,
             'driver_verified_at' => $this->normalizeDateTime($data['driver_verified_at'] ?? null),
-            'is_verified_by_supervisor' => (bool) ($data['is_verified_by_supervisor'] ?? false),
-            'verified_by_supervisor' => $data['verified_by_supervisor'] ?? null,
-            'verified_by_supervisor_at' => $this->normalizeDateTime($data['verified_by_supervisor_at'] ?? null),
-            'is_verified_by_controller' => (bool) ($data['is_verified_by_controller'] ?? false),
-            'verified_by_controller' => $data['verified_by_controller'] ?? null,
-            'verified_by_controller_at' => $this->normalizeDateTime($data['verified_by_controller_at'] ?? null),
+            'is_initial_verified' => (bool) ($data['is_initial_verified'] ?? false),
+            'initial_verification_by' => $data['initial_verification_by'] ?? null,
+            'initial_verification_at' => $this->normalizeDateTime($data['initial_verification_at'] ?? null),
+            'is_final_verified' => (bool) ($data['is_final_verified'] ?? false),
+            'final_verification_by' => $data['final_verification_by'] ?? null,
+            'final_verification_at' => $this->normalizeDateTime($data['final_verification_at'] ?? null),
             'notes' => $data['notes'] ?? null,
         ];
     }
@@ -1996,10 +2025,10 @@ class TripController extends Controller implements HasMiddleware
             'Vehicle Verified By' => $entry->vehicle_verified_by ?: '-',
             'Driver Verified' => $entry->is_driver_verified ? 'Yes' : 'No',
             'Driver Verified By' => $entry->driver_verified_by ?: '-',
-            'Supervisor Verified' => $entry->is_verified_by_supervisor ? 'Yes' : 'No',
-            'Verified By Supervisor' => $entry->verified_by_supervisor ?: '-',
-            'Controller Verified' => $entry->is_verified_by_controller ? 'Yes' : 'No',
-            'Controller Verified By' => $entry->verified_by_controller ?: '-',
+            'Initial Verification' => $entry->is_initial_verified ? 'Yes' : 'No',
+            'Initial Verification By' => $entry->initial_verification_by ?: '-',
+            'Final Verification' => $entry->is_final_verified ? 'Yes' : 'No',
+            'Final Verification By' => $entry->final_verification_by ?: '-',
         ], 165);
 
         $this->pdfSection($content, 'Notes', 40, 110, 515, [
@@ -2096,10 +2125,18 @@ class TripController extends Controller implements HasMiddleware
 
     private function sheetStatusBadge(?string $status): string
     {
-        $label = TripSheet::STATUSES[$status] ?? Str::title($status ?: 'pending');
+        $status = Str::of($status ?? 'pending')
+            ->trim()
+            ->lower()
+            ->replace(' ', '_')
+            ->toString();
+
+        $label = TripSheet::STATUSES[$status] ?? Str::headline($status);
+
         $class = match ($status) {
-            'completed' => 'bg-success',
-            'partial' => 'bg-warning text-dark',
+            'pending' => 'bg-warning',
+            'initial_verification_completed' => 'bg-info',
+            'verification_completed' => 'bg-success',
             'cancelled' => 'bg-danger',
             default => 'bg-secondary',
         };

@@ -120,6 +120,67 @@ test('Trip can be created with generated code', function () {
         ->and($trip->code)->toBe(generate_code(Trip::PREFIX_MODULE, 1, 4));
 });
 
+test('Both-side trip requires and saves one depot', function () {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
+
+    $response = $this->postJson('/trips', [
+        'service_type_id' => $serviceType->id,
+        'route_id' => $route->id,
+        'trip_side' => 'both',
+        'state_id' => $route->state_id,
+        'start_time' => '08:00',
+        'end_time' => '10:00',
+    ]);
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors('depot_id');
+
+    $depotId = $route->start_point_id;
+    $this->postJson('/trips', [
+        'service_type_id' => $serviceType->id,
+        'route_id' => $route->id,
+        'depot_id' => $depotId,
+        'trip_side' => 'both',
+        'state_id' => $route->state_id,
+        'start_time' => '08:00',
+        'end_time' => '10:00',
+    ])->assertCreated();
+
+    expect(Trip::latest('id')->first())
+        ->depot_id->toBe($depotId)
+        ->from_depot_id->toBeNull()
+        ->to_depot_id->toBeNull();
+});
+
+test('Up or down trip requires and saves different from and to depots', function (string $tripSide) {
+    actingAsTripManager();
+    [$serviceType, $route] = createTripFixtures();
+
+    $payload = [
+        'service_type_id' => $serviceType->id,
+        'route_id' => $route->id,
+        'trip_side' => $tripSide,
+        'state_id' => $route->state_id,
+        'start_time' => '08:00',
+        'end_time' => '10:00',
+    ];
+
+    $this->postJson('/trips', $payload)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['from_depot_id', 'to_depot_id']);
+
+    $this->postJson('/trips', $payload + [
+        'from_depot_id' => $route->start_point_id,
+        'to_depot_id' => $route->end_point_id,
+    ])->assertCreated();
+
+    expect(Trip::latest('id')->first())
+        ->depot_id->toBeNull()
+        ->from_depot_id->toBe($route->start_point_id)
+        ->to_depot_id->toBe($route->end_point_id);
+})->with(['up', 'down']);
+
 test('Trip can be updated', function () {
     actingAsTripManager();
     [$serviceType, $route] = createTripFixtures();

@@ -22,8 +22,8 @@ class TripSheet extends Model
 
     public const STATUSES = [
         'pending' => 'Pending',
-        'partial' => 'Partial',
-        'completed' => 'Completed',
+        'initial_verification_completed' => 'Initial Verification Completed',
+        'verification_completed' => 'Verification Completed',
         'cancelled' => 'Cancelled',
     ];
 
