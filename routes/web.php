@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchLocationController;
@@ -10,9 +9,10 @@ use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
 use App\Http\Controllers\ControllerDocumentController;
 use App\Http\Controllers\ControllerManagementController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DepotAssignmentController;
 use App\Http\Controllers\DepotController;
-use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DistrictController;
 use App\Http\Controllers\DocumentTypeController;
@@ -23,13 +23,13 @@ use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
 use App\Http\Controllers\GeneratePaySlipController;
-use App\Http\Controllers\HrmsDocumentTypeController;
+use App\Http\Controllers\HolidayController;
 use App\Http\Controllers\HrLetterController;
 use App\Http\Controllers\HrLetterTemplateController;
-use App\Http\Controllers\HolidayController;
-use App\Http\Controllers\LevelController;
-use App\Http\Controllers\LeaveTypeController;
+use App\Http\Controllers\HrmsDocumentTypeController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\LeaveTypeController;
+use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LicenseExpiryReportController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\OemBankDetailController;
@@ -42,8 +42,8 @@ use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RolePermissionController;
 use App\Http\Controllers\RosterController;
-use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteAssignmentController;
+use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteScheduleController;
 use App\Http\Controllers\RouteStopController;
 use App\Http\Controllers\SalaryComponentController;
@@ -629,7 +629,8 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/storage-link', function () {
     Artisan::call('storage:link');
-    return "Storage link created successfully!";
+
+    return 'Storage link created successfully!';
 });
 
 Route::get('/clear-all', function () {
@@ -640,26 +641,28 @@ Route::get('/clear-all', function () {
     Artisan::call('view:clear');
     Artisan::call('optimize:clear');
 
-    return "All cache cleared!";
+    return 'All cache cleared!';
 });
 
 Route::get('system/migrate/{filename}', function ($filename) {
     Artisan::call('migrate', [
-        '--path' => 'database/migrations/' . $filename . '.php',
+        '--path' => 'database/migrations/'.$filename.'.php',
         '--force' => true,
     ]);
-    return '<pre>' . Artisan::output() . '</pre>';
+
+    return '<pre>'.Artisan::output().'</pre>';
 });
 
 Route::get('system/migrate-fresh', function () {
     Artisan::call('migrate:fresh', ['--seed' => true]);
-    return  "Database migrated fresh and seeded successfully!";
+
+    return 'Database migrated fresh and seeded successfully!';
 })->name('system.migrate-fresh');
 
 Route::get('system/run-seeder/{seeder}', function (string $seeder) {
     $seederClass = "Database\\Seeders\\{$seeder}";
 
-    if (!class_exists($seederClass)) {
+    if (! class_exists($seederClass)) {
         return response()->json([
             'success' => false,
             'message' => "Seeder {$seeder} not found.",
@@ -689,7 +692,7 @@ Route::get('system/today-trip-notifications', function () {
         'success' => $successful,
         'message' => $successful
             ? 'Today trip notifications command executed successfully.'
-            : 'Today trip notifications command completed with delivery failures. Check controller_trip_notification_logs.error.',
+            : 'Today trip notifications command completed with delivery failures. Check today_trip_notification_logs.error.',
         'exit_code' => $exitCode,
         'output' => Artisan::output(),
     ], $successful ? 200 : 422);
@@ -729,5 +732,4 @@ Route::get('system/driver-document-expiry-notifications', function () {
     ], $successful ? 200 : 422);
 })->name('system.driver-document-expiry-notifications');
 
-
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

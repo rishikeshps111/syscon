@@ -2,9 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ControllerProfile;
-use App\Models\ControllerTripNotificationLog;
+use App\Models\TodayTripNotificationLog;
 use App\Models\TripSheetEntry;
+use App\Models\User;
 use App\Models\UserDeviceToken;
 use App\Services\FirebaseMessaging;
 use Carbon\Carbon;
@@ -15,29 +15,40 @@ class SendControllerTodayTripNotifications extends Command
 {
     protected $signature = 'controllers:today-trip-notifications {--date= : Date in YYYY-MM-DD format} {--force : Resend an already successful notification}';
 
-    protected $description = "Send each controller a Firebase notification with today's assigned trip count.";
+    protected $description = "Send controllers and supervisors a Firebase notification with today's depot trip count.";
 
     public function handle(FirebaseMessaging $firebase): int
     {
         $date = Carbon::parse($this->option('date') ?: today())->toDateString();
-        $sentControllers = 0;
-        $failedControllers = 0;
+        $sentRecipients = 0;
+        $failedRecipients = 0;
 
-        ControllerProfile::query()
-            ->with(['user.deviceTokens'])
-            ->whereHas('user', fn($query) => $query->where('is_active', true))
-            ->whereHas('rosters.tripSheetEntries.sheet', fn($query) => $query->whereDate('date', $date))
+        User::query()
+            ->role(['Controller', 'Supervisor'])
+            ->with(['roles', 'deviceTokens', 'controllerProfile', 'supervisorProfile'])
+            ->where('is_active', true)
             ->orderBy('id')
-            ->chunkById(100, function ($controllers) use ($firebase, $date, &$sentControllers, &$failedControllers): void {
-                foreach ($controllers as $controller) {
-                    $tripCount = TripSheetEntry::query()
-                        ->whereHas('sheet', fn($query) => $query->whereDate('date', $date))
-                        ->whereHas('rosters', fn($query) => $query->where('controller_profile_id', $controller->id))
-                        ->distinct()
-                        ->count('trip_sheet_entries.id');
+            ->chunkById(100, function ($users) use ($firebase, $date, &$sentRecipients, &$failedRecipients): void {
+                foreach ($users as $user) {
+                    $profile = $user->hasRole('Controller')
+                        ? $user->controllerProfile
+                        : $user->supervisorProfile;
 
-                    $log = ControllerTripNotificationLog::firstOrCreate(
-                        ['controller_profile_id' => $controller->id, 'trip_date' => $date],
+                    if (! $profile?->depot_id) {
+                        continue;
+                    }
+
+                    $tripCount = TripSheetEntry::query()
+                        ->whereHas('sheet', fn ($query) => $query->whereDate('date', $date))
+                        ->forDepot((int) $profile->depot_id)
+                        ->count();
+
+                    if ($tripCount === 0) {
+                        continue;
+                    }
+
+                    $log = TodayTripNotificationLog::firstOrCreate(
+                        ['user_id' => $user->id, 'trip_date' => $date],
                         ['trip_count' => $tripCount]
                     );
 
@@ -48,16 +59,16 @@ class SendControllerTodayTripNotifications extends Command
                     $successfulTokens = 0;
                     $errors = [];
 
-                    if ($controller->user->deviceTokens->isEmpty()) {
+                    if ($user->deviceTokens->isEmpty()) {
                         $errors[] = 'No registered FCM device tokens.';
                     }
 
-                    foreach ($controller->user->deviceTokens as $device) {
+                    foreach ($user->deviceTokens as $device) {
                         try {
                             $response = $firebase->send(
                                 $device->token,
                                 "Today's trips",
-                                $tripCount === 1 ? 'You have 1 assigned trip today.' : "You have {$tripCount} assigned trips today.",
+                                $tripCount === 1 ? 'Your depot has 1 trip today.' : "Your depot has {$tripCount} trips today.",
                                 ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount]
                             );
 
@@ -81,20 +92,20 @@ class SendControllerTodayTripNotifications extends Command
                     ]);
 
                     if ($successfulTokens > 0) {
-                        $sentControllers++;
+                        $sentRecipients++;
                     } else {
-                        $failedControllers++;
+                        $failedRecipients++;
                     }
                 }
             });
 
-        $this->info("Controller trip notifications sent: {$sentControllers}.");
+        $this->info("Controller and supervisor trip notifications sent: {$sentRecipients}.");
 
-        if ($failedControllers > 0) {
-            $this->warn("Controller trip notifications failed or had no device: {$failedControllers}.");
+        if ($failedRecipients > 0) {
+            $this->warn("Controller and supervisor trip notifications failed or had no device: {$failedRecipients}.");
         }
 
-        return $failedControllers > 0 ? self::FAILURE : self::SUCCESS;
+        return $failedRecipients > 0 ? self::FAILURE : self::SUCCESS;
     }
 
     private function deleteInvalidToken(UserDeviceToken $device, array $response): void

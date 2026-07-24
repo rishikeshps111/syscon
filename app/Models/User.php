@@ -84,6 +84,11 @@ class User extends Authenticatable
         return $this->hasMany(UserDeviceToken::class);
     }
 
+    public function todayTripNotificationLogs(): HasMany
+    {
+        return $this->hasMany(TodayTripNotificationLog::class);
+    }
+
     public function salaryComponentValues(): HasMany
     {
         return $this->hasMany(UserSalaryComponentValue::class);

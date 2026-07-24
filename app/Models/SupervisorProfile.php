@@ -95,4 +95,3 @@ class SupervisorProfile extends Model
         return self::EMPLOYMENT_TYPES[$this->employment_type] ?? '';
     }
 }
-

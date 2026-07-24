@@ -33,11 +33,11 @@ class TripController extends Controller
 
         $controllers = User::role('Controller')
             ->where('is_active', true)
-            ->whereHas('controllerProfile', fn(Builder $query) => $query->where('depot_id', $depotId))
+            ->whereHas('controllerProfile', fn (Builder $query) => $query->where('depot_id', $depotId))
             ->with('controllerProfile:id,user_id,depot_id')
             ->orderBy('name')
             ->get(['id', 'code', 'name'])
-            ->map(fn(User $controller): array => [
+            ->map(fn (User $controller): array => [
                 'id' => $controller->id,
                 'controller_profile_id' => $controller->controllerProfile?->id,
                 'code' => $controller->code,
@@ -75,26 +75,26 @@ class TripController extends Controller
         $records = QueryBuilder::for($query)
             ->allowedFilters(
                 AllowedFilter::callback('date', function (Builder $query, $value): void {
-                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
+                    $query->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery
                         ->whereDate('date', Carbon::parse($value)->toDateString()));
                 }),
                 AllowedFilter::callback('trip', function (Builder $query, $value): void {
                     $value = trim((string) $value);
 
                     $query->whereHas('sheet', function (Builder $sheetQuery) use ($value): void {
-                        $sheetQuery->where('code', 'like', '%' . $value . '%')
+                        $sheetQuery->where('code', 'like', '%'.$value.'%')
                             ->orWhereHas('trip', function (Builder $tripQuery) use ($value): void {
                                 if (is_numeric($value)) {
                                     $tripQuery->where('id', (int) $value);
                                 }
 
-                                $tripQuery->orWhere('code', 'like', '%' . $value . '%')
-                                    ->orWhere('title', 'like', '%' . $value . '%');
+                                $tripQuery->orWhere('code', 'like', '%'.$value.'%')
+                                    ->orWhere('title', 'like', '%'.$value.'%');
                             });
                     });
                 }),
                 AllowedFilter::callback('roster_status', function (Builder $query, $value): void {
-                    $query->whereHas('rosters', fn(Builder $rosterQuery) => $rosterQuery->where('status', $value));
+                    $query->whereHas('rosters', fn (Builder $rosterQuery) => $rosterQuery->where('status', $value));
                 }),
                 AllowedFilter::callback('controller', function (Builder $query, $value): void {
                     $this->filterByController($query, $value);
@@ -103,12 +103,12 @@ class TripController extends Controller
                     $search = trim((string) $value);
 
                     $query->where(function (Builder $searchQuery) use ($search): void {
-                        $searchQuery->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery
-                            ->where('vehicle_no', 'like', '%' . $search . '%')
-                            ->orWhere('vehicle_code', 'like', '%' . $search . '%'))
-                            ->orWhereHas('driverProfile.user', fn(Builder $userQuery) => $userQuery
-                                ->where('name', 'like', '%' . $search . '%')
-                                ->orWhere('code', 'like', '%' . $search . '%'));
+                        $searchQuery->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery
+                            ->where('vehicle_no', 'like', '%'.$search.'%')
+                            ->orWhere('vehicle_code', 'like', '%'.$search.'%'))
+                            ->orWhereHas('driverProfile.user', fn (Builder $userQuery) => $userQuery
+                                ->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('code', 'like', '%'.$search.'%'));
                     });
                 }),
             )
@@ -121,7 +121,7 @@ class TripController extends Controller
     public function today(Request $request)
     {
         $validated = $request->validate([
-            'status' => ['nullable', 'string', 'in:' . implode(',', array_keys(TripSheet::STATUSES))],
+            'status' => ['nullable', 'string', 'in:'.implode(',', array_keys(TripSheet::STATUSES))],
         ]);
 
         $depotId = $this->userDepotId($request);
@@ -138,7 +138,7 @@ class TripController extends Controller
         }
 
         $query = $this->depotTripQuery($depotId)
-            ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
+            ->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
         $totalCount = (clone $query)->count();
         $controllerUnverifiedCount = (clone $query)
@@ -156,13 +156,11 @@ class TripController extends Controller
 
         if ($vehicleCode !== '') {
             $query->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
+                $query->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('rosters.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('sheet.trip.assignments.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
             });
         }
-
-
 
         $records = $this->applyTodayTripOrder($query)->get();
 
@@ -216,37 +214,37 @@ class TripController extends Controller
         $records = QueryBuilder::for($query)
             ->allowedFilters(
                 AllowedFilter::callback('date', function (Builder $query, $value): void {
-                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
+                    $query->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery
                         ->whereDate('date', Carbon::parse($value)->toDateString()));
                 }),
                 AllowedFilter::callback('trip', function (Builder $query, $value): void {
                     $value = trim((string) $value);
 
                     $query->whereHas('sheet', function (Builder $sheetQuery) use ($value): void {
-                        $sheetQuery->where('code', 'like', '%' . $value . '%')
+                        $sheetQuery->where('code', 'like', '%'.$value.'%')
                             ->orWhereHas('trip', function (Builder $tripQuery) use ($value): void {
                                 if (is_numeric($value)) {
                                     $tripQuery->where('id', (int) $value);
                                 }
 
-                                $tripQuery->orWhere('code', 'like', '%' . $value . '%')
-                                    ->orWhere('title', 'like', '%' . $value . '%');
+                                $tripQuery->orWhere('code', 'like', '%'.$value.'%')
+                                    ->orWhere('title', 'like', '%'.$value.'%');
                             });
                     });
                 }),
                 AllowedFilter::callback('roster_status', function (Builder $query, $value): void {
-                    $query->whereHas('rosters', fn(Builder $rosterQuery) => $rosterQuery->where('status', $value));
+                    $query->whereHas('rosters', fn (Builder $rosterQuery) => $rosterQuery->where('status', $value));
                 }),
                 AllowedFilter::callback('search', function (Builder $query, $value): void {
                     $search = trim((string) $value);
 
                     $query->where(function (Builder $searchQuery) use ($search): void {
-                        $searchQuery->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery
-                            ->where('vehicle_no', 'like', '%' . $search . '%')
-                            ->orWhere('vehicle_code', 'like', '%' . $search . '%'))
-                            ->orWhereHas('driverProfile.user', fn(Builder $userQuery) => $userQuery
-                                ->where('name', 'like', '%' . $search . '%')
-                                ->orWhere('code', 'like', '%' . $search . '%'));
+                        $searchQuery->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery
+                            ->where('vehicle_no', 'like', '%'.$search.'%')
+                            ->orWhere('vehicle_code', 'like', '%'.$search.'%'))
+                            ->orWhereHas('driverProfile.user', fn (Builder $userQuery) => $userQuery
+                                ->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('code', 'like', '%'.$search.'%'));
                     });
                 }),
             )
@@ -272,15 +270,15 @@ class TripController extends Controller
         }
 
         $query = $this->driverTripQuery($driverProfileId)
-            ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
+            ->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
 
         if ($vehicleCode !== '') {
             $query->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
+                $query->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('rosters.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('sheet.trip.assignments.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
             });
         }
 
@@ -574,24 +572,7 @@ class TripController extends Controller
                 'sheet.trip.route.stops',
                 'sheet.trip.depot',
             ])
-            ->where(function (Builder $query) use ($depotId): void {
-                $query->where(function (Builder $query) use ($depotId): void {
-                    $query->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
-                        ->where('trip_side', 'both')
-                        ->where('depot_id', $depotId));
-                })->orWhere(function (Builder $query) use ($depotId): void {
-                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereIn('status', ['pending', 'initial_verification_completed', 'verification_completed', 'cancelled']))
-                        ->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
-                            ->whereIn('trip_side', ['up', 'down'])
-                            ->where('from_depot_id', $depotId));
-                })->orWhere(function (Builder $query) use ($depotId): void {
-                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
-                        ->whereIn('status', ['initial_verification_completed', 'verification_completed', 'cancelled']))
-                        ->whereHas('sheet.trip', fn(Builder $tripQuery) => $tripQuery
-                            ->whereIn('trip_side', ['up', 'down'])
-                            ->where('to_depot_id', $depotId));
-                });
-            });
+            ->forDepot($depotId);
     }
 
     private function userDepotId(Request $request): ?int
@@ -672,7 +653,7 @@ class TripController extends Controller
                 'sheet.trip.route.endPoint',
                 'sheet.trip.route.stops',
                 'sheet.trip.depot',
-                'rosters' => fn($rosterQuery) => $rosterQuery->where('driver_profile_id', $driverProfileId),
+                'rosters' => fn ($rosterQuery) => $rosterQuery->where('driver_profile_id', $driverProfileId),
             ])
             ->whereHas('rosters', function (Builder $query) use ($driverProfileId): void {
                 $query->where('driver_profile_id', $driverProfileId);
@@ -693,7 +674,7 @@ class TripController extends Controller
             return true;
         }
 
-        if ($record->rosters?->contains(fn($roster) => (int) $roster->driver_profile_id === $driverProfileId)) {
+        if ($record->rosters?->contains(fn ($roster) => (int) $roster->driver_profile_id === $driverProfileId)) {
             return true;
         }
 
@@ -704,7 +685,7 @@ class TripController extends Controller
         }
 
         $assignment = $record->sheet?->trip?->assignments
-            ?->first(fn($assignment) => $assignment->from_date?->lte($tripDate) && $assignment->to_date?->gte($tripDate));
+            ?->first(fn ($assignment) => $assignment->from_date?->lte($tripDate) && $assignment->to_date?->gte($tripDate));
 
         return (int) $assignment?->driver_profile_id === $driverProfileId;
     }
@@ -805,7 +786,7 @@ class TripController extends Controller
         ]
     ): array {
         $payload = [];
-        $directory = 'trip-dor-verification/' . $entry->id;
+        $directory = 'trip-dor-verification/'.$entry->id;
 
         foreach ($columns as $column) {
             $file = $request->file($column);
@@ -841,7 +822,7 @@ class TripController extends Controller
         }
 
         return $trip->assignments
-            ->first(fn($assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
+            ->first(fn ($assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
     }
 
     private function formatSheetTime(?string $value): ?string
@@ -862,7 +843,7 @@ class TripController extends Controller
 
         return $minutes >= 0
             ? "{$minutes} {$label}"
-            : abs($minutes) . " {$label} early";
+            : abs($minutes)." {$label} early";
     }
 
     private function nullableFloat(mixed $value): ?float

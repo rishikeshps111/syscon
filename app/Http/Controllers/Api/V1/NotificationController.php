@@ -17,8 +17,10 @@ class NotificationController extends Controller
         ]);
 
         $user = $request->user();
-        $controllerProfileId = $user->controllerProfile?->id;
-        $driverProfileId = $user->driverProfile?->id;
+        $depotId = $user->hasRole('Controller')
+            ? $user->controllerProfile?->depot_id
+            : ($user->hasRole('Supervisor') ? $user->supervisorProfile?->depot_id : null);
+        $driverProfileId = $depotId ? null : $user->driverProfile?->id;
 
         $notifications = TripSheetEntry::query()
             ->with([
@@ -26,14 +28,17 @@ class NotificationController extends Controller
                 'sheet.trip.route.endPoint',
                 'vehicle',
             ])
-            ->whereHas('rosters', function (Builder $query) use ($controllerProfileId, $driverProfileId): void {
-                if ($driverProfileId) {
-                    $query->where('driver_profile_id', $driverProfileId);
-                } else {
-                    $query->where('controller_profile_id', $controllerProfileId ?? 0);
-                }
-            })
-            ->whereHas('sheet', fn(Builder $query) => $query
+            ->when(
+                $driverProfileId,
+                fn (Builder $query) => $query->whereHas(
+                    'rosters',
+                    fn (Builder $rosterQuery) => $rosterQuery->where('driver_profile_id', $driverProfileId)
+                ),
+                fn (Builder $query) => $depotId
+                    ? $query->forDepot((int) $depotId)
+                    : $query->whereRaw('1 = 0')
+            )
+            ->whereHas('sheet', fn (Builder $query) => $query
                 ->whereDate('date', today()))
             ->latest('id')
             ->paginate($data['per_page'] ?? 20);

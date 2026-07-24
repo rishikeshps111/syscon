@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -105,6 +106,17 @@ class TripSheetEntry extends Model
     {
         return $this->belongsToMany(Roster::class, 'roster_trip_sheet_entries')
             ->withTimestamps();
+    }
+
+    public function scopeForDepot(Builder $query, int $depotId): Builder
+    {
+        return $query->whereHas('sheet.trip', function (Builder $tripQuery) use ($depotId): void {
+            $tripQuery->where(function (Builder $depotQuery) use ($depotId): void {
+                $depotQuery->where('depot_id', $depotId)
+                    ->orWhere('from_depot_id', $depotId)
+                    ->orWhere('to_depot_id', $depotId);
+            });
+        });
     }
 
     public function driverVerifiedBy(): BelongsTo
