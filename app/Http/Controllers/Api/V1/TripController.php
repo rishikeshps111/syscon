@@ -33,11 +33,11 @@ class TripController extends Controller
 
         $controllers = User::role('Controller')
             ->where('is_active', true)
-            ->whereHas('controllerProfile', fn (Builder $query) => $query->where('depot_id', $depotId))
+            ->whereHas('controllerProfile', fn(Builder $query) => $query->where('depot_id', $depotId))
             ->with('controllerProfile:id,user_id,depot_id')
             ->orderBy('name')
             ->get(['id', 'code', 'name'])
-            ->map(fn (User $controller): array => [
+            ->map(fn(User $controller): array => [
                 'id' => $controller->id,
                 'controller_profile_id' => $controller->controllerProfile?->id,
                 'code' => $controller->code,
@@ -75,26 +75,26 @@ class TripController extends Controller
         $records = QueryBuilder::for($query)
             ->allowedFilters(
                 AllowedFilter::callback('date', function (Builder $query, $value): void {
-                    $query->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery
+                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
                         ->whereDate('date', Carbon::parse($value)->toDateString()));
                 }),
                 AllowedFilter::callback('trip', function (Builder $query, $value): void {
                     $value = trim((string) $value);
 
                     $query->whereHas('sheet', function (Builder $sheetQuery) use ($value): void {
-                        $sheetQuery->where('code', 'like', '%'.$value.'%')
+                        $sheetQuery->where('code', 'like', '%' . $value . '%')
                             ->orWhereHas('trip', function (Builder $tripQuery) use ($value): void {
                                 if (is_numeric($value)) {
                                     $tripQuery->where('id', (int) $value);
                                 }
 
-                                $tripQuery->orWhere('code', 'like', '%'.$value.'%')
-                                    ->orWhere('title', 'like', '%'.$value.'%');
+                                $tripQuery->orWhere('code', 'like', '%' . $value . '%')
+                                    ->orWhere('title', 'like', '%' . $value . '%');
                             });
                     });
                 }),
                 AllowedFilter::callback('roster_status', function (Builder $query, $value): void {
-                    $query->whereHas('rosters', fn (Builder $rosterQuery) => $rosterQuery->where('status', $value));
+                    $query->whereHas('rosters', fn(Builder $rosterQuery) => $rosterQuery->where('status', $value));
                 }),
                 AllowedFilter::callback('controller', function (Builder $query, $value): void {
                     $this->filterByController($query, $value);
@@ -103,12 +103,12 @@ class TripController extends Controller
                     $search = trim((string) $value);
 
                     $query->where(function (Builder $searchQuery) use ($search): void {
-                        $searchQuery->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery
-                            ->where('vehicle_no', 'like', '%'.$search.'%')
-                            ->orWhere('vehicle_code', 'like', '%'.$search.'%'))
-                            ->orWhereHas('driverProfile.user', fn (Builder $userQuery) => $userQuery
-                                ->where('name', 'like', '%'.$search.'%')
-                                ->orWhere('code', 'like', '%'.$search.'%'));
+                        $searchQuery->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery
+                            ->where('vehicle_no', 'like', '%' . $search . '%')
+                            ->orWhere('vehicle_code', 'like', '%' . $search . '%'))
+                            ->orWhereHas('driverProfile.user', fn(Builder $userQuery) => $userQuery
+                                ->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('code', 'like', '%' . $search . '%'));
                     });
                 }),
             )
@@ -121,7 +121,7 @@ class TripController extends Controller
     public function today(Request $request)
     {
         $validated = $request->validate([
-            'status' => ['nullable', 'string', 'in:'.implode(',', array_keys(TripSheet::STATUSES))],
+            'status' => ['nullable', 'string', 'in:' . implode(',', array_keys(TripSheet::STATUSES))],
         ]);
 
         $depotId = $this->userDepotId($request);
@@ -138,7 +138,7 @@ class TripController extends Controller
         }
 
         $query = $this->depotTripQuery($depotId)
-            ->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
+            ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
         $totalCount = (clone $query)->count();
         $controllerUnverifiedCount = (clone $query)
@@ -156,9 +156,9 @@ class TripController extends Controller
 
         if ($vehicleCode !== '') {
             $query->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
+                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
             });
         }
 
@@ -214,37 +214,37 @@ class TripController extends Controller
         $records = QueryBuilder::for($query)
             ->allowedFilters(
                 AllowedFilter::callback('date', function (Builder $query, $value): void {
-                    $query->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery
+                    $query->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery
                         ->whereDate('date', Carbon::parse($value)->toDateString()));
                 }),
                 AllowedFilter::callback('trip', function (Builder $query, $value): void {
                     $value = trim((string) $value);
 
                     $query->whereHas('sheet', function (Builder $sheetQuery) use ($value): void {
-                        $sheetQuery->where('code', 'like', '%'.$value.'%')
+                        $sheetQuery->where('code', 'like', '%' . $value . '%')
                             ->orWhereHas('trip', function (Builder $tripQuery) use ($value): void {
                                 if (is_numeric($value)) {
                                     $tripQuery->where('id', (int) $value);
                                 }
 
-                                $tripQuery->orWhere('code', 'like', '%'.$value.'%')
-                                    ->orWhere('title', 'like', '%'.$value.'%');
+                                $tripQuery->orWhere('code', 'like', '%' . $value . '%')
+                                    ->orWhere('title', 'like', '%' . $value . '%');
                             });
                     });
                 }),
                 AllowedFilter::callback('roster_status', function (Builder $query, $value): void {
-                    $query->whereHas('rosters', fn (Builder $rosterQuery) => $rosterQuery->where('status', $value));
+                    $query->whereHas('rosters', fn(Builder $rosterQuery) => $rosterQuery->where('status', $value));
                 }),
                 AllowedFilter::callback('search', function (Builder $query, $value): void {
                     $search = trim((string) $value);
 
                     $query->where(function (Builder $searchQuery) use ($search): void {
-                        $searchQuery->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery
-                            ->where('vehicle_no', 'like', '%'.$search.'%')
-                            ->orWhere('vehicle_code', 'like', '%'.$search.'%'))
-                            ->orWhereHas('driverProfile.user', fn (Builder $userQuery) => $userQuery
-                                ->where('name', 'like', '%'.$search.'%')
-                                ->orWhere('code', 'like', '%'.$search.'%'));
+                        $searchQuery->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery
+                            ->where('vehicle_no', 'like', '%' . $search . '%')
+                            ->orWhere('vehicle_code', 'like', '%' . $search . '%'))
+                            ->orWhereHas('driverProfile.user', fn(Builder $userQuery) => $userQuery
+                                ->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('code', 'like', '%' . $search . '%'));
                     });
                 }),
             )
@@ -270,15 +270,15 @@ class TripController extends Controller
         }
 
         $query = $this->driverTripQuery($driverProfileId)
-            ->whereHas('sheet', fn (Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
+            ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today));
 
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
 
         if ($vehicleCode !== '') {
             $query->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn (Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
+                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
+                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
             });
         }
 
@@ -448,12 +448,65 @@ class TripController extends Controller
         };
 
         $validated = $request->validate($rules, [
-            'route_start_soc_percent.numeric' => 'Battery Percentage is invalid.',
-            'route_start_soc_percent.min' => 'Battery Percentage must be at least 0.',
-            'route_start_soc_percent.max' => 'Battery Percentage must not be greater than 100.',
-            'route_end_soc_percent.numeric' => 'Battery Percentage is invalid.',
-            'route_end_soc_percent.min' => 'Battery Percentage must be at least 0.',
-            'route_end_soc_percent.max' => 'Battery Percentage must not be greater than 100.',
+            // Common fields
+            'trip_id.required' => 'Trip ID is required.',
+            'trip_id.integer' => 'Trip ID must be a valid number.',
+            'trip_id.exists' => 'The selected trip does not exist.',
+
+            // Start details
+            'actual_start_time.required' => 'Actual start time is required.',
+            'actual_start_time.date_format' => 'Actual start time must be in HH:MM format.',
+
+            'odometer_start_reading.required' => 'Starting KM reading is required.',
+            'odometer_start_reading.numeric' => 'Starting KM reading must be a valid number.',
+            'odometer_start_reading.min' => 'Starting KM reading cannot be less than 0.',
+
+            'odometer_start_image_path.required' => 'Starting KM image is required.',
+            'odometer_start_image_path.image' => 'Starting KM file must be an image.',
+            'odometer_start_image_path.mimes' => 'Starting KM image must be a JPG, JPEG, PNG, or WEBP file.',
+            'odometer_start_image_path.max' => 'Starting KM image must not be larger than 4 MB.',
+
+            'route_start_soc_percent.required' => 'Initial battery percentage is required.',
+            'route_start_soc_percent.numeric' => 'Initial battery percentage must be a valid number.',
+            'route_start_soc_percent.min' => 'Initial battery percentage must be at least 0.',
+            'route_start_soc_percent.max' => 'Initial battery percentage must not be greater than 100.',
+
+            'route_start_soc_percent_image.required' => 'Initial battery percentage image is required.',
+            'route_start_soc_percent_image.image' => 'Initial battery percentage file must be an image.',
+            'route_start_soc_percent_image.mimes' => 'Initial battery image must be a JPG, JPEG, PNG, or WEBP file.',
+            'route_start_soc_percent_image.max' => 'Initial battery image must not be larger than 4 MB.',
+
+            'is_vehicle_verified.required' => 'Vehicle verification status is required.',
+            'is_vehicle_verified.boolean' => 'Vehicle verification status must be Yes.',
+
+            // End details
+            'actual_end_time.required' => 'Actual end time is required.',
+            'actual_end_time.date_format' => 'Actual end time must be in HH:MM format.',
+
+            'odometer_end_reading.required' => 'Ending Km reading is required.',
+            'odometer_end_reading.numeric' => 'Ending Km reading must be a valid number.',
+            'odometer_end_reading.min' => 'Ending Km reading cannot be less than 0.',
+
+            'odometer_end_image_path.required' => 'Ending Km image is required.',
+            'odometer_end_image_path.image' => 'Ending Km file must be an image.',
+            'odometer_end_image_path.mimes' => 'Ending Km image must be a JPG, JPEG, PNG, or WEBP file.',
+            'odometer_end_image_path.max' => 'Ending Km image must not be larger than 4 MB.',
+
+            'route_end_soc_percent.required' => 'Final battery percentage is required.',
+            'route_end_soc_percent.numeric' => 'Final battery percentage must be a valid number.',
+            'route_end_soc_percent.min' => 'Final battery percentage must be at least 0.',
+            'route_end_soc_percent.max' => 'Final battery percentage must not be greater than 100.',
+
+            'route_end_soc_percent_image.required' => 'Final battery percentage image is required.',
+            'route_end_soc_percent_image.image' => 'Final battery percentage file must be an image.',
+            'route_end_soc_percent_image.mimes' => 'Final battery image must be a JPG, JPEG, PNG, or WEBP file.',
+            'route_end_soc_percent_image.max' => 'Final battery image must not be larger than 4 MB.',
+
+            // Other details
+            'start_punc.string' => 'Start punctuality must be valid text.',
+            'start_punc.max' => 'Start punctuality must not exceed 255 characters.',
+
+            'reason_for_kilometer_loss.string' => 'Reason for kilometer loss must be valid text.',
         ]);
 
         DB::transaction(function () use ($request, $record, $validated, $stage): void {
@@ -653,7 +706,7 @@ class TripController extends Controller
                 'sheet.trip.route.endPoint',
                 'sheet.trip.route.stops',
                 'sheet.trip.depot',
-                'rosters' => fn ($rosterQuery) => $rosterQuery->where('driver_profile_id', $driverProfileId),
+                'rosters' => fn($rosterQuery) => $rosterQuery->where('driver_profile_id', $driverProfileId),
             ])
             ->whereHas('rosters', function (Builder $query) use ($driverProfileId): void {
                 $query->where('driver_profile_id', $driverProfileId);
@@ -674,7 +727,7 @@ class TripController extends Controller
             return true;
         }
 
-        if ($record->rosters?->contains(fn ($roster) => (int) $roster->driver_profile_id === $driverProfileId)) {
+        if ($record->rosters?->contains(fn($roster) => (int) $roster->driver_profile_id === $driverProfileId)) {
             return true;
         }
 
@@ -685,7 +738,7 @@ class TripController extends Controller
         }
 
         $assignment = $record->sheet?->trip?->assignments
-            ?->first(fn ($assignment) => $assignment->from_date?->lte($tripDate) && $assignment->to_date?->gte($tripDate));
+            ?->first(fn($assignment) => $assignment->from_date?->lte($tripDate) && $assignment->to_date?->gte($tripDate));
 
         return (int) $assignment?->driver_profile_id === $driverProfileId;
     }
@@ -786,7 +839,7 @@ class TripController extends Controller
         ]
     ): array {
         $payload = [];
-        $directory = 'trip-dor-verification/'.$entry->id;
+        $directory = 'trip-dor-verification/' . $entry->id;
 
         foreach ($columns as $column) {
             $file = $request->file($column);
@@ -822,7 +875,7 @@ class TripController extends Controller
         }
 
         return $trip->assignments
-            ->first(fn ($assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
+            ->first(fn($assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
     }
 
     private function formatSheetTime(?string $value): ?string
@@ -843,7 +896,7 @@ class TripController extends Controller
 
         return $minutes >= 0
             ? "{$minutes} {$label}"
-            : abs($minutes)." {$label} early";
+            : abs($minutes) . " {$label} early";
     }
 
     private function nullableFloat(mixed $value): ?float

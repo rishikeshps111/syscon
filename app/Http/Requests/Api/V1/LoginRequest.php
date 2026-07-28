@@ -11,14 +11,6 @@ class LoginRequest extends FormRequest
     {
         $merge = [];
 
-        if (! $this->filled('phone') && $this->filled('code')) {
-            $merge['phone'] = $this->input('code');
-        }
-
-        if (! $this->filled('phone') && $this->filled('user_id')) {
-            $merge['phone'] = $this->input('user_id');
-        }
-
         if (! $this->filled('passcode') && $this->filled('password')) {
             $merge['passcode'] = $this->input('password');
         }
@@ -36,7 +28,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'max:30'],
+            'phone' => ['required', 'string', 'max:255'],
             'passcode' => ['required', 'digits:6'],
             'type' => ['required', 'string', Rule::in(['driver', 'controller', 'supervisor'])],
             'device_name' => ['nullable', 'string', 'max:255'],

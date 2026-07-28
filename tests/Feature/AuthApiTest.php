@@ -14,17 +14,16 @@ function apiRole(string $name): Role
     return Role::findOrCreate($name, 'web');
 }
 
-it('logs in an app user with phone passcode and type', function () {
+it('logs in an app user with code in the phone field, passcode and type', function () {
     $user = User::factory()->create([
         'code' => 'DRV001',
-        'phone' => '9876543210',
         'password' => '123456',
         'is_active' => true,
     ]);
     $user->assignRole(apiRole('Driver'));
 
     $response = $this->postJson('/api/v1/login', [
-        'phone' => '9876543210',
+        'phone' => 'DRV001',
         'passcode' => '123456',
         'type' => 'driver',
         'device_name' => 'Android',
@@ -49,7 +48,6 @@ it('logs in an app user with phone passcode and type', function () {
 it('rejects login when the requested type does not match the role', function () {
     $user = User::factory()->create([
         'code' => 'SUP001',
-        'phone' => '9876543211',
         'password' => '123456',
         'is_active' => true,
     ]);
@@ -57,7 +55,7 @@ it('rejects login when the requested type does not match the role', function () 
     apiRole('Driver');
 
     $this->postJson('/api/v1/login', [
-        'phone' => '9876543211',
+        'phone' => 'SUP001',
         'passcode' => '123456',
         'type' => 'driver',
     ])->assertUnprocessable()
@@ -75,7 +73,7 @@ it('deactivates an app user after three wrong passcode attempts', function () {
 
     foreach (range(1, 2) as $attempt) {
         $this->postJson('/api/v1/login', [
-            'phone' => '9876543212',
+            'phone' => 'DRV002',
             'passcode' => '000000',
             'type' => 'driver',
         ])->assertUnprocessable()
@@ -88,7 +86,7 @@ it('deactivates an app user after three wrong passcode attempts', function () {
     }
 
     $this->postJson('/api/v1/login', [
-        'phone' => '9876543212',
+        'phone' => 'DRV002',
         'passcode' => '000000',
         'type' => 'driver',
     ])->assertUnprocessable()
@@ -104,7 +102,6 @@ it('deactivates an app user after three wrong passcode attempts', function () {
 it('resets failed passcode attempts after successful api login', function () {
     $user = User::factory()->create([
         'code' => 'DRV003',
-        'phone' => '9876543213',
         'password' => '123456',
         'is_active' => true,
         'failed_login_attempts' => 2,
@@ -112,7 +109,7 @@ it('resets failed passcode attempts after successful api login', function () {
     $user->assignRole(apiRole('Driver'));
 
     $this->postJson('/api/v1/login', [
-        'phone' => '9876543213',
+        'phone' => 'DRV003',
         'passcode' => '123456',
         'type' => 'driver',
     ])->assertOk();

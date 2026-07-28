@@ -39,7 +39,7 @@ class AuthController extends Controller
 
         $user = User::query()
             ->role(self::ALLOWED_ROLES[$type])
-            ->where('phone', $data['phone'])
+            ->where('code', $data['phone'])
             ->with(self::USER_RELATIONS)
             ->first();
 
