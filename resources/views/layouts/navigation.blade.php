@@ -179,7 +179,9 @@
                 @endcan
                 @php
                     $bulkImportModule = request()->routeIs('bulk-import.*') ? request()->route('module') : null;
-                    $bulkImportIsHrms = in_array($bulkImportModule, ['staff', 'drivers', 'controllers', 'supervisors'], true);
+                    $bulkImportIsDesignation = $bulkImportModule === 'designations';
+                    $bulkImportIsHrms = $bulkImportIsDesignation
+                        || in_array($bulkImportModule, ['staff', 'drivers', 'controllers', 'supervisors'], true);
                     $letterUser = request()->routeIs('hr-letters.*') ? request()->route('user') : null;
                     if (! $letterUser && request()->routeIs('hr-letters.*') && request()->route('hrLetter')) {
                         $letterUser = request()->route('hrLetter')->user;
@@ -230,13 +232,13 @@
                             @canany(['departments.view', 'levels.view', 'designations.view', 'role-permissions.view',
                                 'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view', 'hr-letter-templates.view'])
                                 <li>
-                                    <a class="nav-link {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'hr-letter-templates.*') ? '' : 'collapsed' }}"
+                                    <a class="nav-link {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'hr-letter-templates.*') || $bulkImportIsDesignation ? '' : 'collapsed' }}"
                                         data-bs-target="#sidebarNavInner2" data-bs-toggle="collapse" href="#">
                                         <i class="fa-solid fa-gear mn-0"></i><span>Settings</span><i
                                             class="bi bi-chevron-down ms-auto"></i>
                                     </a>
                                     <ul id="sidebarNavInner2"
-                                        class="nav-content collapse sub-menu {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'hr-letter-templates.*') ? 'show' : '' }}"
+                                        class="nav-content collapse sub-menu {{ request()->routeIs('departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'holidays.*', 'hr-letter-templates.*') || $bulkImportIsDesignation ? 'show' : '' }}"
                                         data-bs-parent="#sidebar-nav1">
 
                                         @can('departments.view')
@@ -258,7 +260,7 @@
                                         @can('designations.view')
                                             <li>
                                                 <a href="{{ route('designations.index') }}"
-                                                    class="{{ request()->routeIs('designations.*') ? 'sub-active' : '' }}">
+                                                    class="{{ request()->routeIs('designations.*') || $bulkImportIsDesignation ? 'sub-active' : '' }}">
                                                     <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Designation</span>
                                                 </a>
                                             </li>

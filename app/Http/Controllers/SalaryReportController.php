@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Models\Role;
@@ -126,7 +127,7 @@ class SalaryReportController extends Controller implements HasMiddleware
         Mail::to($to)->send(new SalaryReportMail(
             period: $this->periodLabel($report),
             depot: $report['depot']?->name ?? '-',
-            role: $report['role']?->name ?? '-',
+            role: $report['roleLabel'],
             pdfContent: $pdf,
             fileName: $this->fileName($report, 'pdf'),
         ));
@@ -150,27 +151,49 @@ class SalaryReportController extends Controller implements HasMiddleware
             'year' => [$presence, 'integer', 'between:2000,2100'],
             'month' => [$presence, 'integer', 'between:1,12'],
             'depot_id' => [$presence, 'integer', 'exists:depots,id'],
-            'role_id' => [$presence, 'integer', 'exists:roles,id'],
+            'role_id' => [
+                $presence,
+                Rule::when(
+                    $request->input('role_id') !== 'all',
+                    ['integer', 'exists:roles,id'],
+                    ['in:all']
+                ),
+            ],
         ]);
 
         return [
             'year' => isset($validated['year']) ? (int) $validated['year'] : (int) date('Y'),
             'month' => isset($validated['month']) ? (int) $validated['month'] : null,
             'depot_id' => isset($validated['depot_id']) ? (int) $validated['depot_id'] : null,
-            'role_id' => isset($validated['role_id']) ? (int) $validated['role_id'] : null,
+            'role_id' => isset($validated['role_id'])
+                ? ($validated['role_id'] === 'all' ? 'all' : (int) $validated['role_id'])
+                : null,
         ];
     }
 
     private function reportData(array $filters): array
     {
-        $processing = SalaryProcessing::with(['depot', 'role', 'approver', 'items.user'])
-            ->where($filters)
+        $query = SalaryProcessing::with([
+            'depot',
+            'role',
+            'approver',
+            'items.salaryProcessing.role',
+            'items.salaryProcessing.approver',
+            'items.user.roles',
+            'items.user.staffProfile.designation',
+        ])
+            ->where('year', $filters['year'])
+            ->where('month', $filters['month'])
+            ->where('depot_id', $filters['depot_id'])
             ->whereIn('status', ['Completed', 'Approved'])
-            ->first();
+            ->when($filters['role_id'] !== 'all', fn ($query) => $query->where('role_id', $filters['role_id']));
 
-        $items = $processing
-            ? $processing->items->sortBy(fn(SalaryProcessingItem $item) => $item->user?->name ?? '')->values()
-            : collect();
+        $processings = $query->get();
+        $processing = $processings->first();
+        $items = $processings
+            ->flatMap(fn (SalaryProcessing $salaryProcessing) => $salaryProcessing->items)
+            ->sortBy(fn (SalaryProcessingItem $item) => $item->user?->name ?? '')
+            ->values();
 
         $componentNames = $items
             ->flatMap(fn(SalaryProcessingItem $item) => collect($item->salary_split ?: [])->where('type', 'earning')->pluck('name'))
@@ -182,12 +205,19 @@ class SalaryReportController extends Controller implements HasMiddleware
         return [
             'filters' => $filters,
             'processing' => $processing,
+            'processings' => $processings,
             'items' => $items,
             'componentNames' => $componentNames,
             'monthName' => $filters['month'] ? Carbon::create(null, $filters['month'], 1)->format('F') : '-',
             'year' => $filters['year'],
             'depot' => $processing?->depot ?: Depot::find($filters['depot_id']),
-            'role' => $processing?->role ?: Role::find($filters['role_id']),
+            'role' => $filters['role_id'] === 'all'
+                ? null
+                : ($processing?->role ?: Role::find($filters['role_id'])),
+            'roleLabel' => $filters['role_id'] === 'all'
+                ? 'All'
+                : ($processing?->role?->name ?: Role::find($filters['role_id'])?->name ?: '-'),
+            'showRoleColumns' => $filters['role_id'] === 'all',
         ];
     }
 
@@ -205,7 +235,7 @@ class SalaryReportController extends Controller implements HasMiddleware
 
     private function hasCompleteFilters(array $filters): bool
     {
-        return $filters['year'] && $filters['month'] && $filters['depot_id'] && $filters['role_id'];
+        return $filters['year'] && $filters['month'] && $filters['depot_id'] && $filters['role_id'] !== null;
     }
 
     private function fileName(array $report, string $extension): string
@@ -221,7 +251,7 @@ class SalaryReportController extends Controller implements HasMiddleware
             ?: 'Depot';
         $month = $report['monthName'] ?: 'Month';
         $year = $report['year'] ?: date('Y');
-        $role = $report['role']?->name ?: 'Role';
+        $role = $report['roleLabel'] ?: 'Role';
 
         $depot = str($depot)->replaceMatches('/[^A-Za-z0-9]/', '')->toString();
         $month = str($month)->replaceMatches('/[^A-Za-z0-9]/', '')->toString();
@@ -246,24 +276,45 @@ class SalaryReportController extends Controller implements HasMiddleware
             'SYSCON Salary Report',
             'Period: ' . $this->periodLabel($report),
             'Depo: ' . ($report['depot']?->name ?? '-'),
-            'Role: ' . ($report['role']?->name ?? '-'),
+            'Role: ' . $report['roleLabel'],
             'Generated: ' . now()->format('d-m-Y h:i A'),
             '',
-            'SL  Code        Name                         Gross       Deduction   LOP        Net        Status',
+            $report['showRoleColumns']
+                ? 'SL  Code        Name                 Role        Designation          Gross       Deduction   LOP        Net'
+                : 'SL  Code        Name                         Gross       Deduction   LOP        Net        Status',
         ];
 
         foreach ($report['items'] as $index => $item) {
-            $lines[] = sprintf(
-                '%-3s %-11s %-28s %10s %10s %10s %10s %s',
-                $index + 1,
-                substr((string) ($item->user?->code ?: '-'), 0, 11),
-                substr((string) ($item->user?->name ?: '-'), 0, 28),
-                $this->money($item->basic_salary),
-                $this->money($item->deduction),
-                $this->money($item->lop),
-                $this->money($item->net_salary),
-                $item->salaryProcessing?->status ?: '-'
-            );
+            if ($report['showRoleColumns']) {
+                $roleName = $item->salaryProcessing?->role?->name ?: '-';
+                $designation = $roleName === 'Staff'
+                    ? ($item->user?->staffProfile?->designation?->name ?: '-')
+                    : '-';
+                $lines[] = sprintf(
+                    '%-3s %-11s %-20s %-11s %-20s %10s %10s %10s %10s',
+                    $index + 1,
+                    substr((string) ($item->user?->code ?: '-'), 0, 11),
+                    substr((string) ($item->user?->name ?: '-'), 0, 20),
+                    substr($roleName, 0, 11),
+                    substr($designation, 0, 20),
+                    $this->money($item->basic_salary),
+                    $this->money($item->deduction),
+                    $this->money($item->lop),
+                    $this->money($item->net_salary),
+                );
+            } else {
+                $lines[] = sprintf(
+                    '%-3s %-11s %-28s %10s %10s %10s %10s %s',
+                    $index + 1,
+                    substr((string) ($item->user?->code ?: '-'), 0, 11),
+                    substr((string) ($item->user?->name ?: '-'), 0, 28),
+                    $this->money($item->basic_salary),
+                    $this->money($item->deduction),
+                    $this->money($item->lop),
+                    $this->money($item->net_salary),
+                    $item->salaryProcessing?->status ?: '-'
+                );
+            }
         }
 
         if ($report['items']->isEmpty()) {

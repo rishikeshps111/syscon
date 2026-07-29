@@ -22,7 +22,7 @@ class SalaryReportExport implements FromCollection, ShouldAutoSize, WithStyles
             ['Year', $this->report['year']],
             ['Month', $this->report['monthName']],
             ['Depo', $this->report['depot']?->name ?? '-'],
-            ['Role', $this->report['role']?->name ?? '-'],
+            ['Role', $this->report['roleLabel']],
             [],
             $this->headings(),
         ])->merge($this->rows());
@@ -41,10 +41,17 @@ class SalaryReportExport implements FromCollection, ShouldAutoSize, WithStyles
 
     private function headings(): array
     {
-        return array_merge([
+        $identityColumns = [
             'SL No',
             'User Code',
             'User Name',
+        ];
+
+        if ($this->report['showRoleColumns']) {
+            $identityColumns = array_merge($identityColumns, ['Role', 'Designation']);
+        }
+
+        return array_merge($identityColumns, [
             'Aadhaar No',
             'Total Leave Taken',
             'Unauthorized Leaves',
@@ -70,10 +77,21 @@ class SalaryReportExport implements FromCollection, ShouldAutoSize, WithStyles
             $processing = $item->salaryProcessing;
             $components = collect($item->salary_split ?: [])->where('type', 'earning')->keyBy('name');
 
-            return array_merge([
+            $identityValues = [
                 $index + 1,
                 $item->user?->code,
                 $item->user?->name,
+            ];
+
+            if ($this->report['showRoleColumns']) {
+                $roleName = $processing?->role?->name ?: '-';
+                $identityValues = array_merge($identityValues, [
+                    $roleName,
+                    $roleName === 'Staff' ? ($item->user?->staffProfile?->designation?->name ?: '-') : '-',
+                ]);
+            }
+
+            return array_merge($identityValues, [
                 $item->aadhaar_no,
                 (float) $item->total_leave_taken,
                 (float) $item->unauthorized_leaves,

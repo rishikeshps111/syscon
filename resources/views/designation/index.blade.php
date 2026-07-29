@@ -60,6 +60,7 @@
                     <div class="row">
                         <div class="col-lg-4 ms-auto justify-content-end d-flex">
                             @can('designations.create')
+                                <a href="{{ route('bulk-import.form', 'designations') }}" class="add-btn me-1">Import Designations</a>
                                 <button type="button" id="addNewDesignation" class="add-btn form-btn">Add Designation</button>
                             @endcan
                             @can('designations.view')

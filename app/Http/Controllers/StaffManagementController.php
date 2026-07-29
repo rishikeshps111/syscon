@@ -226,7 +226,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function filteredQuery()
     {
         $query = User::role('Staff')
-            ->with(['roles', 'staffProfile.depot', 'staffProfile.designation', 'staffProfile.location'])
+            ->with(['roles', 'staffProfile.depot', 'staffProfile.designation', 'staffProfile.reportingTo', 'staffProfile.location'])
             ->select('users.*');
 
         if (request()->filled('search_text')) {
@@ -262,6 +262,10 @@ class StaffManagementController extends Controller implements HasMiddleware
     {
         return [
             'designations' => Designation::orderBy('name')->get(['id', 'name']),
+            'reportingStaff' => User::role('Staff')
+                ->when(request()->route('staff_management'), fn ($query, $staff) => $query->where('users.id', '<>', $staff->id))
+                ->orderBy('name')
+                ->get(['id', 'code', 'name']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'categories' => StaffProfile::CATEGORIES,
             'employmentTypes' => StaffProfile::EMPLOYMENT_TYPES,
@@ -287,6 +291,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         return collect($data)->only([
             'depot_id',
             'designation_id',
+            'reporting_to',
             'category',
             'employment_type',
             'father_name',
@@ -360,6 +365,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         return $staff->load([
             'roles',
             'staffProfile.designation',
+            'staffProfile.reportingTo',
             'staffProfile.depot',
             'staffProfile.state',
             'staffProfile.district',
@@ -407,6 +413,7 @@ class StaffManagementController extends Controller implements HasMiddleware
 
         $this->pdfSection($content, 'Employment Details', 40, 300, 250, [
             'Employment Type' => $profile?->employment_type_label ?: '-',
+            'Reporting To' => $profile?->reportingTo?->name ?: '-',
             'Joining Date' => $profile?->date_of_joining?->format('d-m-Y') ?: '-',
             'UAN' => $profile?->uan ?: '-',
             'ESIC / WC' => $profile?->esic_wc ?: '-',

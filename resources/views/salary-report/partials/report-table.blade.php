@@ -12,7 +12,7 @@
             <strong>Year:</strong> {{ $report['year'] }} |
             <strong>Month:</strong> {{ $report['monthName'] }} |
             <strong>Depo:</strong> {{ $report['depot']?->name ?? '-' }} |
-            <strong>Role:</strong> {{ $report['role']?->name ?? '-' }}
+            <strong>Role:</strong> {{ $report['roleLabel'] }}
         </div>
     </div>
 </div>
@@ -33,6 +33,10 @@
                     <th class="text-center">SL No</th>
                     <th class="text-center">User Code</th>
                     <th class="text-center">User Name</th>
+                    @if ($report['showRoleColumns'])
+                        <th class="text-center">Role</th>
+                        <th class="text-center">Designation</th>
+                    @endif
                     <th class="text-center">Aadhaar No</th>
                     <th class="text-center">Total Leave Taken</th>
                     <th class="text-center">Unauthorized Leaves</th>
@@ -62,6 +66,11 @@
                         <td class="text-center">{{ $loop->iteration }}</td>
                         <td class="text-center">{{ $item->user?->code ?: '-' }}</td>
                         <td>{{ $item->user?->name ?: '-' }}</td>
+                        @if ($report['showRoleColumns'])
+                            @php($roleName = $item->salaryProcessing?->role?->name ?: '-')
+                            <td class="text-center">{{ $roleName }}</td>
+                            <td>{{ $roleName === 'Staff' ? ($item->user?->staffProfile?->designation?->name ?: '-') : '-' }}</td>
+                        @endif
                         <td class="text-center">{{ $item->aadhaar_no ?: '-' }}</td>
                         <td class="text-center">{{ $item->total_leave_taken }}</td>
                         <td class="text-center">{{ $item->unauthorized_leaves }}</td>
@@ -75,11 +84,11 @@
                         <td class="text-end">{{ $money($item->deduction) }}</td>
                         <td class="text-end">{{ $money($item->lop) }}</td>
                         <td class="text-end">{{ $money($item->net_salary) }}</td>
-                        <td class="text-center">{{ $report['processing']->payment_method ?: '-' }}</td>
-                        <td class="text-center">{{ $report['processing']->status === 'Approved' ? 'Approved' : 'Pending' }}</td>
-                        <td class="text-center">{{ $report['processing']->approver?->name ?: '-' }}</td>
-                        <td class="text-center">{{ $report['processing']->approved_at?->format('d-m-Y h:i A') ?: '-' }}</td>
-                        <td>{{ $report['processing']->remarks ?: '-' }}</td>
+                        <td class="text-center">{{ $item->salaryProcessing?->payment_method ?: '-' }}</td>
+                        <td class="text-center">{{ $item->salaryProcessing?->status === 'Approved' ? 'Approved' : 'Pending' }}</td>
+                        <td class="text-center">{{ $item->salaryProcessing?->approver?->name ?: '-' }}</td>
+                        <td class="text-center">{{ $item->salaryProcessing?->approved_at?->format('d-m-Y h:i A') ?: '-' }}</td>
+                        <td>{{ $item->salaryProcessing?->remarks ?: '-' }}</td>
                     </tr>
                 @endforeach
             </tbody>

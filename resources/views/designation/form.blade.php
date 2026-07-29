@@ -57,7 +57,7 @@
 
     <div class="col-lg-6 o-f-inp mb-2">
         <label for="reporting_to" class="form-label m-0">
-            Reporting To <span class="text-danger">*</span>
+            Reporting To
         </label>
         <select class="form-select shadow-none select2" id="reporting_to" name="reporting_to" style="height: 45px;">
             <option value="">--- Select ---</option>

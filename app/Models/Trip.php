@@ -53,8 +53,8 @@ class Trip extends Model
     ];
 
     public const TRIP_SIDES = [
-        'up' => 'Up',
-        'down' => 'Down',
+        // 'up' => 'Up',
+        // 'down' => 'Down',
         'both' => 'Both',
     ];
 

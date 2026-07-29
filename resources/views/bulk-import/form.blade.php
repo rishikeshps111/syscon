@@ -39,7 +39,7 @@
                 </div>
                 <p>The complete file is validated before any record is saved. If any row has an error, nothing is imported.</p>
             </div>
-            @if ($module !== 'vehicles')<div class="alert alert-info mb-0">Salary structure is intentionally excluded. Imported profiles start with the existing zero/default salary values.</div>@endif
+            @if (in_array($module, ['drivers', 'controllers', 'supervisors', 'staff'], true))<div class="alert alert-info mb-0">Salary structure is intentionally excluded. Imported profiles start with the existing zero/default salary values.</div>@endif
         </div>
     </section>
 </x-app-layout>

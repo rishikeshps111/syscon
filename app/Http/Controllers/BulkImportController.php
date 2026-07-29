@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\PermissionRegistrar;
+use Spatie\Permission\Models\Role;
 
 class BulkImportController extends Controller
 {
@@ -64,7 +66,11 @@ class BulkImportController extends Controller
 
         DB::transaction(function () use ($module, $validatedRows) {
             foreach ($validatedRows as $data) {
-                $module === 'vehicles' ? $this->createVehicle($data) : $this->createPerson($module, $data);
+                match ($module) {
+                    'vehicles' => $this->createVehicle($data),
+                    'designations' => $this->createDesignation($data),
+                    default => $this->createPerson($module, $data),
+                };
             }
         });
 
@@ -118,10 +124,17 @@ class BulkImportController extends Controller
                 'oem' => [Oem::class, 'oem_name', 'oem_id'],
                 'branch' => [BranchLocation::class, 'name', 'branch_id'],
             ];
+        } elseif ($module === 'designations') {
+            $lookups = [
+                'department' => [\App\Models\Department::class, 'name', 'department_id'],
+                'level' => [\App\Models\Level::class, 'name', 'level_id'],
+                'reporting_to' => [Role::class, 'name', 'reporting_to'],
+            ];
         } elseif ($module === 'drivers') {
             $lookups['branch'] = [BranchLocation::class, 'name', 'branch_location_id'];
         } elseif ($module === 'staff') {
             $lookups['designation'] = [Designation::class, 'name', 'designation_id'];
+            $lookups['reporting_to'] = [User::class, 'name', 'reporting_to'];
         }
 
         foreach ($lookups as $csvField => [$model, $column, $idField]) {
@@ -137,6 +150,13 @@ class BulkImportController extends Controller
             if ($csvField === 'location') {
                 $query->when(! empty($data['state_id']), fn ($q) => $q->where('state_id', $data['state_id']))
                     ->when(! empty($data['district_id']), fn ($q) => $q->where('district_id', $data['district_id']));
+            }
+            if ($csvField === 'reporting_to' && $module === 'designations') {
+                $query->where('guard_name', 'web')
+                    ->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor']);
+            }
+            if ($csvField === 'reporting_to' && $module === 'staff') {
+                $query->whereHas('staffProfile');
             }
             $matches = $query->limit(2)->get();
             if ($matches->count() !== 1) {
@@ -183,6 +203,29 @@ class BulkImportController extends Controller
         $vehicle->update(['vehicle_code' => generate_code('Vehicle Module', $vehicle->id, 3, 'VEH')]);
     }
 
+    private function createDesignation(array $data): void
+    {
+        $role = Role::create([
+            'name' => $data['name'],
+            'guard_name' => 'web',
+        ]);
+
+        $designation = Designation::create(collect($data)->only([
+            'department_id',
+            'level_id',
+            'reporting_to',
+            'name',
+            'description',
+            'is_active',
+        ])->all() + ['role_id' => $role->id]);
+
+        $designation->update([
+            'code' => generate_code('Designation Module', $designation->id, 3, 'DSG'),
+        ]);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
     private function createPerson(string $module, array $data): void
     {
         $meta = [
@@ -216,6 +259,29 @@ class BulkImportController extends Controller
 
     private function rules(string $module): array
     {
+        if ($module === 'designations') {
+            return [
+                'department_id' => ['required', 'integer', 'exists:departments,id'],
+                'level_id' => ['required', 'integer', 'exists:levels,id'],
+                'reporting_to' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('roles', 'id')->where(
+                        fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+                    ),
+                ],
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    'unique:designations,name',
+                    Rule::unique('roles', 'name')->where(fn ($query) => $query->where('guard_name', 'web')),
+                ],
+                'description' => ['nullable', 'string'],
+                'is_active' => ['required', 'boolean'],
+            ];
+        }
+
         if ($module === 'vehicles') {
             return [
                 'state_id' => ['required'], 'oem_id' => ['required'], 'depot_id' => ['required'], 'branch_id' => ['required'],
@@ -261,7 +327,11 @@ class BulkImportController extends Controller
             'bank_account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
         ];
         if ($module === 'staff') {
-            $rules += ['designation_id' => ['required'], 'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))]];
+            $rules += [
+                'designation_id' => ['required'],
+                'reporting_to' => ['nullable', 'integer', 'exists:staff_profiles,user_id'],
+                'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))],
+            ];
         }
         return $rules;
     }
@@ -317,22 +387,32 @@ class BulkImportController extends Controller
                 'unique_csv'=>['email','aadhaar_number','license_number'],
                 'profile_fields'=>['alternate_country_code','alternate_phone','aadhaar_number','country','state_id','district_id','location_id','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot_id','branch_location_id','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
             ],
+            'designations' => [
+                'label' => 'Designations',
+                'permission' => 'designations.create',
+                'index_route' => 'designations.index',
+                'headers' => ['name', 'department', 'level', 'reporting_to', 'is_active', 'description'],
+                'sample' => ['Assistant Manager', 'Operations', 'Level 2', 'Supervisor', 'yes', 'Assists the operations manager.'],
+                'unique_csv' => ['name'],
+            ],
         ];
         foreach (['controllers'=>['Controller','Controller Management Module','CTL'], 'supervisors'=>['Supervisor','Supervisor Management Module','SUP'], 'staff'=>['Staff','Staff Management Module','STF']] as $key => $meta) {
-            $extra = $key === 'staff' ? ['password','designation','category'] : ['passcode'];
+            $extra = $key === 'staff' ? ['password','designation','reporting_to','category'] : ['passcode'];
             $headers = array_merge(array_slice($commonPerson, 0, 4), $extra, array_slice($commonPerson, 4));
-            $sampleExtra = $key === 'staff' ? ['password123','Manager','skilled'] : ['123456'];
+            $sampleExtra = $key === 'staff' ? ['password123','Manager','','skilled'] : ['123456'];
             $configs[$key] = [
                 'label'=>$meta[0] . 's','permission'=>Str::singular($key) . '-management.create','index_route'=>Str::singular($key) . '-management.index',
                 'headers'=>$headers,
                 'sample'=>array_merge(['Sample ' . $meta[0], $key . '@example.com','+91','9876543210'], $sampleExtra, ['Central Depot','full_time','yes','Father Name','1990-01-01','123456789012','ABCDE1234F','2026-01-01','UAN001','ESIC001','India','Maharashtra','Pune','Pune','1234567890','ABCD0001234']),
-                'unique_csv'=>['email'], 'profile_fields'=>$key === 'staff' ? array_merge($personProfile, ['designation_id','category']) : $personProfile,
+                'unique_csv'=>['email'], 'profile_fields'=>$key === 'staff' ? array_merge($personProfile, ['designation_id','reporting_to','category']) : $personProfile,
             ];
         }
         abort_unless(isset($configs[$module]), 404);
         $optional = match ($module) {
             'vehicles' => ['variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_imei', 'remarks'],
             'drivers' => ['alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date'],
+            'staff' => ['reporting_to'],
+            'designations' => ['reporting_to', 'description'],
             default => [],
         };
         $configs[$module]['instructions'] = collect($configs[$module]['headers'])
@@ -350,7 +430,9 @@ class BulkImportController extends Controller
     private function columnInstruction(string $column, string $module): string
     {
         $instructions = [
-            'name' => 'Full name, maximum 255 characters.',
+            'name' => $module === 'designations'
+                ? 'Designation title, maximum 255 characters. It must be unique among designations and application roles.'
+                : 'Full name, maximum 255 characters.',
             'email' => 'Valid and unique email address. It must not already belong to another user or appear twice in the CSV.',
             'country_code' => 'Telephone country code, for example +91.',
             'phone' => 'Primary phone number, maximum 30 characters.',
@@ -374,6 +456,12 @@ class BulkImportController extends Controller
             'depot' => 'Exact existing depot name. Do not use an ID.',
             'branch' => 'Exact existing branch-location name. Do not use an ID.',
             'designation' => 'Exact existing designation name. Do not use an ID.',
+            'department' => 'Exact existing department name. Do not use an ID. The name must identify one department.',
+            'level' => 'Exact existing level name. Do not use an ID. The name must identify one level.',
+            'reporting_to' => $module === 'staff'
+                ? 'Optional. Use the exact existing staff name. Do not use an ID; the name must identify one staff member.'
+                : 'Optional. Use the exact existing role name: Staff, Driver, Controller, or Supervisor. Do not use an ID.',
+            'description' => 'Optional description of the designation and its responsibilities.',
             'employment_type' => $module === 'drivers' ? 'Use permanent or contract.' : 'Use full_time, part_time, or contract.',
             'category' => 'Use skilled, unskilled, or managerial.',
             'bank_account_number' => 'Bank account number, maximum 50 characters.',

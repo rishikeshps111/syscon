@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'depot_id',
     'designation_id',
+    'reporting_to',
     'category',
     'employment_type',
     'father_name',
@@ -59,6 +60,7 @@ class StaffProfile extends Model
             'date_of_birth' => 'date',
             'date_of_joining' => 'date',
             'designation_id' => 'integer',
+            'reporting_to' => 'integer',
             'depot_id' => 'integer',
             'state_id' => 'integer',
             'district_id' => 'integer',
@@ -82,6 +84,11 @@ class StaffProfile extends Model
     public function designation(): BelongsTo
     {
         return $this->belongsTo(Designation::class);
+    }
+
+    public function reportingTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reporting_to');
     }
 
     public function depot(): BelongsTo

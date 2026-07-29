@@ -24,6 +24,7 @@ class StoreStaffManagementRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'designation_id' => ['required', 'integer', 'exists:designations,id'],
+            'reporting_to' => ['nullable', 'integer', 'exists:staff_profiles,user_id'],
             'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))],
             'employment_type' => ['required', Rule::in(array_keys(StaffProfile::EMPLOYMENT_TYPES))],
             'father_name' => ['required', 'string', 'max:255'],

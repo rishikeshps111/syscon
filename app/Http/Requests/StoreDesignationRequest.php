@@ -22,7 +22,7 @@ class StoreDesignationRequest extends FormRequest
             'department_id' => ['required', 'integer', 'exists:departments,id'],
             'level_id' => ['required', 'integer', 'exists:levels,id'],
             'reporting_to' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])),
             ],

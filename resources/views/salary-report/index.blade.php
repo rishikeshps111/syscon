@@ -53,6 +53,7 @@
                         <label for="role_id">Role <span class="text-danger">*</span></label>
                         <select name="role_id" id="role_id" class="form-select shadow-none" required>
                             <option value="">--- Select ---</option>
+                            <option value="all" @selected($filters['role_id'] === 'all')>All</option>
                             @foreach ($roles as $role)
                                 <option value="{{ $role->id }}" @selected((int) $filters['role_id'] === (int) $role->id)>
                                     {{ $role->name }}</option>
