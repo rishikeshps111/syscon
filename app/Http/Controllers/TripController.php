@@ -64,7 +64,6 @@ class TripController extends Controller implements HasMiddleware
                 ->addColumn('from_location', fn($row) => $row->route?->startPoint?->name ?? '-')
                 ->addColumn('to_location', fn($row) => $row->route?->endPoint?->name ?? '-')
                 ->addColumn('halt_time', fn($row) => $this->timeToMinutes($row->halt_time) ?? '-')
-                ->addColumn('trip_side', fn($row) => Trip::TRIP_SIDES[$row->trip_side] ?? '-')
                 ->addColumn('status', fn($row) => $this->statusBadge($row->status))
                 ->addColumn('action', fn($row) => view('trip.partials.action', compact('row'))->render())
                 ->rawColumns(['action', 'status', 'checkbox'])

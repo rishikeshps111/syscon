@@ -104,6 +104,8 @@ test('Trip can be created with generated code', function () {
     $response = $this->postJson('/trips', [
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
+        'depot_id' => $route->start_point_id,
+        'state_id' => $route->state_id,
         'schedule_type' => 'daily',
         'start_time' => '08:00',
         'end_time' => '10:00',
@@ -117,6 +119,7 @@ test('Trip can be created with generated code', function () {
 
     expect($trip->service_type_id)->toBe($serviceType->id)
         ->and($trip->route_id)->toBe($route->id)
+        ->and($trip->trip_side)->toBe('both')
         ->and($trip->code)->toBe(generate_code(Trip::PREFIX_MODULE, 1, 4));
 });
 
@@ -153,32 +156,27 @@ test('Both-side trip requires and saves one depot', function () {
         ->to_depot_id->toBeNull();
 });
 
-test('Up or down trip requires and saves different from and to depots', function (string $tripSide) {
+test('Trip side is always stored as both', function (string $tripSide) {
     actingAsTripManager();
     [$serviceType, $route] = createTripFixtures();
 
-    $payload = [
+    $this->postJson('/trips', [
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
         'trip_side' => $tripSide,
+        'depot_id' => $route->start_point_id,
         'state_id' => $route->state_id,
         'start_time' => '08:00',
         'end_time' => '10:00',
-    ];
-
-    $this->postJson('/trips', $payload)
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['from_depot_id', 'to_depot_id']);
-
-    $this->postJson('/trips', $payload + [
         'from_depot_id' => $route->start_point_id,
         'to_depot_id' => $route->end_point_id,
     ])->assertCreated();
 
     expect(Trip::latest('id')->first())
-        ->depot_id->toBeNull()
-        ->from_depot_id->toBe($route->start_point_id)
-        ->to_depot_id->toBe($route->end_point_id);
+        ->trip_side->toBe('both')
+        ->depot_id->toBe($route->start_point_id)
+        ->from_depot_id->toBeNull()
+        ->to_depot_id->toBeNull();
 })->with(['up', 'down']);
 
 test('Trip can be updated', function () {
@@ -198,6 +196,8 @@ test('Trip can be updated', function () {
     $response = $this->putJson('/trips/' . $trip->id, [
         'service_type_id' => $serviceType->id,
         'route_id' => $route->id,
+        'depot_id' => $route->start_point_id,
+        'state_id' => $route->state_id,
         'schedule_type' => 'weekly',
         'start_time' => '09:00',
         'end_time' => '11:00',

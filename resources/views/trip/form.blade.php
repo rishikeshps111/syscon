@@ -92,16 +92,7 @@
         <span class="text-danger error-text halt_time_error">@error('halt_time'){{ $message }}@enderror</span>
     </div>
 
-    <div class="col-lg-4 o-f-inp mb-2">
-        <label for="trip_side" class="form-label m-0">Trip Side <span class="text-danger">*</span></label>
-        <select class="form-select shadow-none" id="trip_side" name="trip_side">
-            {{-- <option value="">--- Select ---</option> --}}
-            @foreach(\App\Models\Trip::TRIP_SIDES as $value => $label)
-                <option value="{{ $value }}" {{ old('trip_side', $record->trip_side ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
-            @endforeach
-        </select>
-        <span class="text-danger error-text trip_side_error">@error('trip_side'){{ $message }}@enderror</span>
-    </div>
+    <input type="hidden" id="trip_side" name="trip_side" value="both">
 
     <div class="col-lg-4 o-f-inp mb-2" id="singleDepotWrap">
         <label for="depot_id" class="form-label m-0">Depot <span class="text-danger">*</span></label>

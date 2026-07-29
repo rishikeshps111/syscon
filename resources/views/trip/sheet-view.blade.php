@@ -45,9 +45,9 @@
                         <li>Trip Code: <span>{{ $record->code ?: '-' }}</span></li>
                         <li>Route: <span>{{ $record->route?->route_name ?: '-' }}</span></li>
                         <li>Schedule: <span>{{ $record->schedule_type ?: '-' }}</span></li>
-                        <li>Trip Side:
+                        {{-- <li>Trip Side:
                             <span>{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}</span>
-                        </li>
+                        </li> --}}
                         <li>State:
                             <span>{{ $record->route?->startPoint?->state?->name ?: $record->depot?->state?->name ?: '-' }}</span>
                         </li>

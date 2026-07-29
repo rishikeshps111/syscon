@@ -24,11 +24,11 @@
                     <label>Trip</label>
                     <input type="text" class="form-control shadow-none" value="{{ $record->trip_title }}" disabled>
                 </div>
-                <div class="col-lg-3 o-f-inp mb-3">
+                {{-- <div class="col-lg-3 o-f-inp mb-3">
                     <label>Trip Side</label>
                     <input type="text" class="form-control shadow-none"
                         value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
-                </div>
+                </div> --}}
                 @if($record->trip_side === 'both')
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label>Depot</label>

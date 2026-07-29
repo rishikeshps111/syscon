@@ -44,6 +44,7 @@ class StoreTripRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
+            'trip_side' => 'both',
             'schedule_type' => $this->input('schedule_type', 'daily'),
             'status' => $this->input('status', $this->boolean('is_active', true) ? 'Active' : 'Inactive'),
             'is_active' => $this->input('is_active', true),

@@ -114,7 +114,6 @@
                                             <th class="text-center nowrap">From Location</th>
                                             <th class="text-center nowrap">To Location</th>
                                             <th class="text-center nowrap">Halt Time (Minutes)</th>
-                                            <th class="text-center nowrap">Trip Side</th>
                                             <th class="text-center nowrap">Status</th>
                                             <th class="text-center nowrap">Action</th>
                                         </tr>
