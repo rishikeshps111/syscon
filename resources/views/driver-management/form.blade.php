@@ -330,7 +330,7 @@
 
                             <div class="tab-pane fade" id="drv4" role="tabpanel">
                                 <div class="row">
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="employment_type">Employment Type <span
                                                 class="text-danger">*</span></label>
                                         <select name="employment_type" id="employment_type"
@@ -346,7 +346,7 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="joining_date">Joining Date <span
                                                 class="text-danger">*</span></label>
                                         <input type="date" id="joining_date" name="joining_date"

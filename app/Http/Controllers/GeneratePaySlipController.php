@@ -95,6 +95,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
             'html' => view('payroll.pay-slip.partials.preview', [
                 'processing' => $processing,
                 'item' => $item,
+                'bankDetails' => $this->bankDetails($processing, $item),
                 'monthName' => Carbon::create(null, $processing->month, 1)->format('F'),
             ])->render(),
             'download_pdf_url' => route('salary-slips.pdf', $this->validatedFilters($request, includeUser: true)),
@@ -156,7 +157,12 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         abort_if(! $processing, 404, 'No salary processing found for the selected filters.');
 
         $item = $processing->items()
-            ->with('user')
+            ->with([
+                'user.driverProfile',
+                'user.staffProfile',
+                'user.controllerProfile',
+                'user.supervisorProfile',
+            ])
             ->where('user_id', $filters['user_id'])
             ->first();
 
@@ -181,9 +187,8 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
     private function buildPdf(SalaryProcessing $processing, SalaryProcessingItem $item): string
     {
-        $components = collect($item->salary_split ?: [])
-            ->where('type', 'earning')
-            ->values();
+        $components = collect($item->salary_split ?: [])->values();
+        $bankDetails = $this->bankDetails($processing, $item);
 
         $month = Carbon::create(null, $processing->month, 1)->format('F');
         $status = $processing->status ?: 'Pending';
@@ -223,7 +228,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfPair('Shifts Completed', (string) $item->total_shifts_completed, 437, 536);
 
         $stream .= $this->pdfCard(36, 234, 318, 230);
-        $stream .= $this->pdfSectionTitle('Earnings', 52, 438);
+        $stream .= $this->pdfSectionTitle('Salary Components', 52, 438);
         $stream .= $this->pdfFillRect(52, 408, 286, 24, [248, 250, 252]);
         $stream .= $this->pdfText('Component', 64, 416, 9, 'F2', [75, 85, 99]);
         $stream .= $this->pdfText('Amount', 280, 416, 9, 'F2', [75, 85, 99]);
@@ -236,7 +241,8 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         } else {
             foreach ($visibleComponents as $component) {
                 $stream .= $this->pdfLine(52, $rowY + 15, 338, $rowY + 15, [237, 241, 247]);
-                $stream .= $this->pdfText($component['name'] ?? 'Component', 64, $rowY, 10, 'F1', [17, 24, 39]);
+                $type = ($component['type'] ?? 'earning') === 'deduction' ? 'D' : 'E';
+                $stream .= $this->pdfText('[' . $type . '] ' . ($component['name'] ?? 'Component'), 64, $rowY, 10, 'F1', [17, 24, 39]);
                 $stream .= $this->pdfText($this->money($component['amount'] ?? 0), 280, $rowY, 10, 'F2', [17, 24, 39]);
                 $rowY -= 22;
             }
@@ -256,15 +262,34 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfText('NET SALARY', 407, 280, 8, 'F2', [203, 213, 225]);
         $stream .= $this->pdfText($this->money($item->net_salary), 407, 262, 15, 'F2', [255, 255, 255]);
 
-        $stream .= $this->pdfCard(36, 92, 523, 116);
+        $stream .= $this->pdfCard(36, 72, 523, 136);
         $stream .= $this->pdfSectionTitle('Payment & Approval', 52, 182);
         $stream .= $this->pdfPair('Payment Method', $processing->payment_method ?: '-', 52, 154);
         $stream .= $this->pdfPair('Status', $status, 190, 154);
         $stream .= $this->pdfPair('Approved By', $processing->approver?->name ?: '-', 328, 154);
         $stream .= $this->pdfPair('Approved At', $processing->approved_at?->format('d-m-Y h:i A') ?: '-', 52, 124);
         $stream .= $this->pdfPair('Remarks', $processing->remarks ?: '-', 190, 124);
+        $stream .= $this->pdfPair('Account Number', $bankDetails['account_number'], 52, 94);
+        $stream .= $this->pdfPair('IFSC Code', $bankDetails['ifsc_code'], 328, 94);
 
         return $this->simplePdf($stream);
+    }
+
+    private function bankDetails(SalaryProcessing $processing, SalaryProcessingItem $item): array
+    {
+        $profile = match ($processing->role?->name) {
+            'Driver' => $item->user?->driverProfile,
+            'Controller' => $item->user?->controllerProfile,
+            'Supervisor' => $item->user?->supervisorProfile,
+            default => $item->user?->staffProfile,
+        };
+
+        return [
+            'account_number' => (string) ($processing->role?->name === 'Driver'
+                ? ($profile?->account_number ?: '-')
+                : ($profile?->bank_account_number ?: '-')),
+            'ifsc_code' => (string) ($profile?->ifsc_code ?: '-'),
+        ];
     }
 
     private function fileName(SalaryProcessing $processing, SalaryProcessingItem $item): string

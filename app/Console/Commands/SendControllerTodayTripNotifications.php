@@ -25,7 +25,12 @@ class SendControllerTodayTripNotifications extends Command
 
         User::query()
             ->role(['Controller', 'Supervisor'])
-            ->with(['roles', 'deviceTokens', 'controllerProfile', 'supervisorProfile'])
+            ->with([
+                'roles',
+                'deviceTokens' => fn ($query) => $query->where('app_type', 'operations'),
+                'controllerProfile',
+                'supervisorProfile',
+            ])
             ->where('is_active', true)
             ->orderBy('id')
             ->chunkById(100, function ($users) use ($firebase, $date, &$sentRecipients, &$failedRecipients): void {
@@ -69,7 +74,8 @@ class SendControllerTodayTripNotifications extends Command
                                 $device->token,
                                 "Today's trips",
                                 $tripCount === 1 ? 'Your depot has 1 trip today.' : "Your depot has {$tripCount} trips today.",
-                                ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount]
+                                ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount],
+                                'operations'
                             );
 
                             if ($response->successful()) {

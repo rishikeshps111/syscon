@@ -66,11 +66,6 @@ class StoreSalaryComponentRequest extends FormRequest
                 'max:255',
             ],
             'type' => ['required', Rule::in(['earning', 'deduction'])],
-            'is_applicable' => ['required', 'boolean'],
-            'calculation_type' => ['required', Rule::in(['fixed', 'percentage', 'per_shift', 'per_trip', 'formula'])],
-            'default_value' => ['required', 'numeric', 'min:0'],
-            'is_editable_in_payroll' => ['required', 'boolean'],
-            'is_mandatory' => ['required', 'boolean'],
         ];
     }
 }

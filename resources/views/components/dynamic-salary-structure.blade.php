@@ -7,9 +7,11 @@
         @php
             $fieldName = "salary_components[{$salaryComponent->id}]";
             $oldKey = "salary_components.{$salaryComponent->id}";
-            $value = old($oldKey, $componentValues[$salaryComponent->id] ?? $salaryComponent->default_value);
-            $isRequired = $salaryComponent->is_mandatory || $salaryComponent->type === 'earning';
-            $designationIds = $salaryComponent->assignments->pluck('designation_id')->filter()->unique()->implode(',');
+            $value = old($oldKey, $componentValues[$salaryComponent->id] ?? $salaryComponent->template_default_amount ?? 0);
+            $isRequired = true;
+            $templateDefaults = $salaryComponent->template_defaults ?? [];
+            $designationIds = collect(array_keys($templateDefaults))->reject(fn ($id) => (int) $id === 0)->implode(',');
+            $hasExplicitValue = session()->hasOldInput($oldKey) || $componentValues->has($salaryComponent->id);
         @endphp
         <div class="col-lg-4 o-f-inp mb-3 js-salary-component-item"
             data-designation-ids="{{ $designationIds }}">
@@ -24,9 +26,11 @@
                 name="{{ $fieldName }}" class="form-control shadow-none js-dynamic-salary-field"
                 data-type="{{ $salaryComponent->type }}"
                 data-required="{{ $isRequired ? '1' : '0' }}"
+                data-template-defaults='@json($templateDefaults)'
+                data-has-explicit-value="{{ $hasExplicitValue ? '1' : '0' }}"
                 value="{{ $value }}"
                 @if ($isRequired) required @endif
-                @if (! $salaryComponent->is_editable_in_payroll) readonly @endif>
+                >
             @error($oldKey)
                 <span class="text-danger">{{ $message }}</span>
             @enderror

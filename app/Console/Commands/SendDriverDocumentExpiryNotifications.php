@@ -24,7 +24,7 @@ class SendDriverDocumentExpiryNotifications extends Command
         $failed = 0;
 
         DriverProfile::query()
-            ->with('user.deviceTokens')
+            ->with(['user.deviceTokens' => fn ($query) => $query->where('app_type', 'driver')])
             ->whereHas('user', fn($query) => $query->where('is_active', true))
             ->where(function ($query) use ($sixMonthsFromToday): void {
                 $query->whereDate('expiry_date', '<', $sixMonthsFromToday)
@@ -73,7 +73,8 @@ class SendDriverDocumentExpiryNotifications extends Command
                                         'document_type' => $documentType,
                                         'status' => $expiryStatus,
                                         'expiry_date' => $expiryDate->toDateString(),
-                                    ]
+                                    ],
+                                    'driver'
                                 );
 
                                 if ($response->successful()) {

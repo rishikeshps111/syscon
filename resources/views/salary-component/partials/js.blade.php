@@ -7,6 +7,7 @@
                 url: "{{ route('salary-components.index') }}",
                 data: function (data) {
                     data.role_id = $('#roleFilter').val();
+                    data.designation_id = $('#designationFilter').val();
                 }
             },
             columns: [
@@ -28,12 +29,28 @@
         });
 
         $('#roleFilter').on('change', function () {
+            var selectedRole = $(this).find(':selected').data('role-name');
+            var isStaff = selectedRole === 'Staff';
+
+            $('#designationFilterWrapper').toggleClass('d-none', !isStaff);
+
+            if (!isStaff) {
+                $('#designationFilter').val('');
+            }
+
+            $('#checkAll').prop('checked', false);
+            table.ajax.reload();
+        });
+
+        $('#designationFilter').on('change', function () {
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
         });
 
         $('#resetFilters').on('click', function () {
             $('#roleFilter').val('');
+            $('#designationFilter').val('');
+            $('#designationFilterWrapper').addClass('d-none');
             $('#checkAll').prop('checked', false);
             $('.row-check').prop('checked', false);
             table.ajax.reload();

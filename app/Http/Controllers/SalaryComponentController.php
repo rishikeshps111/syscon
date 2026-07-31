@@ -38,7 +38,15 @@ class SalaryComponentController extends Controller implements HasMiddleware
                 ->latest();
 
             if (request()->filled('role_id')) {
-                $query->whereHas('assignments', fn ($assignmentQuery) => $assignmentQuery->where('role_id', request('role_id')));
+                $selectedRole = Role::find(request('role_id'));
+
+                $query->whereHas('assignments', function ($assignmentQuery) use ($selectedRole) {
+                    $assignmentQuery->where('role_id', request('role_id'));
+
+                    if ($selectedRole?->name === 'Staff' && request()->filled('designation_id')) {
+                        $assignmentQuery->where('designation_id', request('designation_id'));
+                    }
+                });
             }
 
             return DataTables::of($query)
@@ -53,8 +61,9 @@ class SalaryComponentController extends Controller implements HasMiddleware
         }
 
         $roles = $this->componentRoles();
+        $designations = $this->designations();
 
-        return view('salary-component.index', compact('roles'));
+        return view('salary-component.index', compact('roles', 'designations'));
     }
 
     public function create()
@@ -69,7 +78,7 @@ class SalaryComponentController extends Controller implements HasMiddleware
     public function store(StoreSalaryComponentRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $component = SalaryComponent::create($this->componentData($request->validated()));
+            $component = SalaryComponent::create($this->componentData($request->validated(), true));
             $component->code = generate_code(SalaryComponent::PREFIX_MODULE, $component->id, 3, 'SC');
             $component->save();
             $this->syncAssignments($component, $request->validated());
@@ -151,9 +160,21 @@ class SalaryComponentController extends Controller implements HasMiddleware
         return Designation::orderBy('name')->get(['id', 'name']);
     }
 
-    private function componentData(array $data): array
+    private function componentData(array $data, bool $withDefaults = false): array
     {
-        return collect($data)->except(['role_ids', 'designation_ids'])->all();
+        $componentData = collect($data)->except(['role_ids', 'designation_ids'])->all();
+
+        if (! $withDefaults) {
+            return $componentData;
+        }
+
+        return $componentData + [
+            'is_applicable' => true,
+            'calculation_type' => 'fixed',
+            'default_value' => 0,
+            'is_editable_in_payroll' => true,
+            'is_mandatory' => false,
+        ];
     }
 
     private function syncAssignments(SalaryComponent $component, array $data): void

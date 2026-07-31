@@ -9,16 +9,25 @@ use RuntimeException;
 
 class FirebaseMessaging
 {
-    public function send(string $deviceToken, string $title, string $body, array $data = []): Response
+    public function send(
+        string $deviceToken,
+        string $title,
+        string $body,
+        array $data = [],
+        string $appType = 'operations'
+    ): Response
     {
-        $credentials = $this->credentials();
-        $projectId = config('services.firebase.project_id') ?: ($credentials['project_id'] ?? null);
+        $appConfig = config("services.firebase.apps.{$appType}", []);
+        $credentials = $this->credentials($appType, $appConfig['credentials'] ?? null);
+        $projectId = ($appConfig['project_id'] ?? null)
+            ?: config('services.firebase.project_id')
+            ?: ($credentials['project_id'] ?? null);
 
         if (! $projectId) {
-            throw new RuntimeException('Firebase project ID is not configured.');
+            throw new RuntimeException("Firebase project ID is not configured for the {$appType} app.");
         }
 
-        return Http::withToken($this->accessToken($credentials))
+        return Http::withToken($this->accessToken($credentials, $appType, $projectId))
             ->acceptJson()
             ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
                 'message' => [
@@ -31,9 +40,11 @@ class FirebaseMessaging
             ]);
     }
 
-    private function accessToken(array $credentials): string
+    private function accessToken(array $credentials, string $appType, string $projectId): string
     {
-        $cacheKey = 'firebase_access_token_' . sha1((string) ($credentials['client_email'] ?? ''));
+        $cacheKey = 'firebase_access_token_' . sha1(
+            $appType . '|' . $projectId . '|' . (string) ($credentials['client_email'] ?? '')
+        );
 
         return Cache::remember($cacheKey, now()->addMinutes(50), function () use ($credentials): string {
             $now = time();
@@ -60,12 +71,14 @@ class FirebaseMessaging
         });
     }
 
-    private function credentials(): array
+    private function credentials(string $appType, ?string $configuredPath): array
     {
-        $path = config('services.firebase.credentials');
+        $path = $configuredPath ?: config('services.firebase.credentials');
 
         if (! $path || ! is_file($path)) {
-            throw new RuntimeException('FIREBASE_CREDENTIALS must point to a readable service-account JSON file.');
+            throw new RuntimeException(
+                "Firebase credentials for the {$appType} app must point to a readable service-account JSON file."
+            );
         }
 
         $credentials = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);

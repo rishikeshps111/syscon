@@ -35,6 +35,16 @@ return [
     'firebase' => [
         'credentials' => env('FIREBASE_CREDENTIALS'),
         'project_id' => env('FIREBASE_PROJECT_ID'),
+        'apps' => [
+            'driver' => [
+                'credentials' => env('FIREBASE_DRIVER_CREDENTIALS', env('FIREBASE_CREDENTIALS')),
+                'project_id' => env('FIREBASE_DRIVER_PROJECT_ID', env('FIREBASE_PROJECT_ID')),
+            ],
+            'operations' => [
+                'credentials' => env('FIREBASE_OPERATIONS_CREDENTIALS', env('FIREBASE_CREDENTIALS')),
+                'project_id' => env('FIREBASE_OPERATIONS_PROJECT_ID', env('FIREBASE_PROJECT_ID')),
+            ],
+        ],
     ],
 
     'slack' => [

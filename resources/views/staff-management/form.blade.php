@@ -190,11 +190,6 @@
                                         <select name="reporting_to" id="reporting_to"
                                             class="form-select shadow-none select2 @error('reporting_to') is-invalid @enderror">
                                             <option value="">---Select---</option>
-                                            @foreach ($reportingStaff as $staff)
-                                                <option value="{{ $staff->id }}" {{ old('reporting_to', $profile->reporting_to ?? '') == $staff->id ? 'selected' : '' }}>
-                                                    {{ $staff->name }}{{ $staff->code ? ' (' . $staff->code . ')' : '' }}
-                                                </option>
-                                            @endforeach
                                         </select>
                                         @error('reporting_to') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
@@ -510,6 +505,56 @@
                     .trigger('change.select2');
             }
 
+            var selectedReportingManager = @json(old('reporting_to', $profile->reporting_to ?? ''));
+
+            function loadReportingManagers() {
+                var designationId = $('#designation_id').val();
+                var depotId = $('#depot_id').val();
+
+                if (!designationId || !depotId) {
+                    resetSelect('#reporting_to', '---Select---');
+                    return;
+                }
+
+                resetSelect('#reporting_to', 'Loading...');
+
+                $.ajax({
+                    url: "{{ route('staff-management.reporting-managers') }}",
+                    type: 'GET',
+                    data: {
+                        designation_id: designationId,
+                        depot_id: depotId,
+                        @isset($record)
+                        exclude_user_id: {{ $record->id }},
+                        @endisset
+                    },
+                    success: function (managers) {
+                        var options = '<option value="">---Select---</option>';
+                        managers.forEach(function (manager) {
+                            var code = manager.code ? ` (${manager.code})` : '';
+                            options += `<option value="${manager.id}">${manager.name}${code}</option>`;
+                        });
+
+                        $('#reporting_to')
+                            .html(options)
+                            .prop('disabled', false)
+                            .val(selectedReportingManager)
+                            .trigger('change.select2');
+                        selectedReportingManager = '';
+                    },
+                    error: function () {
+                        resetSelect('#reporting_to', '---Select---');
+                        showToast('error', 'Unable to load reporting managers.');
+                    }
+                });
+            }
+
+            $('#designation_id, #depot_id').on('change', function () {
+                selectedReportingManager = '';
+                loadReportingManagers();
+            });
+            loadReportingManagers();
+
             function calculateDynamicSalary() {
                 var total = 0;
                 document.querySelectorAll('.js-dynamic-salary-field').forEach(function (input) {
@@ -533,24 +578,31 @@
                 input.addEventListener('input', calculateDynamicSalary);
             });
 
-            function filterSalaryComponentsByDesignation() {
+            function filterSalaryComponentsByDesignation(resetValues) {
                 var designationId = document.getElementById('designation_id').value;
 
                 document.querySelectorAll('.js-salary-component-item').forEach(function (item) {
                     var designationIds = (item.dataset.designationIds || '').split(',').filter(Boolean);
                     var visible = designationId !== '' && designationIds.includes(designationId);
                     var input = item.querySelector('.js-dynamic-salary-field');
+                    var defaults = JSON.parse(input.dataset.templateDefaults || '{}');
 
                     item.classList.toggle('d-none', !visible);
                     input.disabled = !visible;
                     input.required = visible && input.dataset.required === '1';
+
+                    if (visible && (resetValues || input.dataset.hasExplicitValue !== '1')) {
+                        input.value = defaults[designationId] ?? 0;
+                    }
                 });
 
                 calculateDynamicSalary();
             }
 
-            document.getElementById('designation_id').addEventListener('change', filterSalaryComponentsByDesignation);
-            filterSalaryComponentsByDesignation();
+            document.getElementById('designation_id').addEventListener('change', function () {
+                filterSalaryComponentsByDesignation(true);
+            });
+            filterSalaryComponentsByDesignation(false);
             calculateDynamicSalary();
 
             document.querySelectorAll('.js-loading-form').forEach(function (form) {

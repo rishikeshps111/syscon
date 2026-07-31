@@ -24,7 +24,7 @@ class SendDriverTodayTripNotifications extends Command
         $failedDrivers = 0;
 
         DriverProfile::query()
-            ->with(['user.deviceTokens'])
+            ->with(['user.deviceTokens' => fn ($query) => $query->where('app_type', 'driver')])
             ->whereHas('user', fn($query) => $query->where('is_active', true))
             ->whereHas('rosters.tripSheetEntries.sheet', fn($query) => $query->whereDate('date', $date))
             ->orderBy('id')
@@ -58,7 +58,8 @@ class SendDriverTodayTripNotifications extends Command
                                 $device->token,
                                 "Today's trips",
                                 $tripCount === 1 ? 'You have 1 assigned trip today.' : "You have {$tripCount} assigned trips today.",
-                                ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount]
+                                ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount],
+                                'driver'
                             );
 
                             if ($response->successful()) {

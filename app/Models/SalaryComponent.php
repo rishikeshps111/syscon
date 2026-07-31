@@ -37,4 +37,9 @@ class SalaryComponent extends Model
     {
         return $this->hasMany(SalaryComponentAssignment::class);
     }
+
+    public function templateItems(): HasMany
+    {
+        return $this->hasMany(SalaryTemplateItem::class);
+    }
 }

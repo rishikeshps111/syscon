@@ -9,7 +9,7 @@ use App\Models\SalaryProcessing;
 use App\Models\SalaryProcessingItem;
 use App\Models\TripSheetEntryDor;
 use App\Models\User;
-use App\Models\UserSalaryComponentValue;
+use App\Support\SalaryComponents;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -199,7 +199,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'items.*.incentive' => ['nullable', 'numeric', 'min:0'],
             'items.*.unauthorized_leaves' => ['nullable', 'numeric', 'min:0'],
             'items.*.selected_components' => ['sometimes', 'array'],
-            'items.*.selected_components.*' => ['integer', 'exists:user_salary_component_values,id'],
+            'items.*.selected_components.*' => ['integer'],
         ]);
     }
 
@@ -263,7 +263,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $workingDays = $start->daysInMonth;
 
         return $users->map(function (User $user) use ($role, $start, $end, $workingDays) {
-            $split = $this->salarySplit($user);
+            $split = $this->salarySplit($user, $role->name);
             $earningSplit = collect($split)->where('type', 'earning')->values();
             $incentive = (float) $earningSplit->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
             $grossSalary = $this->grossSalary(
@@ -285,7 +285,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'basic_salary' => $grossSalary,
                 'deduction' => $deduction,
                 'incentive' => $incentive,
-                'salary_split' => $earningSplit->all(),
+                'salary_split' => collect($split)->values()->all(),
             ];
 
             return $this->applyUnauthorizedLeave($row, 0);
@@ -309,16 +309,18 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             ->get(['id', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active']);
     }
 
-    private function salarySplit(User $user): array
+    private function salarySplit(User $user, string $roleName): array
     {
-        return UserSalaryComponentValue::with('salaryComponent')
-            ->where('user_id', $user->id)
-            ->get()
-            ->map(fn($value) => [
-                'id' => $value->id,
-                'name' => $value->salaryComponent?->component_name ?? 'Component',
-                'type' => $value->salaryComponent?->type ?? 'earning',
-                'amount' => (float) $value->amount,
+        $designationId = $roleName === 'Staff' ? $user->staffProfile?->designation_id : null;
+        $components = SalaryComponents::forRole($roleName, $designationId);
+        $values = SalaryComponents::valuesFor($user);
+
+        return $components
+            ->map(fn($component) => [
+                'id' => $component->id,
+                'name' => $component->component_name,
+                'type' => $component->type,
+                'amount' => (float) ($values[$component->id] ?? $component->template_default_amount ?? 0),
                 'selected' => true,
             ])
             ->values()
@@ -385,10 +387,12 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $selected = $split->where('selected', true);
 
         if ($split->isNotEmpty()) {
-            $row['incentive'] = (float) $selected->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
-            $row['basic_salary'] = (float) $selected
+            $earnings = $selected->where('type', 'earning');
+            $row['incentive'] = (float) $earnings->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
+            $row['basic_salary'] = (float) $earnings
                 ->reject(fn($item) => $this->isIncentiveComponent($item))
                 ->sum('amount');
+            $row['deduction'] = (float) $selected->where('type', 'deduction')->sum('amount');
         }
 
         $row['salary_split'] = $split->values()->all();
@@ -465,7 +469,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'incentive' => (float) $item->incentive,
             'unauthorized_leaves' => (float) $item->unauthorized_leaves,
             'net_salary' => (float) $item->net_salary,
-            'salary_split' => collect($item->salary_split ?: [])->where('type', 'earning')->map(function ($component) {
+            'salary_split' => collect($item->salary_split ?: [])->map(function ($component) {
                 $component['selected'] = $component['selected'] ?? true;
 
                 return $component;

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\StaffProfile;
+use App\Support\StaffReportingManagers;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,7 +25,26 @@ class StoreStaffManagementRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'designation_id' => ['required', 'integer', 'exists:designations,id'],
-            'reporting_to' => ['nullable', 'integer', 'exists:staff_profiles,user_id'],
+            'reporting_to' => [
+                'nullable',
+                'integer',
+                'exists:users,id',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (! $value) {
+                        return;
+                    }
+
+                    $isEligible = StaffReportingManagers::query(
+                        (int) $this->input('designation_id'),
+                        (int) $this->input('depot_id'),
+                        $this->route('staff_management')?->id,
+                    )->whereKey($value)->exists();
+
+                    if (! $isEligible) {
+                        $fail('The selected reporting manager does not match the designation and depot.');
+                    }
+                },
+            ],
             'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))],
             'employment_type' => ['required', Rule::in(array_keys(StaffProfile::EMPLOYMENT_TYPES))],
             'father_name' => ['required', 'string', 'max:255'],

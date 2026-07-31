@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'token', 'token_hash', 'platform', 'last_used_at'])]
+#[Fillable(['user_id', 'token', 'token_hash', 'platform', 'app_type', 'last_used_at'])]
 #[Table('user_device_tokens')]
 class UserDeviceToken extends Model
 {

@@ -54,6 +54,8 @@ use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ShiftSettingController;
 use App\Http\Controllers\StaffDocumentController;
 use App\Http\Controllers\StaffManagementController;
+use App\Http\Controllers\SalaryTemplateController;
+use App\Http\Controllers\SalaryArchiveController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\SupervisorDocumentController;
 use App\Http\Controllers\SupervisorManagementController;
@@ -402,6 +404,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/salary-components/export', [SalaryComponentController::class, 'export'])
         ->name('salary-components.export');
     Route::resource('salary-components', SalaryComponentController::class)->except(['show']);
+    Route::get('/salary-templates/components', [SalaryTemplateController::class, 'components'])
+        ->name('salary-templates.components');
+    Route::resource('salary-templates', SalaryTemplateController::class)->except(['show']);
     Route::resource('hr-letter-templates', HrLetterTemplateController::class);
     Route::get('/users/{user}/hr-letters', [HrLetterController::class, 'index'])->name('hr-letters.index');
     Route::get('/hr-letters/generate/{user}', [HrLetterController::class, 'create'])->name('hr-letters.create');
@@ -418,6 +423,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/salary-reports/pdf', [SalaryReportController::class, 'pdf'])->name('salary-reports.pdf');
     Route::post('/salary-reports/send-mail', [SalaryReportController::class, 'sendMail'])->name('salary-reports.send-mail');
     Route::get('/salary-reports/{salaryProcessingItem}', [SalaryReportController::class, 'show'])->name('salary-reports.show');
+    Route::get('/salary-archives', [SalaryArchiveController::class, 'index'])->name('salary-archives.index');
+    Route::get('/salary-archives/{salaryProcessing}', [SalaryArchiveController::class, 'show'])->name('salary-archives.show');
     Route::get('/salary-files', [SalaryFilesController::class, 'index'])->name('salary-files.index');
     Route::get('/salary-files/{salaryProcessing}/excel', [SalaryFilesController::class, 'excel'])->name('salary-files.excel');
     Route::get('/salary-files/{salaryProcessing}/pdf', [SalaryFilesController::class, 'pdf'])->name('salary-files.pdf');
@@ -505,6 +512,8 @@ Route::middleware('auth')->group(function () {
         ->name('staff-management.districts-by-state');
     Route::get('/staff-management/locations-by-district', [StaffManagementController::class, 'locationsByDistrict'])
         ->name('staff-management.locations-by-district');
+    Route::get('/staff-management/reporting-managers', [StaffManagementController::class, 'reportingManagers'])
+        ->name('staff-management.reporting-managers');
     Route::get('/staff-management/{staff_management}/download-pdf', [StaffManagementController::class, 'downloadPdf'])
         ->name('staff-management.download-pdf');
     Route::get('/staff-management/{staff}/documents', [StaffDocumentController::class, 'index'])
@@ -611,6 +620,8 @@ Route::middleware('auth')->group(function () {
         ->name('driver-management.depot-assignments.store');
     Route::resource('driver-management', DriverManagementController::class);
 
+    Route::get('/depot-assignments/reporting-managers', [DepotAssignmentController::class, 'reportingManagers'])
+        ->name('depot-assignments.reporting-managers');
     Route::put('/depot-assignments/{depotAssignment}', [DepotAssignmentController::class, 'update'])
         ->name('depot-assignments.update');
     Route::delete('/depot-assignments/{depotAssignment}', [DepotAssignmentController::class, 'destroy'])

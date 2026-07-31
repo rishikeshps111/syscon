@@ -13,6 +13,7 @@ use App\Models\StaffProfile;
 use App\Models\State;
 use App\Models\User;
 use App\Support\SalaryComponents;
+use App\Support\StaffReportingManagers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -223,6 +224,25 @@ class StaffManagementController extends Controller implements HasMiddleware
         );
     }
 
+    public function reportingManagers(Request $request)
+    {
+        $data = $request->validate([
+            'designation_id' => ['required', 'integer', 'exists:designations,id'],
+            'depot_id' => ['required', 'integer', 'exists:depots,id'],
+            'exclude_user_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        return response()->json(
+            StaffReportingManagers::query(
+                (int) $data['designation_id'],
+                (int) $data['depot_id'],
+                isset($data['exclude_user_id']) ? (int) $data['exclude_user_id'] : null,
+            )
+                ->orderBy('users.name')
+                ->get(['users.id', 'users.code', 'users.name'])
+        );
+    }
+
     private function filteredQuery()
     {
         $query = User::role('Staff')
@@ -262,10 +282,6 @@ class StaffManagementController extends Controller implements HasMiddleware
     {
         return [
             'designations' => Designation::orderBy('name')->get(['id', 'name']),
-            'reportingStaff' => User::role('Staff')
-                ->when(request()->route('staff_management'), fn ($query, $staff) => $query->where('users.id', '<>', $staff->id))
-                ->orderBy('name')
-                ->get(['id', 'code', 'name']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'categories' => StaffProfile::CATEGORIES,
             'employmentTypes' => StaffProfile::EMPLOYMENT_TYPES,
@@ -279,7 +295,10 @@ class StaffManagementController extends Controller implements HasMiddleware
                 '50001-100000' => '50,001 - 1,00,000',
                 '100001-' => 'Above 1,00,000',
             ],
-            'salaryComponents' => SalaryComponents::forRole('Staff'),
+            'salaryComponents' => SalaryComponents::forRole(
+                'Staff',
+                request()->route('staff_management')?->staffProfile?->designation_id
+            ),
             'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('staff_management')),
         ];
     }

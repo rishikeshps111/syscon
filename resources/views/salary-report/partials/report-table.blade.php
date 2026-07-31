@@ -60,7 +60,9 @@
             <tbody>
                 @foreach ($items as $item)
                     @php
-                        $components = collect($item->salary_split ?: [])->where('type', 'earning')->keyBy('name');
+                        $components = collect($item->salary_split ?: [])->keyBy(
+                            fn ($component) => ($component['name'] ?? 'Component') . ' (' . ucfirst($component['type'] ?? 'earning') . ')'
+                        );
                     @endphp
                     <tr>
                         <td class="text-center">{{ $loop->iteration }}</td>

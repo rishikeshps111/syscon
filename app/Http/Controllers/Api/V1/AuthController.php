@@ -92,7 +92,12 @@ class AuthController extends Controller
         )->plainTextToken;
 
         if (! empty($data['fcm_token'])) {
-            $this->storeDeviceToken($user, $data['fcm_token'], $data['platform'] ?? null);
+            $this->storeDeviceToken(
+                $user,
+                $data['fcm_token'],
+                $data['platform'] ?? null,
+                $this->appTypeForUserType($type)
+            );
         }
 
         return response()->json([
@@ -143,17 +148,42 @@ class AuthController extends Controller
             'platform' => ['nullable', 'string', 'in:android,ios,web'],
         ]);
 
-        $this->storeDeviceToken($request->user(), $data['fcm_token'], $data['platform'] ?? null);
+        $this->storeDeviceToken(
+            $request->user(),
+            $data['fcm_token'],
+            $data['platform'] ?? null,
+            $this->appTypeForRequest($request)
+        );
 
         return response()->json(['success' => true, 'message' => 'Device token saved successfully.']);
     }
 
-    private function storeDeviceToken(User $user, string $token, ?string $platform): void
+    private function storeDeviceToken(User $user, string $token, ?string $platform, string $appType): void
     {
         UserDeviceToken::updateOrCreate(
             ['token_hash' => hash('sha256', $token)],
-            ['user_id' => $user->id, 'token' => $token, 'platform' => $platform, 'last_used_at' => now()]
+            [
+                'user_id' => $user->id,
+                'token' => $token,
+                'platform' => $platform,
+                'app_type' => $appType,
+                'last_used_at' => now(),
+            ]
         );
+    }
+
+    private function appTypeForRequest(Request $request): string
+    {
+        if ($request->user()->currentAccessToken()?->can('type:driver')) {
+            return 'driver';
+        }
+
+        return $request->user()->hasRole('Driver') ? 'driver' : 'operations';
+    }
+
+    private function appTypeForUserType(string $type): string
+    {
+        return $type === 'driver' ? 'driver' : 'operations';
     }
 
     private function userTypeFor(User $user): ?string

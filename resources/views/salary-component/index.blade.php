@@ -25,7 +25,18 @@
                                 <select name="role_id" id="roleFilter" class="form-select shadow-none">
                                     <option value="">--- Select ---</option>
                                     @foreach ($roles as $role)
-                                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                        <option value="{{ $role->id }}" data-role-name="{{ $role->name }}">{{ $role->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 d-none" id="designationFilterWrapper">
+                            <div class="o-f-inp">
+                                <label for="designationFilter">Filter by Designation</label>
+                                <select name="designation_id" id="designationFilter" class="form-select shadow-none">
+                                    <option value="">--- Select ---</option>
+                                    @foreach ($designations as $designation)
+                                        <option value="{{ $designation->id }}">{{ $designation->name }}</option>
                                     @endforeach
                                 </select>
                             </div>

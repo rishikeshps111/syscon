@@ -75,7 +75,9 @@ class SalaryReportExport implements FromCollection, ShouldAutoSize, WithStyles
     {
         return $this->items()->values()->map(function (SalaryProcessingItem $item, int $index) {
             $processing = $item->salaryProcessing;
-            $components = collect($item->salary_split ?: [])->where('type', 'earning')->keyBy('name');
+            $components = collect($item->salary_split ?: [])->keyBy(
+                fn ($component) => ($component['name'] ?? 'Component') . ' (' . ucfirst($component['type'] ?? 'earning') . ')'
+            );
 
             $identityValues = [
                 $index + 1,

@@ -199,14 +199,14 @@
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
                     'staff-management.view', 'driver-management.view', 'controller-management.view',
                     'supervisor-management.view', 'attendance-management.view', 'hr-letter-templates.view',
-                    'salary-components.view', 'salary-processing.view', 'salary-reports.view', 'salary-files.view', 'salary-slips.view', 'role-permissions.view', 'settings.view'])
+                    'salary-components.view', 'salary-templates.view', 'salary-processing.view', 'salary-reports.view', 'salary-archives.view', 'salary-files.view', 'salary-slips.view', 'role-permissions.view', 'settings.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav6"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('branch-locations.view')
                                 <li>
@@ -371,15 +371,15 @@
                                     </a>
                                 </li>
                             @endcan
-                            @canany(['salary-components.view', 'salary-processing.view', 'salary-reports.view', 'salary-files.view', 'salary-slips.view'])
+                            @canany(['salary-components.view', 'salary-templates.view', 'salary-processing.view', 'salary-reports.view', 'salary-archives.view', 'salary-files.view', 'salary-slips.view'])
                                 <li>
-                                    <a class="nav-link {{ request()->routeIs('salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') ? '' : 'collapsed' }}"
+                                    <a class="nav-link {{ request()->routeIs('salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*') ? '' : 'collapsed' }}"
                                         data-bs-target="#sidebarNavPayroll" data-bs-toggle="collapse" href="#">
                                         <i class="fa-solid fa-money-check-dollar mn-0"></i><span>Payroll</span><i
                                             class="bi bi-chevron-down ms-auto"></i>
                                     </a>
                                     <ul id="sidebarNavPayroll"
-                                        class="nav-content collapse sub-menu {{ request()->routeIs('salary-components.*', 'salary-processing.*', 'salary-reports.*', 'salary-files.*', 'salary-slips.*') ? 'show' : '' }}"
+                                        class="nav-content collapse sub-menu {{ request()->routeIs('salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*') ? 'show' : '' }}"
                                         data-bs-parent="#sidebar-nav1">
                                         @can('salary-components.view')
                                             <li>
@@ -387,6 +387,15 @@
                                                     class="{{ request()->routeIs('salary-components.*') ? 'sub-active' : '' }}">
                                                     <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Salary
                                                         Components</span>
+                                                </a>
+                                            </li>
+                                        @endcan
+                                        @can('salary-templates.view')
+                                            <li>
+                                                <a href="{{ route('salary-templates.index') }}"
+                                                    class="{{ request()->routeIs('salary-templates.*') ? 'sub-active' : '' }}">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Salary
+                                                        Templates</span>
                                                 </a>
                                             </li>
                                         @endcan
@@ -405,6 +414,15 @@
                                                     class="{{ request()->routeIs('salary-reports.*') ? 'sub-active' : '' }}">
                                                     <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Salary
                                                         Report</span>
+                                                </a>
+                                            </li>
+                                        @endcan
+                                        @can('salary-archives.view')
+                                            <li>
+                                                <a href="{{ route('salary-archives.index') }}"
+                                                    class="{{ request()->routeIs('salary-archives.*') ? 'sub-active' : '' }}">
+                                                    <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Salary
+                                                        Archive</span>
                                                 </a>
                                             </li>
                                         @endcan

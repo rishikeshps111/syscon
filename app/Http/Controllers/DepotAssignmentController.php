@@ -6,6 +6,7 @@ use App\Models\Depot;
 use App\Models\DepotAssignment;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Support\DepotAssignmentReportingManagers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -31,7 +32,7 @@ class DepotAssignmentController extends Controller implements HasMiddleware
         abort_unless(auth()->user()->can($context['view_permission']), 403);
 
         if ($request->ajax()) {
-            $query = DepotAssignment::with('depot')
+            $query = DepotAssignment::with(['depot', 'reportingManager.roles'])
                 ->where('assignable_type', $context['type'])
                 ->where('assignable_id', $context['model']->getKey())
                 ->latest();
@@ -39,6 +40,7 @@ class DepotAssignmentController extends Controller implements HasMiddleware
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('depot_name', fn ($row) => $row->depot?->name ?? '-')
+                ->addColumn('reporting_to_name', fn ($row) => $this->reportingManagerLabel($row))
                 ->addColumn('from_date_display', fn ($row) => $row->from_date?->format('d-m-Y') ?? '-')
                 ->addColumn('to_date_display', fn ($row) => $row->to_date?->format('d-m-Y') ?? '-')
                 ->addColumn('status_badge', fn ($row) => $this->statusBadge($row->date_status))
@@ -50,6 +52,7 @@ class DepotAssignmentController extends Controller implements HasMiddleware
                     $editButton = '<button type="button" class="btn-edit edit-assignment" title="Edit" data-bs-toggle="modal" data-bs-target="#depotAssignmentModal"'
                         . ' data-url="' . e(route('depot-assignments.update', $row->id)) . '"'
                         . ' data-depot-id="' . e($row->depot_id) . '"'
+                        . ' data-reporting-to="' . e($row->reporting_to) . '"'
                         . ' data-from-date="' . e($row->from_date?->format('Y-m-d')) . '"'
                         . ' data-to-date="' . e($row->to_date?->format('Y-m-d')) . '">'
                         . '<i class="fa-solid fa-pen-to-square"></i></button>';
@@ -72,7 +75,31 @@ class DepotAssignmentController extends Controller implements HasMiddleware
             'canEdit' => auth()->user()->can($context['edit_permission']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'details' => $this->details($context),
+            'requiresReportingManager' => in_array($context['type'], ['driver', 'controller'], true),
         ]);
+    }
+
+    public function reportingManagers(Request $request)
+    {
+        $data = $request->validate([
+            'module' => ['required', 'string', 'in:driver,controller'],
+            'depot_id' => ['required', 'integer', 'exists:depots,id'],
+        ]);
+
+        abort_unless(auth()->user()->can($data['module'] . '-management.view'), 403);
+
+        return response()->json(
+            DepotAssignmentReportingManagers::query($data['module'], (int) $data['depot_id'])
+                ->with('roles:id,name')
+                ->orderBy('users.name')
+                ->get(['users.id', 'users.code', 'users.name'])
+                ->map(fn (User $user) => [
+                    'id' => $user->id,
+                    'code' => $user->code,
+                    'name' => $user->name,
+                    'role' => $user->roles->pluck('name')->first(fn ($role) => in_array($role, ['Supervisor', 'Controller'], true)),
+                ])
+        );
     }
 
     public function depotIndex(Request $request, Depot $depot)
@@ -108,7 +135,7 @@ class DepotAssignmentController extends Controller implements HasMiddleware
         $context = $this->context($module, $subject, true);
         abort_unless(auth()->user()->can($context['edit_permission']), 403);
 
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, $context['type']);
         $this->ensureDateRangeIsAvailable($context['type'], $context['model']->getKey(), $data);
 
         $assignment = DepotAssignment::create($data + [
@@ -132,7 +159,7 @@ class DepotAssignmentController extends Controller implements HasMiddleware
         $context = $this->context($depotAssignment->assignable_type, $depotAssignment->assignable_id);
         abort_unless(auth()->user()->can($context['edit_permission']), 403);
 
-        $data = $this->validatedData($request);
+        $data = $this->validatedData($request, $context['type']);
         $this->ensureDateRangeIsAvailable(
             $context['type'],
             $context['model']->getKey(),
@@ -170,13 +197,32 @@ class DepotAssignmentController extends Controller implements HasMiddleware
         ]);
     }
 
-    private function validatedData(Request $request): array
+    private function validatedData(Request $request, string $module): array
     {
-        return $request->validate([
+        $rules = [
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'from_date' => ['required', 'date'],
             'to_date' => ['required', 'date', 'after_or_equal:from_date'],
-        ]);
+            'reporting_to' => in_array($module, ['driver', 'controller'], true)
+                ? [
+                    'required',
+                    'integer',
+                    'exists:users,id',
+                    function (string $attribute, mixed $value, \Closure $fail) use ($request, $module) {
+                        $eligible = DepotAssignmentReportingManagers::query(
+                            $module,
+                            (int) $request->input('depot_id')
+                        )->whereKey($value)->exists();
+
+                        if (! $eligible) {
+                            $fail('The selected reporting manager is not eligible for this depot.');
+                        }
+                    },
+                ]
+                : ['nullable'],
+        ];
+
+        return $request->validate($rules);
     }
 
     private function ensureDateRangeIsAvailable(string $type, int $id, array $data, ?DepotAssignment $current = null): void
@@ -385,5 +431,20 @@ class DepotAssignmentController extends Controller implements HasMiddleware
         $user = User::find($assignment->assignable_id);
 
         return trim(($user?->code ? $user->code . ' - ' : '') . ($user?->name ?? '')) ?: '-';
+    }
+
+    private function reportingManagerLabel(DepotAssignment $assignment): string
+    {
+        $manager = $assignment->reportingManager;
+
+        if (! $manager) {
+            return '-';
+        }
+
+        $role = $manager->roles->pluck('name')->first(fn ($name) => in_array($name, ['Supervisor', 'Controller'], true));
+
+        return $manager->name
+            . ($manager->code ? ' (' . $manager->code . ')' : '')
+            . ($role ? ' - ' . $role : '');
     }
 }

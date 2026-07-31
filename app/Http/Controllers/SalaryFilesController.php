@@ -104,7 +104,9 @@ class SalaryFilesController extends Controller implements HasMiddleware
         $processing->load(['depot', 'role', 'approver', 'items.user']);
         $items = $processing->items->sortBy(fn (SalaryProcessingItem $item) => $item->user?->name ?? '')->values();
         $componentNames = $items
-            ->flatMap(fn (SalaryProcessingItem $item) => collect($item->salary_split ?: [])->where('type', 'earning')->pluck('name'))
+            ->flatMap(fn (SalaryProcessingItem $item) => collect($item->salary_split ?: [])->map(
+                fn ($component) => ($component['name'] ?? 'Component') . ' (' . ucfirst($component['type'] ?? 'earning') . ')'
+            ))
             ->filter()
             ->unique()
             ->sort()

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\SalaryComponent;
+use App\Models\SalaryTemplate;
 use App\Models\User;
 use App\Models\UserSalaryComponentValue;
 use Illuminate\Support\Collection;
@@ -11,21 +12,46 @@ class SalaryComponents
 {
     public static function forRole(string $roleName, ?int $designationId = null): Collection
     {
-        return SalaryComponent::query()
-            ->with(['assignments.role', 'assignments.designation'])
-            ->whereHas('assignments', function ($query) use ($roleName, $designationId) {
-                $query->whereHas('role', fn ($roleQuery) => $roleQuery->where('name', $roleName));
-
-                if ($roleName === 'Staff' && $designationId) {
-                    $query->where(function ($designationQuery) use ($designationId) {
-                        $designationQuery->whereNull('designation_id');
-                        $designationQuery->orWhere('designation_id', $designationId);
-                    });
-                }
-            })
-            ->orderByRaw("CASE type WHEN 'earning' THEN 1 ELSE 2 END")
-            ->orderBy('component_name')
+        $templates = SalaryTemplate::query()
+            ->whereHas('role', fn ($query) => $query->where('name', $roleName))
+            ->when(
+                $roleName === 'Staff' && $designationId,
+                fn ($query) => $query->where('designation_id', $designationId),
+                fn ($query) => $roleName === 'Staff' ? $query : $query->whereNull('designation_id')
+            )
+            ->with(['items.salaryComponent'])
             ->get();
+
+        return $templates
+            ->flatMap(function (SalaryTemplate $template) {
+                return $template->items->map(function ($item) use ($template) {
+                    $component = $item->salaryComponent;
+
+                    if (! $component) {
+                        return null;
+                    }
+
+                    $component->setAttribute('template_default_amount', (float) $item->amount);
+                    $component->setAttribute('template_designation_id', $template->designation_id);
+
+                    return $component;
+                });
+            })
+            ->filter()
+            ->groupBy('id')
+            ->map(function (Collection $components) {
+                $component = $components->first();
+                $component->setAttribute(
+                    'template_defaults',
+                    $components->mapWithKeys(fn ($item) => [
+                        (string) ($item->template_designation_id ?? 0) => (float) $item->template_default_amount,
+                    ])->all()
+                );
+
+                return $component;
+            })
+            ->sortBy(fn ($component) => ($component->type === 'earning' ? '0' : '1') . $component->component_name)
+            ->values();
     }
 
     public static function valuesFor(?User $user): Collection

@@ -1,6 +1,8 @@
 @php
     $money = fn ($value) => number_format((float) $value, 2);
-    $components = collect($item->salary_split ?: [])->where('type', 'earning')->values();
+    $components = collect($item->salary_split ?: []);
+    $earnings = $components->where('type', 'earning')->values();
+    $deductions = $components->where('type', 'deduction')->values();
     $status = $processing->status ?: 'Pending';
     $statusClass = $status === 'Approved' ? 'success' : 'warning';
 @endphp
@@ -57,6 +59,14 @@
                     <dt>Depo</dt>
                     <dd>{{ $processing->depot?->name ?? '-' }}</dd>
                 </div>
+                <div>
+                    <dt>Account Number</dt>
+                    <dd>{{ $bankDetails['account_number'] ?? '-' }}</dd>
+                </div>
+                <div>
+                    <dt>IFSC Code</dt>
+                    <dd>{{ $bankDetails['ifsc_code'] ?? '-' }}</dd>
+                </div>
             </dl>
         </div>
 
@@ -95,7 +105,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($components as $component)
+                        @forelse($earnings as $component)
                             <tr>
                                 <td>{{ $component['name'] ?? 'Component' }}</td>
                                 <td class="text-end">{{ $money($component['amount'] ?? 0) }}</td>
@@ -108,6 +118,21 @@
                     </tbody>
                 </table>
             </div>
+            @if($deductions->isNotEmpty())
+                <div class="pay-slip-panel-title mt-3">Deductions</div>
+                <div class="table-responsive">
+                    <table class="table pay-slip-table align-middle mb-0">
+                        <tbody>
+                            @foreach($deductions as $component)
+                                <tr>
+                                    <td>{{ $component['name'] ?? 'Component' }}</td>
+                                    <td class="text-end">{{ $money($component['amount'] ?? 0) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
         </div>
 
         <div class="pay-slip-panel pay-slip-totals">

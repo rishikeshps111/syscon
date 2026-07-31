@@ -87,7 +87,7 @@ class SalaryReportController extends Controller implements HasMiddleware
                 'total_working_days' => $salaryProcessingItem->total_working_days,
             ],
             'salary' => [
-                'components' => collect($salaryProcessingItem->salary_split ?: [])->where('type', 'earning')->values(),
+                'components' => collect($salaryProcessingItem->salary_split ?: [])->values(),
                 'gross_salary' => (float) $salaryProcessingItem->basic_salary,
                 'incentive' => (float) $salaryProcessingItem->incentive,
                 'deduction' => (float) $salaryProcessingItem->deduction,
@@ -196,7 +196,9 @@ class SalaryReportController extends Controller implements HasMiddleware
             ->values();
 
         $componentNames = $items
-            ->flatMap(fn(SalaryProcessingItem $item) => collect($item->salary_split ?: [])->where('type', 'earning')->pluck('name'))
+            ->flatMap(fn(SalaryProcessingItem $item) => collect($item->salary_split ?: [])->map(
+                fn ($component) => ($component['name'] ?? 'Component') . ' (' . ucfirst($component['type'] ?? 'earning') . ')'
+            ))
             ->filter()
             ->unique()
             ->sort()

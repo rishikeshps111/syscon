@@ -198,6 +198,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                 'label' => 'Payroll',
                 'children' => [
                     ['label' => 'Salary Components', 'permissions' => $this->crud('salary-components')],
+                    ['label' => 'Salary Templates', 'permissions' => $this->crud('salary-templates')],
                     ['label' => 'Salary Processing', 'permissions' => [
                         'salary-processing.view',
                         'salary-processing.create',
@@ -206,6 +207,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                         'salary-processing.approve',
                     ]],
                     ['label' => 'Salary Reports', 'permissions' => ['salary-reports.view']],
+                    ['label' => 'Salary Archive', 'permissions' => ['salary-archives.view']],
                     ['label' => 'Salary Files', 'permissions' => ['salary-files.view']],
                     ['label' => 'Generate Pay Slip', 'permissions' => ['salary-slips.view']],
                 ],
