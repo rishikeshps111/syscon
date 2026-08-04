@@ -54,17 +54,45 @@
                         disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
-                    <label>Stops</label>
-                    <div class="d-flex flex-wrap gap-2 mt-1">
-                        @forelse($record->route?->stops ?? [] as $stop)
+                    <label>Route Stops</label>
+                    <div class="route-stops-horizontal mt-2">
+                        @php
+                            $routePoints = collect();
+                            if ($record->route?->startPoint) {
+                                $routePoints->push([
+                                    'name' => $record->route->startPoint->name,
+                                    'short_name' => $record->route->startPoint->short_name,
+                                    'label' => 'Starting Depot',
+                                ]);
+                            }
+                            foreach ($record->route?->stops ?? [] as $stop) {
+                                $routePoints->push([
+                                    'name' => $stop->location?->name ?? $stop->name,
+                                    'short_name' => $stop->location?->short_name,
+                                    'label' => 'Stop',
+                                ]);
+                            }
+                            if ($record->route?->endPoint) {
+                                $routePoints->push([
+                                    'name' => $record->route->endPoint->name,
+                                    'short_name' => $record->route->endPoint->short_name,
+                                    'label' => 'Ending Depot',
+                                ]);
+                            }
+                        @endphp
+
+                        @forelse($routePoints as $point)
                             @if(!$loop->first)
-                                <span class="d-inline-flex align-items-center text-muted">
-                                    <i class="fa-solid fa-arrow-right"></i>
-                                </span>
+                                <span class="route-stop-arrow"><i class="fa-solid fa-arrow-right"></i></span>
                             @endif
-                            <span class="btn btn-sm btn-outline-secondary disabled">{{ $stop->name }}</span>
+                            <div class="route-stop-item">
+                                <div class="fw-semibold">
+                                    {{ $point['name'] }}{{ $point['short_name'] ? ' (' . $point['short_name'] . ')' : '' }}
+                                </div>
+                                <small class="text-muted">{{ $point['label'] }}</small>
+                            </div>
                         @empty
-                            <span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>
+                            <span class="text-muted">No route stops available.</span>
                         @endforelse
                     </div>
                 </div>
@@ -114,6 +142,12 @@
             </div>
         </div>
     </section>
+
+    <style>
+        .route-stops-horizontal { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 10px 4px; }
+        .route-stop-item { min-width: max-content; padding: 8px 12px; border: 1px solid #d9dee8; border-radius: 8px; background: #fff; text-align: center; }
+        .route-stop-arrow { color: #6c757d; flex: 0 0 auto; }
+    </style>
 
     @section('scripts')
         <script>

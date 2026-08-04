@@ -1,6 +1,6 @@
 <script>
     $(function () {
-        $('#depotFilter, #oemFilter').select2({
+        $('#depotFilter').select2({
             placeholder: '---Select---',
             allowClear: true,
             width: '100%'
@@ -28,9 +28,18 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
                 { data: 'trip_title', name: 'title', className: 'text-center' },
-                { data: 'from_location', name: 'from_location', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'to_location', name: 'to_location', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'halt_time', name: 'halt_time', className: 'text-center' },
+                // { data: 'route_name', name: 'route_name', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'state_name', name: 'state_name', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'depot_name', name: 'depot_name', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'from_location', name: 'from_location', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'to_location', name: 'to_location', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'classification_name', name: 'classification_name', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'nature_name', name: 'nature_name', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'rounds_per_trip', name: 'rounds_per_trip', className: 'text-center' },
+                // { data: 'schedule_km', name: 'schedule_km', className: 'text-center' },
+                // { data: 'total_trips', name: 'total_trips', className: 'text-center' },
+                { data: 'from_date_text', name: 'from_date', className: 'text-center' },
+                { data: 'to_date_text', name: 'to_date', className: 'text-center' },
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
@@ -44,11 +53,11 @@
         });
 
         $('#searchFilters').on('click', reloadTable);
-        $('#depotFilter, #oemFilter, #dateFromFilter, #dateToFilter, #statusFilter').on('change', reloadTable);
+        $('#depotFilter, #dateFromFilter, #dateToFilter, #statusFilter').on('change', reloadTable);
 
         $('#resetFilters').on('click', function () {
-            $('#depotFilter, #oemFilter, #dateFromFilter, #dateToFilter, #statusFilter, #searchFilter').val('');
-            $('#depotFilter, #oemFilter').trigger('change.select2');
+            $('#depotFilter, #dateFromFilter, #dateToFilter, #statusFilter, #searchFilter').val('');
+            $('#depotFilter').trigger('change.select2');
             $('#checkAll').prop('checked', false);
             $('.row-check').prop('checked', false);
             reloadTable();
@@ -120,7 +129,6 @@
                     ids: selectedIds,
                     search_text: $('#searchFilter').val(),
                     depot_id: $('#depotFilter').val(),
-                    oem_id: $('#oemFilter').val(),
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
                     status: $('#statusFilter').val()
@@ -149,7 +157,6 @@
         function filters(data) {
             data.search_text = $('#searchFilter').val();
             data.depot_id = $('#depotFilter').val();
-            data.oem_id = $('#oemFilter').val();
             data.date_from = $('#dateFromFilter').val();
             data.date_to = $('#dateToFilter').val();
             data.status = $('#statusFilter').val();

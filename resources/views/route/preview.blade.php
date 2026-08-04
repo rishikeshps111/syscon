@@ -31,7 +31,7 @@
             <div class="timeline">
                 <div class="stop active">
                     <div class="stop-name">
-                        {{ $route->startPoint?->name ?? '-' }}
+                        {{ $route->startPoint?->name ?? '-' }} ({{ $route->startPoint?->short_name ?? '-' }})
                         {{-- <span class="badge-cs">Start</span> --}}
                     </div>
                     <div class="stop-time">Starting Depot</div>
@@ -39,7 +39,9 @@
 
                 @forelse($route->stops as $stop)
                     <div class="stop">
-                        <div class="stop-name">{{ $stop->name }}</div>
+                        <div class="stop-name">
+                            {{ $stop->location->name }} ({{ $stop->location->short_name ?? '-' }})
+                        </div>
                         {{-- <div class="stop-time">
                             {{ $stop->expected_reach_time ? substr($stop->expected_reach_time, 0, 5) : '-' }}
                         </div> --}}
@@ -53,7 +55,7 @@
 
                 <div class="stop active">
                     <div class="stop-name">
-                        {{ $route->endPoint?->name ?? '-' }}
+                        {{ $route->endPoint?->name ?? '-' }} ({{ $route->endPoint?->short_name ?? '-' }})
                         {{-- <span class="badge-cs">End</span> --}}
                     </div>
                     <div class="stop-time">Ending Depot</div>

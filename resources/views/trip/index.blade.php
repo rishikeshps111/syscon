@@ -43,22 +43,12 @@
                             </div>
                             <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
-                                    <label for="oemFilter">Filter by OEM</label>
-                                    <select id="oemFilter" class="form-select shadow-none select2-filter">
-                                        <option value="">---Select---</option>
-                                        @foreach ($oems as $oem)
-                                            <option value="{{ $oem->id }}">{{ $oem->oem_name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-lg-3 mb-3">
-                                <div class="o-f-inp">
                                     <label for="statusFilter">Filter by Status</label>
                                     <select id="statusFilter" class="form-select shadow-none">
                                         <option value="">---Select---</option>
                                         @foreach ($statuses as $value => $label)
-                                            <option value="{{ $value }}" {{ request('status') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                            <option value="{{ $value }}" {{ request('status') === $value ? 'selected' : '' }}>
+                                                {{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -80,8 +70,8 @@
                 <div class="row">
                     <div class="col-lg-12 ms-auto">
                         <div class="btn-flex">
-                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse"
-                                role="button" aria-expanded="false" aria-controls="filterCollapse">Filters</a>
+                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
+                                aria-expanded="false" aria-controls="filterCollapse">Filters</a>
                             @can('trips.create')
                                 <a href="{{ route('trips.create') }}" class="add-btn">Create Trip</a>
                             @endcan
@@ -111,9 +101,18 @@
                                             <th class="text-center nowrap">SL No</th>
                                             <th class="text-center nowrap">Trip No</th>
                                             <th class="text-center nowrap">Trip Title</th>
-                                            <th class="text-center nowrap">From Location</th>
-                                            <th class="text-center nowrap">To Location</th>
-                                            <th class="text-center nowrap">Halt Time (Minutes)</th>
+                                            {{-- <th class="text-center nowrap">Route</th> --}}
+                                            {{-- <th class="text-center nowrap">State</th> --}}
+                                            <th class="text-center nowrap">Depot</th>
+                                            {{-- <th class="text-center nowrap">Start Point</th> --}}
+                                            {{-- <th class="text-center nowrap">End Point</th> --}}
+                                            {{-- <th class="text-center nowrap">Vehicle Classification</th> --}}
+                                            {{-- <th class="text-center nowrap">Trip Nature</th> --}}
+                                            {{-- <th class="text-center nowrap">Rounds / Trip</th> --}}
+                                            {{-- <th class="text-center nowrap">Schedule Km</th> --}}
+                                            {{-- <th class="text-center nowrap">Total Trips</th> --}}
+                                            <th class="text-center nowrap">From Date</th>
+                                            <th class="text-center nowrap">To Date</th>
                                             <th class="text-center nowrap">Status</th>
                                             <th class="text-center nowrap">Action</th>
                                         </tr>
@@ -141,14 +140,15 @@
                     <div class="o-f-inp mb-3">
                         <label for="modalTripStatus">Status <span class="text-danger">*</span></label>
                         <select id="modalTripStatus" name="status" class="form-select shadow-none">
-                            @foreach (\App\Models\Trip::STATUSES as $value => $label)
+                            @foreach ($statuses as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="o-f-inp" id="modalCancellationReasonWrap">
                         <label for="modalCancellationReason">Reason for cancellation</label>
-                        <textarea id="modalCancellationReason" name="cancellation_reason" class="form-control shadow-none" rows="3"></textarea>
+                        <textarea id="modalCancellationReason" name="cancellation_reason"
+                            class="form-control shadow-none" rows="3"></textarea>
                         <span class="text-danger error-text cancellation_reason_error"></span>
                     </div>
                 </div>

@@ -45,7 +45,7 @@ class UserLog extends Model
             ->open()
             ->whereNotNull('last_activity_at')
             ->where('last_activity_at', '<=', $cutoff)
-            ->when($userId, fn (Builder $query) => $query->where('user_id', $userId))
+            ->when($userId, fn(Builder $query) => $query->where('user_id', $userId))
             ->get()
             ->each(function (UserLog $log) use ($lifetime) {
                 $logoutAt = $log->last_activity_at?->copy()->addMinutes($lifetime) ?? now();

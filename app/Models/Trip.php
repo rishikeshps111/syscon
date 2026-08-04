@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 #[Fillable([
     'service_type_id',
     'route_id',
+    'vehicle_classification_id',
+    'trip_nature_id',
     'depot_id',
     'from_depot_id',
     'to_depot_id',
@@ -25,6 +27,8 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'halt_time',
     'trip_side',
     'schedule_km',
+    'rounds_per_trip',
+    'total_trips',
     'from_date',
     'to_date',
     'status',
@@ -65,6 +69,8 @@ class Trip extends Model
             'from_date' => 'date',
             'to_date' => 'date',
             'schedule_km' => 'decimal:2',
+            'rounds_per_trip' => 'integer',
+            'total_trips' => 'integer',
         ];
     }
 
@@ -87,6 +93,16 @@ class Trip extends Model
     public function route(): BelongsTo
     {
         return $this->belongsTo(Route::class);
+    }
+
+    public function vehicleClassification(): BelongsTo
+    {
+        return $this->belongsTo(VehicleClassification::class);
+    }
+
+    public function tripNature(): BelongsTo
+    {
+        return $this->belongsTo(TripNature::class);
     }
 
     public function depot(): BelongsTo

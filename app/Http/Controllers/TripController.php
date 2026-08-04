@@ -12,7 +12,6 @@ use App\Models\Depot;
 use App\Models\DorAccountResponsible;
 use App\Models\DorKilometerLossReason;
 use App\Models\DriverProfile;
-use App\Models\Oem;
 use App\Models\Route as RouteModel;
 use App\Models\ServiceType;
 use App\Models\State;
@@ -23,6 +22,8 @@ use App\Models\TripSheet;
 use App\Models\TripSheetEntry;
 use App\Models\TripSheetEntryDor;
 use App\Models\Vehicle;
+use App\Models\VehicleClassification;
+use App\Models\TripNature;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -58,12 +59,16 @@ class TripController extends Controller implements HasMiddleware
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
-                ->addColumn('service_type_name', fn($row) => $row->serviceType?->name ?? '')
                 ->addColumn('route_name', fn($row) => $row->route?->route_name ?? '')
                 ->addColumn('trip_title', fn($row) => $row->trip_title ?: '-')
                 ->addColumn('from_location', fn($row) => $row->route?->startPoint?->name ?? '-')
                 ->addColumn('to_location', fn($row) => $row->route?->endPoint?->name ?? '-')
-                ->addColumn('halt_time', fn($row) => $this->timeToMinutes($row->halt_time) ?? '-')
+                ->addColumn('state_name', fn($row) => $row->state?->name ?? '-')
+                ->addColumn('depot_name', fn($row) => $row->depot?->name ?? '-')
+                ->addColumn('classification_name', fn($row) => $row->vehicleClassification?->title ?? '-')
+                ->addColumn('nature_name', fn($row) => $row->tripNature?->title ?? '-')
+                ->addColumn('from_date_text', fn($row) => $row->from_date?->format('d M Y') ?? '-')
+                ->addColumn('to_date_text', fn($row) => $row->to_date?->format('d M Y') ?? '-')
                 ->addColumn('status', fn($row) => $this->statusBadge($row->status))
                 ->addColumn('action', fn($row) => view('trip.partials.action', compact('row'))->render())
                 ->rawColumns(['action', 'status', 'checkbox'])
@@ -72,8 +77,7 @@ class TripController extends Controller implements HasMiddleware
 
         return view('trip.index', [
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
-            'oems' => Oem::orderBy('oem_name')->get(['id', 'oem_name']),
-            'statuses' => Trip::STATUSES,
+            'statuses' => collect(Trip::STATUSES)->only(['Active', 'Inactive'])->all(),
         ]);
     }
 
@@ -225,19 +229,14 @@ class TripController extends Controller implements HasMiddleware
 
     private function tripPayload(array $data): array
     {
-        if (($data['trip_side'] ?? null) === 'both') {
-            $data['from_depot_id'] = null;
-            $data['to_depot_id'] = null;
-        } else {
-            $data['depot_id'] = null;
-        }
-
-        if (array_key_exists('halt_time', $data)) {
-            $haltTime = $data['halt_time'];
-            $data['halt_time'] = $haltTime === null || $haltTime === ''
-                ? null
-                : sprintf('%02d:%02d', intdiv((int) $haltTime, 60), (int) $haltTime % 60);
-        }
+        $route = RouteModel::findOrFail($data['route_id']);
+        $data['title'] = $route->route_name;
+        $data['trip_side'] = 'both';
+        $data['from_depot_id'] = null;
+        $data['to_depot_id'] = null;
+        $data['status'] = $data['status'] ?? 'Active';
+        $data['is_active'] = $data['status'] === 'Active';
+        $data['cancellation_reason'] = null;
 
         return $data;
     }
@@ -279,14 +278,13 @@ class TripController extends Controller implements HasMiddleware
     {
         $validated = $request->validate([
             'id' => ['required', 'integer', 'exists:trips,id'],
-            'status' => ['required', Rule::in(array_keys(Trip::STATUSES))],
-            'cancellation_reason' => ['nullable', 'required_if:status,Cancelled', 'string'],
+            'status' => ['required', Rule::in(['Active', 'Inactive'])],
         ]);
 
         $trip = Trip::findOrFail($request->id);
         $trip->update([
             'status' => $validated['status'],
-            'cancellation_reason' => $validated['cancellation_reason'] ?? $trip->cancellation_reason,
+            'cancellation_reason' => null,
             'updated_by' => auth()->id(),
         ]);
 
@@ -317,9 +315,13 @@ class TripController extends Controller implements HasMiddleware
                 ->make(true);
         }
 
-        return view('trip.sheet', $this->assignmentData($trip) + [
-            'record' => $trip->load(['route.startPoint', 'route.endPoint', 'route.stops']),
-        ]);
+        return view('trip.sheet', array_merge($this->assignmentData($trip), [
+            'record' => $trip->load([
+                'route.startPoint',
+                'route.endPoint',
+                'route.stops' => fn($query) => $query->with('location')->orderBy('position'),
+            ]),
+        ]));
     }
 
     public function createSheetEntry(Trip $trip)
@@ -705,7 +707,7 @@ class TripController extends Controller implements HasMiddleware
 
     private function filteredQuery()
     {
-        $query = Trip::with(['serviceType', 'route.startPoint', 'route.endPoint', 'depot', 'state', 'assignments.vehicle.oem'])
+        $query = Trip::with(['route.startPoint', 'route.endPoint', 'depot', 'state', 'vehicleClassification', 'tripNature'])
             ->select('trips.*');
 
         if (request()->filled('search_text')) {
@@ -729,16 +731,8 @@ class TripController extends Controller implements HasMiddleware
             $query->where('depot_id', request('depot_id'));
         }
 
-        if (request()->filled('oem_id')) {
-            $query->whereHas('assignments.vehicle', fn($vehicleQuery) => $vehicleQuery->where('oem_id', request('oem_id')));
-        }
-
-        if (request()->filled('status')) {
-            if (in_array(request('status'), ['0', '1'], true)) {
-                $query->where('is_active', request('status'));
-            } else {
-                $query->where('status', request('status'));
-            }
+        if (request()->filled('status') && in_array(request('status'), ['Active', 'Inactive'], true)) {
+            $query->where('status', request('status'));
         }
 
         return $query->orderBy('created_at', 'desc');
@@ -1536,11 +1530,12 @@ class TripController extends Controller implements HasMiddleware
     private function formData(array $extra = []): array
     {
         return $extra + [
-            'serviceTypes' => ServiceType::orderBy('name')->get(['id', 'name']),
-            'routes' => RouteModel::with(['startPoint', 'endPoint', 'stops'])->orderBy('route_name')->get(),
+            'routes' => RouteModel::with(['startPoint', 'endPoint', 'stops' => fn($query) => $query->with('location')->orderBy('position')])->where('status', 'Active')->orderBy('route_name')->get(),
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'states' => State::where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'statuses' => collect(Trip::STATUSES)->only(['Active', 'Inactive', 'Cancelled'])->all(),
+            'vehicleClassifications' => VehicleClassification::where('is_active', true)->orderBy('title')->get(['id', 'title']),
+            'tripNatures' => TripNature::where('is_active', true)->orderBy('title')->get(['id', 'title']),
+            'statuses' => collect(Trip::STATUSES)->only(['Active', 'Inactive'])->all(),
         ];
     }
 

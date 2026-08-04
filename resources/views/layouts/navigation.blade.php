@@ -490,7 +490,7 @@
                             data-bs-parent="#sidebar-nav">
                             <li>
                                 <a href="{{ route('trips.index') }}"
-                                    class="{{ request()->routeIs('trips.index') ? 'sub-active' : '' }}">
+                                    class="{{ request()->routeIs('trips.*') ? 'sub-active' : '' }}">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                     <span>Manage Trips</span>
                                 </a>

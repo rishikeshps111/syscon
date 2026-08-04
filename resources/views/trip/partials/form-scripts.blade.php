@@ -1,65 +1,76 @@
 <script>
     $(function () {
-        $('.select2').select2({
-            placeholder: 'Select an option',
-            allowClear: true,
-            width: '100%'
-        });
+        $('.select2').select2({ placeholder: 'Select an option', allowClear: true, width: '100%' });
 
-        refreshRoutePreview();
-        toggleCancellationReason();
-        toggleDepotFields();
+        var isEditing = @json(isset($record));
+        refreshRouteDetails(!isEditing);
 
-        $('#route_id').on('change', refreshRoutePreview);
-        $('#status').on('change', toggleCancellationReason);
-        $('#trip_side').on('change', toggleDepotFields);
+        $('#route_id').on('change', function () { refreshRouteDetails(true); });
+        $('#rounds_per_trip').on('input change', calculateScheduleKm);
 
         $('#commonForm').on('submit', function () {
             var submitBtn = $(this).find('.trip-submit-btn');
             var loadingText = submitBtn.text().trim() === 'Update' ? 'Updating...' : 'Creating...';
-
-            submitBtn.prop('disabled', true).html(
-                '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + loadingText
-            );
+            submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>' + loadingText);
         });
     });
 
-    function refreshRoutePreview() {
+    function refreshRouteDetails(applyDefaults) {
         var option = $('#route_id').find(':selected');
+
         $('#startPointPreview').val(option.data('start') || '');
         $('#endPointPreview').val(option.data('end') || '');
+        $('#titlePreview').val(option.data('title') || '');
 
+        if (applyDefaults && option.val()) {
+            $('#state_id').val(String(option.attr('data-state-id') || '')).trigger('change.select2');
+            $('#depot_id').val(String(option.attr('data-start-id') || '')).trigger('change.select2');
+        }
+
+        renderRouteStops(option);
+        if (applyDefaults || !$('#schedule_km').val()) {
+            calculateScheduleKm();
+        }
+    }
+
+    function renderRouteStops(option) {
+        var list = $('#stopsPreview').empty();
+        var points = [];
+        var start = option.data('start');
+        var startShort = option.attr('data-start-short');
+        var end = option.data('end');
+        var endShort = option.attr('data-end-short');
         var stops = option.data('stops') || [];
-        var list = $('#stopsPreview');
-        list.empty();
 
-        if (!Array.isArray(stops) || stops.length === 0) {
-            list.append('<span class="btn btn-sm btn-light text-muted disabled">No stops selected</span>');
+        if (start) points.push({ name: startShort ? start + ' (' + startShort + ')' : start, label: 'Starting Depot' });
+        if (Array.isArray(stops)) {
+            stops.forEach(function (stop) {
+                var label = stop.short_name ? stop.name + ' (' + stop.short_name + ')' : stop.name;
+                points.push({ name: label, label: 'Stop' });
+            });
+        }
+        if (end) points.push({ name: endShort ? end + ' (' + endShort + ')' : end, label: 'Ending Depot' });
+
+        if (!points.length) {
+            list.removeClass('route-stops-horizontal').append('<span class="text-muted">Select a route to preview its stops.</span>');
             return;
         }
 
-        stops.forEach(function (stop, index) {
+        list.addClass('route-stops-horizontal');
+        points.forEach(function (point, index) {
             if (index > 0) {
-                list.append('<span class="d-inline-flex align-items-center text-muted"><i class="fa-solid fa-arrow-right"></i></span>');
+                list.append('<span class="route-stop-arrow"><i class="fa-solid fa-arrow-right"></i></span>');
             }
-
-            list.append($('<span class="btn btn-sm btn-outline-secondary disabled">').text(stop));
+            var item = $('<div class="route-stop-item">');
+            item.append($('<div class="fw-semibold">').text(point.name));
+            item.append($('<small class="text-muted">').text(point.label));
+            list.append(item);
         });
     }
 
-    function toggleCancellationReason() {
-        $('#cancellationReasonWrap').toggle($('#status').val() === 'Cancelled');
-    }
-
-    function toggleDepotFields() {
-        var tripSide = $('#trip_side').val();
-        var usesSingleDepot = tripSide === 'both';
-        var usesDirectionalDepots = tripSide === 'up' || tripSide === 'down';
-
-        $('#singleDepotWrap').toggle(usesSingleDepot);
-        $('.directional-depot-wrap').toggle(usesDirectionalDepots);
-
-        $('#depot_id').prop('required', usesSingleDepot);
-        $('#from_depot_id, #to_depot_id').prop('required', usesDirectionalDepots);
+    function calculateScheduleKm() {
+        var distance = parseFloat($('#route_id').find(':selected').data('distance')) || 0;
+        var rounds = parseInt($('#rounds_per_trip').val(), 10) || 0;
+        $('#schedule_km').val((distance * 2 * rounds).toFixed(2));
     }
 </script>
