@@ -7,9 +7,11 @@ use App\Http\Requests\StoreRouteStopRequest;
 use App\Http\Requests\UpdateRouteStopRequest;
 use App\Models\Route as RouteModel;
 use App\Models\RouteStop;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
@@ -20,7 +22,7 @@ class RouteStopController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('routes.edit'), ['index', 'create', 'store', 'update', 'export']),
+            new Middleware(PermissionMiddleware::using('routes.edit'), ['index', 'create', 'store', 'update', 'reorder', 'export']),
             new Middleware(PermissionMiddleware::using('routes.delete'), ['destroy']),
         ];
     }
@@ -31,16 +33,20 @@ class RouteStopController extends Controller implements HasMiddleware
 
         if (request()->ajax()) {
             $query = $route->stops()
-                ->select(['id', 'route_id', 'name', 'expected_reach_time', 'position', 'created_at'])
+                ->with('location')
+                ->select(['id', 'route_id', 'location_id', 'name', 'position', 'created_at'])
                 ->orderBy('position');
 
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->editColumn('name', function ($row) {
+                    $name = $row->location?->name ?? $row->name;
+                    $shortName = $row->location?->short_name;
+
+                    return $shortName ? $name . ' (' . $shortName . ')' : $name;
+                })
                 ->addColumn('checkbox', function ($row) {
                     return '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">';
-                })
-                ->editColumn('expected_reach_time', function ($row) {
-                    return $row->expected_reach_time ? substr($row->expected_reach_time, 0, 5) : '-';
                 })
                 ->addColumn('action', function ($row) {
                     return view('route-stop.partials.action', compact('row'))->render();
@@ -54,26 +60,31 @@ class RouteStopController extends Controller implements HasMiddleware
 
     public function create(RouteModel $route, Request $request)
     {
+        $locations = Location::where('is_active', true)
+            ->where('state_id', $route->state_id)
+            ->orderBy('name')
+            ->get(['id', 'name', 'short_name']);
+
         if ($request->id) {
             $record = RouteStop::where('route_id', $route->id)->findOrFail($request->id);
 
             return response()->json([
-                'html' => view('route-stop.form', compact('route', 'record'))->render(),
+                'html' => view('route-stop.form', compact('route', 'record', 'locations'))->render(),
                 'title' => 'Update Route Stop',
             ]);
         }
 
-        $nextPosition = ((int) $route->stops()->max('position')) + 1;
-
         return response()->json([
-            'html' => view('route-stop.form', compact('route', 'nextPosition'))->render(),
+            'html' => view('route-stop.form', compact('route', 'locations'))->render(),
             'title' => 'Add Route Stop',
         ]);
     }
 
     public function store(StoreRouteStopRequest $request, RouteModel $route)
     {
-        $routeStop = $route->stops()->create($request->validated());
+        $routeStop = $route->stops()->create($request->validated() + [
+            'position' => ((int) $route->stops()->max('position')) + 1,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -103,11 +114,32 @@ class RouteStopController extends Controller implements HasMiddleware
         ]);
     }
 
+    public function reorder(Request $request, RouteModel $route)
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['required', 'integer', 'distinct', 'exists:route_stops,id'],
+        ]);
+
+        $stops = $route->stops()->whereIn('id', $validated['ids'])->get(['id', 'position']);
+        abort_unless($stops->count() === count($validated['ids']), 422, 'Invalid route stop order.');
+        $positions = $stops->pluck('position')->sort()->values();
+
+        DB::transaction(function () use ($validated, $positions) {
+            foreach ($validated['ids'] as $index => $id) {
+                RouteStop::whereKey($id)->update(['position' => $positions[$index]]);
+            }
+        });
+
+        return response()->json(['success' => true, 'message' => 'Route stop order updated successfully.']);
+    }
+
     public function export(Request $request, RouteModel $route)
     {
         $ids = $request->input('ids', []);
         $query = $route->stops()
-            ->select('name', 'expected_reach_time', 'position', 'created_at')
+            ->with('location')
+            ->select('location_id', 'name', 'position', 'created_at')
             ->orderBy('position');
 
         if (! empty($ids)) {

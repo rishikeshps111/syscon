@@ -76,6 +76,7 @@
                                             <th class="text-center">Sl No</th>
                                             <th class="text-center">Code</th>
                                             <th class="text-center">Location</th>
+                                            <th class="text-center">Short Name</th>
                                             <th class="text-center">Pincode</th>
                                             <th class="text-center">District</th>
                                             <th class="text-center">State</th>

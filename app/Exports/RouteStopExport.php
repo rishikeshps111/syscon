@@ -24,8 +24,9 @@ class RouteStopExport implements FromCollection, WithHeadings
             return [
                 'Route Code' => $this->route->code,
                 'Route Name' => $this->route->name,
-                'Place Name' => $routeStop->name,
-                'Expected Reach Time' => $routeStop->expected_reach_time ? substr($routeStop->expected_reach_time, 0, 5) : '',
+                'Place Name' => $routeStop->location
+                    ? $routeStop->location->name . ($routeStop->location->short_name ? ' (' . $routeStop->location->short_name . ')' : '')
+                    : $routeStop->name,
                 'Position' => $routeStop->position,
                 'Created At' => $routeStop->created_at->format('d M Y'),
             ];
@@ -38,7 +39,6 @@ class RouteStopExport implements FromCollection, WithHeadings
             'Route Code',
             'Route Name',
             'Place Name',
-            'Expected Reach Time',
             'Position',
             'Created At',
         ];

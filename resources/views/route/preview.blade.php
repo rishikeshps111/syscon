@@ -23,29 +23,26 @@
                         {{ $route->route_type }}
                     </div>
                 </div>
-                <div class="route-time">
-                    Duration: {{ $route->estimated_duration ? substr($route->estimated_duration, 0, 5) : '-' }}
-                </div>
-                <a href="{{ route('routes.preview.export', $route->id) }}" class="btn btn-primary ms-auto">Export
-                    CSV</a>
-                <a href="{{ route('routes.index') }}" class="btn btn-secondary ">Back to Routes</a>
+                {{-- <a href="{{ route('routes.preview.export', $route->id) }}" class="btn btn-primary ms-auto">Export
+                    CSV</a> --}}
+                <a href="{{ route('routes.index') }}" class="btn btn-secondary ms-auto">Back to Routes</a>
             </div>
 
             <div class="timeline">
                 <div class="stop active">
                     <div class="stop-name">
                         {{ $route->startPoint?->name ?? '-' }}
-                        <span class="badge-cs">Start</span>
+                        {{-- <span class="badge-cs">Start</span> --}}
                     </div>
-                    <div class="stop-time">Start Point</div>
+                    <div class="stop-time">Starting Depot</div>
                 </div>
 
                 @forelse($route->stops as $stop)
                     <div class="stop">
                         <div class="stop-name">{{ $stop->name }}</div>
-                        <div class="stop-time">
+                        {{-- <div class="stop-time">
                             {{ $stop->expected_reach_time ? substr($stop->expected_reach_time, 0, 5) : '-' }}
-                        </div>
+                        </div> --}}
                     </div>
                 @empty
                     <div class="stop">
@@ -57,9 +54,9 @@
                 <div class="stop active">
                     <div class="stop-name">
                         {{ $route->endPoint?->name ?? '-' }}
-                        <span class="badge-cs">End</span>
+                        {{-- <span class="badge-cs">End</span> --}}
                     </div>
-                    <div class="stop-time">End Point</div>
+                    <div class="stop-time">Ending Depot</div>
                 </div>
             </div>
         </div>

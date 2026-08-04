@@ -4,10 +4,15 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
+use App\Models\Location;
 
 class StoreRouteStopRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['name' => Location::find($this->input('location_id'))?->name]);
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -18,17 +23,9 @@ class StoreRouteStopRequest extends FormRequest
      */
     public function rules(): array
     {
-        $route = $this->route('route');
-
         return [
+            'location_id' => ['required', 'integer', 'exists:locations,id'],
             'name' => ['required', 'string', 'max:255'],
-            'expected_reach_time' => ['nullable', 'date_format:H:i'],
-            'position' => [
-                'required',
-                'integer',
-                'min:1',
-                Rule::unique('route_stops', 'position')->where('route_id', $route->id),
-            ],
         ];
     }
 }

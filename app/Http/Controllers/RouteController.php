@@ -6,7 +6,7 @@ use App\Exports\RouteExport;
 use App\Http\Requests\StoreRouteRequest;
 use App\Http\Requests\UpdateRouteRequest;
 use App\Models\District;
-use App\Models\Location;
+use App\Models\Depot;
 use App\Models\Route as RouteModel;
 use App\Models\State;
 use Illuminate\Http\Request;
@@ -44,7 +44,6 @@ class RouteController extends Controller implements HasMiddleware
                     'route_code',
                     'route_name',
                     'total_distance_km',
-                    'estimated_duration',
                     'route_type',
                     'route_category',
                     'status',
@@ -104,9 +103,6 @@ class RouteController extends Controller implements HasMiddleware
                 })
                 ->editColumn('total_distance_km', function ($row) {
                     return $row->total_distance_km !== null ? number_format((float) $row->total_distance_km, 2) . ' KM' : '-';
-                })
-                ->editColumn('estimated_duration', function ($row) {
-                    return $row->estimated_duration ? substr($row->estimated_duration, 0, 5) : '-';
                 })
                 ->addColumn('assigned_vehicle', function ($row) {
                     $vehicles = $row->activeRouteAssignments
@@ -283,7 +279,7 @@ class RouteController extends Controller implements HasMiddleware
         return [
             'states' => State::orderBy('name')->get(['id', 'name']),
             'districts' => District::orderBy('name')->get(['id', 'name', 'state_id']),
-            'locations' => Location::orderBy('name')->get(['id', 'name', 'state_id', 'district_id']),
+            'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_id', 'district_id']),
             'routeTypes' => RouteModel::ROUTE_TYPES,
             'routeCategories' => RouteModel::ROUTE_CATEGORIES,
             'statuses' => RouteModel::STATUSES,

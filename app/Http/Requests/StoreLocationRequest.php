@@ -34,6 +34,7 @@ class StoreLocationRequest extends FormRequest
                         ->where('state_id', $this->state_id)
                         ->where('district_id', $this->district_id)),
             ],
+            'short_name' => ['required', 'string', 'max:50'],
             'pincode' => ['nullable', 'string', 'max:10', 'regex:/^[0-9]+$/'],
             'is_active' => ['required', 'boolean'],
             'is_default' => ['required', 'boolean'],

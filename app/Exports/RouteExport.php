@@ -24,18 +24,11 @@ class RouteExport implements FromCollection, WithHeadings
                 'Route Name' => $route->route_name,
                 'State' => $route->state?->name,
                 'District' => $route->district?->name,
-                'Start Point' => $route->startPoint?->name,
-                'End Point' => $route->endPoint?->name,
-                'Distance' => $route->total_distance_km,
-                'Estimated Duration' => $route->estimated_duration ? substr($route->estimated_duration, 0, 5) : '',
+                'Starting Depot' => $route->startPoint?->name,
+                'Ending Depot' => $route->endPoint?->name,
+                'Approximate Distance' => $route->total_distance_km,
                 'Route Type' => $route->route_type,
                 'Route Category' => $route->route_category,
-                'Assigned Vehicle' => $route->activeRouteAssignments->pluck('vehicle.vehicle_no')->filter()->unique()->implode(', '),
-                'Assigned Driver' => $route->activeRouteAssignments
-                    ->map(fn ($assignment) => trim(($assignment->driver?->code ? $assignment->driver->code . ' - ' : '') . ($assignment->driver?->name ?? '')))
-                    ->filter()
-                    ->unique()
-                    ->implode(', '),
                 'Status' => $route->status,
                 'Created At' => $route->created_at->format('d M Y'),
             ];
@@ -49,14 +42,11 @@ class RouteExport implements FromCollection, WithHeadings
             'Route Name',
             'State',
             'District',
-            'Start Point',
-            'End Point',
-            'Distance',
-            'Estimated Duration',
+            'Starting Depot',
+            'Ending Depot',
+            'Approximate Distance',
             'Route Type',
             'Route Category',
-            'Assigned Vehicle',
-            'Assigned Driver',
             'Status',
             'Created At',
         ];

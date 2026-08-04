@@ -25,6 +25,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
                 { data: 'name', name: 'name', className: 'text-center' },
+                { data: 'short_name', name: 'short_name', className: 'text-center' },
                 { data: 'pincode', name: 'pincode', className: 'text-center' },
                 { data: 'district_name', name: 'district.name', className: 'text-center' },
                 { data: 'state_name', name: 'state.name', className: 'text-center' },

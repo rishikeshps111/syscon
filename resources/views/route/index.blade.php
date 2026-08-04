@@ -124,11 +124,10 @@
                                             <th class="text-center nowrap">SL NO</th>
                                             <th class="text-center nowrap">Route Code</th>
                                             <th class="text-center nowrap">Route Name</th>
-                                            <th class="text-center">Start &rarr; End</th>
-                                            <th class="text-center">Distance</th>
-                                            <th class="text-center">Duration</th>
-                                            <th class="text-center">Assigned Vehicle</th>
-                                            <th class="text-center">Assigned Driver</th>
+                                            <th class="text-center">Starting &rarr; Ending Depot</th>
+                                            <th class="text-center">Approximate Distance</th>
+                                            {{-- <th class="text-center">Assigned Vehicle</th>
+                                            <th class="text-center">Assigned Driver</th> --}}
                                             <th class="text-center">Status</th>
                                             <th class="text-center">Actions</th>
                                         </tr>

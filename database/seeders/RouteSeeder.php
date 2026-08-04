@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\District;
+use App\Models\Depot;
 use App\Models\Location;
 use App\Models\Route;
 use App\Models\RouteStop;
@@ -86,8 +87,10 @@ class RouteSeeder extends Seeder
                 $district = District::where('name', $record['district'])->where('state_id', $state?->id)->first();
                 $startLocation = Location::where('name', $record['start'])->where('district_id', $district?->id)->first();
                 $endLocation = Location::where('name', $record['end'])->where('district_id', $district?->id)->first();
+                $startDepot = Depot::where('location_id', $startLocation?->id)->first();
+                $endDepot = Depot::where('location_id', $endLocation?->id)->first();
 
-                if (! $state || ! $district || ! $startLocation || ! $endLocation) {
+                if (! $state || ! $district || ! $startDepot || ! $endDepot) {
                     continue;
                 }
 
@@ -95,10 +98,9 @@ class RouteSeeder extends Seeder
                     ['state_id' => $state->id, 'route_name' => $record['name']],
                     [
                         'district_id' => $district->id,
-                        'start_point_id' => $startLocation->id,
-                        'end_point_id' => $endLocation->id,
+                        'start_point_id' => $startDepot->id,
+                        'end_point_id' => $endDepot->id,
                         'total_distance_km' => $record['distance'],
-                        'estimated_duration' => $record['estimated_duration'],
                         'route_type' => $record['route_type'],
                         'route_category' => $record['route_category'],
                         'status' => 'Active',

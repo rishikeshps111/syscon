@@ -65,8 +65,8 @@ class TripSeeder extends Seeder
                 }
 
                 $usesSingleDepot = $record['trip_side'] === 'both';
-                $fromDepot = Depot::where('location_id', $route->start_point_id)->first();
-                $toDepot = Depot::where('location_id', $route->end_point_id)->first();
+                $fromDepot = Depot::find($route->start_point_id);
+                $toDepot = Depot::find($route->end_point_id);
 
                 if (! $fromDepot || (! $usesSingleDepot && ! $toDepot)) {
                     continue;

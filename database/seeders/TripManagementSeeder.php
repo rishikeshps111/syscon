@@ -88,8 +88,8 @@ class TripManagementSeeder extends Seeder
                 $serviceType = ServiceType::where('name', $record['service_type'])->first();
                 $route = Route::where('route_name', $record['route'])->first();
                 $depot = Depot::where('name', $record['depot'])->first();
-                $fromDepot = Depot::where('location_id', $route?->start_point_id)->first();
-                $toDepot = Depot::where('location_id', $route?->end_point_id)->first();
+                $fromDepot = Depot::find($route?->start_point_id);
+                $toDepot = Depot::find($route?->end_point_id);
                 $vehicle = Vehicle::where('vehicle_no', $record['vehicle_no'])->first();
                 $driver = DriverProfile::whereHas('user', fn ($query) => $query->where('email', $record['driver_email']))->first();
                 $usesSingleDepot = $record['trip_side'] === 'both';

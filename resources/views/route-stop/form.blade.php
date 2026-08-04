@@ -9,28 +9,18 @@
     <input type="hidden" name="id" value="{{ $record->id ?? '' }}">
 
     <div class="col-lg-6 o-f-inp mb-2">
-        <label for="name" class="form-label m-0">
+        <label for="location_id" class="form-label m-0">
             Place Name <span class="text-danger">*</span>
         </label>
-        <input type="text" class="form-control shadow-none" id="name" name="name"
-            value="{{ old('name', $record->name ?? '') }}">
-        <span class="text-danger error-text name_error"></span>
-    </div>
-
-    <div class="col-lg-6 o-f-inp mb-2">
-        <label for="expected_reach_time" class="form-label m-0">Expected Reach Time</label>
-        <input type="time" class="form-control shadow-none" id="expected_reach_time" name="expected_reach_time"
-            value="{{ old('expected_reach_time', isset($record) && $record->expected_reach_time ? substr($record->expected_reach_time, 0, 5) : '') }}">
-        <span class="text-danger error-text expected_reach_time_error"></span>
-    </div>
-
-    <div class="col-lg-6 o-f-inp mb-2">
-        <label for="position" class="form-label m-0">
-            Position <span class="text-danger">*</span>
-        </label>
-        <input type="number" class="form-control shadow-none" id="position" name="position"
-            value="{{ old('position', $record->position ?? $nextPosition ?? '') }}" min="1">
-        <span class="text-danger error-text position_error"></span>
+        <select class="form-select shadow-none select2" id="location_id" name="location_id">
+            <option value="">--- Select Location ---</option>
+            @foreach ($locations as $location)
+                <option value="{{ $location->id }}" @selected((int) old('location_id', $record->location_id ?? 0) === $location->id)>
+                    {{ $location->name }}{{ $location->short_name ? ' (' . $location->short_name . ')' : '' }}
+                </option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text location_id_error"></span>
     </div>
 
     <div class="col-lg-12 mt-3 text-center">

@@ -162,6 +162,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/routes/{route}/stops/create', [RouteStopController::class, 'create'])->name('routes.stops.create');
     Route::post('/routes/{route}/stops', [RouteStopController::class, 'store'])->name('routes.stops.store');
     Route::post('/routes/{route}/stops/export', [RouteStopController::class, 'export'])->name('routes.stops.export');
+    Route::post('/routes/{route}/stops/reorder', [RouteStopController::class, 'reorder'])->name('routes.stops.reorder');
     Route::get('/routes/{route}/assignments', [RouteAssignmentController::class, 'index'])->name('routes.assignments.index');
     Route::get('/routes/{route}/assignments/create', [RouteAssignmentController::class, 'create'])->name('routes.assignments.create');
     Route::post('/routes/{route}/assignments', [RouteAssignmentController::class, 'store'])->name('routes.assignments.store');

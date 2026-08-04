@@ -54,25 +54,20 @@
                 name: 'total_distance_km',
                 className: 'text-center'
             },
-            {
-                data: 'estimated_duration',
-                name: 'estimated_duration',
-                className: 'text-center'
-            },
-            {
-                data: 'assigned_vehicle',
-                name: 'assigned_vehicle',
-                orderable: false,
-                searchable: false,
-                className: 'text-center'
-            },
-            {
-                data: 'assigned_driver',
-                name: 'assigned_driver',
-                orderable: false,
-                searchable: false,
-                className: 'text-center'
-            },
+            // {
+            //     data: 'assigned_vehicle',
+            //     name: 'assigned_vehicle',
+            //     orderable: false,
+            //     searchable: false,
+            //     className: 'text-center'
+            // },
+            // {
+            //     data: 'assigned_driver',
+            //     name: 'assigned_driver',
+            //     orderable: false,
+            //     searchable: false,
+            //     className: 'text-center'
+            // },
             {
                 data: 'status',
                 name: 'status',

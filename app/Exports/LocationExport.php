@@ -13,7 +13,7 @@ class LocationExport implements FromCollection, WithHeadings
     public function __construct($query = null)
     {
         $this->query = $query ?: Location::with(['state', 'district'])
-            ->select('state_id', 'district_id', 'code', 'name', 'pincode', 'is_default', 'is_active', 'created_at');
+            ->select('state_id', 'district_id', 'code', 'name', 'short_name', 'pincode', 'is_default', 'is_active', 'created_at');
     }
 
     public function collection()
@@ -22,6 +22,7 @@ class LocationExport implements FromCollection, WithHeadings
             return [
                 'Code' => $location->code,
                 'Location' => $location->name,
+                'Short Name' => $location->short_name,
                 'Pincode' => $location->pincode,
                 'State' => $location->state?->name,
                 'District' => $location->district?->name,
@@ -37,6 +38,7 @@ class LocationExport implements FromCollection, WithHeadings
         return [
             'Code',
             'Location',
+            'Short Name',
             'Pincode',
             'State',
             'District',

@@ -59,7 +59,7 @@
                                 @error('district_id')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="route_type">Route Type <span class="text-danger">*</span></label>
+                                <label for="route_type">Route Type</label>
                                 <select id="route_type" name="route_type" class="form-select shadow-none @error('route_type') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach ($routeTypes as $value => $label)
@@ -69,7 +69,7 @@
                                 @error('route_type')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="route_category">Category <span class="text-danger">*</span></label>
+                                <label for="route_category">Category</label>
                                 <select id="route_category" name="route_category" class="form-select shadow-none @error('route_category') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach ($routeCategories as $value => $label)
@@ -82,49 +82,35 @@
                     </div>
 
                     <div class="main-table-container mb-3">
-                        <h5 class="title-w-sec">Start &amp; End Points</h5>
+                        <h5 class="title-w-sec">Starting &amp; Ending Depots</h5>
                         <hr>
                         <div class="row">
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="start_point_id">Start Point <span class="text-danger">*</span></label>
+                                <label for="start_point_id">Starting Depot <span class="text-danger">*</span></label>
                                 <select id="start_point_id" name="start_point_id" class="form-select shadow-none select2 @error('start_point_id') is-invalid @enderror">
                                     <option value="">---Select---</option>
-                                    @foreach ($locations as $location)
-                                        <option value="{{ $location->id }}" data-state-id="{{ $location->state_id }}" data-district-id="{{ $location->district_id }}" @selected((int) old('start_point_id', $record->start_point_id ?? 0) === $location->id)>{{ $location->name }}</option>
+                                    @foreach ($depots as $depot)
+                                        <option value="{{ $depot->id }}" data-state-id="{{ $depot->state_id }}" data-district-id="{{ $depot->district_id }}" @selected((int) old('start_point_id', $record->start_point_id ?? 0) === $depot->id)>{{ $depot->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('start_point_id')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="end_point_id">End Point <span class="text-danger">*</span></label>
+                                <label for="end_point_id">Ending Depot <span class="text-danger">*</span></label>
                                 <select id="end_point_id" name="end_point_id" class="form-select shadow-none select2 @error('end_point_id') is-invalid @enderror">
                                     <option value="">---Select---</option>
-                                    @foreach ($locations as $location)
-                                        <option value="{{ $location->id }}" data-state-id="{{ $location->state_id }}" data-district-id="{{ $location->district_id }}" @selected((int) old('end_point_id', $record->end_point_id ?? 0) === $location->id)>{{ $location->name }}</option>
+                                    @foreach ($depots as $depot)
+                                        <option value="{{ $depot->id }}" data-state-id="{{ $depot->state_id }}" data-district-id="{{ $depot->district_id }}" @selected((int) old('end_point_id', $record->end_point_id ?? 0) === $depot->id)>{{ $depot->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('end_point_id')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="total_distance_km">Distance <span class="text-danger">*</span></label>
+                                <label for="total_distance_km">Approximate Distance <span class="text-danger">*</span></label>
                                 <input type="number" step="0.01" min="0" id="total_distance_km" name="total_distance_km"
                                     class="form-control shadow-none @error('total_distance_km') is-invalid @enderror"
                                     value="{{ old('total_distance_km', $record->total_distance_km ?? '') }}">
                                 @error('total_distance_km')<span class="text-danger">{{ $message }}</span>@enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="main-table-container mb-3">
-                        <h5 class="title-w-sec">Route Details</h5>
-                        <hr>
-                        <div class="row">
-                            <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="estimated_duration">Estimated Duration <span class="text-danger">*</span></label>
-                                <input type="time" id="estimated_duration" name="estimated_duration"
-                                    class="form-control shadow-none @error('estimated_duration') is-invalid @enderror"
-                                    value="{{ old('estimated_duration', isset($record) && $record->estimated_duration ? substr($record->estimated_duration, 0, 5) : '') }}">
-                                @error('estimated_duration')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                         </div>
                     </div>
@@ -173,12 +159,12 @@
             ];
         })->values();
 
-        $locationOptions = $locations->map(function ($location) {
+        $depotOptions = $depots->map(function ($depot) {
             return [
-                'id' => $location->id,
-                'name' => $location->name,
-                'state_id' => $location->state_id,
-                'district_id' => $location->district_id,
+                'id' => $depot->id,
+                'name' => $depot->name,
+                'state_id' => $depot->state_id,
+                'district_id' => $depot->district_id,
             ];
         })->values();
     @endphp
@@ -189,7 +175,7 @@
                 $('.select2').select2({ width: '100%', placeholder: '---Select---', allowClear: true });
 
                 var districts = @json($districtOptions);
-                var locations = @json($locationOptions);
+                var depots = @json($depotOptions);
 
                 var selectedDistrictId = "{{ old('district_id', $record->district_id ?? '') }}";
                 var selectedStartPointId = "{{ old('start_point_id', $record->start_point_id ?? '') }}";
@@ -220,36 +206,36 @@
                     setOptions('#district_id', filteredDistricts, exists ? selectedValue : '', 'name');
                 }
 
-                function renderLocations(startValue, endValue) {
+                function renderDepots(startValue, endValue) {
                     var stateId = $('#state_id').val();
                     var districtId = $('#district_id').val();
-                    var filteredLocations = locations.filter(function (location) {
-                        return (!stateId || location.state_id.toString() === stateId)
-                            && (!districtId || location.district_id.toString() === districtId);
+                    var filteredDepots = depots.filter(function (depot) {
+                        return (!stateId || String(depot.state_id || '') === stateId)
+                            && (!districtId || String(depot.district_id || '') === districtId);
                     });
 
-                    var startExists = filteredLocations.some(function (location) {
-                        return location.id.toString() === (startValue || '').toString();
+                    var startExists = filteredDepots.some(function (depot) {
+                        return depot.id.toString() === (startValue || '').toString();
                     });
-                    var endExists = filteredLocations.some(function (location) {
-                        return location.id.toString() === (endValue || '').toString();
+                    var endExists = filteredDepots.some(function (depot) {
+                        return depot.id.toString() === (endValue || '').toString();
                     });
 
-                    setOptions('#start_point_id', filteredLocations, startExists ? startValue : '', 'name');
-                    setOptions('#end_point_id', filteredLocations, endExists ? endValue : '', 'name');
+                    setOptions('#start_point_id', filteredDepots, startExists ? startValue : '', 'name');
+                    setOptions('#end_point_id', filteredDepots, endExists ? endValue : '', 'name');
                 }
 
                 $('#state_id').on('change', function () {
                     renderDistricts('');
-                    renderLocations('', '');
+                    renderDepots('', '');
                 });
 
                 $('#district_id').on('change', function () {
-                    renderLocations('', '');
+                    renderDepots('', '');
                 });
 
                 renderDistricts(selectedDistrictId);
-                renderLocations(selectedStartPointId, selectedEndPointId);
+                renderDepots(selectedStartPointId, selectedEndPointId);
 
                 $('#routeForm').on('submit', function () {
                     var button = $(this).find('.js-loading-submit');

@@ -31,45 +31,37 @@
                                     </a>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-lg-3 col-md-6">
+                                    <div class="col-lg-2 col-md-6">
                                         <div class="border rounded p-2 h-100">
-                                            <div class="text-muted small">Start Point</div>
+                                            <div class="text-muted small">Starting Depot</div>
                                             <div class="fw-semibold">{{ $route->startPoint?->name ?? '-' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6">
+                                    <div class="col-lg-2 col-md-6">
                                         <div class="border rounded p-2 h-100">
-                                            <div class="text-muted small">End Point</div>
+                                            <div class="text-muted small">Ending Depot</div>
                                             <div class="fw-semibold">{{ $route->endPoint?->name ?? '-' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6">
+                                    <div class="col-lg-2 col-md-6">
                                         <div class="border rounded p-2 h-100">
                                             <div class="text-muted small">State</div>
                                             <div class="fw-semibold">{{ $route->state?->name ?? '-' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6">
+                                    <div class="col-lg-2 col-md-6">
                                         <div class="border rounded p-2 h-100">
                                             <div class="text-muted small">Route Type</div>
                                             <div class="fw-semibold">{{ $route->route_type }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6">
+                                    <div class="col-lg-2 col-md-6">
                                         <div class="border rounded p-2 h-100">
-                                            <div class="text-muted small">Distance</div>
+                                            <div class="text-muted small">Approximate Distance</div>
                                             <div class="fw-semibold">{{ $route->distance ?? '-' }}</div>
                                         </div>
                                     </div>
-                                    <div class="col-lg-3 col-md-6">
-                                        <div class="border rounded p-2 h-100">
-                                            <div class="text-muted small">Estimate Duration</div>
-                                            <div class="fw-semibold">
-                                                {{ $route->estimated_duration ? substr($route->estimated_duration, 0, 5) : '-' }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-3 col-md-6">
+                                    <div class="col-lg-2 col-md-6">
                                         <div class="border rounded p-2 h-100">
                                             <div class="text-muted small">Status</div>
 
@@ -101,10 +93,9 @@
                                             <th class="text-center">
                                                 <input type="checkbox" id="checkAll">
                                             </th>
-                                            <th class="text-center">Sl No</th>
+                                            {{-- <th class="text-center">Sl No</th> --}}
+                                            <th class="text-center"></th>
                                             <th class="text-center">Place Name</th>
-                                            <th class="text-center">Expected Reach Time</th>
-                                            <th class="text-center">Position</th>
                                             <th class="text-center">Action</th>
                                         </tr>
                                     </thead>

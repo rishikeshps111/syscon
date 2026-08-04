@@ -34,7 +34,7 @@ class LocationController extends Controller implements HasMiddleware
     {
         if (request()->ajax()) {
             $query = Location::with(['state', 'district'])
-                ->select(['id', 'state_id', 'district_id', 'code', 'name', 'pincode', 'is_default', 'is_active', 'created_at'])
+                ->select(['id', 'state_id', 'district_id', 'code', 'name', 'short_name', 'pincode', 'is_default', 'is_active', 'created_at'])
                 ->orderBy('created_at', 'desc');
 
             if (request()->filled('state_id')) {
@@ -179,7 +179,7 @@ class LocationController extends Controller implements HasMiddleware
     {
         $ids = $request->input('ids', []);
         $query = Location::with(['state', 'district'])
-            ->select('state_id', 'district_id', 'code', 'name', 'pincode', 'is_default', 'is_active', 'created_at');
+            ->select('state_id', 'district_id', 'code', 'name', 'short_name', 'pincode', 'is_default', 'is_active', 'created_at');
 
         if (! empty($ids)) {
             $query->whereIn('id', $ids);

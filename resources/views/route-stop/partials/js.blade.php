@@ -15,14 +15,67 @@
                     },
                     className: 'text-center'
                 },
-                { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center drag-handle',
+                    render: function () { return '<i class="fa-solid fa-grip-vertical" title="Drag to reorder"></i>'; }
+                },
                 { data: 'name', name: 'name', className: 'text-center' },
-                { data: 'expected_reach_time', name: 'expected_reach_time', className: 'text-center' },
-                { data: 'position', name: 'position', className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
-            order: [[4, 'asc']]
+            ordering: false,
+            createdRow: function (row, data) {
+                $(row).attr({ 'data-id': data.id, draggable: true });
+            },
+            drawCallback: function () {
+                enableStopDragging();
+            }
         });
+
+        var draggedRow = null;
+
+        function enableStopDragging() {
+            $('#table tbody tr').off('.routeStopDrag')
+                .on('dragstart.routeStopDrag', function (event) {
+                    draggedRow = this;
+                    event.originalEvent.dataTransfer.effectAllowed = 'move';
+                    $(this).addClass('opacity-50');
+                })
+                .on('dragover.routeStopDrag', function (event) {
+                    event.preventDefault();
+                    if (!draggedRow || draggedRow === this) return;
+                    var rect = this.getBoundingClientRect();
+                    this.parentNode.insertBefore(draggedRow, event.originalEvent.clientY < rect.top + rect.height / 2 ? this : this.nextSibling);
+                })
+                .on('drop.routeStopDrag', function (event) {
+                    event.preventDefault();
+                    saveStopOrder();
+                })
+                .on('dragend.routeStopDrag', function () {
+                    $(this).removeClass('opacity-50');
+                    draggedRow = null;
+                });
+        }
+
+        function saveStopOrder() {
+            var ids = $('#table tbody tr').map(function () { return $(this).data('id'); }).get();
+            $.ajax({
+                url: "{{ route('routes.stops.reorder', $route->id) }}",
+                type: 'POST',
+                data: { _token: "{{ csrf_token() }}", ids: ids },
+                success: function (response) {
+                    table.ajax.reload(null, false);
+                    showToast('success', response.message);
+                },
+                error: function (xhr) {
+                    table.ajax.reload(null, false);
+                    showToast('error', xhr.responseJSON?.message || 'Failed to update route stop order.');
+                }
+            });
+        }
 
         $(document).on('click', '.form-btn', function () {
             var id = $(this).data('id');
@@ -33,6 +86,12 @@
                 success: function (response) {
                     $('#modalBody').html(response.html);
                     $('#modalTitle').text(response.title);
+                    $('#formModal #location_id').select2({
+                        dropdownParent: $('#formModal'),
+                        width: '100%',
+                        placeholder: '--- Select Location ---',
+                        allowClear: true
+                    });
                     $('#formModal').modal('show');
                 },
                 error: function (xhr) {

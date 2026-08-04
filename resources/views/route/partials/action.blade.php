@@ -18,12 +18,12 @@
                     <li>
                         <a class="dropdown-item" href="{{ route('routes.stops.index', $row->id) }}">Manage Stops</a>
                     </li>
-                    <li>
+                    {{-- <li>
                         <a class="dropdown-item" href="{{ route('routes.assignments.index', $row->id) }}">Manage Assignments</a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="{{ route('routes.schedules.index', $row->id) }}">Manage Schedules</a>
-                    </li>
+                    </li> --}}
                     @can('routes.edit')
                         <li>
                             <a class="dropdown-item change-status-btn" href="#!" data-id="{{ $row->id }}"

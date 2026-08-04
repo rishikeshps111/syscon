@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'end_point_id',
     'total_distance_km',
     'distance',
-    'estimated_duration',
     'route_type',
     'route_category',
     'status',
@@ -67,11 +66,7 @@ class Route extends Model
     {
         static::saving(function (Route $route) {
             if (! $route->district_id && $route->start_point_id) {
-                $route->district_id = Location::find($route->start_point_id)?->district_id;
-            }
-
-            if (! $route->route_category) {
-                $route->route_category = 'Passenger';
+                $route->district_id = Depot::find($route->start_point_id)?->district_id;
             }
 
             if (! $route->status) {
@@ -143,12 +138,12 @@ class Route extends Model
 
     public function startPoint(): BelongsTo
     {
-        return $this->belongsTo(Location::class, 'start_point_id');
+        return $this->belongsTo(Depot::class, 'start_point_id');
     }
 
     public function endPoint(): BelongsTo
     {
-        return $this->belongsTo(Location::class, 'end_point_id');
+        return $this->belongsTo(Depot::class, 'end_point_id');
     }
 
     public function stops(): HasMany

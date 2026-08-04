@@ -55,6 +55,13 @@
     </div>
 
     <div class="col-lg-6 o-f-inp mb-2">
+        <label for="short_name" class="form-label m-0">Short Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control shadow-none" id="short_name" name="short_name"
+            value="{{ old('short_name', $record->short_name ?? '') }}" maxlength="50">
+        <span class="text-danger error-text short_name_error"></span>
+    </div>
+
+    <div class="col-lg-6 o-f-inp mb-2">
         <label for="pincode" class="form-label m-0">
             Pincode
         </label>
