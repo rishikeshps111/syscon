@@ -44,6 +44,7 @@ use App\Models\State;
 use App\Models\SupervisorDocument;
 use App\Models\SupervisorProfile;
 use App\Models\Trip;
+use App\Models\TripNature;
 use App\Models\TripAssignment;
 use App\Models\TripSheet;
 use App\Models\TripSheetEntry;
@@ -69,6 +70,7 @@ class CrudActivityLogger
         Location::class => 'Location',
         ServiceType::class => 'Service Type',
         VehicleClassification::class => 'Vehicle Classification',
+        TripNature::class => 'Trip Nature',
         DocumentType::class => 'Document Type',
         ComplaintCategory::class => 'Complaint Category',
         Depot::class => 'Depot',

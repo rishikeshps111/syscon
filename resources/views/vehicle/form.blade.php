@@ -59,6 +59,20 @@
                                 @error('vehicle_type')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
+                                <label for="vehicle_classification_id">Vehicle Classification <span class="text-danger">*</span></label>
+                                <select id="vehicle_classification_id" name="vehicle_classification_id"
+                                    class="form-select shadow-none select2 @error('vehicle_classification_id') is-invalid @enderror">
+                                    <option value="">---Select---</option>
+                                    @foreach ($vehicleClassifications as $classification)
+                                        <option value="{{ $classification->id }}"
+                                            @selected((int) old('vehicle_classification_id', $record->vehicle_classification_id ?? 0) === $classification->id)>
+                                            {{ $classification->title }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('vehicle_classification_id')<span class="text-danger">{{ $message }}</span>@enderror
+                            </div>
+                            <div class="col-lg-4 o-f-inp mb-3">
                                 <label for="fuel_type">Fuel Type <span class="text-danger">*</span></label>
                                 <select id="fuel_type" name="fuel_type" class="form-select shadow-none @error('fuel_type') is-invalid @enderror">
                                     <option value="">---Select---</option>
@@ -70,10 +84,14 @@
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
                                 <label for="vehicle_category">Category <span class="text-danger">*</span></label>
-                                <select id="vehicle_category" name="vehicle_category" class="form-select shadow-none @error('vehicle_category') is-invalid @enderror">
+                                <select id="vehicle_category" name="vehicle_category"
+                                    class="form-select shadow-none @error('vehicle_category') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach ($categories as $value => $label)
-                                        <option value="{{ $value }}" @selected(old('vehicle_category', $record->vehicle_category ?? '') === $value)>{{ $label }}</option>
+                                        <option value="{{ $value }}"
+                                            @selected(old('vehicle_category', $record->vehicle_category ?? '') === $value)>
+                                            {{ $label }}
+                                        </option>
                                     @endforeach
                                 </select>
                                 @error('vehicle_category')<span class="text-danger">{{ $message }}</span>@enderror

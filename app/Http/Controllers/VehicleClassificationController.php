@@ -19,9 +19,11 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('vehicle-classifications.view'), ['index', 'show', 'export']),
+            new Middleware(PermissionMiddleware::using('vehicle-classifications.view'), ['index', 'show']),
+            new Middleware(PermissionMiddleware::using('vehicle-classifications.export'), ['export']),
             new Middleware(PermissionMiddleware::using('vehicle-classifications.create'), ['create', 'store']),
-            new Middleware(PermissionMiddleware::using('vehicle-classifications.edit'), ['edit', 'update', 'status']),
+            new Middleware(PermissionMiddleware::using('vehicle-classifications.edit'), ['edit', 'update']),
+            new Middleware(PermissionMiddleware::using('vehicle-classifications.status'), ['status']),
             new Middleware(PermissionMiddleware::using('vehicle-classifications.delete'), ['destroy']),
         ];
     }
@@ -31,10 +33,8 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
         if (request()->ajax()) {
             $query = VehicleClassification::select([
                 'id',
-                'code',
-                'name',
-                'capacity',
-                'fuel_type',
+                'title',
+                'description',
                 'is_active',
                 'created_at',
             ])->orderBy('created_at', 'desc');
@@ -48,12 +48,7 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
                 ->addColumn('checkbox', function ($row) {
                     return '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">';
                 })
-                ->editColumn('capacity', function ($row) {
-                    return $row->capacity ?? '-';
-                })
-                ->addColumn('fuel', function ($row) {
-                    return $this->formatFuelType($row->fuel_type);
-                })
+                ->editColumn('description', fn ($row) => $row->description ?: '-')
                 ->addColumn('status', function ($row) {
                     return $row->is_active
                         ? '<span class="status-green">Active</span>'
@@ -80,10 +75,8 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
             ]);
         }
 
-        $generatedCode = generate_code('Vehicle Classification Module', ((int) VehicleClassification::max('id')) + 1, 3, 'VC');
-
         return response()->json([
-            'html' => view('vehicle-classification.form', compact('generatedCode'))->render(),
+            'html' => view('vehicle-classification.form')->render(),
             'title' => 'Add Vehicle Classification',
         ]);
     }
@@ -91,8 +84,6 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
     public function store(StoreVehicleClassificationRequest $request)
     {
         $vehicleClassification = VehicleClassification::create($request->validated());
-        $vehicleClassification->code = generate_code('Vehicle Classification Module', $vehicleClassification->id, 3, 'VC');
-        $vehicleClassification->save();
 
         return response()->json([
             'success' => true,
@@ -129,7 +120,7 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
     public function export(Request $request)
     {
         $ids = $request->input('ids', []);
-        $query = VehicleClassification::select('code', 'name', 'capacity', 'fuel_type', 'is_active', 'created_at');
+        $query = VehicleClassification::select('title', 'description', 'is_active', 'created_at');
 
         if (! empty($ids)) {
             $query->whereIn('id', $ids);
@@ -150,16 +141,5 @@ class VehicleClassificationController extends Controller implements HasMiddlewar
         $vehicleClassification->save();
 
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
-    }
-
-    private function formatFuelType(?string $fuelType): string
-    {
-        return match ($fuelType) {
-            'petrol' => 'Petrol',
-            'diesel' => 'Diesel',
-            'ev' => 'EV',
-            'hybrid' => 'Hybrid',
-            default => '-',
-        };
     }
 }

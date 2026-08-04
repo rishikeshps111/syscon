@@ -19,14 +19,12 @@ class UpdateVehicleClassificationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => [
+            'title' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('vehicle_classifications', 'name')->ignore($this->route('vehicle_classification')),
+                Rule::unique('vehicle_classifications', 'title')->ignore($this->route('vehicle_classification')),
             ],
-            'capacity' => ['required', 'integer', 'min:0'],
-            'fuel_type' => ['required', Rule::in(['petrol', 'diesel', 'ev', 'hybrid'])],
             'description' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ];

@@ -4,7 +4,7 @@
             processing: true,
             serverSide: true,
             ajax: {
-                url: "{{ route('vehicle-classifications.index') }}",
+                url: "{{ route('trip-natures.index') }}",
                 data: function (data) {
                     data.status = $('#statusFilter').val();
                 }
@@ -43,7 +43,7 @@
         $(document).on('click', '.form-btn', function () {
             var id = $(this).data('id');
             $.ajax({
-                url: "{{ route('vehicle-classifications.create') }}",
+                url: "{{ route('trip-natures.create') }}",
                 type: 'GET',
                 data: { id: id },
                 success: function (response) {
@@ -109,7 +109,7 @@
             let newStatus = currentStatus == 1 ? 0 : 1;
 
             $.ajax({
-                url: "{{ route('vehicle-classifications.status') }}",
+                url: "{{ route('trip-natures.status') }}",
                 type: "POST",
                 data: {
                     _token: "{{ csrf_token() }}",
@@ -145,7 +145,7 @@
                 return;
             }
             $.ajax({
-                url: "{{ route('vehicle-classifications.export') }}",
+                url: "{{ route('trip-natures.export') }}",
                 type: 'POST',
                 data: { _token: "{{ csrf_token() }}", ids: selectedIds },
                 xhrFields: {
@@ -156,7 +156,7 @@
                     let url = window.URL.createObjectURL(blob);
                     let a = document.createElement('a');
                     a.href = url;
-                    a.download = 'vehicle-classifications.xlsx';
+                    a.download = 'trip-natures.xlsx';
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
@@ -173,6 +173,6 @@
     });
 
     function deleteRow(id) {
-        deleteRecord('/vehicle-classifications/' + id, 'table', 'Do you really want to delete this vehicle classification?');
+        deleteRecord('/trip-natures/' + id, 'table', 'Do you really want to delete this trip nature?');
     }
 </script>

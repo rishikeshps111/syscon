@@ -8,41 +8,13 @@
 
     <input type="hidden" name="id" value="{{ $record->id ?? '' }}">
 
-    <div class="col-lg-6 o-f-inp mb-2">
-        <label for="code" class="form-label m-0">Code</label>
-        <input type="text" class="form-control shadow-none" id="code"
-            value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
-    </div>
-
-    <div class="col-lg-6 o-f-inp mb-2">
-        <label for="name" class="form-label m-0">
-            Vehicle Type <span class="text-danger">*</span>
+    <div class="col-lg-12 o-f-inp mb-2">
+        <label for="title" class="form-label m-0">
+            Title <span class="text-danger">*</span>
         </label>
-        <input type="text" class="form-control shadow-none" id="name" name="name"
-            value="{{ old('name', $record->name ?? '') }}">
-        <span class="text-danger error-text name_error"></span>
-    </div>
-
-    <div class="col-lg-6 o-f-inp mb-2">
-        <label for="capacity" class="form-label m-0">Capacity <span class="text-danger">*</span></label>
-        <input type="number" class="form-control shadow-none" id="capacity" name="capacity"
-            value="{{ old('capacity', $record->capacity ?? '') }}" min="0">
-        <span class="text-danger error-text capacity_error"></span>
-    </div>
-
-    <div class="col-lg-6 o-f-inp mb-2">
-        <label for="fuel_type" class="form-label m-0">Fuel Type <span class="text-danger">*</span></label>
-        <select class="form-select shadow-none" id="fuel_type" name="fuel_type" style="height: 45px;">
-            <option value="">--- Select ---</option>
-            <option value="petrol" {{ old('fuel_type', $record->fuel_type ?? '') === 'petrol' ? 'selected' : '' }}>Petrol
-            </option>
-            <option value="diesel" {{ old('fuel_type', $record->fuel_type ?? '') === 'diesel' ? 'selected' : '' }}>Diesel
-            </option>
-            <option value="ev" {{ old('fuel_type', $record->fuel_type ?? '') === 'ev' ? 'selected' : '' }}>EV</option>
-            <option value="hybrid" {{ old('fuel_type', $record->fuel_type ?? '') === 'hybrid' ? 'selected' : '' }}>Hybrid
-            </option>
-        </select>
-        <span class="text-danger error-text fuel_type_error"></span>
+        <input type="text" class="form-control shadow-none" id="title" name="title"
+            value="{{ old('title', $record->title ?? '') }}">
+        <span class="text-danger error-text title_error"></span>
     </div>
 
     <div class="col-lg-12 o-f-inp mb-2">

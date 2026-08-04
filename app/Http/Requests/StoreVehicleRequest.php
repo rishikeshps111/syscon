@@ -23,6 +23,7 @@ class StoreVehicleRequest extends FormRequest
             'vehicle_no' => ['required', 'string', 'max:20', 'unique:vehicles,vehicle_no'],
             'vehicle_type' => ['required', Rule::in(array_keys(Vehicle::TYPES))],
             'fuel_type' => ['required', Rule::in(array_keys(Vehicle::FUEL_TYPES))],
+            'vehicle_classification_id' => ['required', 'integer', 'exists:vehicle_classifications,id'],
             'vehicle_category' => ['required', Rule::in(array_keys(Vehicle::CATEGORIES))],
             'make' => ['required', 'string', 'max:255'],
             'model' => ['required', 'string', 'max:255'],

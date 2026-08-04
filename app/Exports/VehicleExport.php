@@ -12,7 +12,7 @@ class VehicleExport implements FromCollection, WithHeadings
 
     public function __construct($query = null)
     {
-        $this->query = $query ?: Vehicle::with(['state', 'oem', 'depot', 'branch']);
+        $this->query = $query ?: Vehicle::with(['state', 'oem', 'depot', 'branch', 'vehicleClassification']);
     }
 
     public function collection()
@@ -23,6 +23,7 @@ class VehicleExport implements FromCollection, WithHeadings
                 'Vehicle No' => $vehicle->vehicle_no,
                 'Type' => $vehicle->vehicle_type,
                 'Fuel Type' => $vehicle->fuel_type,
+                'Vehicle Classification' => $vehicle->vehicleClassification?->title,
                 'OEM' => $vehicle->oem?->oem_name,
                 'State' => $vehicle->state?->name,
                 'Depot' => $vehicle->depot?->name,
@@ -44,6 +45,7 @@ class VehicleExport implements FromCollection, WithHeadings
             'Vehicle No',
             'Type',
             'Fuel Type',
+            'Vehicle Classification',
             'OEM',
             'State',
             'Depot',

@@ -10,6 +10,7 @@ use App\Models\Depot;
 use App\Models\Oem;
 use App\Models\State;
 use App\Models\Vehicle;
+use App\Models\VehicleClassification;
 use App\Support\SimpleQrCode;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -166,7 +167,7 @@ class VehicleController extends Controller implements HasMiddleware
 
     private function filteredQuery()
     {
-        $query = Vehicle::with(['state', 'oem', 'depot', 'branch'])->select('vehicles.*');
+        $query = Vehicle::with(['state', 'oem', 'depot', 'branch', 'vehicleClassification'])->select('vehicles.*');
 
         if (request()->filled('search_text')) {
             $search = request('search_text');
@@ -208,6 +209,7 @@ class VehicleController extends Controller implements HasMiddleware
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'branches' => BranchLocation::orderBy('name')->get(['id', 'name']),
             'categories' => Vehicle::CATEGORIES,
+            'vehicleClassifications' => VehicleClassification::where('is_active', true)->orderBy('title')->get(['id', 'title']),
         ];
     }
 
@@ -223,6 +225,7 @@ class VehicleController extends Controller implements HasMiddleware
             'oem',
             'depot',
             'branch',
+            'vehicleClassification',
             'documents.documentType',
             'assignments.driver',
             'assignments.route',
@@ -309,7 +312,7 @@ class VehicleController extends Controller implements HasMiddleware
         $this->pdfText($content, 'Branch: ' . ($record->branch?->name ?: '-'), 285, 634, 10);
 
         $this->pdfSection($content, 'Vehicle Details', 40, 420, 250, [
-            'Category' => $record->vehicle_category ?: '-',
+            'Classification' => $record->vehicleClassification?->title ?: '-',
             'Make' => $record->make ?: '-',
             'Model' => $record->model ?: '-',
             'Variant' => $record->variant ?: '-',

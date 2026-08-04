@@ -1,15 +1,15 @@
 @section('title')
-    Vehicle Classifications
+    Trip Natures
 @endsection
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>Manage Vehicle Classification</h3>
+            <h3>Manage Trip Natures</h3>
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                     <li class="breadcrumb-item active">Master</li>
-                    <li class="breadcrumb-item active">Manage Vehicle Classification</li>
+                    <li class="breadcrumb-item active">Manage Trip Natures</li>
                 </ol>
             </nav>
         </div>
@@ -36,10 +36,10 @@
                     </div>
                     <div class="row">
                         <div class="col-lg-6 ms-auto justify-content-end d-flex">
-                            @can('vehicle-classifications.create')
-                                <button type="button" id="addNewVehicleClassification" class="add-btn form-btn">Add Vehicle Classification</button>
+                            @can('trip-natures.create')
+                                <button type="button" class="add-btn form-btn">Add Trip Nature</button>
                             @endcan
-                            @can('vehicle-classifications.export')
+                            @can('trip-natures.export')
                                 <button id="exportSelected" class="exp-btn ms-1">Export</button>
                             @endcan
                         </div>
@@ -70,6 +70,6 @@
             </div>
     </section>
     @section('scripts')
-        @include('vehicle-classification.partials.js')
+        @include('trip-nature.partials.js')
     @endsection
 </x-app-layout>

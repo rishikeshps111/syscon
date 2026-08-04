@@ -36,4 +36,26 @@ class LoginRequest extends FormRequest
             'platform' => ['nullable', 'string', Rule::in(['android', 'ios', 'web'])],
         ];
     }
+
+    public function messages(): array
+    {
+        $type = match ($this->input('type')) {
+            'driver' => 'Driver',
+            'controller' => 'Controller',
+            'supervisor' => 'Supervisor',
+            default => 'User',
+        };
+
+        return [
+            'phone.required' => "{$type} code is required.",
+            'phone.string' => "{$type} code must be a string.",
+            'phone.max' => "{$type} code must not exceed 255 characters.",
+
+            'passcode.required' => 'Passcode is required.',
+            'passcode.digits' => 'Passcode must contain exactly 6 digits.',
+
+            'type.required' => 'User type is required.',
+            'type.in' => 'The selected user type is invalid.',
+        ];
+    }
 }

@@ -31,7 +31,7 @@
                         <a class="dropdown-item" href="{{ route('vehicles.depot-assignments.index', $row->id) }}">Assign Depot</a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="{{ route('vehicles.assignments.index', $row->id) }}">Assign Vehicle</a>
+                        <a class="dropdown-item" href="{{ route('vehicles.assignments.index', $row->id) }}">Assigned Trips</a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="{{ route('vehicles.maintenance-logs.index', $row->id) }}">Maintenance Logs</a>

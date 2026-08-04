@@ -25,7 +25,7 @@
                         <span>Profile</span>
                     </a>
                 </li>
-                @canany(['prefixes.view', 'service-types.view', 'oem-types.view', 'vehicle-classifications.view',
+                @canany(['prefixes.view', 'service-types.view', 'oem-types.view', 'vehicle-classifications.view', 'trip-natures.view',
                     'document-types.view', 'complaint-categories.view', 'dor-account-responsibles.view',
                     'dor-kilometer-loss-reasons.view', 'depots.view', 'countries.view',
                     'nationalities.view', 'states.view', 'districts.view', 'locations.view', 'degree-levels.view',
@@ -36,7 +36,7 @@
                     'payment-types.view', 'payment-methods.view', 'lead-sources.view', 'lead-types.view',
                     'lead-statuses.view', 'action-plans.view', 'relations.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                             <i class="fa-solid fa-align-center"></i>
@@ -44,7 +44,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -52,6 +52,15 @@
                                         class="{{ request()->routeIs('prefixes.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span> Prefix Management </span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('trip-natures.view')
+                                <li>
+                                    <a href="{{ route('trip-natures.index') }}"
+                                        class="{{ request()->routeIs('trip-natures.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span> Trip Nature </span>
                                     </a>
                                 </li>
                             @endcan

@@ -55,6 +55,16 @@ class PermissionSeeder extends Seeder
                 'vehicle-classifications.edit',
                 'vehicle-classifications.delete',
                 'vehicle-classifications.view',
+                'vehicle-classifications.export',
+                'vehicle-classifications.status',
+            ],
+            'Trip Nature' => [
+                'trip-natures.create',
+                'trip-natures.edit',
+                'trip-natures.delete',
+                'trip-natures.view',
+                'trip-natures.export',
+                'trip-natures.status',
             ],
             'Document Type' => [
                 'document-types.create',

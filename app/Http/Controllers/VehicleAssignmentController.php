@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Route as RouteModel;
+use App\Models\TripSheet;
+use App\Models\TripSheetEntry;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleAssignment;
@@ -28,51 +29,65 @@ class VehicleAssignmentController extends Controller implements HasMiddleware
     public function index(Request $request, Vehicle $vehicle)
     {
         $vehicle->load(['state', 'oem', 'depot', 'branch']);
-        $drivers = User::role('Driver')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'code', 'name']);
-        $routes = RouteModel::where('status', 'Active')
-            ->orderBy('route_name')
-            ->get(['id', 'route_code', 'route_name']);
-        $statuses = VehicleAssignment::STATUSES;
 
         if ($request->ajax()) {
-            $query = VehicleAssignment::with(['driver', 'route'])
-                ->where('vehicle_id', $vehicle->id)
-                ->latest();
+            $query = TripSheetEntry::query()
+                ->with([
+                    'sheet:id,code,date,status',
+                    'rosters' => fn ($query) => $query
+                        ->where('vehicle_id', $vehicle->id)
+                        ->with('driverProfile.user:id,code,name')
+                        ->latest('rosters.id'),
+                ])
+                ->whereHas('rosters', fn ($query) => $query->where('vehicle_id', $vehicle->id))
+                ->select('trip_sheet_entries.*')
+                ->orderByDesc(
+                    TripSheet::query()
+                        ->select('date')
+                        ->whereColumn('trip_sheets.id', 'trip_sheet_entries.trip_sheet_id')
+                        ->limit(1)
+                );
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('driver_name', fn ($row) => trim(($row->driver?->code ? $row->driver->code . ' - ' : '') . ($row->driver?->name ?? '-')))
-                ->addColumn('route_name', fn ($row) => trim(($row->route?->route_code ? $row->route->route_code . ' - ' : '') . ($row->route?->route_name ?? '-')))
-                ->addColumn('assigned_from_display', fn ($row) => $row->assigned_from?->format('d-m-Y h:i A') ?? '-')
-                ->addColumn('assigned_to_display', fn ($row) => $row->assigned_to?->format('d-m-Y h:i A') ?? '-')
-                ->addColumn('status_badge', fn ($row) => $row->status === 'Active'
-                    ? '<span class="status-green">Active</span>'
-                    : '<span class="status-orange">Completed</span>')
-                ->addColumn('action', function ($row) {
-                    if (! auth()->user()->can('vehicles.edit')) {
-                        return '<span class="text-muted">No Access</span>';
-                    }
+                ->addColumn('roster_code', fn (TripSheetEntry $entry) => $entry->rosters->first()?->code ?: '-')
+                ->addColumn('trip_code', fn (TripSheetEntry $entry) => $entry->sheet?->code ?: '-')
+                ->addColumn('driver', function (TripSheetEntry $entry): string {
+                    $driver = $entry->rosters->first()?->driverProfile?->user;
 
-                    $editButton = '<button type="button" class="btn-edit edit-assignment" title="Edit" data-bs-toggle="modal" data-bs-target="#addAssignmentModal"'
-                        . ' data-url="' . e(route('vehicle-assignments.update', $row->id)) . '"'
-                        . ' data-driver-id="' . e($row->driver_id) . '"'
-                        . ' data-route-id="' . e($row->route_id) . '"'
-                        . ' data-assigned-from="' . e($row->assigned_from?->format('Y-m-d\TH:i')) . '"'
-                        . ' data-assigned-to="' . e($row->assigned_to?->format('Y-m-d\TH:i')) . '"'
-                        . ' data-status="' . e($row->status) . '">'
-                        . '<i class="fa-solid fa-pen-to-square"></i></button>';
-                    $deleteButton = '<button type="button" class="btn-delete" onclick="deleteAssignment(' . $row->id . ')" title="Delete"><i class="fa-solid fa-trash"></i></button>';
-
-                    return '<div class="action-btns justify-content-center">' . $editButton . $deleteButton . '</div>';
+                    return trim(($driver?->code ? $driver->code . ' - ' : '') . ($driver?->name ?? '')) ?: '-';
                 })
-                ->rawColumns(['status_badge', 'action'])
+                ->addColumn('trip_date', fn (TripSheetEntry $entry) => $entry->sheet?->date?->format('d M Y') ?? '-')
+                ->editColumn('actual_start_time', fn (TripSheetEntry $entry) => $this->formatTime($entry->actual_start_time))
+                ->editColumn('actual_reach_time', fn (TripSheetEntry $entry) => $this->formatTime($entry->actual_reach_time))
+                ->editColumn('starting_km', fn (TripSheetEntry $entry) => $entry->starting_km ?? '-')
+                ->editColumn('ending_km', fn (TripSheetEntry $entry) => $entry->ending_km ?? '-')
+                ->addColumn('trip_status', function (TripSheetEntry $entry): string {
+                    $status = $entry->sheet?->status;
+                    $label = TripSheet::STATUSES[$status] ?? ($status ?: '-');
+                    $class = match ($status) {
+                        'verification_completed' => 'status-green',
+                        'initial_verification_completed', 'pending' => 'status-orange',
+                        'cancelled' => 'status-red',
+                        default => 'status-blue',
+                    };
+
+                    return '<span class="' . $class . '">' . e($label) . '</span>';
+                })
+                ->rawColumns(['trip_status'])
                 ->make(true);
         }
 
-        return view('vehicle.assignments.index', compact('vehicle', 'drivers', 'routes', 'statuses'));
+        return view('vehicle.assignments.index', compact('vehicle'));
+    }
+
+    private function formatTime(?string $time): string
+    {
+        if (! $time) {
+            return '-';
+        }
+
+        return date('h:i A', strtotime($time));
     }
 
     public function store(Request $request, Vehicle $vehicle)

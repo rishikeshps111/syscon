@@ -4,7 +4,6 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreVehicleClassificationRequest extends FormRequest
 {
@@ -19,9 +18,7 @@ class StoreVehicleClassificationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:vehicle_classifications,name'],
-            'capacity' => ['required', 'integer', 'min:0'],
-            'fuel_type' => ['required', Rule::in(['petrol', 'diesel', 'ev', 'hybrid'])],
+            'title' => ['required', 'string', 'max:255', 'unique:vehicle_classifications,title'],
             'description' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ];

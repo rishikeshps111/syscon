@@ -64,6 +64,7 @@ use App\Http\Controllers\TripController;
 use App\Http\Controllers\UserLogController;
 use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleClassificationController;
+use App\Http\Controllers\TripNatureController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleDocumentController;
 use App\Http\Controllers\VehicleFuelLogController;
@@ -116,6 +117,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/vehicle-classifications/export', [VehicleClassificationController::class, 'export'])
         ->name('vehicle-classifications.export');
     Route::resource('vehicle-classifications', VehicleClassificationController::class)->except(['edit', 'show']);
+
+    Route::post('/trip-natures/status', [TripNatureController::class, 'status'])->name('trip-natures.status');
+    Route::post('/trip-natures/export', [TripNatureController::class, 'export'])->name('trip-natures.export');
+    Route::resource('trip-natures', TripNatureController::class)->except(['edit', 'show']);
 
     Route::post('/document-types/status', [DocumentTypeController::class, 'status'])->name('document-types.status');
     Route::post('/document-types/export', [DocumentTypeController::class, 'export'])

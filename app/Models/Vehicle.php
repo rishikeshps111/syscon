@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
     'vehicle_code',
     'vehicle_no',
     'vehicle_type',
+    'vehicle_classification_id',
     'fuel_type',
     'vehicle_category',
     'make',
@@ -83,6 +84,7 @@ class Vehicle extends Model
             'oem_id' => 'integer',
             'depot_id' => 'integer',
             'branch_id' => 'integer',
+            'vehicle_classification_id' => 'integer',
             'capacity_seating' => 'integer',
             'capacity_load' => 'decimal:2',
             'battery_capacity' => 'decimal:2',
@@ -118,6 +120,11 @@ class Vehicle extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(BranchLocation::class, 'branch_id');
+    }
+
+    public function vehicleClassification(): BelongsTo
+    {
+        return $this->belongsTo(VehicleClassification::class);
     }
 
     public function createdBy(): BelongsTo

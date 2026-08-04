@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             RouteSeeder::class,
             VehicleSeeder::class,
             VehicleClassificationSeeder::class,
+            TripNatureSeeder::class,
             DocumentTypeSeeder::class,
             ComplaintCategorySeeder::class,
             TripSeeder::class,

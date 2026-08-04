@@ -12,17 +12,15 @@ class VehicleClassificationExport implements FromCollection, WithHeadings
 
     public function __construct($query = null)
     {
-        $this->query = $query ?: VehicleClassification::select('code', 'name', 'capacity', 'fuel_type', 'is_active', 'created_at');
+        $this->query = $query ?: VehicleClassification::select('title', 'description', 'is_active', 'created_at');
     }
 
     public function collection()
     {
         return $this->query->get()->map(function ($vehicleClassification) {
             return [
-                'Code' => $vehicleClassification->code,
-                'Vehicle Type' => $vehicleClassification->name,
-                'Capacity' => $vehicleClassification->capacity,
-                'Fuel' => $this->formatFuelType($vehicleClassification->fuel_type),
+                'Title' => $vehicleClassification->title,
+                'Description' => $vehicleClassification->description,
                 'Status' => $vehicleClassification->is_active ? 'Active' : 'Inactive',
                 'Created At' => $vehicleClassification->created_at->format('d M Y'),
             ];
@@ -32,23 +30,10 @@ class VehicleClassificationExport implements FromCollection, WithHeadings
     public function headings(): array
     {
         return [
-            'Code',
-            'Vehicle Type',
-            'Capacity',
-            'Fuel',
+            'Title',
+            'Description',
             'Status',
             'Created At',
         ];
-    }
-
-    private function formatFuelType(?string $fuelType): string
-    {
-        return match ($fuelType) {
-            'petrol' => 'Petrol',
-            'diesel' => 'Diesel',
-            'ev' => 'EV',
-            'hybrid' => 'Hybrid',
-            default => '',
-        };
     }
 }

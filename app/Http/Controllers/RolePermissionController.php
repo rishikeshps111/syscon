@@ -159,7 +159,8 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Service Type Master', 'permissions' => $this->crud('service-types')],
                     ['label' => 'OEM Type Master', 'permissions' => $this->crud('oem-types')],
                     ['label' => 'Depot Management', 'permissions' => $this->crud('depots')],
-                    ['label' => 'Vehicle Classification', 'permissions' => $this->crud('vehicle-classifications')],
+                    ['label' => 'Vehicle Classification', 'permissions' => $this->crudWithActions('vehicle-classifications')],
+                    ['label' => 'Trip Nature', 'permissions' => $this->crudWithActions('trip-natures')],
                     ['label' => 'Document Types', 'permissions' => $this->crud('document-types')],
                     ['label' => 'Complaint Categories', 'permissions' => $this->crud('complaint-categories')],
                     ['label' => 'DOR Account Responsible', 'permissions' => $this->crud('dor-account-responsibles')],
@@ -277,5 +278,10 @@ class RolePermissionController extends Controller implements HasMiddleware
             $prefix . '.edit',
             $prefix . '.delete',
         ];
+    }
+
+    private function crudWithActions(string $prefix): array
+    {
+        return [...$this->crud($prefix), $prefix . '.export', $prefix . '.status'];
     }
 }

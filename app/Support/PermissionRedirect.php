@@ -32,6 +32,7 @@ class PermissionRedirect
             'oem-types.view' => 'oem-types.index',
             'depots.view' => 'depots.index',
             'vehicle-classifications.view' => 'vehicle-classifications.index',
+            'trip-natures.view' => 'trip-natures.index',
             'document-types.view' => 'document-types.index',
             'complaint-categories.view' => 'complaint-categories.index',
             'oems.view' => 'oems.index',

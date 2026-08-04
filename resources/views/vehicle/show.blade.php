@@ -50,7 +50,7 @@
                                     <li>Vehicle Code : <span>{{ $record->vehicle_code ?: '-' }}</span></li>
                                     <li>Type : <span>{{ $vehicleType ?: '-' }}</span></li>
                                     <li>Fuel Type : <span>{{ $fuelType ?: '-' }}</span></li>
-                                    <li>Category : <span>{{ $record->vehicle_category ?: '-' }}</span></li>
+                                    <li>Vehicle Classification : <span>{{ $record->vehicleClassification?->title ?: '-' }}</span></li>
                                     <li>OEM : <span>{{ $record->oem?->oem_name ?: '-' }}</span></li>
                                     <li>State : <span>{{ $record->state?->name ?: '-' }}</span></li>
                                     <li>Status : <span>{{ $record->status ?: '-' }}</span></li>
