@@ -23,12 +23,12 @@ class StoreDepotRequest extends FormRequest
             'district_id' => [
                 'required',
                 'integer',
-                Rule::exists('districts', 'id')->where(fn ($query) => $query->where('state_id', $this->state_id)),
+                Rule::exists('districts', 'id')->where(fn($query) => $query->where('state_id', $this->state_id)),
             ],
             'location_id' => [
                 'required',
                 'integer',
-                Rule::exists('locations', 'id')->where(fn ($query) => $query
+                Rule::exists('locations', 'id')->where(fn($query) => $query
                     ->where('state_id', $this->state_id)
                     ->where('district_id', $this->district_id)),
             ],
@@ -37,12 +37,12 @@ class StoreDepotRequest extends FormRequest
                 'string',
                 'max:255',
                 Rule::unique('depots', 'name')
-                    ->where(fn ($query) => $query
+                    ->where(fn($query) => $query
                         ->where('state_id', $this->state_id)
                         ->where('district_id', $this->district_id)
                         ->where('location_id', $this->location_id)),
             ],
-            'short_name' => ['nullable', 'string', 'max:50'],
+            'short_name' => ['required', 'string', 'max:50'],
             'branch_location_ids' => ['nullable', 'array'],
             'branch_location_ids.*' => [
                 'integer',

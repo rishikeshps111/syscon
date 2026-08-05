@@ -209,29 +209,30 @@
                 function renderDepots(startValue, endValue) {
                     var stateId = $('#state_id').val();
                     var districtId = $('#district_id').val();
-                    var filteredDepots = depots.filter(function (depot) {
+                    var filteredStartDepots = depots.filter(function (depot) {
                         return (!stateId || String(depot.state_id || '') === stateId)
                             && (!districtId || String(depot.district_id || '') === districtId);
                     });
 
-                    var startExists = filteredDepots.some(function (depot) {
+                    var startExists = filteredStartDepots.some(function (depot) {
                         return depot.id.toString() === (startValue || '').toString();
                     });
-                    var endExists = filteredDepots.some(function (depot) {
+                    var endExists = depots.some(function (depot) {
                         return depot.id.toString() === (endValue || '').toString();
                     });
 
-                    setOptions('#start_point_id', filteredDepots, startExists ? startValue : '', 'name');
-                    setOptions('#end_point_id', filteredDepots, endExists ? endValue : '', 'name');
+                    setOptions('#start_point_id', filteredStartDepots, startExists ? startValue : '', 'name');
+                    setOptions('#end_point_id', depots, endExists ? endValue : '', 'name');
                 }
 
                 $('#state_id').on('change', function () {
+                    var currentEndPointId = $('#end_point_id').val();
                     renderDistricts('');
-                    renderDepots('', '');
+                    renderDepots('', currentEndPointId);
                 });
 
                 $('#district_id').on('change', function () {
-                    renderDepots('', '');
+                    renderDepots('', $('#end_point_id').val());
                 });
 
                 renderDistricts(selectedDistrictId);

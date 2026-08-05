@@ -106,7 +106,7 @@ class DashboardController extends Controller
                 'class' => 'card-green',
                 'label' => 'Completed Trip Sheet',
                 'value' => TripSheetEntry::whereNotNull('actual_reach_time')->count(),
-                'route' => 'trips.completed.index',
+                'route' => 'completed.trips.index',
             ],
             [
                 'permission' => 'trips.view',
@@ -116,7 +116,7 @@ class DashboardController extends Controller
                 'value' => TripSheetEntry::whereNotNull('actual_reach_time')
                     ->whereColumn('actual_reach_time', '>', 'arrival_time')
                     ->count(),
-                'route' => 'trips.completed.index',
+                'route' => 'completed.trips.index',
             ],
             [
                 'permission' => 'trips.view',

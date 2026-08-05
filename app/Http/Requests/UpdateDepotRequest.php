@@ -43,7 +43,7 @@ class UpdateDepotRequest extends FormRequest
                         ->where('location_id', $this->location_id))
                     ->ignore($this->route('depot')),
             ],
-            'short_name' => ['nullable', 'string', 'max:50'],
+            'short_name' => ['required', 'string', 'max:50'],
             'branch_location_ids' => ['nullable', 'array'],
             'branch_location_ids.*' => [
                 'integer',

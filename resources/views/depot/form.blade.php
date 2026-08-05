@@ -72,7 +72,7 @@
 
     <div class="col-lg-4 o-f-inp mb-2">
         <label for="short_name" class="form-label m-0">
-            Short Name
+            Short Name <span class="text-danger">*</span>
         </label>
         <input type="text" class="form-control shadow-none" id="short_name" name="short_name"
             value="{{ old('short_name', $record->short_name ?? '') }}">
