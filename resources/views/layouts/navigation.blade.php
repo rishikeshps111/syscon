@@ -479,14 +479,14 @@
                 @endcan
                 @can('trips.view')
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('trips.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('trips.*','completed.trips.*','report.trips.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarTripManagement" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-cogs"></i>
                             <span>Trip Management</span>
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarTripManagement"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('trips.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('trips.*','completed.trips.*','report.trips.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             <li>
                                 <a href="{{ route('trips.index') }}"
@@ -496,15 +496,15 @@
                                 </a>
                             </li>
                             <li>
-                                <a href="{{ route('trips.completed.index') }}"
-                                    class="{{ request()->routeIs('trips.completed.*') ? 'sub-active' : '' }}">
+                                <a href="{{ route('completed.trips.index') }}"
+                                    class="{{ request()->routeIs('completed.trips.*') ? 'sub-active' : '' }}">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                    <span>Completed Trips</span>
+                                    <span>Completed Trip Sheet</span>
                                 </a>
                             </li>
                             <li>
-                                <a href="{{ route('trips.report.index') }}"
-                                    class="{{ request()->routeIs('trips.report.*') ? 'sub-active' : '' }}">
+                                <a href="{{ route('report.trips.index') }}"
+                                    class="{{ request()->routeIs('report.trips.*') ? 'sub-active' : '' }}">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                     <span>Trip Report</span>
                                 </a>

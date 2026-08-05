@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
+    'code',
+    'status',
     'trip_sheet_id',
     'side',
     'departure_time',
@@ -22,6 +24,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'driver_profile_id',
     'vehicle_id',
     'trip_order_sequence_no',
+    'service_code',
+    'round_no',
+    'trip_nature',
+    'schedule_km',
     'starting_km',
     'ending_km',
     'starting_electric_charge',
@@ -71,6 +77,8 @@ class TripSheetEntry extends Model
             'is_final_verified' => 'boolean',
             'final_verification_at' => 'datetime',
             'trip_order_sequence_no' => 'integer',
+            'round_no' => 'integer',
+            'schedule_km' => 'decimal:2',
         ];
     }
 

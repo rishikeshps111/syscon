@@ -104,7 +104,7 @@ class DashboardController extends Controller
                 'permission' => 'trips.view',
                 'icon' => 'fa-solid fa-circle-check',
                 'class' => 'card-green',
-                'label' => 'Completed Trips',
+                'label' => 'Completed Trip Sheet',
                 'value' => TripSheetEntry::whereNotNull('actual_reach_time')->count(),
                 'route' => 'trips.completed.index',
             ],

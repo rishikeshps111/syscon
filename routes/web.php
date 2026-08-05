@@ -251,11 +251,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/trips/export', [TripController::class, 'export'])
         ->name('trips.export');
     Route::get('/completed-trips', [TripController::class, 'completedTrips'])
-        ->name('trips.completed.index');
+        ->name('completed.trips.index');
     Route::get('/completed-trips/export', [TripController::class, 'completedTripsExport'])
         ->name('trips.completed.export');
     Route::get('/trip-report', [TripController::class, 'tripReport'])
-        ->name('trips.report.index');
+        ->name('report.trips.index');
     Route::get('/trip-report/download', [TripController::class, 'downloadTripReport'])
         ->name('trips.report.download');
     Route::get('/reports/dor', [DorReportController::class, 'index'])
@@ -267,7 +267,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/license-expiry/export', [LicenseExpiryReportController::class, 'export'])
         ->name('reports.license-expiry.export');
     Route::get('/completed-trips/{tripSheetEntry}', [TripController::class, 'completedTripView'])
-        ->name('trips.completed.view');
+        ->name('completed.trips.view');
     Route::get('/completed-trips/{tripSheetEntry}/download-pdf', [TripController::class, 'completedTripPdf'])
         ->name('trips.completed.download-pdf');
     Route::get('/trips/{trip}/assignments', [TripAssignmentController::class, 'index'])
@@ -663,11 +663,11 @@ Route::get('/clear-all', function () {
 
 Route::get('system/migrate/{filename}', function ($filename) {
     Artisan::call('migrate', [
-        '--path' => 'database/migrations/'.$filename.'.php',
+        '--path' => 'database/migrations/' . $filename . '.php',
         '--force' => true,
     ]);
 
-    return '<pre>'.Artisan::output().'</pre>';
+    return '<pre>' . Artisan::output() . '</pre>';
 });
 
 Route::get('system/migrate-fresh', function () {
@@ -749,4 +749,4 @@ Route::get('system/driver-document-expiry-notifications', function () {
     ], $successful ? 200 : 422);
 })->name('system.driver-document-expiry-notifications');
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

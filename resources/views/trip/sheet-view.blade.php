@@ -44,7 +44,7 @@
                     <ul>
                         <li>Trip Code: <span>{{ $record->code ?: '-' }}</span></li>
                         <li>Route: <span>{{ $record->route?->route_name ?: '-' }}</span></li>
-                        <li>Schedule: <span>{{ $record->schedule_type ?: '-' }}</span></li>
+                        {{-- <li>Schedule: <span>{{ $record->schedule_type ?: '-' }}</span></li> --}}
                         {{-- <li>Trip Side:
                             <span>{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}</span>
                         </li> --}}
@@ -57,9 +57,11 @@
                             <li>From Depot: <span>{{ $record->fromDepot?->name ?: '-' }}</span></li>
                             <li>To Depot: <span>{{ $record->toDepot?->name ?: '-' }}</span></li>
                         @endif
+                        <li>KMS: <span>{{ $record->schedule_km ?? '-' }}</span></li>
+                        <li>Trip Nature: <span>{{ $record->tripNature?->title ?: '-' }}</span></li>
                         <li>Date: <span>{{ $dateRange }}</span></li>
-                        <li>Start Time: <span>{{ $time($record->start_time) }}</span></li>
-                        <li>End Time: <span>{{ $time($record->end_time) }}</span></li>
+                        {{-- <li>Start Time: <span>{{ $time($record->start_time) }}</span></li> --}}
+                        {{-- <li>End Time: <span>{{ $time($record->end_time) }}</span></li> --}}
                         <li>Created By: <span>{{ $record->createdBy?->name ?: '-' }}</span></li>
                         <li>Created At: <span>{{ $date($record->created_at) }}</span></li>
                     </ul>
@@ -87,10 +89,41 @@
         <div class="main-table-container mt-3">
             <h5 class="title-w-sec bt-ween-print">
                 Trip Sheet
-                <a href="{{ route('trips.sheet.view', ['trip' => $record->id, 'export' => 'csv']) }}"
+                <a href="{{ route('trips.sheet.view', array_merge(['trip' => $record->id, 'export' => 'csv'], $filters)) }}"
                     class="add-btn">Export</a>
             </h5>
             <hr>
+
+            <form method="GET" action="{{ route('trips.sheet.view', $record->id) }}" id="sheetViewFilters"
+                class="row align-items-end mb-3">
+                <div class="col-md-4 col-lg-3 o-f-inp mb-2 mb-md-0">
+                    <label for="sheetViewDate" class="form-label m-0">Date</label>
+                    <input type="date" id="sheetViewDate" name="entry_date" class="form-control shadow-none"
+                        value="{{ $filters['entry_date'] ?? '' }}"
+                        min="{{ $record->from_date?->format('Y-m-d') }}"
+                        max="{{ $record->to_date?->format('Y-m-d') }}">
+                </div>
+                <div class="col-md-4 col-lg-3 o-f-inp mb-2 mb-md-0">
+                    <label for="sheetViewSer" class="form-label m-0">SER Code</label>
+                    <input type="text" id="sheetViewSer" name="ser_search" class="form-control shadow-none"
+                        value="{{ $filters['ser_search'] ?? '' }}" placeholder="Search SER code">
+                </div>
+                <div class="col-md-4 col-lg-2 o-f-inp mb-2 mb-md-0">
+                    <label for="sheetViewPerPage" class="form-label m-0">Per Page</label>
+                    <select id="sheetViewPerPage" name="per_page" class="form-select shadow-none">
+                        @foreach([10, 15, 25, 50, 100] as $size)
+                            <option value="{{ $size }}" @selected((int) ($filters['per_page'] ?? 15) === $size)>
+                                {{ $size }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-2 d-flex gap-2">
+                    <a href="{{ route('trips.sheet.view', $record->id) }}" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-rotate-left me-1"></i> Reset
+                    </a>
+                </div>
+            </form>
 
             <div class="mt-3" style="overflow-x: auto;">
                 <table class="align-middle mb-0 table xl-table">
@@ -129,23 +162,27 @@
                                     ?: '-';
                             @endphp
                             <tr>
-                                <td class="text-center text-muted">{{ $loop->iteration }}</td>
-                                <td class="text-center text-muted nowrap">{{ $entry->sheet?->date?->format('d M Y') ?: '-' }}</td>
-                                <td class="text-center text-muted nowrap">{{ $entry->sheet?->code ?: '-' }}</td>
+                                <td class="text-center text-muted">{{ $entries->firstItem() + $loop->index }}</td>
+                                <td class="text-center text-muted nowrap">
+                                    {{ $entry->sheet?->date?->format('d M Y') ?: '-' }}
+                                </td>
+                                <td class="text-center text-muted nowrap">{{ $entry->code ?: '-' }}</td>
                                 <td class="text-center text-muted">{{ $startingFrom }}</td>
                                 <td class="text-center text-muted">{{ $destinationPoint }}</td>
                                 <td class="text-center text-muted">{{ $time($entry->departure_time) }}</td>
                                 <td class="text-center text-muted">{{ $time($entry->actual_start_time) }}</td>
                                 <td class="text-center text-muted">{{ $time($entry->arrival_time) }}</td>
                                 <td class="text-center text-muted">{{ $time($entry->actual_reach_time) }}</td>
-                                {{-- <td class="text-center text-muted">{{ ucfirst((string) $entry->side) ?: '-' }}</td> --}}
+                                {{-- <td class="text-center text-muted">{{ ucfirst((string) $entry->side) ?: '-' }}</td>
+                                --}}
                                 <td class="text-center text-muted">{{ $driver }}</td>
                                 <td class="text-center text-muted">{{ $entry->vehicle?->vehicle_no ?: '-' }}</td>
                                 <td class="text-center text-muted">
-                                    {{ $delay($entry->departure_time, $entry->actual_start_time) }}</td>
+                                    {{ $delay($entry->departure_time, $entry->actual_start_time) }}
+                                </td>
                                 <td class="text-center text-muted">
                                     <div class="action-btns">
-                                        @if($entry->dor?->is_completed && ! auth()->user()?->hasRole('Super Admin'))
+                                        @if($entry->dor?->is_completed && !auth()->user()?->hasRole('Super Admin'))
                                             <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
                                                 class="btn-edit btn-nowrap btn-cstm">
                                                 View DOR
@@ -170,12 +207,35 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="14" class="text-center text-muted">No trip sheet entries found.</td>
+                                <td colspan="13" class="text-center text-muted">No trip sheet entries found.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+
+            <div class="sheet-view-pagination mt-3">
+                {{ $entries->onEachSide(1)->links('pagination::bootstrap-5') }}
+            </div>
         </div>
     </section>
+
+    <style>
+        .sheet-view-pagination nav > div:last-child { align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .sheet-view-pagination nav > div:last-child > div:first-child { margin: 0; color: #6c757d; font-size: 14px; }
+        .sheet-view-pagination .pagination { margin: 0; flex-wrap: wrap; }
+        .sheet-view-pagination .page-link { min-width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px; }
+    </style>
+
+    @section('scripts')
+        <script>
+            $(function () {
+                var filterForm = $('#sheetViewFilters');
+
+                $('#sheetViewDate, #sheetViewSer, #sheetViewPerPage').on('change', function () {
+                    filterForm.trigger('submit');
+                });
+            });
+        </script>
+    @endsection
 </x-app-layout>

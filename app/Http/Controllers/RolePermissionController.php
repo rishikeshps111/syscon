@@ -229,7 +229,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                 'label' => 'Trip Management',
                 'children' => [
                     ['label' => 'Manage Trips', 'permissions' => ['trips.view', 'trips.create', 'trips.edit', 'trips.delete', 'trips.assign', 'trips.sheet']],
-                    ['label' => 'Completed Trips', 'permissions' => ['trips.view']],
+                    ['label' => 'Completed Trip Sheet', 'permissions' => ['trips.view']],
                     ['label' => 'Trip Report', 'permissions' => ['trips.view']],
                 ],
             ],
@@ -273,15 +273,15 @@ class RolePermissionController extends Controller implements HasMiddleware
     private function crud(string $prefix): array
     {
         return [
-            $prefix . '.view',
-            $prefix . '.create',
-            $prefix . '.edit',
-            $prefix . '.delete',
+            $prefix.'.view',
+            $prefix.'.create',
+            $prefix.'.edit',
+            $prefix.'.delete',
         ];
     }
 
     private function crudWithActions(string $prefix): array
     {
-        return [...$this->crud($prefix), $prefix . '.export', $prefix . '.status'];
+        return [...$this->crud($prefix), $prefix.'.export', $prefix.'.status'];
     }
 }

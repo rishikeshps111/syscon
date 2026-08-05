@@ -1,14 +1,14 @@
 @section('title')
-    Completed Trips
+    Completed Trip Sheet
 @endsection
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>Completed Trips</h3>
+            <h3>Completed Trip Sheet</h3>
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                    <li class="breadcrumb-item active">Completed Trips</li>
+                    <li class="breadcrumb-item active">Completed Trip Sheet</li>
                 </ol>
             </nav>
         </div>
@@ -28,6 +28,24 @@
                                 <div class="o-f-inp">
                                     <label for="dateToFilter">To Date</label>
                                     <input type="date" id="dateToFilter" class="form-control shadow-none">
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="tripFilter">Filter by Trip</label>
+                                    <select id="tripFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">---Select---</option>
+                                        @foreach($trips as $trip)
+                                            <option value="{{ $trip->id }}">{{ $trip->code }} - {{ $trip->trip_title }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="searchFilter">SER Code</label>
+                                    <input type="text" id="searchFilter" class="form-control shadow-none"
+                                        placeholder="Search SER code">
                                 </div>
                             </div>
                             <div class="col-lg-3 mb-3">
@@ -52,7 +70,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-4 mb-3">
+                            <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
                                     <label for="controllerFilter">Filter by Controller</label>
                                     <select id="controllerFilter" class="form-select shadow-none select2-filter">
@@ -65,7 +83,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-4 mb-3">
+                            <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
                                     <label for="supervisorFilter">Filter by Supervisor</label>
                                     <select id="supervisorFilter" class="form-select shadow-none select2-filter">
@@ -78,7 +96,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-4 mb-3">
+                            <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
                                     <label for="driverFilter">Filter by Driver</label>
                                     <select id="driverFilter" class="form-select shadow-none select2-filter">
@@ -114,10 +132,8 @@
                         <div class="col-lg-12">
                             <div class="mt-3 table-container">
                                 <div class="row justify-content-end">
-                                    <div class="col-lg-7">
-                                        <div class="table-search">
-                                            <label for="searchFilter" class="nowrap">Search</label>
-                                            <input type="text" id="searchFilter" class="form-control shadow-none" placeholder="Search by Trip No">
+                                    <div class="col-lg-3">
+                                        <div class="table-search justify-content-end">
                                             <a href="{{ route('trips.completed.export') }}" class="btn btn-primary ms-1" id="exportCompletedTrips">Export Data</a>
                                         </div>
                                     </div>
@@ -127,14 +143,25 @@
                                         <thead>
                                             <tr>
                                                 <th class="text-center nowrap">SL No</th>
-                                                <th class="text-center nowrap">Trip Code</th>
-                                                <th class="text-center nowrap">Title</th>
+                                                <th class="text-center nowrap">Code</th>
+                                                <th class="text-center nowrap">SER</th>
+                                                <th class="text-center nowrap">Round</th>
+                                                <th class="text-center nowrap">NAT</th>
+                                                <th class="text-center nowrap">KMS</th>
+                                                <th class="text-center nowrap">Departure</th>
+                                                <th class="text-center nowrap">Arrival</th>
+                                                <th class="text-center nowrap">Driver</th>
+                                                <th class="text-center nowrap">Vehicle</th>
                                                 <th class="text-center nowrap">Date</th>
-                                                <th class="text-center nowrap">From</th>
-                                                <th class="text-center nowrap">To</th>
-                                                <th class="text-center nowrap">Driver Name</th>
-                                                <th class="text-center nowrap">Status</th>
-                                                <th class="text-center nowrap">View</th>
+                                                <th class="text-center nowrap">Actual Start</th>
+                                                <th class="text-center nowrap">Actual Reach</th>
+                                                <th class="text-center nowrap">Starting Km</th>
+                                                <th class="text-center nowrap">Ending Km</th>
+                                                <th class="text-center nowrap">Starting Charge</th>
+                                                <th class="text-center nowrap">Ending Charge</th>
+                                                <th class="text-center nowrap">Vehicle Verified</th>
+                                                <th class="text-center nowrap">Driver Verified</th>
+                                                <th class="text-center nowrap">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody></tbody>
@@ -162,21 +189,32 @@
                     serverSide: true,
                     searching: false,
                     ajax: {
-                        url: "{{ route('trips.completed.index') }}",
+                        url: "{{ route('completed.trips.index') }}",
                         data: filters
                     },
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'trip_code', name: 'trip_sheets.code', className: 'text-center' },
-                        { data: 'title', name: 'trips.title', className: 'text-center' },
-                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap' },
-                        { data: 'from_location', name: 'from_location', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'to_location', name: 'to_location', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'code', name: 'trip_sheet_entries.code', className: 'text-center' },
+                        { data: 'service_code', name: 'service_code', className: 'text-center' },
+                        { data: 'round_no', name: 'round_no', className: 'text-center' },
+                        { data: 'trip_nature', name: 'trip_nature', className: 'text-center' },
+                        { data: 'schedule_km', name: 'schedule_km', className: 'text-center' },
+                        { data: 'departure_time', name: 'departure_time', className: 'text-center' },
+                        { data: 'arrival_time', name: 'arrival_time', className: 'text-center' },
                         { data: 'driver_name', name: 'driver_name', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'status', name: 'trip_sheets.status', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'vehicle_no', name: 'vehicle_no', orderable: false, searchable: false, className: 'text-center' },
+                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap' },
+                        { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
+                        { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
+                        { data: 'starting_km', name: 'starting_km', className: 'text-center' },
+                        { data: 'ending_km', name: 'ending_km', className: 'text-center' },
+                        { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
+                        { data: 'ending_electric_charge', name: 'ending_electric_charge', className: 'text-center' },
+                        { data: 'is_vehicle_verified', name: 'is_vehicle_verified', className: 'text-center' },
+                        { data: 'is_driver_verified', name: 'is_driver_verified', className: 'text-center' },
                         { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
                     ],
-                    order: [[3, 'desc']]
+                    order: [[9, 'desc']]
                 });
 
                 let searchTimer;
@@ -186,10 +224,10 @@
                 });
 
                 $('#searchFilters').on('click', reloadTable);
-                $('#dateFromFilter, #dateToFilter, #depotFilter, #vehicleFilter, #controllerFilter, #supervisorFilter, #driverFilter').on('change', reloadTable);
+                $('#dateFromFilter, #dateToFilter, #depotFilter, #vehicleFilter, #controllerFilter, #supervisorFilter, #driverFilter, #tripFilter').on('change', reloadTable);
 
                 $('#resetFilters').on('click', function () {
-                    $('#dateFromFilter, #dateToFilter, #depotFilter, #vehicleFilter, #controllerFilter, #supervisorFilter, #driverFilter, #searchFilter').val('');
+                    $('#dateFromFilter, #dateToFilter, #depotFilter, #vehicleFilter, #controllerFilter, #supervisorFilter, #driverFilter, #tripFilter, #searchFilter').val('');
                     $('.select2-filter').trigger('change.select2');
                     reloadTable();
                 });
@@ -205,7 +243,8 @@
 
                 function currentFilters() {
                     return {
-                        search_text: $('#searchFilter').val(),
+                        ser_search: $('#searchFilter').val(),
+                        trip_id: $('#tripFilter').val(),
                         date_from: $('#dateFromFilter').val(),
                         date_to: $('#dateToFilter').val(),
                         depot_id: $('#depotFilter').val(),

@@ -16,11 +16,11 @@
 
         <div class="main-table-container mb-3">
             <div class="row">
-                <div class="col-lg-3 o-f-inp mb-3">
+                <div class="col-lg-4 o-f-inp mb-3">
                     <label>Trip No</label>
                     <input type="text" class="form-control shadow-none" value="{{ $record->code }}" disabled>
                 </div>
-                <div class="col-lg-3 o-f-inp mb-3">
+                <div class="col-lg-4 o-f-inp mb-3">
                     <label>Trip</label>
                     <input type="text" class="form-control shadow-none" value="{{ $record->trip_title }}" disabled>
                 </div>
@@ -30,27 +30,37 @@
                         value="{{ \App\Models\Trip::TRIP_SIDES[$record->trip_side] ?? '-' }}" disabled>
                 </div> --}}
                 @if($record->trip_side === 'both')
-                    <div class="col-lg-3 o-f-inp mb-3">
+                    <div class="col-lg-4 o-f-inp mb-3">
                         <label>Depot</label>
-                        <input type="text" class="form-control shadow-none"
-                            value="{{ $record->depot?->name ?? '-' }}" disabled>
+                        <input type="text" class="form-control shadow-none" value="{{ $record->depot?->name ?? '-' }}"
+                            disabled>
                     </div>
                 @else
-                    <div class="col-lg-3 o-f-inp mb-3">
+                    <div class="col-lg-4 o-f-inp mb-3">
                         <label>From Depot</label>
-                        <input type="text" class="form-control shadow-none"
-                            value="{{ $record->fromDepot?->name ?? '-' }}" disabled>
+                        <input type="text" class="form-control shadow-none" value="{{ $record->fromDepot?->name ?? '-' }}"
+                            disabled>
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-3">
+                    <div class="col-lg-4 o-f-inp mb-3">
                         <label>To Depot</label>
-                        <input type="text" class="form-control shadow-none"
-                            value="{{ $record->toDepot?->name ?? '-' }}" disabled>
+                        <input type="text" class="form-control shadow-none" value="{{ $record->toDepot?->name ?? '-' }}"
+                            disabled>
                     </div>
                 @endif
-                <div class="col-lg-3 o-f-inp mb-3">
+                <div class="col-lg-4 o-f-inp mb-3">
                     <label>Date Range</label>
                     <input type="text" class="form-control shadow-none"
                         value="{{ $record->from_date?->format('d M Y') }} - {{ $record->to_date?->format('d M Y') }}"
+                        disabled>
+                </div>
+                <div class="col-lg-4 o-f-inp mb-3">
+                    <label>NAT</label>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->tripNature->title ?? '-' }}"
+                        disabled>
+                </div>
+                <div class="col-lg-4 o-f-inp mb-3">
+                    <label>KMS</label>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->schedule_km ?? '-' }}"
                         disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
@@ -118,6 +128,24 @@
                 </div>
             </div>
 
+            <div class="row align-items-end mb-3" id="sheetEntryFilters">
+                <div class="col-md-4 col-lg-3 o-f-inp mb-2 mb-md-0">
+                    <label for="entryDateFilter" class="form-label m-0">Date</label>
+                    <input type="date" id="entryDateFilter" class="form-control shadow-none"
+                        min="{{ $record->from_date?->format('Y-m-d') }}" max="{{ $record->to_date?->format('Y-m-d') }}">
+                </div>
+                <div class="col-md-4 col-lg-3 o-f-inp mb-2 mb-md-0">
+                    <label for="serSearchFilter" class="form-label m-0">SER Code</label>
+                    <input type="text" id="serSearchFilter" class="form-control shadow-none"
+                        placeholder="Search SER code">
+                </div>
+                <div class="col-md-4 col-lg-3 d-flex gap-2">
+                    <button type="button" id="resetSheetEntryFilters" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-rotate-left me-1"></i> Reset
+                    </button>
+                </div>
+            </div>
+
             <div class="table-over">
                 <table class="align-middle mb-0 table table-striped tble-cstm bg-transparent" id="sheetEntryTable">
                     <thead>
@@ -125,10 +153,16 @@
                             <th class="text-center nowrap">SL No</th>
                             <th class="text-center nowrap">Code</th>
                             <th class="text-center nowrap">Status</th>
+                            <th class="text-center nowrap" style="min-width: 130px;">Date</th>
+                            <th class="text-center nowrap">SER</th>
+                            <th class="text-center nowrap">Round</th>
+                            {{-- <th class="text-center nowrap">NAT</th>
+                            <th class="text-center nowrap">KMS</th> --}}
+                            <th class="text-center nowrap">Departure</th>
+                            <th class="text-center nowrap">Arrival</th>
                             <th class="text-center nowrap">Driver</th>
                             <th class="text-center nowrap">Vehicle</th>
                             {{-- <th class="text-center nowrap">Trip Order Sequence No</th> --}}
-                            <th class="text-center nowrap" style="min-width: 130px;">Date</th>
                             <th class="text-center nowrap">Actual Start</th>
                             <th class="text-center nowrap">Actual Reach</th>
                             <th class="text-center nowrap">Starting Km</th>
@@ -147,30 +181,60 @@
     </section>
 
     <style>
-        .route-stops-horizontal { display: flex; align-items: center; gap: 10px; overflow-x: auto; padding: 10px 4px; }
-        .route-stop-item { min-width: max-content; padding: 8px 12px; border: 1px solid #d9dee8; border-radius: 8px; background: #fff; text-align: center; }
-        .route-stop-arrow { color: #6c757d; flex: 0 0 auto; }
+        .route-stops-horizontal {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 10px 4px;
+        }
+
+        .route-stop-item {
+            min-width: max-content;
+            padding: 8px 12px;
+            border: 1px solid #d9dee8;
+            border-radius: 8px;
+            background: #fff;
+            text-align: center;
+        }
+
+        .route-stop-arrow {
+            color: #6c757d;
+            flex: 0 0 auto;
+        }
     </style>
 
     @section('scripts')
         <script>
             $(function () {
-                $('#sheetEntryTable').DataTable({
+                var sheetEntryTable = $('#sheetEntryTable').DataTable({
                     processing: true,
                     serverSide: true,
                     searching: false,
                     pageLength: 10,
                     ordering: true,
                     responsive: true,
-                    ajax: "{{ route('trips.sheet', $record->id) }}",
+                    ajax: {
+                        url: "{{ route('trips.sheet', $record->id) }}",
+                        data: function (data) {
+                            data.entry_date = $('#entryDateFilter').val();
+                            data.ser_search = $('#serSearchFilter').val();
+                        }
+                    },
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'code', name: 'trip_sheets.code', className: 'text-center' },
-                        { data: 'status', name: 'trip_sheets.status', className: 'text-center' },
+                        { data: 'code', name: 'trip_sheet_entries.code', className: 'text-center' },
+                        { data: 'status', name: 'trip_sheet_entries.status', className: 'text-center' },
+                         { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
+                        { data: 'service_code', name: 'service_code', className: 'text-center' },
+                        { data: 'round_no', name: 'round_no', className: 'text-center' },
+                        //{ data: 'trip_nature', name: 'trip_nature', className: 'text-center' },
+                        //{ data: 'schedule_km', name: 'schedule_km', className: 'text-center' },
+                        { data: 'departure_time', name: 'departure_time', className: 'text-center' },
+                        { data: 'arrival_time', name: 'arrival_time', className: 'text-center' },
                         { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
                         //{ data: 'trip_order_sequence_no', name: 'trip_order_sequence_no', className: 'text-center' },
-                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
                         { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
                         { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
                         { data: 'starting_km', name: 'starting_km', className: 'text-center' },
@@ -185,6 +249,23 @@
                         emptyTable: 'No trip sheet entries found.'
                     },
                     order: []
+                });
+
+                var serSearchTimer;
+                $('#serSearchFilter').on('input', function () {
+                    clearTimeout(serSearchTimer);
+                    serSearchTimer = setTimeout(function () {
+                        sheetEntryTable.ajax.reload();
+                    }, 300);
+                });
+
+                $('#entryDateFilter').on('change', function () {
+                    sheetEntryTable.ajax.reload();
+                });
+
+                $('#resetSheetEntryFilters').on('click', function () {
+                    $('#entryDateFilter, #serSearchFilter').val('');
+                    sheetEntryTable.ajax.reload();
                 });
 
                 $(document).on('submit', '.delete-sheet-entry', function (event) {
@@ -203,7 +284,34 @@
                         cancelButtonText: 'Cancel'
                     }).then(function (result) {
                         if (result.isConfirmed) {
-                            form.submit();
+                            var deleteForm = $(form);
+                            var deleteButton = deleteForm.find('button[type="submit"]');
+                            deleteButton.prop('disabled', true);
+
+                            $.ajax({
+                                url: deleteForm.attr('action'),
+                                type: 'POST',
+                                data: deleteForm.serialize(),
+                                headers: { 'Accept': 'application/json' },
+                                success: function (response) {
+                                    sheetEntryTable.ajax.reload(null, false);
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Deleted',
+                                        text: response.message,
+                                        timer: 1800,
+                                        showConfirmButton: false
+                                    });
+                                },
+                                error: function (xhr) {
+                                    deleteButton.prop('disabled', false);
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Delete failed',
+                                        text: xhr.responseJSON?.message || 'Unable to delete the trip sheet entry.'
+                                    });
+                                }
+                            });
                         }
                     });
                 });
