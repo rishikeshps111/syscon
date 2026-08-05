@@ -13,17 +13,16 @@ use App\Models\DorAccountResponsible;
 use App\Models\DorKilometerLossReason;
 use App\Models\DriverProfile;
 use App\Models\Route as RouteModel;
-use App\Models\ServiceType;
 use App\Models\State;
 use App\Models\SupervisorProfile;
 use App\Models\Trip;
 use App\Models\TripAssignment;
+use App\Models\TripNature;
 use App\Models\TripSheet;
 use App\Models\TripSheetEntry;
 use App\Models\TripSheetEntryDor;
 use App\Models\Vehicle;
 use App\Models\VehicleClassification;
-use App\Models\TripNature;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -34,6 +33,14 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -46,7 +53,7 @@ class TripController extends Controller implements HasMiddleware
             new Middleware(PermissionMiddleware::using('trips.view'), ['index', 'show', 'export', 'completedTrips', 'completedTripsExport', 'completedTripView', 'completedTripPdf', 'tripReport', 'downloadTripReport']),
             new Middleware(PermissionMiddleware::using('trips.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('trips.edit'), ['edit', 'update', 'status']),
-            new Middleware(PermissionMiddleware::using('trips.sheet'), ['sheet', 'createSheetEntry', 'editSheetEntry', 'duplicateSheetEntry', 'storeSheet', 'destroySheetEntry', 'sheetView', 'importSheetForm', 'importSheet', 'sampleSheetCsv', 'dorForm', 'storeDor', 'dorPreview']),
+            new Middleware(PermissionMiddleware::using('trips.sheet'), ['sheet', 'createSheetEntry', 'editSheetEntry', 'duplicateSheetEntry', 'storeSheet', 'destroySheetEntry', 'sheetView', 'importSheetForm', 'importSheet', 'sampleSheetExcel', 'dorForm', 'storeDor', 'dorPreview']),
             new Middleware(PermissionMiddleware::using('trips.delete'), ['destroy']),
         ];
     }
@@ -58,19 +65,19 @@ class TripController extends Controller implements HasMiddleware
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
-                ->addColumn('route_name', fn($row) => $row->route?->route_name ?? '')
-                ->addColumn('trip_title', fn($row) => $row->trip_title ?: '-')
-                ->addColumn('from_location', fn($row) => $row->route?->startPoint?->name ?? '-')
-                ->addColumn('to_location', fn($row) => $row->route?->endPoint?->name ?? '-')
-                ->addColumn('state_name', fn($row) => $row->state?->name ?? '-')
-                ->addColumn('depot_name', fn($row) => $row->depot?->name ?? '-')
-                ->addColumn('classification_name', fn($row) => $row->vehicleClassification?->title ?? '-')
-                ->addColumn('nature_name', fn($row) => $row->tripNature?->title ?? '-')
-                ->addColumn('from_date_text', fn($row) => $row->from_date?->format('d M Y') ?? '-')
-                ->addColumn('to_date_text', fn($row) => $row->to_date?->format('d M Y') ?? '-')
-                ->addColumn('status', fn($row) => $this->statusBadge($row->status))
-                ->addColumn('action', fn($row) => view('trip.partials.action', compact('row'))->render())
+                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-checkbox" value="'.$row->id.'">')
+                ->addColumn('route_name', fn ($row) => $row->route?->route_name ?? '')
+                ->addColumn('trip_title', fn ($row) => $row->trip_title ?: '-')
+                ->addColumn('from_location', fn ($row) => $row->route?->startPoint?->name ?? '-')
+                ->addColumn('to_location', fn ($row) => $row->route?->endPoint?->name ?? '-')
+                ->addColumn('state_name', fn ($row) => $row->state?->name ?? '-')
+                ->addColumn('depot_name', fn ($row) => $row->depot?->name ?? '-')
+                ->addColumn('classification_name', fn ($row) => $row->vehicleClassification?->title ?? '-')
+                ->addColumn('nature_name', fn ($row) => $row->tripNature?->title ?? '-')
+                ->addColumn('from_date_text', fn ($row) => $row->from_date?->format('d M Y') ?? '-')
+                ->addColumn('to_date_text', fn ($row) => $row->to_date?->format('d M Y') ?? '-')
+                ->addColumn('status', fn ($row) => $this->statusBadge($row->status))
+                ->addColumn('action', fn ($row) => view('trip.partials.action', compact('row'))->render())
                 ->rawColumns(['action', 'status', 'checkbox'])
                 ->make(true);
         }
@@ -86,14 +93,14 @@ class TripController extends Controller implements HasMiddleware
         if ($request->ajax()) {
             return DataTables::of($this->completedTripEntriesQuery($request))
                 ->addIndexColumn()
-                ->addColumn('trip_code', fn($entry) => $entry->sheet?->code ?: '-')
-                ->addColumn('title', fn($entry) => $entry->sheet?->trip?->trip_title ?: '-')
-                ->addColumn('trip_date', fn($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
-                ->addColumn('from_location', fn($entry) => $entry->sheet?->trip?->route?->startPoint?->name ?: '-')
-                ->addColumn('to_location', fn($entry) => $entry->sheet?->trip?->route?->endPoint?->name ?: '-')
-                ->addColumn('driver_name', fn($entry) => $this->entryDriverName($entry))
-                ->addColumn('status', fn($entry) => $this->sheetStatusBadge($entry->sheet?->status))
-                ->addColumn('action', fn($entry) => '<div class="action-btns"><a href="' . e(route('trips.completed.view', $entry->id)) . '" class="btn-view" title="View"><i class="fa-solid fa-eye"></i></a></div>')
+                ->addColumn('trip_code', fn ($entry) => $entry->sheet?->code ?: '-')
+                ->addColumn('title', fn ($entry) => $entry->sheet?->trip?->trip_title ?: '-')
+                ->addColumn('trip_date', fn ($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
+                ->addColumn('from_location', fn ($entry) => $entry->sheet?->trip?->route?->startPoint?->name ?: '-')
+                ->addColumn('to_location', fn ($entry) => $entry->sheet?->trip?->route?->endPoint?->name ?: '-')
+                ->addColumn('driver_name', fn ($entry) => $this->entryDriverName($entry))
+                ->addColumn('status', fn ($entry) => $this->sheetStatusBadge($entry->sheet?->status))
+                ->addColumn('action', fn ($entry) => '<div class="action-btns"><a href="'.e(route('trips.completed.view', $entry->id)).'" class="btn-view" title="View"><i class="fa-solid fa-eye"></i></a></div>')
                 ->rawColumns(['status', 'action'])
                 ->make(true);
         }
@@ -102,8 +109,8 @@ class TripController extends Controller implements HasMiddleware
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'vehicles' => Vehicle::orderBy('vehicle_no')->get(['id', 'vehicle_no']),
             'drivers' => DriverProfile::with('user')->orderBy('id')->get(),
-            'controllers' => ControllerProfile::with('user')->whereHas('user', fn($query) => $query->where('is_active', true))->get(),
-            'supervisors' => SupervisorProfile::with('user')->whereHas('user', fn($query) => $query->where('is_active', true))->get(),
+            'controllers' => ControllerProfile::with('user')->whereHas('user', fn ($query) => $query->where('is_active', true))->get(),
+            'supervisors' => SupervisorProfile::with('user')->whereHas('user', fn ($query) => $query->where('is_active', true))->get(),
         ]);
     }
 
@@ -172,11 +179,11 @@ class TripController extends Controller implements HasMiddleware
         ]);
 
         $pdf = $this->buildCompletedTripPdf($tripSheetEntry, self::assignmentForCompletedEntry($tripSheetEntry));
-        $fileName = ($tripSheetEntry->sheet?->code ?: 'completed-trip') . '.pdf';
+        $fileName = ($tripSheetEntry->sheet?->code ?: 'completed-trip').'.pdf';
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
         ]);
     }
 
@@ -296,21 +303,21 @@ class TripController extends Controller implements HasMiddleware
         if (request()->ajax()) {
             return DataTables::of($this->sheetEntriesQuery($trip))
                 ->addIndexColumn()
-                ->addColumn('trip_date', fn($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
-                ->addColumn('code', fn($entry) => $entry->sheet?->code ?: '-')
-                ->addColumn('status', fn($entry) => $this->sheetStatusBadge($entry->sheet?->status))
-                ->editColumn('actual_start_time', fn($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
-                ->editColumn('actual_reach_time', fn($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
-                ->addColumn('driver_name', fn($entry) => $this->entryDriverName($entry))
-                ->addColumn('vehicle_no', fn($entry) => $this->entryVehicleNo($entry))
-                ->editColumn('trip_order_sequence_no', fn($entry) => $entry->trip_order_sequence_no ?? '-')
-                ->editColumn('starting_km', fn($entry) => $entry->starting_km ?? '-')
-                ->editColumn('ending_km', fn($entry) => $entry->ending_km ?? '-')
-                ->editColumn('starting_electric_charge', fn($entry) => $entry->starting_electric_charge !== null ? $entry->starting_electric_charge . '%' : '-')
-                ->editColumn('ending_electric_charge', fn($entry) => $entry->ending_electric_charge !== null ? $entry->ending_electric_charge . '%' : '-')
-                ->editColumn('is_vehicle_verified', fn($entry) => $this->yesNoBadge((bool) $entry->is_vehicle_verified))
-                ->editColumn('is_driver_verified', fn($entry) => $this->yesNoBadge((bool) $entry->is_driver_verified))
-                ->addColumn('action', fn($entry) => $this->sheetEntryActionButtons($trip, $entry))
+                ->addColumn('trip_date', fn ($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
+                ->addColumn('code', fn ($entry) => $entry->sheet?->code ?: '-')
+                ->addColumn('status', fn ($entry) => $this->sheetStatusBadge($entry->sheet?->status))
+                ->editColumn('actual_start_time', fn ($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
+                ->editColumn('actual_reach_time', fn ($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
+                ->addColumn('driver_name', fn ($entry) => $this->entryDriverName($entry))
+                ->addColumn('vehicle_no', fn ($entry) => $this->entryVehicleNo($entry))
+                ->editColumn('trip_order_sequence_no', fn ($entry) => $entry->trip_order_sequence_no ?? '-')
+                ->editColumn('starting_km', fn ($entry) => $entry->starting_km ?? '-')
+                ->editColumn('ending_km', fn ($entry) => $entry->ending_km ?? '-')
+                ->editColumn('starting_electric_charge', fn ($entry) => $entry->starting_electric_charge !== null ? $entry->starting_electric_charge.'%' : '-')
+                ->editColumn('ending_electric_charge', fn ($entry) => $entry->ending_electric_charge !== null ? $entry->ending_electric_charge.'%' : '-')
+                ->editColumn('is_vehicle_verified', fn ($entry) => $this->yesNoBadge((bool) $entry->is_vehicle_verified))
+                ->editColumn('is_driver_verified', fn ($entry) => $this->yesNoBadge((bool) $entry->is_driver_verified))
+                ->addColumn('action', fn ($entry) => $this->sheetEntryActionButtons($trip, $entry))
                 ->rawColumns(['status', 'is_vehicle_verified', 'is_driver_verified', 'action'])
                 ->make(true);
         }
@@ -319,7 +326,7 @@ class TripController extends Controller implements HasMiddleware
             'record' => $trip->load([
                 'route.startPoint',
                 'route.endPoint',
-                'route.stops' => fn($query) => $query->with('location')->orderBy('position'),
+                'route.stops' => fn ($query) => $query->with('location')->orderBy('position'),
             ]),
         ]));
     }
@@ -441,7 +448,7 @@ class TripController extends Controller implements HasMiddleware
 
         if ($request->input('export') === 'csv') {
             $entries = $query->get();
-            $fileName = ($trip->code ?: 'trip') . '-sheet.csv';
+            $fileName = ($trip->code ?: 'trip').'-sheet.csv';
 
             return response()->streamDownload(function () use ($entries) {
                 $handle = fopen('php://output', 'w');
@@ -486,19 +493,19 @@ class TripController extends Controller implements HasMiddleware
         if ($request->ajax()) {
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('trip_date', fn($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
-                ->addColumn('trip_code', fn($entry) => $entry->sheet?->code ?: '-')
-                ->addColumn('starting_from', fn($entry) => $this->entryStartingPoint($entry))
-                ->addColumn('destination_point', fn($entry) => $this->entryDestinationPoint($entry))
-                ->editColumn('departure_time', fn($entry) => $this->formatSheetTime($entry->departure_time) ?: '-')
-                ->editColumn('actual_start_time', fn($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
-                ->editColumn('arrival_time', fn($entry) => $this->formatSheetTime($entry->arrival_time) ?: '-')
-                ->editColumn('actual_reach_time', fn($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
-                ->addColumn('shift', fn($entry) => ucfirst((string) $entry->side))
-                ->addColumn('driver', fn($entry) => $this->entryDriverName($entry))
-                ->addColumn('vehicle', fn($entry) => $this->entryVehicleNo($entry))
-                ->addColumn('delay', fn($entry) => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time))
-                ->addColumn('action', fn($entry) => $this->sheetViewDorButtons($trip, $entry))
+                ->addColumn('trip_date', fn ($entry) => $entry->sheet?->date?->format('d M Y') ?: '-')
+                ->addColumn('trip_code', fn ($entry) => $entry->sheet?->code ?: '-')
+                ->addColumn('starting_from', fn ($entry) => $this->entryStartingPoint($entry))
+                ->addColumn('destination_point', fn ($entry) => $this->entryDestinationPoint($entry))
+                ->editColumn('departure_time', fn ($entry) => $this->formatSheetTime($entry->departure_time) ?: '-')
+                ->editColumn('actual_start_time', fn ($entry) => $this->formatSheetTime($entry->actual_start_time) ?: '-')
+                ->editColumn('arrival_time', fn ($entry) => $this->formatSheetTime($entry->arrival_time) ?: '-')
+                ->editColumn('actual_reach_time', fn ($entry) => $this->formatSheetTime($entry->actual_reach_time) ?: '-')
+                ->addColumn('shift', fn ($entry) => ucfirst((string) $entry->side))
+                ->addColumn('driver', fn ($entry) => $this->entryDriverName($entry))
+                ->addColumn('vehicle', fn ($entry) => $this->entryVehicleNo($entry))
+                ->addColumn('delay', fn ($entry) => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time))
+                ->addColumn('action', fn ($entry) => $this->sheetViewDorButtons($trip, $entry))
                 ->rawColumns(['action'])
                 ->make(true);
         }
@@ -513,80 +520,63 @@ class TripController extends Controller implements HasMiddleware
     public function importSheetForm(Trip $trip)
     {
         return view('trip.sheet-import', [
-            'record' => $trip->load(['route.startPoint', 'route.endPoint', 'route.stops']),
-            'headers' => $this->sheetCsvHeaders(),
+            'record' => $trip->load([
+                'tripNature', 'route.startPoint', 'route.endPoint',
+                'route.stops' => fn ($query) => $query->with('location')->orderBy('position'),
+            ]),
         ]);
     }
 
     public function importSheet(Request $request, Trip $trip)
     {
         $request->validate([
-            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+            'sheet_file' => ['required', 'file', 'mimes:xlsx', 'max:5120'],
         ]);
 
-        [$rows, $errors] = $this->readSheetCsv($request->file('csv_file')->getRealPath());
+        $rows = $this->readConfiguredTripSheet($trip, $request->file('sheet_file')->getRealPath());
+        $sheetDate = ($trip->from_date ?: today())->toDateString();
 
-        if ($errors) {
-            throw ValidationException::withMessages(['csv_file' => $errors]);
-        }
+        DB::transaction(function () use ($trip, $rows, $sheetDate) {
+            $trip->sheets()->whereDate('date', $sheetDate)->delete();
+            $sheet = $this->sheetForDate($trip, $sheetDate, 'pending');
 
-        $validatedRows = $this->validateSheetCsvRows($trip, $rows);
+            foreach ($rows as $row) {
+                $entry = $sheet->entries()->create([
+                    'side' => null,
+                    'trip_order_sequence_no' => $row['sequence'],
+                    'departure_time' => $row['departure_time'],
+                    'arrival_time' => $row['arrival_time'],
+                    'notes' => $row['service_code'],
+                ]);
 
-        DB::transaction(function () use ($trip, $validatedRows) {
-            $dates = collect($validatedRows)
-                ->pluck('date')
-                ->map(fn(Carbon $date) => $date->toDateString())
-                ->unique()
-                ->values();
-
-            $trip->sheets()->whereIn('date', $dates)->delete();
-
-            foreach ($validatedRows as $row) {
-                $sheet = $this->sheetForDate($trip, $row['date']->toDateString(), $row['status']);
-                $sheet->entries()->create($this->entryPayload($trip, $row));
+                $entry->scheduleStopTimes()->createMany(
+                    collect($row['stop_times'])->map(fn (array $stopTime, int $index) => [
+                        'location_id' => $stopTime['location_id'],
+                        'route_stop_id' => $stopTime['route_stop_id'],
+                        'sequence_no' => $index + 1,
+                        'location_name' => $stopTime['location'],
+                        'event' => $stopTime['event'],
+                        'show_location' => $stopTime['show_location'],
+                        'scheduled_time' => $stopTime['time'],
+                    ])->all()
+                );
             }
         });
 
         return redirect()
             ->route('trips.sheet.view', $trip->id)
-            ->with('success', count($validatedRows) . ' trip sheet row(s) imported successfully.');
+            ->with('success', count($rows).' configured trip(s) imported successfully.');
     }
 
-    public function sampleSheetCsv(Trip $trip)
+    public function sampleSheetExcel(Trip $trip)
     {
-        $tripDate = $trip->from_date ?: now();
-        return response()->streamDownload(function () use ($trip, $tripDate) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $this->sheetCsvHeaders());
-            fputcsv($handle, [
-                $tripDate->format('d-m-Y'),
-                'pending',
-                $this->formatSheetTime($trip->start_time) ?: '09:00',
-                $this->formatSheetTime($trip->end_time) ?: '17:00',
-                $this->formatSheetTime($trip->start_time) ?: '09:00',
-                $this->formatSheetTime($trip->end_time) ?: '17:00',
-                '1',
-                '1200',
-                '1250',
-                '85',
-                '40',
-                'Good',
-                'yes',
-                '',
-                now()->format('d-m-Y H:i'),
-                'yes',
-                '',
-                now()->format('d-m-Y H:i'),
-                'no',
-                '',
-                '',
-                'no',
-                '',
-                '',
-                'Sample trip sheet row',
-            ]);
-            fclose($handle);
-        }, ($trip->code ?: 'trip') . '-sheet-import-sample.csv', ['Content-Type' => 'text/csv']);
+        $spreadsheet = $this->configuredTripSheetTemplate($trip);
+
+        return response()->streamDownload(
+            fn () => (new Xlsx($spreadsheet))->save('php://output'),
+            ($trip->code ?: 'trip').'-trip-sheet.xlsx',
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        );
     }
 
     public function storeSheet(Request $request, Trip $trip)
@@ -643,13 +633,13 @@ class TripController extends Controller implements HasMiddleware
 
             if (! empty($validated['entry_id'])) {
                 $entry = TripSheetEntry::whereKey($validated['entry_id'])
-                    ->whereHas('sheet', fn($query) => $query->where('trip_id', $trip->id))
+                    ->whereHas('sheet', fn ($query) => $query->where('trip_id', $trip->id))
                     ->firstOrFail();
             }
 
             $duplicate = $sheet->entries()
                 ->lockForUpdate()
-                ->when($entry, fn($query) => $query->whereKeyNot($entry->id))
+                ->when($entry, fn ($query) => $query->whereKeyNot($entry->id))
                 ->exists();
 
             if ($duplicate) {
@@ -702,7 +692,7 @@ class TripController extends Controller implements HasMiddleware
         }
 
         return $trip->assignments
-            ->first(fn(TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
+            ->first(fn (TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
     }
 
     private function filteredQuery()
@@ -713,9 +703,9 @@ class TripController extends Controller implements HasMiddleware
         if (request()->filled('search_text')) {
             $search = request('search_text');
             $query->where(function ($subQuery) use ($search) {
-                $subQuery->where('code', 'like', '%' . $search . '%')
-                    ->orWhere('title', 'like', '%' . $search . '%')
-                    ->orWhereHas('route', fn($routeQuery) => $routeQuery->where('route_name', 'like', '%' . $search . '%'));
+                $subQuery->where('code', 'like', '%'.$search.'%')
+                    ->orWhere('title', 'like', '%'.$search.'%')
+                    ->orWhereHas('route', fn ($routeQuery) => $routeQuery->where('route_name', 'like', '%'.$search.'%'));
             });
         }
 
@@ -769,7 +759,7 @@ class TripController extends Controller implements HasMiddleware
 
         if ($request->filled('search_text')) {
             $search = $request->search_text;
-            $query->where('trip_sheets.code', 'like', '%' . $search . '%');
+            $query->where('trip_sheets.code', 'like', '%'.$search.'%');
         }
 
         if ($request->filled('vehicle_id')) {
@@ -877,14 +867,14 @@ class TripController extends Controller implements HasMiddleware
         $deleteUrl = route('trips.sheet.entries.destroy', [$trip->id, $entry->id]);
 
         return '<div class="d-flex justify-content-center gap-1">'
-            . '<a href="' . e($editUrl) . '" class="btn btn-sm btn-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>'
-            . '<a href="' . e($duplicateUrl) . '" class="btn btn-sm btn-info text-white" title="Duplicate"><i class="fa-regular fa-copy"></i></a>'
-            . '<form method="POST" action="' . e($deleteUrl) . '" class="d-inline delete-sheet-entry">'
-            . csrf_field()
-            . method_field('DELETE')
-            . '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>'
-            . '</form>'
-            . '</div>';
+            .'<a href="'.e($editUrl).'" class="btn btn-sm btn-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>'
+            .'<a href="'.e($duplicateUrl).'" class="btn btn-sm btn-info text-white" title="Duplicate"><i class="fa-regular fa-copy"></i></a>'
+            .'<form method="POST" action="'.e($deleteUrl).'" class="d-inline delete-sheet-entry">'
+            .csrf_field()
+            .method_field('DELETE')
+            .'<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>'
+            .'</form>'
+            .'</div>';
     }
 
     private function sheetEntryPayload(TripSheetEntry $entry): array
@@ -1120,7 +1110,7 @@ class TripController extends Controller implements HasMiddleware
     private function dorImagePayload(Request $request, TripSheetEntry $entry, ?TripSheetEntryDor $dor): array
     {
         $payload = [];
-        $directory = 'trip-dor-odometer/' . $entry->id;
+        $directory = 'trip-dor-odometer/'.$entry->id;
 
         foreach (
             [
@@ -1171,7 +1161,7 @@ class TripController extends Controller implements HasMiddleware
 
         if (! $savedReasonId && $saved?->reason_for_kilometer_loss) {
             $savedReasonId = DorKilometerLossReason::where('name', $saved->reason_for_kilometer_loss)
-                ->when($savedAccountId, fn($query) => $query->where('dor_account_responsible_id', $savedAccountId))
+                ->when($savedAccountId, fn ($query) => $query->where('dor_account_responsible_id', $savedAccountId))
                 ->value('id');
         }
         $values = $this->dorPayload($entry, [
@@ -1487,7 +1477,7 @@ class TripController extends Controller implements HasMiddleware
 
         return $minutes >= 0
             ? "{$minutes} {$label}"
-            : abs($minutes) . " {$label} early";
+            : abs($minutes)." {$label} early";
     }
 
     private function sheetViewDorButtons(Trip $trip, TripSheetEntry $entry): string
@@ -1499,19 +1489,19 @@ class TripController extends Controller implements HasMiddleware
 
         if ($entry->dor?->is_completed && ! $this->canCompleteDor()) {
             return '<div class="d-flex justify-content-center gap-1">'
-                . '<a href="' . e($previewUrl) . '" class="btn-edit btn-nowrap btn-cstm">View DOR</a>'
-                . '</div>';
+                .'<a href="'.e($previewUrl).'" class="btn-edit btn-nowrap btn-cstm">View DOR</a>'
+                .'</div>';
         }
 
         $primaryLabel = $entry->dor ? 'Edit DOR' : 'Create DOR';
         $previewButton = $previewUrl
-            ? '<a href="' . e($previewUrl) . '" class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View DOR</a>'
+            ? '<a href="'.e($previewUrl).'" class="btn-edit btn-nowrap btn-cstm" style="background-color: #b23939;">View DOR</a>'
             : '<a href="#!" class="btn-edit btn-nowrap btn-cstm disabled" style="background-color: #b23939; opacity: .65; pointer-events: none;">View DOR</a>';
 
         return '<div class="d-flex justify-content-center gap-1">'
-            . '<a href="' . e($formUrl) . '" class="btn-edit btn-nowrap btn-cstm">' . $primaryLabel . '</a>'
-            . $previewButton
-            . '</div>';
+            .'<a href="'.e($formUrl).'" class="btn-edit btn-nowrap btn-cstm">'.$primaryLabel.'</a>'
+            .$previewButton
+            .'</div>';
     }
 
     private function assignmentForDate(Trip $trip, ?string $date): ?TripAssignment
@@ -1524,13 +1514,13 @@ class TripController extends Controller implements HasMiddleware
         $trip->loadMissing(['assignments.driverProfile.user', 'assignments.vehicle']);
 
         return $trip->assignments
-            ->first(fn(TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
+            ->first(fn (TripAssignment $assignment) => $assignment->from_date?->lte($date) && $assignment->to_date?->gte($date));
     }
 
     private function formData(array $extra = []): array
     {
         return $extra + [
-            'routes' => RouteModel::with(['startPoint', 'endPoint', 'stops' => fn($query) => $query->with('location')->orderBy('position')])->where('status', 'Active')->orderBy('route_name')->get(),
+            'routes' => RouteModel::with(['startPoint', 'endPoint', 'stops' => fn ($query) => $query->with('location')->orderBy('position')])->where('status', 'Active')->orderBy('route_name')->get(),
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'states' => State::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'vehicleClassifications' => VehicleClassification::where('is_active', true)->orderBy('title')->get(['id', 'title']),
@@ -1584,6 +1574,203 @@ class TripController extends Controller implements HasMiddleware
         return $time ? substr($time, 0, 5) : '';
     }
 
+    private function configuredTripSheetTemplate(Trip $trip): Spreadsheet
+    {
+        $trip->loadMissing([
+            'tripNature', 'route.startPoint', 'route.endPoint',
+            'route.stops' => fn ($query) => $query->with('location')->orderBy('position'),
+        ]);
+        $totalTrips = max(1, (int) $trip->total_trips);
+        $lastColumn = Coordinate::stringFromColumnIndex($totalTrips + 1);
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Trip Sheet');
+
+        $sheet->mergeCells("A1:{$lastColumn}1")->setCellValue('A1', $this->configuredTripSheetTitle($trip));
+        $sheet->mergeCells("A2:{$lastColumn}2")->setCellValue('A2', 'Trip Code: '.($trip->code ?: '-'));
+        $sheet->fromArray(['SL. NO', ...range(1, $totalTrips)], null, 'A4');
+        $sheet->setCellValue('A5', 'SER');
+        $sheet->setCellValue('A6', 'NAT');
+        $sheet->setCellValue('A7', 'KMS');
+
+        for ($index = 1; $index <= $totalTrips; $index++) {
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $sheet->setCellValue("{$column}5", 'ED'.str_pad((string) $index, 2, '0', STR_PAD_LEFT));
+            $sheet->setCellValue("{$column}6", $trip->tripNature?->title ?: '');
+            $sheet->setCellValue("{$column}7", (float) $trip->schedule_km);
+        }
+
+        $configuredRows = $this->configuredTripSheetRows($trip);
+        foreach ($configuredRows as $offset => $row) {
+            $excelRow = 8 + $offset;
+            $sheet->setCellValue("A{$excelRow}", $row['show_location'] ? $row['location'] : '');
+            if ($row['show_location'] && isset($configuredRows[$offset + 1]) && ! $configuredRows[$offset + 1]['show_location']) {
+                $sheet->mergeCells("A{$excelRow}:A".($excelRow + 1));
+            }
+            $sheet->getStyle("B{$excelRow}:{$lastColumn}{$excelRow}")->getNumberFormat()->setFormatCode('hh:mm');
+        }
+
+        $lastRow = 7 + count($configuredRows);
+        $sheet->getStyle("A1:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet->getStyle("A1:{$lastColumn}2")->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle("A1:{$lastColumn}7")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle("A4:{$lastColumn}7")->getFont()->setBold(true);
+        $sheet->getStyle("A4:{$lastColumn}7")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFD9EAF7');
+        $sheet->getColumnDimension('A')->setWidth(24);
+        for ($index = 2; $index <= $totalTrips + 1; $index++) {
+            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($index))->setWidth(13);
+        }
+        $sheet->freezePane('B8');
+
+        return $spreadsheet;
+    }
+
+    private function configuredTripSheetRows(Trip $trip): array
+    {
+        $route = $trip->route;
+        if (! $route?->startPoint || ! $route?->endPoint) {
+            throw ValidationException::withMessages(['sheet_file' => 'The selected route must have starting and ending depots.']);
+        }
+
+        $outward = collect([[
+            'point' => $route->startPoint,
+            'location_id' => $route->startPoint->location_id,
+            'route_stop_id' => null,
+        ]])
+            ->concat($route->stops->map(fn ($stop) => [
+                'point' => $stop->location ?? $stop,
+                'location_id' => $stop->location_id,
+                'route_stop_id' => $stop->id,
+            ]))
+            ->push([
+                'point' => $route->endPoint,
+                'location_id' => $route->endPoint->location_id,
+                'route_stop_id' => null,
+            ])
+            ->values();
+        $round = $outward->concat($outward->reverse()->skip(1))->values();
+        $points = collect();
+
+        for ($roundNo = 0; $roundNo < max(1, (int) $trip->rounds_per_trip); $roundNo++) {
+            $points = $points->concat($roundNo === 0 ? $round : $round->skip(1));
+        }
+
+        $rows = [];
+        $lastIndex = $points->count() - 1;
+        foreach ($points as $index => $routePoint) {
+            $point = $routePoint['point'];
+            $name = $point->short_name ?: $point->name;
+            $details = [
+                'location_id' => $routePoint['location_id'],
+                'route_stop_id' => $routePoint['route_stop_id'],
+            ];
+            if ($index === 0) {
+                $rows[] = $details + ['location' => $name, 'event' => 'departure', 'show_location' => true];
+            } elseif ($index === $lastIndex) {
+                $rows[] = $details + ['location' => $name, 'event' => 'arrival', 'show_location' => true];
+            } else {
+                $rows[] = $details + ['location' => $name, 'event' => 'arrival', 'show_location' => true];
+                $rows[] = $details + ['location' => $name, 'event' => 'departure', 'show_location' => false];
+            }
+        }
+
+        return $rows;
+    }
+
+    private function configuredTripSheetTitle(Trip $trip): string
+    {
+        $title = $trip->trip_title ?: '-';
+        $startCode = $trip->route?->startPoint?->short_name;
+        $endCode = $trip->route?->endPoint?->short_name;
+
+        return $startCode && $endCode
+            ? "{$title} ({$startCode} TO {$endCode})"
+            : $title;
+    }
+
+    private function readConfiguredTripSheet(Trip $trip, string $path): array
+    {
+        $trip->loadMissing([
+            'tripNature', 'route.startPoint', 'route.endPoint',
+            'route.stops' => fn ($query) => $query->with('location')->orderBy('position'),
+        ]);
+        $sheet = IOFactory::load($path)->getActiveSheet();
+        $expectedRows = $this->configuredTripSheetRows($trip);
+        $totalTrips = max(1, (int) $trip->total_trips);
+        $errors = [];
+        $result = [];
+
+        if (trim((string) $sheet->getCell('A1')->getValue()) !== $this->configuredTripSheetTitle($trip)) {
+            $errors[] = 'The trip title does not match this trip configuration.';
+        }
+        if (! str_contains((string) $sheet->getCell('A2')->getValue(), (string) $trip->code)) {
+            $errors[] = 'The trip code does not match this trip configuration.';
+        }
+
+        for ($tripIndex = 1; $tripIndex <= $totalTrips; $tripIndex++) {
+            $column = Coordinate::stringFromColumnIndex($tripIndex + 1);
+            $serviceCode = 'ED'.str_pad((string) $tripIndex, 2, '0', STR_PAD_LEFT);
+            if ((int) $sheet->getCell("{$column}4")->getValue() !== $tripIndex) {
+                $errors[] = "{$column}4 must contain serial number {$tripIndex}.";
+            }
+            if (trim((string) $sheet->getCell("{$column}5")->getValue()) !== $serviceCode) {
+                $errors[] = "{$column}5 must contain {$serviceCode}.";
+            }
+            if (trim((string) $sheet->getCell("{$column}6")->getValue()) !== (string) ($trip->tripNature?->title ?: '')) {
+                $errors[] = "{$column}6 must contain the configured trip nature.";
+            }
+            if (abs((float) $sheet->getCell("{$column}7")->getValue() - (float) $trip->schedule_km) > 0.01) {
+                $errors[] = "{$column}7 must contain the configured schedule kilometres.";
+            }
+
+            $times = [];
+            foreach ($expectedRows as $offset => $configuration) {
+                $excelRow = 8 + $offset;
+                $cell = "{$column}{$excelRow}";
+                if ($tripIndex === 1 && trim((string) $sheet->getCell("A{$excelRow}")->getValue()) !== ($configuration['show_location'] ? $configuration['location'] : '')) {
+                    $errors[] = "A{$excelRow} does not match the configured route locations.";
+                }
+                $time = $this->configuredSheetTime($sheet->getCell($cell)->getValue());
+                if ($time === null) {
+                    $errors[] = "Enter a valid time in {$cell}.";
+                }
+                $times[] = $configuration + ['time' => $time];
+            }
+
+            $result[] = [
+                'sequence' => $tripIndex,
+                'service_code' => $serviceCode,
+                'departure_time' => $times[0]['time'] ?? null,
+                'arrival_time' => $times[count($times) - 1]['time'] ?? null,
+                'stop_times' => $times,
+            ];
+        }
+
+        if ($errors) {
+            throw ValidationException::withMessages(['sheet_file' => array_slice($errors, 0, 25)]);
+        }
+
+        return $result;
+    }
+
+    private function configuredSheetTime(mixed $value): ?string
+    {
+        if (is_numeric($value)) {
+            return ExcelDate::excelToDateTimeObject((float) $value)->format('H:i');
+        }
+
+        $value = trim((string) $value);
+        foreach (['H:i', 'H:i:s', 'g:i A', 'g:i a'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, $value)->format('H:i');
+            } catch (\Throwable) {
+                // Try the next supported time format.
+            }
+        }
+
+        return null;
+    }
+
     private function sheetCsvHeaders(): array
     {
         return [
@@ -1627,15 +1814,17 @@ class TripController extends Controller implements HasMiddleware
 
         if (! $header) {
             fclose($handle);
+
             return [[], ['CSV file is empty.']];
         }
 
-        $header = array_map(fn($value) => Str::of((string) $value)->trim()->lower()->replace(' ', '_')->toString(), $header);
+        $header = array_map(fn ($value) => Str::of((string) $value)->trim()->lower()->replace(' ', '_')->toString(), $header);
         $missingHeaders = array_diff(['trip_date'], $header);
 
         if ($missingHeaders) {
             fclose($handle);
-            return [[], ['Missing required column(s): ' . implode(', ', $missingHeaders) . '.']];
+
+            return [[], ['Missing required column(s): '.implode(', ', $missingHeaders).'.']];
         }
 
         $rows = [];
@@ -1651,6 +1840,7 @@ class TripController extends Controller implements HasMiddleware
 
             if (count($data) > count($header)) {
                 $errors[] = "Row {$line}: too many columns.";
+
                 continue;
             }
 
@@ -1680,7 +1870,7 @@ class TripController extends Controller implements HasMiddleware
         foreach ($rows as $row) {
             $line = $row['line'];
             $data = collect($row['data'])
-                ->map(fn($value) => is_string($value) ? trim($value) : $value)
+                ->map(fn ($value) => is_string($value) ? trim($value) : $value)
                 ->all();
 
             $date = $this->csvDate($data['trip_date'] ?? null);
@@ -1799,15 +1989,15 @@ class TripController extends Controller implements HasMiddleware
     private function verifierNames(Trip $trip): array
     {
         $controllers = ControllerProfile::with('user')
-            ->when($trip->depot_id, fn($query) => $query->where('depot_id', $trip->depot_id))
-            ->whereHas('user', fn($query) => $query->where('is_active', true))
+            ->when($trip->depot_id, fn ($query) => $query->where('depot_id', $trip->depot_id))
+            ->whereHas('user', fn ($query) => $query->where('is_active', true))
             ->get()
             ->pluck('user.name')
             ->filter();
 
         $supervisors = SupervisorProfile::with('user')
-            ->when($trip->depot_id, fn($query) => $query->where('depot_id', $trip->depot_id))
-            ->whereHas('user', fn($query) => $query->where('is_active', true))
+            ->when($trip->depot_id, fn ($query) => $query->where('depot_id', $trip->depot_id))
+            ->whereHas('user', fn ($query) => $query->where('is_active', true))
             ->get()
             ->pluck('user.name')
             ->filter();
@@ -1836,7 +2026,7 @@ class TripController extends Controller implements HasMiddleware
 
     private function sheetCode(Trip $trip, string $date): string
     {
-        return ($trip->code ?: 'TRIP-' . $trip->id) . '-' . str_replace('-', '', $date);
+        return ($trip->code ?: 'TRIP-'.$trip->id).'-'.str_replace('-', '', $date);
     }
 
     private function entryPayload(Trip $trip, array $data): array
@@ -1945,17 +2135,17 @@ class TripController extends Controller implements HasMiddleware
             return [null, null];
         }
 
-        $query = DriverProfile::whereHas('user', fn($userQuery) => $userQuery->where('is_active', true));
+        $query = DriverProfile::whereHas('user', fn ($userQuery) => $userQuery->where('is_active', true));
 
         if ($driverCode) {
-            $driver = (clone $query)->whereHas('user', fn($userQuery) => $userQuery->where('code', $driverCode))->first();
+            $driver = (clone $query)->whereHas('user', fn ($userQuery) => $userQuery->where('code', $driverCode))->first();
 
             return $driver
                 ? [$driver->id, null]
                 : [null, 'active driver not found for driver_code.'];
         }
 
-        $drivers = $query->whereHas('user', fn($userQuery) => $userQuery->where('name', $driverName))->limit(2)->get();
+        $drivers = $query->whereHas('user', fn ($userQuery) => $userQuery->where('name', $driverName))->limit(2)->get();
 
         if ($drivers->count() > 1) {
             return [null, 'multiple active drivers found with this name; use driver_code instead.'];
@@ -1969,22 +2159,22 @@ class TripController extends Controller implements HasMiddleware
     private function controllerNameExists(Trip $trip, string $name): bool
     {
         return ControllerProfile::query()
-            ->when($trip->depot_id, fn($query) => $query->where('depot_id', $trip->depot_id))
-            ->whereHas('user', fn($query) => $query->where('is_active', true)->where('name', $name))
+            ->when($trip->depot_id, fn ($query) => $query->where('depot_id', $trip->depot_id))
+            ->whereHas('user', fn ($query) => $query->where('is_active', true)->where('name', $name))
             ->exists();
     }
 
     private function supervisorNameExists(Trip $trip, string $name): bool
     {
         return SupervisorProfile::query()
-            ->when($trip->depot_id, fn($query) => $query->where('depot_id', $trip->depot_id))
-            ->whereHas('user', fn($query) => $query->where('is_active', true)->where('name', $name))
+            ->when($trip->depot_id, fn ($query) => $query->where('depot_id', $trip->depot_id))
+            ->whereHas('user', fn ($query) => $query->where('is_active', true)->where('name', $name))
             ->exists();
     }
 
     private function isEmptyCsvRow(array $row): bool
     {
-        return collect($row)->every(fn($value) => trim((string) $value) === '');
+        return collect($row)->every(fn ($value) => trim((string) $value) === '');
     }
 
     private function buildCompletedTripPdf(TripSheetEntry $entry, ?TripAssignment $assignment): string
@@ -1994,7 +2184,7 @@ class TripController extends Controller implements HasMiddleware
         $this->pdfFill($content, 0.96, 0.97, 0.99, 0, 0, 595, 842);
         $this->pdfText($content, 'SYSCON', 50, 795, 18, 'F2');
         $this->pdfText($content, 'Completed Trip Sheet', 50, 770, 22, 'F2');
-        $this->pdfText($content, 'Generated on ' . now()->format('d-m-Y'), 420, 795, 10);
+        $this->pdfText($content, 'Generated on '.now()->format('d-m-Y'), 420, 795, 10);
 
         $this->pdfSection($content, 'Trip Details', 40, 610, 515, [
             'Trip Sheet Code' => $entry->sheet?->code ?: '-',
@@ -2044,14 +2234,14 @@ class TripController extends Controller implements HasMiddleware
         foreach ($contents as $index => $content) {
             $pageObject = 3 + ($index * 2);
             $contentObject = $pageObject + 1;
-            $pageObjectNumbers[] = $pageObject . ' 0 R';
-            $objects[$pageObject] = $pageObject . " 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 " . $fontObject . " 0 R /F2 " . $boldFontObject . " 0 R >> >> /Contents " . $contentObject . " 0 R >>\nendobj\n";
-            $objects[$contentObject] = $contentObject . " 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n" . $content . "endstream\nendobj\n";
+            $pageObjectNumbers[] = $pageObject.' 0 R';
+            $objects[$pageObject] = $pageObject." 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ".$fontObject.' 0 R /F2 '.$boldFontObject.' 0 R >> >> /Contents '.$contentObject." 0 R >>\nendobj\n";
+            $objects[$contentObject] = $contentObject." 0 obj\n<< /Length ".strlen($content)." >>\nstream\n".$content."endstream\nendobj\n";
         }
 
-        $objects[2] = "2 0 obj\n<< /Type /Pages /Kids [" . implode(' ', $pageObjectNumbers) . '] /Count ' . count($pageObjectNumbers) . " >>\nendobj\n";
-        $objects[$fontObject] = $fontObject . " 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-        $objects[$boldFontObject] = $boldFontObject . " 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+        $objects[2] = "2 0 obj\n<< /Type /Pages /Kids [".implode(' ', $pageObjectNumbers).'] /Count '.count($pageObjectNumbers)." >>\nendobj\n";
+        $objects[$fontObject] = $fontObject." 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+        $objects[$boldFontObject] = $boldFontObject." 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
         ksort($objects);
 
         $pdf = "%PDF-1.4\n";
@@ -2062,12 +2252,12 @@ class TripController extends Controller implements HasMiddleware
         }
 
         $xref = strlen($pdf);
-        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+        $pdf .= "xref\n0 ".(count($objects) + 1)."\n0000000000 65535 f \n";
         foreach (array_slice($offsets, 1) as $offset) {
             $pdf .= sprintf("%010d 00000 n \n", $offset);
         }
 
-        return $pdf . "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n" . $xref . "\n%%EOF";
+        return $pdf."trailer\n<< /Size ".(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n".$xref."\n%%EOF";
     }
 
     private function pdfSection(string &$content, string $title, int $x, int $y, int $width, array $items, int $height = 155): void
@@ -2077,7 +2267,7 @@ class TripController extends Controller implements HasMiddleware
         $lineY = $y + $height - 50;
 
         foreach ($items as $label => $value) {
-            $this->pdfText($content, $label . ':', $x + 14, $lineY, 9, 'F2');
+            $this->pdfText($content, $label.':', $x + 14, $lineY, 9, 'F2');
             $this->pdfText($content, (string) $value, $x + 150, $lineY, 9);
             $lineY -= 17;
         }
@@ -2087,7 +2277,7 @@ class TripController extends Controller implements HasMiddleware
     {
         $this->pdfFill($content, 1, 1, 1, $x, $y, $width, $height);
         $content .= "0.84 0.86 0.90 RG\n";
-        $content .= $x . ' ' . $y . ' ' . $width . ' ' . $height . " re S\n";
+        $content .= $x.' '.$y.' '.$width.' '.$height." re S\n";
     }
 
     private function pdfFill(string &$content, float $r, float $g, float $b, int $x, int $y, int $width, int $height): void
@@ -2098,7 +2288,7 @@ class TripController extends Controller implements HasMiddleware
     private function pdfText(string &$content, string $text, int $x, int $y, int $size = 10, string $font = 'F1'): void
     {
         $content .= "0.08 0.10 0.14 rg\n";
-        $content .= "BT\n/" . $font . ' ' . $size . " Tf\n" . $x . ' ' . $y . " Td\n(" . $this->escapePdfText(substr($text, 0, 80)) . ") Tj\nET\n";
+        $content .= "BT\n/".$font.' '.$size." Tf\n".$x.' '.$y." Td\n(".$this->escapePdfText(substr($text, 0, 80)).") Tj\nET\n";
     }
 
     private function escapePdfText(string $text): string
@@ -2113,7 +2303,7 @@ class TripController extends Controller implements HasMiddleware
         return match ($status) {
             'Active' => '<span class="status-green">Active</span>',
             'Cancelled' => '<span class="status-red">Cancelled</span>',
-            default => '<span class="status-orange">' . e($status ?: 'Inactive') . '</span>',
+            default => '<span class="status-orange">'.e($status ?: 'Inactive').'</span>',
         };
     }
 
@@ -2135,7 +2325,7 @@ class TripController extends Controller implements HasMiddleware
             default => 'bg-secondary',
         };
 
-        return '<span class="badge ' . $class . '">' . e($label) . '</span>';
+        return '<span class="badge '.$class.'">'.e($label).'</span>';
     }
 
     private function yesNoBadge(bool $value): string
@@ -2143,6 +2333,6 @@ class TripController extends Controller implements HasMiddleware
         $class = $value ? 'bg-success' : 'bg-secondary';
         $label = $value ? 'Yes' : 'No';
 
-        return '<span class="badge ' . $class . '">' . $label . '</span>';
+        return '<span class="badge '.$class.'">'.$label.'</span>';
     }
 }

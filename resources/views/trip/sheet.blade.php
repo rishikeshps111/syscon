@@ -103,6 +103,9 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <h5 class="mb-0">Trip Sheet Entries</h5>
                 <div class="btn-flex">
+                    <a href="{{ route('trips.sheet.import.form', $record->id) }}" class="btn btn-outline-primary">
+                        <i class="fa-solid fa-file-import me-1"></i> Import Trip Sheet
+                    </a>
                     <a href="{{ route('trips.sheet.entries.create', $record->id) }}" class="btn btn-primary"
                         title="Add Entry">
                         <i class="fa-solid fa-plus me-1"></i> Add Entry

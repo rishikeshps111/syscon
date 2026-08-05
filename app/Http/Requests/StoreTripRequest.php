@@ -23,8 +23,8 @@ class StoreTripRequest extends FormRequest
             'rounds_per_trip' => ['required', 'integer', 'min:1'],
             'schedule_km' => ['required', 'numeric', 'min:0'],
             'total_trips' => ['required', 'integer', 'min:1'],
-            'from_date' => ['nullable', 'date'],
-            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            'from_date' => ['required', 'date'],
+            'to_date' => ['required', 'date', 'after_or_equal:from_date'],
             'status' => ['required', Rule::in(['Active', 'Inactive'])],
             'notes' => ['nullable', 'string'],
         ];

@@ -114,21 +114,21 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-3">
-        <label for="total_trips" class="form-label m-0">Total Trips <span class="text-danger">*</span></label>
+        <label for="total_trips" class="form-label m-0">Total Trips (ED) <span class="text-danger">*</span></label>
         <input type="number" min="1" step="1" class="form-control shadow-none" id="total_trips" name="total_trips"
             value="{{ old('total_trips', $record->total_trips ?? 1) }}">
         <span class="text-danger error-text total_trips_error">@error('total_trips'){{ $message }}@enderror</span>
     </div>
 
     <div class="col-lg-4 o-f-inp mb-3">
-        <label for="from_date" class="form-label m-0">From Date</label>
-        <input type="date" class="form-control shadow-none" id="from_date" name="from_date"
+        <label for="from_date" class="form-label m-0">From Date <span class="text-danger">*</span></label>
+        <input type="date" class="form-control shadow-none" id="from_date" name="from_date" required
             value="{{ old('from_date', isset($record) && $record->from_date ? $record->from_date->format('Y-m-d') : '') }}">
         <span class="text-danger error-text from_date_error">@error('from_date'){{ $message }}@enderror</span>
     </div>
     <div class="col-lg-4 o-f-inp mb-3">
-        <label for="to_date" class="form-label m-0">To Date</label>
-        <input type="date" class="form-control shadow-none" id="to_date" name="to_date"
+        <label for="to_date" class="form-label m-0">To Date <span class="text-danger">*</span></label>
+        <input type="date" class="form-control shadow-none" id="to_date" name="to_date" required
             value="{{ old('to_date', isset($record) && $record->to_date ? $record->to_date->format('Y-m-d') : '') }}">
         <span class="text-danger error-text to_date_error">@error('to_date'){{ $message }}@enderror</span>
     </div>

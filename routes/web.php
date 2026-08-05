@@ -284,8 +284,8 @@ Route::middleware('auth')->group(function () {
         ->name('trips.sheet.import.form');
     Route::post('/trips/{trip}/sheet/import', [TripController::class, 'importSheet'])
         ->name('trips.sheet.import');
-    Route::get('/trips/{trip}/sheet/sample-csv', [TripController::class, 'sampleSheetCsv'])
-        ->name('trips.sheet.sample-csv');
+    Route::get('/trips/{trip}/sheet/sample-excel', [TripController::class, 'sampleSheetExcel'])
+        ->name('trips.sheet.sample-excel');
     Route::get('/trips/{trip}/sheet', [TripController::class, 'sheet'])
         ->name('trips.sheet');
     Route::get('/trips/{trip}/sheet/create', [TripController::class, 'createSheetEntry'])

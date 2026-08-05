@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
@@ -91,6 +92,11 @@ class TripSheetEntry extends Model
     public function dor(): HasOne
     {
         return $this->hasOne(TripSheetEntryDor::class);
+    }
+
+    public function scheduleStopTimes(): HasMany
+    {
+        return $this->hasMany(TripSheetEntryStopTime::class)->orderBy('sequence_no');
     }
 
     public function getRosterAttribute(): ?Roster
