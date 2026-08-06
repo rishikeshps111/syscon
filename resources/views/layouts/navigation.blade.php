@@ -499,13 +499,13 @@
                                     <span>Manage Trips</span>
                                 </a>
                             </li>
-                            <li>
+                            {{-- <li>
                                 <a href="{{ route('completed.trips.index') }}"
                                     class="{{ request()->routeIs('completed.trips.*') ? 'sub-active' : '' }}">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                     <span>Completed Trip Sheet</span>
                                 </a>
-                            </li>
+                            </li> --}}
                             <li>
                                 <a href="{{ route('report.trips.index') }}"
                                     class="{{ request()->routeIs('report.trips.*') ? 'sub-active' : '' }}">

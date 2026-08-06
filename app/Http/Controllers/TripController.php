@@ -138,7 +138,8 @@ class TripController extends Controller implements HasMiddleware
     public function tripReport(Request $request)
     {
         return view('trip.report', [
-            'filters' => $request->only(['date_from', 'date_to']),
+            'filters' => $request->only(['date_from', 'date_to', 'depot_id']),
+            'depots' => Depot::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -147,6 +148,7 @@ class TripController extends Controller implements HasMiddleware
         $validated = $request->validate([
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'depot_id' => ['nullable', 'integer', 'exists:depots,id'],
         ]);
 
         $from = isset($validated['date_from']) ? Carbon::parse($validated['date_from'])->format('Ymd') : 'all';
@@ -552,6 +554,7 @@ class TripController extends Controller implements HasMiddleware
     {
         return view('trip.sheet-import', [
             'entryScheduleKm' => $this->tripSheetEntryScheduleKm($trip),
+            'hasExistingTripData' => $trip->sheets()->whereHas('entries')->exists(),
             'record' => $trip->load([
                 'tripNature',
                 'route.startPoint',
@@ -563,8 +566,11 @@ class TripController extends Controller implements HasMiddleware
 
     public function importSheet(Request $request, Trip $trip)
     {
+        $hasExistingTripData = $trip->sheets()->whereHas('entries')->exists();
+
         $request->validate([
             'sheet_file' => ['required', 'file', 'mimes:xlsx', 'max:5120'],
+            'overwrite_confirmed' => $hasExistingTripData ? ['required', 'accepted'] : ['nullable'],
         ]);
 
         $rows = $this->readConfiguredTripSheet($trip, $request->file('sheet_file')->getRealPath());
@@ -938,6 +944,10 @@ class TripController extends Controller implements HasMiddleware
 
         if ($request->filled('date_to')) {
             $query->whereDate('trip_sheets.date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('depot_id')) {
+            $query->where('trips.depot_id', $request->depot_id);
         }
 
         return $query->orderBy('trip_sheets.date')
@@ -1749,7 +1759,7 @@ class TripController extends Controller implements HasMiddleware
         $sheet->setCellValue('A5', 'SER');
         $sheet->setCellValue('A6', 'NAT');
         $sheet->setCellValue('A7', 'KMS');
-        $entryScheduleKm = $this->tripSheetEntryScheduleKm($trip);
+        $entryScheduleKm = $trip->schedule_km ?: 0;
 
         for ($index = 1; $index <= $totalTrips; $index++) {
             $column = Coordinate::stringFromColumnIndex($index + 1);

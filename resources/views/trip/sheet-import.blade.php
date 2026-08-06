@@ -177,10 +177,11 @@
                     <form class="js-loading-form" method="POST" action="{{ route('trips.sheet.import', $record->id) }}"
                         enctype="multipart/form-data">
                         @csrf
+                        <input type="hidden" name="overwrite_confirmed" id="overwriteConfirmed" value="">
                         <div class="o-f-inp mb-3">
                             <label for="sheetFile">Excel File <span class="text-danger">*</span></label>
                             <input type="file" id="sheetFile" name="sheet_file" class="form-control shadow-none"
-                                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
                             @error('sheet_file')
                                 @foreach($errors->get('sheet_file') as $message)
                                     <div class="text-danger mt-1">{{ $message }}</div>
@@ -224,8 +225,33 @@
     @section('scripts')
         <script>
             $(function () {
-                $('.js-loading-form').on('submit', function () {
-                    $(this).find('.js-loading-submit').prop('disabled', true).text('Importing...');
+                $('.js-loading-form').on('submit', function (event) {
+                    var form = this;
+                    var submitButton = $(form).find('.js-loading-submit');
+
+                    if (@json($hasExistingTripData) && $('#overwriteConfirmed').val() !== 'yes') {
+                        event.preventDefault();
+
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Are you sure?',
+                            text: 'Current Trip Data will be OverRide. Please confirm',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes',
+                            cancelButtonText: 'No',
+                            reverseButtons: true
+                        }).then(function (result) {
+                            if (result.isConfirmed) {
+                                $('#overwriteConfirmed').val('yes');
+                                submitButton.prop('disabled', true).text('Importing...');
+                                form.submit();
+                            }
+                        });
+
+                        return;
+                    }
+
+                    submitButton.prop('disabled', true).text('Importing...');
                 });
             });
         </script>
