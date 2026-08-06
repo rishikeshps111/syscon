@@ -13,6 +13,7 @@ use App\Models\StaffProfile;
 use App\Models\State;
 use App\Models\User;
 use App\Support\SalaryComponents;
+use App\Support\UserCodeGenerator;
 use App\Support\StaffReportingManagers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -62,7 +63,6 @@ class StaffManagementController extends Controller implements HasMiddleware
     public function create()
     {
         return view('staff-management.form', array_merge($this->formData(), [
-            'generatedCode' => $this->generateStaffCode(((int) User::max('id')) + 1),
             'districts' => collect(),
             'locations' => collect(),
         ]));
@@ -80,7 +80,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             'password' => $data['password'],
             'is_active' => $data['is_active'],
         ]);
-        $user->code = $this->generateStaffCode($user->id);
+        $user->code = UserCodeGenerator::generate('Staff', (int) $data['depot_id'], $user->id);
         $user->save();
         $this->storeAvatar($request, $user);
         $user->staffProfile()->create($this->profileData($data));
@@ -346,11 +346,6 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function nullableSalaryComponent(array $data, string $field): ?float
     {
         return filled($data[$field] ?? null) ? (float) $data[$field] : null;
-    }
-
-    private function generateStaffCode(int $id): string
-    {
-        return generate_code('Staff Management Module', $id, 3, 'STF');
     }
 
     private function storeAvatar(Request $request, User $user): void

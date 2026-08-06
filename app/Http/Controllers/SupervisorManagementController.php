@@ -12,6 +12,7 @@ use App\Models\Location;
 use App\Models\State;
 use App\Models\User;
 use App\Support\SalaryComponents;
+use App\Support\UserCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -56,7 +57,6 @@ class SupervisorManagementController extends Controller implements HasMiddleware
     public function create()
     {
         return view('supervisor-management.form', array_merge($this->formData(), [
-            'generatedCode' => $this->generateSupervisorCode(((int) User::max('id')) + 1),
             'districts' => collect(),
             'locations' => collect(),
         ]));
@@ -74,7 +74,7 @@ class SupervisorManagementController extends Controller implements HasMiddleware
             'password' => $data['passcode'],
             'is_active' => $data['is_active'],
         ]);
-        $user->code = $this->generateSupervisorCode($user->id);
+        $user->code = UserCodeGenerator::generate('Supervisor', (int) $data['depot_id'], $user->id);
         $user->save();
         $this->storeAvatar($request, $user);
         $user->assignRole('Supervisor');
@@ -330,11 +330,6 @@ class SupervisorManagementController extends Controller implements HasMiddleware
         return filled($data[$field] ?? null) ? (float) $data[$field] : null;
     }
 
-    private function generateSupervisorCode(int $id): string
-    {
-        return generate_code('Supervisor Management Module', $id, 3, 'SUP');
-    }
-
     private function generatePasscode(): string
     {
         return (string) random_int(100000, 999999);
@@ -557,4 +552,3 @@ class SupervisorManagementController extends Controller implements HasMiddleware
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
     }
 }
-

@@ -16,6 +16,7 @@ use App\Models\SupervisorProfile;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Support\SalaryComponents;
+use App\Support\UserCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -229,16 +230,18 @@ class BulkImportController extends Controller
     private function createPerson(string $module, array $data): void
     {
         $meta = [
-            'drivers' => ['role' => 'Driver', 'relation' => 'driverProfile', 'code' => ['Driver Management Module', 'DRV']],
-            'controllers' => ['role' => 'Controller', 'relation' => 'controllerProfile', 'code' => ['Controller Management Module', 'CTL']],
-            'supervisors' => ['role' => 'Supervisor', 'relation' => 'supervisorProfile', 'code' => ['Supervisor Management Module', 'SUP']],
-            'staff' => ['role' => 'Staff', 'relation' => 'staffProfile', 'code' => ['Staff Management Module', 'STF']],
+            'drivers' => ['role' => 'Driver', 'relation' => 'driverProfile'],
+            'controllers' => ['role' => 'Controller', 'relation' => 'controllerProfile'],
+            'supervisors' => ['role' => 'Supervisor', 'relation' => 'supervisorProfile'],
+            'staff' => ['role' => 'Staff', 'relation' => 'staffProfile'],
         ][$module];
         $passwordField = $module === 'staff' ? 'password' : 'passcode';
         $user = User::create(collect($data)->only(['name', 'email', 'country_code', 'phone', 'is_active'])->all() + [
             'code' => null, 'password' => $data[$passwordField],
         ]);
-        $user->update(['code' => generate_code($meta['code'][0], $user->id, 3, $meta['code'][1])]);
+        $user->update([
+            'code' => UserCodeGenerator::generate($meta['role'], (int) $data['depot_id'], $user->id),
+        ]);
         $profile = collect($data)->only($this->config($module)['profile_fields'])->all();
         $salary = SalaryComponents::legacyProfileSalaryData([]);
         if ($module === 'drivers') {

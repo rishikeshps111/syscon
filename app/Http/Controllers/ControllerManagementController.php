@@ -12,6 +12,7 @@ use App\Models\Location;
 use App\Models\State;
 use App\Models\User;
 use App\Support\SalaryComponents;
+use App\Support\UserCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -56,7 +57,6 @@ class ControllerManagementController extends Controller implements HasMiddleware
     public function create()
     {
         return view('controller-management.form', array_merge($this->formData(), [
-            'generatedCode' => $this->generateControllerCode(((int) User::max('id')) + 1),
             'districts' => collect(),
             'locations' => collect(),
         ]));
@@ -74,7 +74,7 @@ class ControllerManagementController extends Controller implements HasMiddleware
             'password' => $data['passcode'],
             'is_active' => $data['is_active'],
         ]);
-        $user->code = $this->generateControllerCode($user->id);
+        $user->code = UserCodeGenerator::generate('Controller', (int) $data['depot_id'], $user->id);
         $user->save();
         $this->storeAvatar($request, $user);
         $user->assignRole('Controller');
@@ -328,11 +328,6 @@ class ControllerManagementController extends Controller implements HasMiddleware
     private function nullableSalaryComponent(array $data, string $field): ?float
     {
         return filled($data[$field] ?? null) ? (float) $data[$field] : null;
-    }
-
-    private function generateControllerCode(int $id): string
-    {
-        return generate_code('Controller Management Module', $id, 3, 'CTL');
     }
 
     private function generatePasscode(): string

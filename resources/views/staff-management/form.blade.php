@@ -76,11 +76,6 @@
                             <div class="tab-pane fade show active" id="stf1" role="tabpanel">
                                 <div class="row">
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="code">Staff Code <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control shadow-none" id="code"
-                                            value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
-                                    </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="name">Staff Name <span class="text-danger">*</span></label>
                                         <input type="text"
                                             class="form-control shadow-none @error('name') is-invalid @enderror"

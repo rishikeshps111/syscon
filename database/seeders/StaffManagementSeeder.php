@@ -6,6 +6,7 @@ use App\Models\Designation;
 use App\Models\Depot;
 use App\Models\Location;
 use App\Models\User;
+use App\Support\UserCodeGenerator;
 use App\Support\SalaryComponents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -220,7 +221,7 @@ class StaffManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = generate_code('Staff Management Module', $user->id, 3, 'STF');
+                    $user->code = UserCodeGenerator::generate('Staff', $depot->id, $user->id);
                     $user->save();
                 }
 

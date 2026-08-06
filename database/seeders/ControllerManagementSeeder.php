@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Depot;
 use App\Models\User;
+use App\Support\UserCodeGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -185,7 +186,7 @@ class ControllerManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = generate_code('Controller Management Module', $user->id, 3, 'CTL');
+                    $user->code = UserCodeGenerator::generate('Controller', $depot->id, $user->id);
                     $user->save();
                 }
 

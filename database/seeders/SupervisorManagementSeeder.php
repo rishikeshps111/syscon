@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Depot;
 use App\Models\User;
+use App\Support\UserCodeGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -185,7 +186,7 @@ class SupervisorManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = generate_code('Supervisor Management Module', $user->id, 3, 'SUP');
+                    $user->code = UserCodeGenerator::generate('Supervisor', $depot->id, $user->id);
                     $user->save();
                 }
 

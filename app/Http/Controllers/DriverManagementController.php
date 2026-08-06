@@ -14,6 +14,7 @@ use App\Models\State;
 use App\Models\User;
 use App\Support\SalaryComponents;
 use App\Support\SimpleQrCode;
+use App\Support\UserCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -63,7 +64,6 @@ class DriverManagementController extends Controller implements HasMiddleware
         return view('driver-management.form', array_merge($this->formData(), [
             'districts' => collect(),
             'locations' => collect(),
-            'generatedCode' => $this->generateDriverCode(((int) User::max('id')) + 1),
         ]));
     }
 
@@ -79,7 +79,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'password' => $data['passcode'],
             'is_active' => $data['is_active'],
         ]);
-        $user->code = $this->generateDriverCode($user->id);
+        $user->code = UserCodeGenerator::generate('Driver', (int) $data['depot_id'], $user->id);
         $user->save();
         $this->storeAvatar($request, $user);
         $user->assignRole('Driver');
@@ -352,11 +352,6 @@ class DriverManagementController extends Controller implements HasMiddleware
         ])->merge([
             'salary' => SalaryComponents::legacyProfileSalaryData($data['salary_components'] ?? [])['salary'],
         ])->all();
-    }
-
-    private function generateDriverCode(int $id): string
-    {
-        return generate_code('Driver Management Module', $id, 3, 'DRV');
     }
 
     private function generatePasscode(): string

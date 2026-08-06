@@ -6,6 +6,7 @@ use App\Models\BranchLocation;
 use App\Models\Depot;
 use App\Models\Location;
 use App\Models\User;
+use App\Support\UserCodeGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -241,7 +242,7 @@ class DriverManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = generate_code('Driver Management Module', $user->id, 3, 'DRV');
+                    $user->code = UserCodeGenerator::generate('Driver', $depot->id, $user->id);
                     $user->save();
                 }
 

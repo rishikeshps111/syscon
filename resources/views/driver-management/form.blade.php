@@ -70,11 +70,6 @@
                             <div class="tab-pane fade show active" id="drv1" role="tabpanel">
                                 <div class="row">
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="code">Driver Code <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control shadow-none" id="code"
-                                            value="{{ $record->code ?? ($generatedCode ?? '') }}" disabled>
-                                    </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="name">Name <span class="text-danger">*</span></label>
                                         <input type="text" id="name" name="name"
                                             class="form-control shadow-none @error('name') is-invalid @enderror"
