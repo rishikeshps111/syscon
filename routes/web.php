@@ -24,6 +24,8 @@ use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
 use App\Http\Controllers\GeneratePaySlipController;
 use App\Http\Controllers\HolidayController;
+use App\Http\Controllers\HousekeepingManagementController;
+use App\Http\Controllers\HousekeepingDocumentController;
 use App\Http\Controllers\HrLetterController;
 use App\Http\Controllers\HrLetterTemplateController;
 use App\Http\Controllers\HrmsDocumentTypeController;
@@ -625,6 +627,18 @@ Route::middleware('auth')->group(function () {
         ->defaults('module', 'driver')
         ->name('driver-management.depot-assignments.store');
     Route::resource('driver-management', DriverManagementController::class);
+
+    Route::get('/housekeeping-management/districts-by-state', [HousekeepingManagementController::class, 'districtsByState'])->name('housekeeping-management.districts-by-state');
+    Route::get('/housekeeping-management/locations-by-district', [HousekeepingManagementController::class, 'locationsByDistrict'])->name('housekeeping-management.locations-by-district');
+    Route::post('/housekeeping-management/status', [HousekeepingManagementController::class, 'status'])->name('housekeeping-management.status');
+    Route::post('/housekeeping-management/export', [HousekeepingManagementController::class, 'export'])->name('housekeeping-management.export');
+    Route::get('/housekeeping-management/{housekeeping}/documents', [HousekeepingDocumentController::class, 'index'])->name('housekeeping-management.documents.index');
+    Route::post('/housekeeping-management/{housekeeping}/documents', [HousekeepingDocumentController::class, 'store'])->name('housekeeping-management.documents.store');
+    Route::get('/housekeeping-documents/{housekeepingDocument}/download', [HousekeepingDocumentController::class, 'download'])->name('housekeeping-documents.download');
+    Route::get('/housekeeping-documents/{housekeepingDocument}/preview', [HousekeepingDocumentController::class, 'preview'])->name('housekeeping-documents.preview');
+    Route::delete('/housekeeping-documents/{housekeepingDocument}', [HousekeepingDocumentController::class, 'destroy'])->name('housekeeping-documents.destroy');
+    Route::get('/housekeeping-management/{housekeeping_management}/download-pdf', [HousekeepingManagementController::class, 'downloadPdf'])->name('housekeeping-management.download-pdf');
+    Route::resource('housekeeping-management', HousekeepingManagementController::class);
 
     Route::get('/depot-assignments/reporting-managers', [DepotAssignmentController::class, 'reportingManagers'])
         ->name('depot-assignments.reporting-managers');

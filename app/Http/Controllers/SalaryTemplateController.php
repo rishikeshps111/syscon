@@ -128,7 +128,7 @@ class SalaryTemplateController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
-            'roles' => Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+            'roles' => Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])
                 ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 ELSE 4 END")
                 ->get(['id', 'name']),
             'designations' => Designation::orderBy('name')->get(['id', 'name']),

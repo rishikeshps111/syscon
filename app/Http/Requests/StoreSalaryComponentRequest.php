@@ -56,7 +56,7 @@ class StoreSalaryComponentRequest extends FormRequest
             'role_ids.*' => [
                 'required',
                 'integer',
-                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])),
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])),
             ],
             'designation_ids' => ['nullable', 'array', 'max:1'],
             'designation_ids.*' => ['integer', 'exists:designations,id'],

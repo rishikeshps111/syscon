@@ -11,6 +11,7 @@ class UserCodeGenerator
         'Supervisor' => 'SPV',
         'Controller' => 'CON',
         'Staff' => 'MNGT',
+        'Housekeeping' => 'HSK',
     ];
 
     public static function generate(string $role, int $depotId, int $sequence): string

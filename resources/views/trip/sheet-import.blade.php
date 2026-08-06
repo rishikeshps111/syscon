@@ -89,21 +89,24 @@
                             disabled>
                     </div>
                 @endif
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-3 o-f-inp mb-3">
                     <label>Date Range</label>
                     <input type="text" class="form-control shadow-none"
                         value="{{ $record->from_date?->format('d M Y') }} - {{ $record->to_date?->format('d M Y') }}"
                         disabled>
                 </div>
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-3 o-f-inp mb-3">
                     <label>NAT</label>
                     <input type="text" class="form-control shadow-none" value="{{ $record->tripNature->title ?? '-' }}"
                         disabled>
                 </div>
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-3 o-f-inp mb-3">
                     <label>KMS</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->schedule_km ?? '-' }}"
-                        disabled>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->schedule_km }}" disabled>
+                </div>
+                 <div class="col-lg-3 o-f-inp mb-3">
+                    <label>Rounds per Round</label>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->rounds_per_trip }}" disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
                     <label>Route Stops</label>
@@ -156,7 +159,7 @@
                 <div class="main-table-container h-100">
                     <h5>1. Download the configured workbook</h5>
                     <p class="text-muted">
-                        Trip metadata, ED service codes, nature, kilometres, and round locations are generated
+                        Trip metadata, ED service codes, nature, kilometres per round, and round locations are generated
                         automatically.
                         Only the time cells are left blank.
                     </p>

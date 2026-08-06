@@ -150,8 +150,8 @@ class SalaryComponentController extends Controller implements HasMiddleware
 
     private function componentRoles()
     {
-        return Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
-            ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 WHEN 'Supervisor' THEN 4 ELSE 5 END")
+        return Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])
+            ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 WHEN 'Supervisor' THEN 4 WHEN 'Housekeeping' THEN 5 ELSE 6 END")
             ->get(['id', 'name']);
     }
 
@@ -235,6 +235,7 @@ class SalaryComponentController extends Controller implements HasMiddleware
         $classes = [
             'Staff' => 'bg-primary',
             'Driver' => 'bg-success',
+            'Housekeeping' => 'bg-info',
             'Controller' => 'bg-warning text-dark',
             'Supervisor' => 'bg-info text-dark',
         ];

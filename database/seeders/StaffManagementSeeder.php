@@ -221,7 +221,7 @@ class StaffManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = UserCodeGenerator::generate('Staff', $depot->id, $user->id);
+                    $user->code = UserCodeGenerator::generate('Staff', (int) $record['depot_id'], $user->id);
                     $user->save();
                 }
 

@@ -88,21 +88,24 @@
                             disabled>
                     </div>
                 @endif
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-3 o-f-inp mb-3">
                     <label>Date Range</label>
                     <input type="text" class="form-control shadow-none"
                         value="{{ $record->from_date?->format('d M Y') }} - {{ $record->to_date?->format('d M Y') }}"
                         disabled>
                 </div>
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-3 o-f-inp mb-3">
                     <label>NAT</label>
                     <input type="text" class="form-control shadow-none" value="{{ $record->tripNature->title ?? '-' }}"
                         disabled>
                 </div>
-                <div class="col-lg-4 o-f-inp mb-3">
+                <div class="col-lg-3 o-f-inp mb-3">
                     <label>KMS</label>
-                    <input type="text" class="form-control shadow-none" value="{{ $record->schedule_km ?? '-' }}"
-                        disabled>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->schedule_km }}" disabled>
+                </div>
+                 <div class="col-lg-3 o-f-inp mb-3">
+                    <label>Rounds per Round</label>
+                    <input type="text" class="form-control shadow-none" value="{{ $record->rounds_per_trip }}" disabled>
                 </div>
                 <div class="col-lg-12 o-f-inp">
                     <label>Route Stops</label>
@@ -193,9 +196,9 @@
 
                     <div class="col-lg-3 o-f-inp mb-3">
                         <label for="scheduleKm">KMS <span class="text-danger">*</span></label>
-                        <input type="hidden" name="schedule_km" value="{{ $record->schedule_km }}">
+                        <input type="hidden" name="schedule_km" id="scheduleKmValue" value="{{ $entryScheduleKm }}">
                         <input type="number" id="scheduleKm" class="form-control shadow-none"
-                            value="{{ $record->schedule_km }}" disabled>
+                            value="{{ $entryScheduleKm }}" step="0.01" disabled>
                         @error('schedule_km') <div class="text-danger mt-1">{{ $message }}</div> @enderror
                     </div>
 

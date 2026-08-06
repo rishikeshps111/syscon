@@ -93,7 +93,7 @@
                                 <tr>
                                     <td>shift</td>
                                     <td>For Driver</td>
-                                    <td>Allowed: {{ implode(', ', array_keys($shifts)) }}. Used only for Driver attendance.</td>
+                                    <td>Allowed: {{ implode(', ', array_keys($shifts)) }}. Required for Driver and Housekeeping attendance.</td>
                                 </tr>
                                 <tr>
                                     <td>leave_code</td>

@@ -206,16 +206,16 @@
                 @endphp
                 @canany(['branch-locations.view', 'departments.view', 'levels.view', 'designations.view',
                     'hrms-document-types.view', 'leave-types.view', 'shift-settings.view', 'holidays.view',
-                    'staff-management.view', 'driver-management.view', 'controller-management.view',
+                    'staff-management.view', 'driver-management.view', 'housekeeping-management.view', 'controller-management.view',
                     'supervisor-management.view', 'attendance-management.view', 'hr-letter-templates.view',
                     'salary-components.view', 'salary-templates.view', 'salary-processing.view', 'salary-reports.view', 'salary-archives.view', 'salary-files.view', 'salary-slips.view', 'role-permissions.view', 'settings.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'housekeeping-management.*', 'salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav6" data-bs-toggle="collapse" href="#">
                             <i class="fa-solid fa-id-badge"></i><span>HRMS</span><i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav6"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('branch-locations.*', 'departments.*', 'levels.*', 'designations.*', 'role-permissions.*', 'hrms-document-types.*', 'leave-types.*', 'shift-settings.*', 'leaves.*', 'attendance-management.*', 'holidays.*', 'staff-management.*', 'controller-management.*', 'supervisor-management.*', 'driver-management.*', 'housekeeping-management.*', 'salary-components.*', 'salary-templates.*', 'salary-processing.*', 'salary-reports.*', 'salary-archives.*', 'salary-files.*', 'salary-slips.*', 'hr-letter-templates.*', 'hr-letters.*') || $bulkImportIsHrms ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('branch-locations.view')
                                 <li>
@@ -344,6 +344,9 @@
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Driver Management</span>
                                     </a>
                                 </li>
+                            @endcan
+                            @can('housekeeping-management.view')
+                                <li><a href="{{ route('housekeeping-management.index') }}" class="{{ request()->routeIs('housekeeping-management.*') ? 'sub-active' : '' }}"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Housekeeping Management</span></a></li>
                             @endcan
                             @can('controller-management.view')
                                 <li>

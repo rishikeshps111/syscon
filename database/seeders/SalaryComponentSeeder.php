@@ -13,7 +13,7 @@ class SalaryComponentSeeder extends Seeder
 {
     public function run(): void
     {
-        $roles = Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+        $roles = Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])
             ->where('guard_name', 'web')
             ->get()
             ->keyBy('name');
@@ -34,7 +34,7 @@ class SalaryComponentSeeder extends Seeder
             );
         }
 
-        foreach (['Driver', 'Controller', 'Supervisor'] as $roleName) {
+        foreach (['Driver', 'Controller', 'Supervisor', 'Housekeeping'] as $roleName) {
             if ($roles->has($roleName)) {
                 $targets->push([
                     'role_id' => $roles[$roleName]->id,

@@ -16,8 +16,8 @@ class HrLetterRenderer
 
     public function render(HrLetterTemplate $template, User $user, array $additional = []): array
     {
-        $user->loadMissing(['roles', 'staffProfile.designation', 'driverProfile', 'controllerProfile', 'supervisorProfile', 'salaryComponentValues.salaryComponent']);
-        $profile = $user->staffProfile ?: $user->driverProfile ?: $user->controllerProfile ?: $user->supervisorProfile;
+        $user->loadMissing(['roles', 'staffProfile.designation', 'driverProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile', 'salaryComponentValues.salaryComponent']);
+        $profile = $user->staffProfile ?: $user->driverProfile ?: $user->housekeepingProfile ?: $user->controllerProfile ?: $user->supervisorProfile;
         $joiningDate = $profile?->date_of_joining ?? $profile?->joining_date;
         $values = $user->salaryComponentValues;
         $gross = $values->where(fn ($value) => $value->salaryComponent?->type === 'earning')->sum('amount')

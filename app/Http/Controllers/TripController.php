@@ -551,6 +551,7 @@ class TripController extends Controller implements HasMiddleware
     public function importSheetForm(Trip $trip)
     {
         return view('trip.sheet-import', [
+            'entryScheduleKm' => $this->tripSheetEntryScheduleKm($trip),
             'record' => $trip->load([
                 'tripNature',
                 'route.startPoint',
@@ -1713,6 +1714,7 @@ class TripController extends Controller implements HasMiddleware
             'statuses' => TripSheet::STATUSES,
             'verifiers' => $this->verifierNames($trip),
             'roundOptions' => range(1, max(1, (int) $trip->rounds_per_trip)),
+            'entryScheduleKm' => $this->tripSheetEntryScheduleKm($trip),
             'stopTimes' => $stopTimes,
         ];
     }
@@ -1747,12 +1749,13 @@ class TripController extends Controller implements HasMiddleware
         $sheet->setCellValue('A5', 'SER');
         $sheet->setCellValue('A6', 'NAT');
         $sheet->setCellValue('A7', 'KMS');
+        $entryScheduleKm = $this->tripSheetEntryScheduleKm($trip);
 
         for ($index = 1; $index <= $totalTrips; $index++) {
             $column = Coordinate::stringFromColumnIndex($index + 1);
             $sheet->setCellValue("{$column}5", 'ED'.str_pad((string) $index, 2, '0', STR_PAD_LEFT));
             $sheet->setCellValue("{$column}6", $trip->tripNature?->title ?: '');
-            $sheet->setCellValue("{$column}7", (float) $trip->schedule_km);
+            $sheet->setCellValue("{$column}7", $entryScheduleKm);
         }
 
         $configuredRows = $this->configuredTripSheetRows($trip);
@@ -1858,6 +1861,7 @@ class TripController extends Controller implements HasMiddleware
         $totalTrips = max(1, (int) $trip->total_trips);
         $errors = [];
         $result = [];
+        $entryScheduleKm = $this->tripSheetEntryScheduleKm($trip);
 
         if (trim((string) $sheet->getCell('A1')->getValue()) !== $this->configuredTripSheetTitle($trip)) {
             $errors[] = 'The trip title does not match this trip configuration.';
@@ -1878,10 +1882,6 @@ class TripController extends Controller implements HasMiddleware
             if (trim((string) $sheet->getCell("{$column}6")->getValue()) !== (string) ($trip->tripNature?->title ?: '')) {
                 $errors[] = "{$column}6 must contain the configured trip nature.";
             }
-            if (abs((float) $sheet->getCell("{$column}7")->getValue() - (float) $trip->schedule_km) > 0.01) {
-                $errors[] = "{$column}7 must contain the configured schedule kilometres.";
-            }
-
             $times = [];
             foreach ($expectedRows as $offset => $configuration) {
                 $excelRow = 8 + $offset;
@@ -1903,7 +1903,7 @@ class TripController extends Controller implements HasMiddleware
                     'service_code' => $serviceCode,
                     'round_no' => (int) $roundNo,
                     'trip_nature' => (string) ($trip->tripNature?->title ?: ''),
-                    'schedule_km' => (float) $trip->schedule_km,
+                    'schedule_km' => $entryScheduleKm,
                     'departure_time' => $roundTimes->first()['time'] ?? null,
                     'arrival_time' => $roundTimes->last()['time'] ?? null,
                     'stop_times' => $roundTimes->all(),
@@ -2231,7 +2231,7 @@ class TripController extends Controller implements HasMiddleware
             'service_code' => $data['service_code'] ?? null,
             'round_no' => $data['round_no'] ?? null,
             'trip_nature' => $trip->tripNature?->title,
-            'schedule_km' => $trip->schedule_km,
+            'schedule_km' => $this->tripSheetEntryScheduleKm($trip),
             'starting_km' => $data['starting_km'] ?? null,
             'ending_km' => $data['ending_km'] ?? null,
             'starting_electric_charge' => $data['starting_electric_charge'] ?? null,
@@ -2258,6 +2258,11 @@ class TripController extends Controller implements HasMiddleware
             'final_verification_at' => $this->normalizeDateTime($data['final_verification_at'] ?? null),
             'notes' => $data['notes'] ?? null,
         ];
+    }
+
+    private function tripSheetEntryScheduleKm(Trip $trip): float
+    {
+        return round((float) $trip->schedule_km / max(1, (int) $trip->rounds_per_trip), 2);
     }
 
     private function normalizeDateTime(?string $value): ?string

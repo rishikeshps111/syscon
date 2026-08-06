@@ -230,6 +230,7 @@ class DriverManagementSeeder extends Seeder
 
         DB::transaction(function () use ($records, $location, $depot, $branch) {
             foreach ($records as $record) {
+                $record['depot_id'] = $depot->id;
                 $user = User::firstOrCreate(
                     ['email' => $record['email']],
                     [
@@ -242,7 +243,7 @@ class DriverManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = UserCodeGenerator::generate('Driver', $depot->id, $user->id);
+                    $user->code = UserCodeGenerator::generate('Driver', (int) $record['depot_id'], $user->id);
                     $user->save();
                 }
 

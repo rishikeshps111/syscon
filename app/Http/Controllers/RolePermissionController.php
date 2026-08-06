@@ -12,7 +12,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RolePermissionController extends Controller implements HasMiddleware
 {
-    private const STATIC_ROLES = ['Super Admin', 'Staff', 'Driver', 'Controller', 'Supervisor'];
+    private const STATIC_ROLES = ['Super Admin', 'Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'];
 
     public static function middleware(): array
     {
@@ -187,6 +187,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Holiday', 'permissions' => $this->crud('holidays')],
                     ['label' => 'Staff Management', 'permissions' => $this->crud('staff-management')],
                     ['label' => 'Driver Management', 'permissions' => $this->crud('driver-management')],
+                    ['label' => 'Housekeeping Management', 'permissions' => $this->crud('housekeeping-management')],
                     ['label' => 'Controller Management', 'permissions' => $this->crud('controller-management')],
                     ['label' => 'Supervisor Management', 'permissions' => $this->crud('supervisor-management')],
                     ['label' => 'Leave Management', 'permissions' => $this->crud('leaves')],

@@ -254,6 +254,12 @@ class PermissionSeeder extends Seeder
                 'driver-management.delete',
                 'driver-management.view',
             ],
+            'Housekeeping Management' => [
+                'housekeeping-management.create',
+                'housekeeping-management.edit',
+                'housekeeping-management.delete',
+                'housekeeping-management.view',
+            ],
             'Complaints' => [
                 'complaints.create',
                 'complaints.edit',

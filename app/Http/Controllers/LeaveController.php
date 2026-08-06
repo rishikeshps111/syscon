@@ -23,7 +23,7 @@ class LeaveController extends Controller implements HasMiddleware
 {
     private const GENERAL_LEAVE_ROLES = ['Supervisor', 'Controller', 'Staff'];
 
-    private const FILTER_ROLES = ['Supervisor', 'Controller', 'Staff', 'Driver'];
+    private const FILTER_ROLES = ['Supervisor', 'Controller', 'Staff', 'Driver', 'Housekeeping'];
 
     public static function middleware(): array
     {
@@ -373,8 +373,8 @@ class LeaveController extends Controller implements HasMiddleware
 
         $validated = $request->validate($rules);
 
-        if ($leaveFor === 'driver' && ! User::role('Driver')->whereKey($validated['user_id'])->exists()) {
-            throw ValidationException::withMessages(['user_id' => 'Please select a valid driver.']);
+        if ($leaveFor === 'driver' && ! User::role(['Driver', 'Housekeeping'])->whereKey($validated['user_id'])->exists()) {
+            throw ValidationException::withMessages(['user_id' => 'Please select a valid driver or housekeeping employee.']);
         }
 
         if ($leaveFor === 'general' && ! User::role(self::GENERAL_LEAVE_ROLES)->whereKey($validated['user_id'])->exists()) {
@@ -410,7 +410,7 @@ class LeaveController extends Controller implements HasMiddleware
                         ->values(),
                 ]),
             'generalLeaveRoles' => self::GENERAL_LEAVE_ROLES,
-            'drivers' => User::role('Driver')->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']),
+            'drivers' => User::role(['Driver', 'Housekeeping'])->where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']),
             'leaveTypes' => $this->activeLeaveTypesFor('general')->get(['id', 'leave_name', 'short_name', 'max_leaves_per_year', 'allow_half_day']),
             'driverLeaveTypes' => $this->activeLeaveTypesFor('driver')->get(['id', 'leave_name', 'short_name', 'max_leaves_per_year', 'allow_half_day']),
             'shifts' => Leave::SHIFTS,

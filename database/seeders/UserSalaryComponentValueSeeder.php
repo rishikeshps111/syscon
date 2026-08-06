@@ -14,6 +14,7 @@ class UserSalaryComponentValueSeeder extends Seeder
         'Controller' => 'controllerProfile',
         'Supervisor' => 'supervisorProfile',
         'Driver' => 'driverProfile',
+        'Housekeeping' => 'housekeepingProfile',
     ];
 
     public function run(): void
@@ -36,7 +37,7 @@ class UserSalaryComponentValueSeeder extends Seeder
                         return;
                     }
 
-                    $salaryValues = $roleName === 'Driver'
+                    $salaryValues = in_array($roleName, ['Driver', 'Housekeeping'], true)
                         ? $this->driverSalaryValues((float) $profile->salary)
                         : $this->profileSalaryValues($profile);
 

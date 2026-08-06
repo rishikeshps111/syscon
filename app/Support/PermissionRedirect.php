@@ -53,6 +53,7 @@ class PermissionRedirect
             'holidays.view' => 'holidays.index',
             'staff-management.view' => 'staff-management.index',
             'driver-management.view' => 'driver-management.index',
+            'housekeeping-management.view' => 'housekeeping-management.index',
             'controller-management.view' => 'controller-management.index',
             'supervisor-management.view' => 'supervisor-management.index',
             'leaves.view' => 'leaves.index',

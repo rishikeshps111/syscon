@@ -1,10 +1,10 @@
 @section('title')
-    {{ isset($record) ? 'Edit Driver Leave' : 'Driver Leave' }}
+    {{ isset($record) ? 'Edit Shift-Based Leave' : 'Shift-Based Leave' }}
 @endsection
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>Driver Leave</h3>
+            <h3>Shift-Based Leave</h3>
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
@@ -33,7 +33,7 @@
                                     value="{{ $record->code ?? $generatedCode ?? '' }}" disabled>
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="user_id">Driver Name <span class="text-danger">*</span></label>
+                                <label for="user_id">Driver / Housekeeping Employee <span class="text-danger">*</span></label>
                                 <select id="user_id" name="user_id" class="form-select shadow-none select2 @error('user_id') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach($drivers as $driver)
@@ -91,7 +91,7 @@
                                 @error('shift')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
-                                <label for="assigned_vehicle_route">Assigned Vehicle / Route <span class="text-danger">*</span></label>
+                                <label for="assigned_vehicle_route">Assigned Work Area / Vehicle / Route <span class="text-danger">*</span></label>
                                 <input type="text" id="assigned_vehicle_route" name="assigned_vehicle_route"
                                     class="form-control shadow-none @error('assigned_vehicle_route') is-invalid @enderror"
                                     value="{{ old('assigned_vehicle_route', $record->assigned_vehicle_route ?? '') }}">
@@ -99,7 +99,7 @@
                             </div>
                             <div class="col-lg-12 mb-3">
                                 <div class="leave-balance-box" id="leave_balance_box">
-                                    Select a driver to view financial year leave usage.
+                                    Select an employee to view financial year leave usage.
                                 </div>
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">

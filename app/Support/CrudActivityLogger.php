@@ -18,6 +18,7 @@ use App\Models\DriverDocument;
 use App\Models\DriverProfile;
 use App\Models\GeneralSetting;
 use App\Models\Holiday;
+use App\Models\HousekeepingProfile;
 use App\Models\HrmsDocumentType;
 use App\Models\Leave;
 use App\Models\LeaveType;
@@ -111,6 +112,7 @@ class CrudActivityLogger
         StaffProfile::class => 'Staff Management',
         StaffDocument::class => 'Staff Document',
         DriverProfile::class => 'Driver Management',
+        HousekeepingProfile::class => 'Housekeeping Management',
         DriverDocument::class => 'Driver Document',
         ControllerProfile::class => 'Controller Management',
         ControllerDocument::class => 'Controller Document',

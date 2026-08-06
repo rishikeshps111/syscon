@@ -186,7 +186,7 @@ class SupervisorManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = UserCodeGenerator::generate('Supervisor', $depot->id, $user->id);
+                    $user->code = UserCodeGenerator::generate('Supervisor', (int) $record['depot_id'], $user->id);
                     $user->save();
                 }
 

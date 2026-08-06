@@ -272,7 +272,11 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             );
             $deduction = (float) collect($split)->where('type', 'deduction')->sum('amount');
             $leaveTaken = $this->leaveTaken($user->id, $start, $end);
-            $totalShifts = $role->name === 'Driver' ? $this->completedDriverShifts($user, $start, $end) : 0;
+            $totalShifts = match ($role->name) {
+                'Driver' => $this->completedDriverShifts($user, $start, $end),
+                'Housekeeping' => Attendance::where('user_id', $user->id)->whereBetween('attendance_date', [$start, $end])->whereIn('status', ['present', 'half_day'])->count(),
+                default => 0,
+            };
             $row = [
                 'user_id' => $user->id,
                 'name' => $user->name,
@@ -296,10 +300,11 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     {
         return User::role($roleName)
             ->where('is_active', true)
-            ->with(['driverProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'supervisorProfile.depot'])
+            ->with(['driverProfile.depot', 'housekeepingProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'supervisorProfile.depot'])
             ->where(function ($query) use ($roleName, $depotId) {
                 match ($roleName) {
                     'Driver' => $query->whereHas('driverProfile', fn($profile) => $profile->where('depot_id', $depotId)),
+                    'Housekeeping' => $query->whereHas('housekeepingProfile', fn($profile) => $profile->where('depot_id', $depotId)),
                     'Controller' => $query->whereHas('controllerProfile', fn($profile) => $profile->where('depot_id', $depotId)),
                     'Supervisor' => $query->whereHas('supervisorProfile', fn($profile) => $profile->where('depot_id', $depotId)),
                     default => $query->whereHas('staffProfile', fn($profile) => $profile->where('depot_id', $depotId)),
@@ -335,6 +340,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
         return (float) (
             $user->driverProfile?->salary
+            ?? $user->housekeepingProfile?->salary
             ?? $user->staffProfile?->gross_salary
             ?? $user->controllerProfile?->gross_salary
             ?? $user->supervisorProfile?->gross_salary
@@ -346,6 +352,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     {
         return match ($roleName) {
             'Driver' => $user->driverProfile?->aadhaar_number,
+            'Housekeeping' => $user->housekeepingProfile?->aadhaar_number,
             'Controller' => $user->controllerProfile?->aadhaar_number,
             'Supervisor' => $user->supervisorProfile?->aadhaar_number,
             default => $user->staffProfile?->aadhaar_number,
@@ -356,6 +363,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     {
         $profile = match ($roleName) {
             'Driver' => $user->driverProfile,
+            'Housekeeping' => $user->housekeepingProfile,
             'Controller' => $user->controllerProfile,
             'Supervisor' => $user->supervisorProfile,
             default => $user->staffProfile,

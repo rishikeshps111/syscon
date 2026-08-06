@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->hasOne(DriverProfile::class);
     }
 
+    public function housekeepingProfile(): HasOne
+    {
+        return $this->hasOne(HousekeepingProfile::class);
+    }
+
     public function controllerProfile(): HasOne
     {
         return $this->hasOne(ControllerProfile::class);
@@ -107,6 +112,11 @@ class User extends Authenticatable
     public function driverDocuments(): HasMany
     {
         return $this->hasMany(DriverDocument::class);
+    }
+
+    public function housekeepingDocuments(): HasMany
+    {
+        return $this->hasMany(HousekeepingDocument::class);
     }
 
     public function reportedComplaints(): HasMany

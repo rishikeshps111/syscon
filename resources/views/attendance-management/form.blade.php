@@ -100,7 +100,7 @@
                                     <th class="text-center">User</th>
                                     <th class="text-center">Status <span class="text-danger">*</span></th>
                                     <th class="text-center">Half Day <span class="text-danger">*</span></th>
-                                    @if($role === 'Driver')
+                                    @if(in_array($role, ['Driver', 'Housekeeping'], true))
                                         <th class="text-center">Shift <span class="text-danger">*</span></th>
                                     @endif
                                     <th class="text-center">Leave Application</th>
@@ -134,7 +134,7 @@
                                                 @endforeach
                                             </select>
                                         </td>
-                                        @if($role === 'Driver')
+                                        @if(in_array($role, ['Driver', 'Housekeeping'], true))
                                             <td>
                                                 <select name="attendance[{{ $user->id }}][shift]" class="form-select shadow-none">
                                                     <option value="">---Select---</option>
@@ -161,7 +161,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ $role === 'Driver' ? 6 : 5 }}" class="text-center">No users found.</td>
+                                        <td colspan="{{ in_array($role, ['Driver', 'Housekeeping'], true) ? 6 : 5 }}" class="text-center">No users found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

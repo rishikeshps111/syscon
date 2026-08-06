@@ -158,7 +158,7 @@ class AttendanceController extends Controller implements HasMiddleware
                         'user_type' => $row['user_type'],
                         'status' => $row['status'],
                         'half_day_period' => $row['status'] === 'half_day' ? $row['half_day_period'] : null,
-                        'shift' => $row['user_type'] === 'Driver' ? $row['shift'] : null,
+                        'shift' => in_array($row['user_type'], ['Driver', 'Housekeeping'], true) ? $row['shift'] : null,
                         'leave_id' => in_array($row['status'], ['absent', 'half_day'], true) ? $row['leave_id'] : null,
                         'remarks' => $row['remarks'],
                         'created_by' => auth()->id(),
@@ -319,7 +319,7 @@ class AttendanceController extends Controller implements HasMiddleware
                     continue;
                 }
 
-                $isDriver = $users->get((int) $row['user_id'])->hasRole('Driver');
+                $isShiftBased = $users->get((int) $row['user_id'])->hasAnyRole(['Driver', 'Housekeeping']);
                 $status = $row['status'];
                 $fieldPrefix = 'attendance.' . $row['user_id'];
 
@@ -329,9 +329,9 @@ class AttendanceController extends Controller implements HasMiddleware
                     ]);
                 }
 
-                if ($isDriver && empty($row['shift'])) {
+                if ($isShiftBased && empty($row['shift'])) {
                     throw ValidationException::withMessages([
-                        $fieldPrefix . '.shift' => 'Please select a shift for driver attendance.',
+                        $fieldPrefix . '.shift' => 'Please select a shift for this employee.',
                     ]);
                 }
 
@@ -352,7 +352,7 @@ class AttendanceController extends Controller implements HasMiddleware
                         'user_type' => $validated['user_type'],
                         'status' => $status,
                         'half_day_period' => $status === 'half_day' ? ($row['half_day_period'] ?? null) : null,
-                        'shift' => $isDriver ? ($row['shift'] ?? null) : null,
+                        'shift' => $isShiftBased ? ($row['shift'] ?? null) : null,
                         'leave_id' => in_array($status, ['absent', 'half_day'], true) ? ($row['leave_id'] ?? null) : null,
                         'remarks' => $row['remarks'] ?? null,
                         'created_by' => auth()->id(),
@@ -574,8 +574,8 @@ class AttendanceController extends Controller implements HasMiddleware
                 $errors[] = "Row {$line}: half_day_period is required for half_day status and must be morning or afternoon.";
             }
 
-            if ($userType === 'Driver' && ! array_key_exists((string) $shift, Attendance::SHIFTS)) {
-                $errors[] = "Row {$line}: shift is required for Driver attendance and must be Morning, Evening, or Night.";
+            if (in_array($userType, ['Driver', 'Housekeeping'], true) && ! array_key_exists((string) $shift, Attendance::SHIFTS)) {
+                $errors[] = "Row {$line}: shift is required for Driver and Housekeeping attendance and must be Morning, Evening, or Night.";
             }
 
             $leaveId = $this->csvLeaveId($data['leave_code'] ?? null);

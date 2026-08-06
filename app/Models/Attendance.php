@@ -44,6 +44,7 @@ class Attendance extends Model
         'Controller' => 'Controller',
         'Staff' => 'Staff',
         'Driver' => 'Driver',
+        'Housekeeping' => 'Housekeeping',
     ];
 
     public const HALF_DAY_PERIODS = [

@@ -186,7 +186,7 @@ class ControllerManagementSeeder extends Seeder
                 );
 
                 if (! $user->code) {
-                    $user->code = UserCodeGenerator::generate('Controller', $depot->id, $user->id);
+                    $user->code = UserCodeGenerator::generate('Controller', (int) $record['depot_id'], $user->id);
                     $user->save();
                 }
 

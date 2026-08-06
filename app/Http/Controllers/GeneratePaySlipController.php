@@ -60,10 +60,11 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
     {
         return User::role($roleName)
             ->where('is_active', true)
-            ->with(['driverProfile', 'staffProfile', 'controllerProfile', 'supervisorProfile'])
+            ->with(['driverProfile', 'housekeepingProfile', 'staffProfile', 'controllerProfile', 'supervisorProfile'])
             ->where(function ($query) use ($roleName, $depotId) {
                 match ($roleName) {
                     'Driver' => $query->whereHas('driverProfile', fn ($profile) => $profile->where('depot_id', $depotId)),
+                    'Housekeeping' => $query->whereHas('housekeepingProfile', fn ($profile) => $profile->where('depot_id', $depotId)),
                     'Controller' => $query->whereHas('controllerProfile', fn ($profile) => $profile->where('depot_id', $depotId)),
                     'Supervisor' => $query->whereHas('supervisorProfile', fn ($profile) => $profile->where('depot_id', $depotId)),
                     default => $query->whereHas('staffProfile', fn ($profile) => $profile->where('depot_id', $depotId)),
@@ -279,13 +280,14 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
     {
         $profile = match ($processing->role?->name) {
             'Driver' => $item->user?->driverProfile,
+            'Housekeeping' => $item->user?->housekeepingProfile,
             'Controller' => $item->user?->controllerProfile,
             'Supervisor' => $item->user?->supervisorProfile,
             default => $item->user?->staffProfile,
         };
 
         return [
-            'account_number' => (string) ($processing->role?->name === 'Driver'
+            'account_number' => (string) (in_array($processing->role?->name, ['Driver', 'Housekeeping'], true)
                 ? ($profile?->account_number ?: '-')
                 : ($profile?->bank_account_number ?: '-')),
             'ifsc_code' => (string) ($profile?->ifsc_code ?: '-'),

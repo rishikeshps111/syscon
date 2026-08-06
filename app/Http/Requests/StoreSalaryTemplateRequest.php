@@ -21,7 +21,7 @@ class StoreSalaryTemplateRequest extends FormRequest
             'role_id' => [
                 'required',
                 'integer',
-                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])),
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])),
             ],
             'designation_id' => ['nullable', 'integer', 'exists:designations,id'],
             'components' => ['required', 'array', 'min:1'],
