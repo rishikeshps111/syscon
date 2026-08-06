@@ -190,15 +190,16 @@
                     $bulkImportModule = request()->routeIs('bulk-import.*') ? request()->route('module') : null;
                     $bulkImportIsDesignation = $bulkImportModule === 'designations';
                     $bulkImportIsHrms = $bulkImportIsDesignation
-                        || in_array($bulkImportModule, ['staff', 'drivers', 'controllers', 'supervisors'], true);
+                        || in_array($bulkImportModule, ['staff', 'drivers', 'housekeeping', 'controllers', 'supervisors'], true);
                     $letterUser = request()->routeIs('hr-letters.*') ? request()->route('user') : null;
                     if (! $letterUser && request()->routeIs('hr-letters.*') && request()->route('hrLetter')) {
                         $letterUser = request()->route('hrLetter')->user;
                     }
-                    $letterUserRole = $letterUser?->roles?->pluck('name')->first(fn ($role) => in_array($role, ['Staff', 'Driver', 'Controller', 'Supervisor'], true));
+                    $letterUserRole = $letterUser?->roles?->pluck('name')->first(fn ($role) => in_array($role, ['Staff', 'Driver', 'Housekeeping', 'Controller', 'Supervisor'], true));
                     $letterUserModule = match ($letterUserRole) {
                         'Staff' => 'staff',
                         'Driver' => 'drivers',
+                        'Housekeeping' => 'housekeeping',
                         'Controller' => 'controllers',
                         'Supervisor' => 'supervisors',
                         default => null,
@@ -346,7 +347,7 @@
                                 </li>
                             @endcan
                             @can('housekeeping-management.view')
-                                <li><a href="{{ route('housekeeping-management.index') }}" class="{{ request()->routeIs('housekeeping-management.*') ? 'sub-active' : '' }}"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Housekeeping Management</span></a></li>
+                                <li><a href="{{ route('housekeeping-management.index') }}" class="{{ request()->routeIs('housekeeping-management.*') || $bulkImportModule === 'housekeeping' || $letterUserModule === 'housekeeping' ? 'sub-active' : '' }}"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Housekeeping Management</span></a></li>
                             @endcan
                             @can('controller-management.view')
                                 <li>

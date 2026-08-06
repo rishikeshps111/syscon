@@ -91,6 +91,7 @@
                             <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="true" aria-controls="filterCollapse">Filters</a>
                             @can('housekeeping-management.create')
+                                <a href="{{ route('bulk-import.form', 'housekeeping') }}" class="add-btn">Import Housekeeping</a>
                                 <a href="{{ route('housekeeping-management.create') }}" class="add-btn">Add New Housekeeping</a>
                             @endcan
                         </div>

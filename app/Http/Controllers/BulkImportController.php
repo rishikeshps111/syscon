@@ -8,6 +8,7 @@ use App\Models\Depot;
 use App\Models\Designation;
 use App\Models\District;
 use App\Models\DriverProfile;
+use App\Models\HousekeepingProfile;
 use App\Models\Location;
 use App\Models\Oem;
 use App\Models\StaffProfile;
@@ -131,7 +132,7 @@ class BulkImportController extends Controller
                 'level' => [\App\Models\Level::class, 'name', 'level_id'],
                 'reporting_to' => [Role::class, 'name', 'reporting_to'],
             ];
-        } elseif ($module === 'drivers') {
+        } elseif (in_array($module, ['drivers', 'housekeeping'], true)) {
             $lookups['branch'] = [BranchLocation::class, 'name', 'branch_location_id'];
         } elseif ($module === 'staff') {
             $lookups['designation'] = [Designation::class, 'name', 'designation_id'];
@@ -231,20 +232,21 @@ class BulkImportController extends Controller
     {
         $meta = [
             'drivers' => ['role' => 'Driver', 'relation' => 'driverProfile'],
+            'housekeeping' => ['role' => 'Housekeeping', 'relation' => 'housekeepingProfile'],
             'controllers' => ['role' => 'Controller', 'relation' => 'controllerProfile'],
             'supervisors' => ['role' => 'Supervisor', 'relation' => 'supervisorProfile'],
             'staff' => ['role' => 'Staff', 'relation' => 'staffProfile'],
         ][$module];
         $passwordField = $module === 'staff' ? 'password' : 'passcode';
         $user = User::create(collect($data)->only(['name', 'email', 'country_code', 'phone', 'is_active'])->all() + [
-            'code' => null, 'password' => $data[$passwordField],
+            'code' => null, 'password' => $module === 'housekeeping' ? Str::random(40) : $data[$passwordField],
         ]);
         $user->update([
             'code' => UserCodeGenerator::generate($meta['role'], (int) $data['depot_id'], $user->id),
         ]);
         $profile = collect($data)->only($this->config($module)['profile_fields'])->all();
         $salary = SalaryComponents::legacyProfileSalaryData([]);
-        if ($module === 'drivers') {
+        if (in_array($module, ['drivers', 'housekeeping'], true)) {
             $profile['salary'] = $salary['salary'];
         } else {
             $profile += collect($salary)->only(['basic', 'vda', 'basic_vda', 'hra', 'special_allowance', 'conveyance_allowance', 'bonus', 'gross_salary'])->all();
@@ -321,6 +323,20 @@ class BulkImportController extends Controller
                 'police_verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))], 'verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],
             ];
         }
+        if ($module === 'housekeeping') {
+            return $rules + [
+                'alternate_country_code' => ['nullable', 'max:10'], 'alternate_phone' => ['nullable', 'max:30'],
+                'aadhaar_number' => ['required', 'max:20', 'unique:housekeeping_profiles,aadhaar_number'],
+                'pincode' => ['required', 'max:10'], 'address' => ['required', 'max:1000'],
+                'employment_type' => ['required', Rule::in(array_keys(HousekeepingProfile::EMPLOYMENT_TYPES))],
+                'joining_date' => ['required', 'date'], 'branch_location_id' => ['required'],
+                'account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
+                'emergency_contact_name' => ['required', 'max:255'], 'emergency_country_code' => ['required', 'max:10'],
+                'emergency_contact_no' => ['required', 'max:30'], 'medical_fitness_expiry' => ['required', 'date'],
+                'police_verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
+                'verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
+            ];
+        }
         $class = ['controllers' => ControllerProfile::class, 'supervisors' => SupervisorProfile::class, 'staff' => StaffProfile::class][$module];
         $rules += [
             ($module === 'staff' ? 'password' : 'passcode') => $module === 'staff' ? ['required', 'min:8'] : ['required', 'digits:6'],
@@ -390,6 +406,13 @@ class BulkImportController extends Controller
                 'unique_csv'=>['email','aadhaar_number','license_number'],
                 'profile_fields'=>['alternate_country_code','alternate_phone','aadhaar_number','country','state_id','district_id','location_id','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot_id','branch_location_id','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
             ],
+            'housekeeping' => [
+                'label'=>'Housekeeping','permission'=>'housekeeping-management.create','index_route'=>'housekeeping-management.index',
+                'headers'=>['name','country_code','phone','alternate_country_code','alternate_phone','email','is_active','aadhaar_number','country','state','district','location','pincode','address','employment_type','joining_date','depot','branch','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
+                'sample'=>['Sample Housekeeper','+91','9876543210','','','housekeeper@example.com','yes','123456789012','India','Maharashtra','Pune','Pune','411001','Sample address','permanent','2026-01-01','Central Depot','Main Branch','1234567890','ABCD0001234','Contact Person','+91','9876543211','2027-01-01','verified','verified'],
+                'unique_csv'=>['email','aadhaar_number'],
+                'profile_fields'=>['alternate_country_code','alternate_phone','aadhaar_number','country','state_id','district_id','location_id','pincode','address','employment_type','joining_date','depot_id','branch_location_id','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
+            ],
             'designations' => [
                 'label' => 'Designations',
                 'permission' => 'designations.create',
@@ -414,6 +437,7 @@ class BulkImportController extends Controller
         $optional = match ($module) {
             'vehicles' => ['variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_imei', 'remarks'],
             'drivers' => ['alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date'],
+            'housekeeping' => ['alternate_country_code', 'alternate_phone'],
             'staff' => ['reporting_to'],
             'designations' => ['reporting_to', 'description'],
             default => [],
@@ -446,7 +470,7 @@ class BulkImportController extends Controller
             'is_active' => 'Use yes/no, true/false, active/inactive, or 1/0.',
             'father_name' => 'Father name, maximum 255 characters.',
             'date_of_birth' => 'Use YYYY-MM-DD.',
-            'aadhaar_number' => $module === 'drivers' ? 'Aadhaar number, maximum 20 characters; must be unique.' : 'Aadhaar number, maximum 20 characters.',
+            'aadhaar_number' => in_array($module, ['drivers', 'housekeeping'], true) ? 'Aadhaar number, maximum 20 characters; must be unique.' : 'Aadhaar number, maximum 20 characters.',
             'pan_number' => 'PAN number, maximum 20 characters.',
             'date_of_joining' => 'Use YYYY-MM-DD.',
             'joining_date' => 'Use YYYY-MM-DD.',
@@ -465,7 +489,7 @@ class BulkImportController extends Controller
                 ? 'Optional. Use the exact existing staff name. Do not use an ID; the name must identify one staff member.'
                 : 'Optional. Use the exact existing role name: Staff, Driver, Controller, or Supervisor. Do not use an ID.',
             'description' => 'Optional description of the designation and its responsibilities.',
-            'employment_type' => $module === 'drivers' ? 'Use permanent or contract.' : 'Use full_time, part_time, or contract.',
+            'employment_type' => in_array($module, ['drivers', 'housekeeping'], true) ? 'Use permanent or contract.' : 'Use full_time, part_time, or contract.',
             'category' => 'Use skilled, unskilled, or managerial.',
             'bank_account_number' => 'Bank account number, maximum 50 characters.',
             'account_number' => 'Bank account number, maximum 50 characters.',
