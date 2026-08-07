@@ -34,7 +34,7 @@
                         <div class="col-lg-12 mb-3">
                             <div class="v-preview">
                                 <img src="{{ asset('assets/img/logo.png') }}" alt="Logo">
-                                <span>{{ \App\Models\Roster::STATUSES[$record->status] ?? $record->status }}</span>
+                                {{-- <span>{{ \App\Models\Roster::STATUSES[$record->status] ?? $record->status }}</span> --}}
                             </div>
                         </div>
 
@@ -49,8 +49,8 @@
                                     <li>Shift Time : <span>{{ $time($record->shift_start_time) }} -
                                             {{ $time($record->shift_end_time) }}</span></li>
                                     <li>Reporting To Time : <span>{{ $time($record->reporting_time) }}</span></li>
-                                    <li>Second Reporting To Time : <span>{{ $time($record->reporting_to_time) }}</span>
-                                    </li>
+                                    {{-- <li>Second Reporting To Time : <span>{{ $time($record->reporting_to_time) }}</span>
+                                    </li> --}}
                                     <li>Attendance :
                                         <span>{{ $record->attendance_status ? (\App\Models\Roster::ATTENDANCE_STATUSES[$record->attendance_status] ?? $record->attendance_status) : 'Not Marked' }}</span>
                                     </li>
@@ -65,9 +65,9 @@
                                     <li><label>State :</label> <span>{{ $record->state?->name ?: '-' }}</span></li>
                                     <li><label>Vendor :</label> <span>{{ $record->oem?->oem_name ?: '-' }}</span></li>
                                     <li><label>Depot :</label> <span>{{ $record->depot?->name ?: '-' }}</span></li>
-                                    <li><label>Status :</label>
+                                    {{-- <li><label>Status :</label>
                                         <span>{{ \App\Models\Roster::STATUSES[$record->status] ?? '-' }}</span>
-                                    </li>
+                                    </li> --}}
                                 </ul>
                             </div>
                         </div>
@@ -84,8 +84,8 @@
                                         <li><label>Trip Title :</label>
                                             <span>{{ $entry->sheet?->trip?->trip_title ?: '-' }}</span>
                                         </li>
-                                        <li><label>Side :</label> <span>{{ ucfirst((string) $entry->side) ?: '-' }}</span>
-                                        </li>
+                                        {{-- <li><label>Side :</label> <span>{{ ucfirst((string) $entry->side) ?: '-' }}</span>
+                                        </li> --}}
                                     </ul>
                                     @unless($loop->last)
                                         <hr>

@@ -2,40 +2,48 @@
     $(function () {
         $('.select2-filter').select2({ placeholder: '---Select---', allowClear: true, width: '100%' });
 
+        var generated = false;
         var table = $('#table').DataTable({
             processing: true,
             serverSide: true,
             searching: false,
             ajax: { url: "{{ route('rosters.index') }}", data: filters },
             columns: [
-                { data: 'checkbox', name: 'checkbox', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'checkbox', name: 'checkbox', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
                 { data: 'date', name: 'duty_date', className: 'text-center' },
+                { data: 'depot_name', name: 'depot.name', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'shift_type_label', name: 'shift_type', className: 'text-center' },
                 { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'trip_code', name: 'tripSheetEntries.sheet.code', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'reporting_time_label', name: 'reporting_time', className: 'text-center' },
-                { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'attendance_status', name: 'attendance_status', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
+                // { data: 'attendance_status', name: 'attendance_status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
             order: [[1, 'desc']]
         });
 
-        let searchTimer;
-        $('#searchFilter').on('keyup', function () {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(reloadTable, 300);
+        $('#generateRoster').on('click', function () {
+            if (!validateGenerateFilters()) return;
+            generated = true;
+            reloadTable();
         });
-        $('#searchFilters').on('click', reloadTable);
-        $('#stateFilter, #oemFilter, #depotFilter, #driverFilter, #dateFromFilter, #dateToFilter, #shiftTypeFilter, #statusFilter').on('change', reloadTable);
+
+        $('#generateExport').on('click', function () {
+            if (!validateGenerateFilters()) return;
+            generated = true;
+            reloadTable();
+            downloadGeneratedRoster();
+        });
 
         $('#resetFilters').on('click', function () {
-            $('#stateFilter, #oemFilter, #depotFilter, #driverFilter, #dateFromFilter, #dateToFilter, #shiftTypeFilter, #statusFilter, #searchFilter').val('');
+            $('#depotFilter, #dateFromFilter, #dateToFilter').val('');
             $('.select2-filter').trigger('change.select2');
             $('#checkAll').prop('checked', false);
+            generated = false;
             reloadTable();
         });
 
@@ -180,31 +188,55 @@
         }
 
         function filters(data) {
-            data.search_text = $('#searchFilter').val();
-            data.state_id = $('#stateFilter').val();
-            data.oem_id = $('#oemFilter').val();
             data.depot_id = $('#depotFilter').val();
-            data.driver_profile_id = $('#driverFilter').val();
             data.date_from = $('#dateFromFilter').val();
             data.date_to = $('#dateToFilter').val();
-            data.shift_type = $('#shiftTypeFilter').val();
-            data.status = $('#statusFilter').val();
+            data.generate = generated ? 1 : 0;
         }
 
         function exportPayload(ids) {
             return {
                 _token: "{{ csrf_token() }}",
                 ids: ids,
-                search_text: $('#searchFilter').val(),
-                state_id: $('#stateFilter').val(),
-                oem_id: $('#oemFilter').val(),
                 depot_id: $('#depotFilter').val(),
-                driver_profile_id: $('#driverFilter').val(),
                 date_from: $('#dateFromFilter').val(),
                 date_to: $('#dateToFilter').val(),
-                shift_type: $('#shiftTypeFilter').val(),
-                status: $('#statusFilter').val()
+                generate: 1
             };
+        }
+
+        function validateGenerateFilters() {
+            var from = $('#dateFromFilter').val();
+            var to = $('#dateToFilter').val();
+            if (!$('#depotFilter').val() || !from || !to) {
+                showToast('warning', 'Please select depot, from date and to date.');
+                return false;
+            }
+            if (to < from) {
+                showToast('warning', 'To date must be on or after from date.');
+                return false;
+            }
+            return true;
+        }
+
+        function downloadGeneratedRoster() {
+            $.ajax({
+                url: "{{ route('rosters.export') }}",
+                type: 'POST',
+                data: exportPayload([]),
+                xhrFields: { responseType: 'blob' },
+                success: function (data) {
+                    var url = window.URL.createObjectURL(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+                    var link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'roasters.xlsx';
+                    document.body.appendChild(link);
+                    link.click();
+                    window.URL.revokeObjectURL(url);
+                    link.remove();
+                },
+                error: function () { showToast('error', 'Export failed.'); }
+            });
         }
 
         function reloadTable() {

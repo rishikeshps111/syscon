@@ -149,7 +149,7 @@ class TripController extends Controller
             ->count();
 
         if (! empty($validated['status'])) {
-            $query->whereRelation('sheet', 'status', $validated['status']);
+            $query->where('status', $validated['status']);
         }
 
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
@@ -415,7 +415,7 @@ class TripController extends Controller
             ->whereKey($tripId)
             ->firstOrFail();
 
-        $stage = $record->sheet?->status;
+        $stage = $record->status;
         $this->authorizeVerificationDepot($record, $depotId, $stage);
 
         $commonRules = [
@@ -513,7 +513,7 @@ class TripController extends Controller
             $record = TripSheetEntry::query()->lockForUpdate()->findOrFail($record->id);
             $record->load(['sheet.trip.route', 'sheet.trip.depot', 'sheet.trip.fromDepot', 'sheet.trip.toDepot']);
 
-            if ($record->sheet?->status !== $stage) {
+            if ($record->status !== $stage) {
                 throw ValidationException::withMessages([
                     'trip_id' => 'The verification stage has already changed. Please refresh and try again.',
                 ]);
@@ -529,6 +529,7 @@ class TripController extends Controller
             // $isVehicleVerified = true;
             $entryPayload = $stage === 'pending'
                 ? [
+                    'status' => 'initial_verification_completed',
                     'actual_start_time' => $validated['actual_start_time'],
                     'starting_km' => $validated['odometer_start_reading'],
                     'starting_electric_charge' => $validated['route_start_soc_percent'],
@@ -542,6 +543,7 @@ class TripController extends Controller
                     'initial_verification_at' => now(),
                 ]
                 : [
+                    'status' => 'verification_completed',
                     'actual_reach_time' => $validated['actual_end_time'],
                     'ending_km' => $validated['odometer_end_reading'],
                     'ending_electric_charge' => $validated['route_end_soc_percent'],
@@ -586,11 +588,7 @@ class TripController extends Controller
                 ]);
             }
 
-            $record->sheet->update([
-                'status' => $stage === 'pending'
-                    ? 'initial_verification_completed'
-                    : 'verification_completed',
-            ]);
+            $this->syncSheetVerificationStatus($record->sheet);
         });
 
         $record->refresh()->load([
@@ -626,6 +624,27 @@ class TripController extends Controller
                 'sheet.trip.depot',
             ])
             ->forDepot($depotId);
+    }
+
+    private function syncSheetVerificationStatus(TripSheet $sheet): void
+    {
+        $statuses = $sheet->entries()->pluck('status');
+
+        $status = match (true) {
+            $statuses->isNotEmpty() && $statuses->every(
+                fn(string $status): bool => $status === 'verification_completed'
+            ) => 'verification_completed',
+            $statuses->isNotEmpty() && $statuses->every(
+                fn(string $status): bool => in_array(
+                    $status,
+                    ['initial_verification_completed', 'verification_completed'],
+                    true
+                )
+            ) => 'initial_verification_completed',
+            default => 'pending',
+        };
+
+        $sheet->update(['status' => $status]);
     }
 
     private function userDepotId(Request $request): ?int
@@ -770,9 +789,10 @@ class TripController extends Controller
         $dcrKwh = $this->nullableFloat($dor?->dcr_kwh);
         $dcrChargedSoc = $this->nullableFloat($dor?->dcr_charged_soc);
         $batterySizeKwh = $this->nullableFloat($dor?->battery_size_kwh);
+        $isInitialVerification = array_key_exists('actual_start_time', $data);
         $verificationDepot = $trip?->trip_side === 'both'
             ? $trip?->depot
-            : ($entry->sheet?->status === 'pending' ? $trip?->fromDepot : $trip?->toDepot);
+            : ($isInitialVerification ? $trip?->fromDepot : $trip?->toDepot);
 
         return [
             'depot_name' => $verificationDepot?->name,

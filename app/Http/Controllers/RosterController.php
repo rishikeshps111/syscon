@@ -49,6 +49,7 @@ class RosterController extends Controller implements HasMiddleware
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
                 ->addColumn('date', fn($row) => $row->duty_date?->format('d M Y') ?: '-')
+                ->addColumn('depot_name', fn($row) => $row->depot?->name ?: '-')
                 ->addColumn('shift_type_label', fn($row) => Roster::SHIFT_TYPES[$row->shift_type] ?? '-')
                 ->addColumn('driver_name', fn($row) => $row->driverProfile?->user?->name ?: '-')
                 ->addColumn('vehicle_no', fn($row) => $row->vehicle?->vehicle_no ?: '-')
@@ -281,6 +282,10 @@ class RosterController extends Controller implements HasMiddleware
     private function filteredQuery()
     {
         $query = Roster::with($this->relations())->select('rosters.*');
+
+        if (! request()->boolean('generate')) {
+            return $query->whereRaw('1 = 0');
+        }
 
         if (request()->filled('search_text')) {
             $search = request('search_text');

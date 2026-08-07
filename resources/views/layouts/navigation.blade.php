@@ -568,7 +568,7 @@
                         <ul id="sidebarRoasterManagement"
                             class="nav-content collapse sub-menu {{ request()->routeIs('rosters.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
-                            @can('rosters.create')
+                            {{-- @can('rosters.create')
                                 <li>
                                     <a href="{{ route('rosters.create') }}"
                                         class="{{ request()->routeIs('rosters.create') ? 'sub-active' : '' }}">
@@ -576,7 +576,7 @@
                                         <span>Create Roaster</span>
                                     </a>
                                 </li>
-                            @endcan
+                            @endcan --}}
                             <li>
                                 <a href="{{ route('rosters.index') }}"
                                     class="{{ request()->routeIs('rosters.index', 'rosters.edit', 'rosters.show') ? 'sub-active' : '' }}">

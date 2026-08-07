@@ -1,11 +1,11 @@
-@canany(['trips.edit', 'trips.assign', 'trips.sheet', 'trips.delete'])
+@canany(['trips.edit', 'trips.assign', 'trips.sheet', 'trips.delete', 'rosters.create'])
     <div class="action-btns">
         @can('trips.edit')
             <a href="{{ route('trips.edit', $row->id) }}" class="btn-edit" title="Edit">
                 <i class="fa-solid fa-pen-to-square"></i>
             </a>
         @endcan
-        @canany(['trips.assign', 'trips.sheet', 'trips.edit'])
+        @canany(['trips.assign', 'trips.sheet', 'trips.edit', 'rosters.create'])
             <div class="dropdown">
                 <button class="dropdown-toggle tgle-cs-btns" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
@@ -21,9 +21,6 @@
                             <a class="dropdown-item" href="{{ route('trips.sheet.import.form', $row->id) }}">Import Trip Sheet</a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="#">Update Roaster</a>
-                        </li>
-                        <li>
                             <a class="dropdown-item" href="{{ route('trips.sheet', $row->id) }}">Manage Trip Sheet
                             </a>
                         </li>
@@ -31,6 +28,11 @@
                             <a class="dropdown-item" href="{{ route('trips.sheet.view', $row->id) }}">View Trip Sheet</a>
                         </li>
 
+                    @endcan
+                    @can('rosters.create')
+                        <li>
+                            <a class="dropdown-item" href="{{ route('trips.roster.update', $row->id) }}">Update Roaster</a>
+                        </li>
                     @endcan
                     @can('trips.edit')
                         {{-- <li>

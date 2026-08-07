@@ -282,6 +282,10 @@ Route::middleware('auth')->group(function () {
         ->name('trip-assignments.destroy');
     Route::get('/trips/{trip}/sheet-view', [TripController::class, 'sheetView'])
         ->name('trips.sheet.view');
+    Route::get('/trips/{trip}/update-roster', [TripController::class, 'updateRoster'])
+        ->name('trips.roster.update');
+    Route::post('/trips/{trip}/update-roster', [TripController::class, 'storeRosterUpdates'])
+        ->name('trips.roster.store');
     Route::get('/trips/{trip}/sheet/import', [TripController::class, 'importSheetForm'])
         ->name('trips.sheet.import.form');
     Route::post('/trips/{trip}/sheet/import', [TripController::class, 'importSheet'])

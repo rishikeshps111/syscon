@@ -38,7 +38,7 @@ class TripResource extends JsonResource
         $data = [
             'id' => $this->id,
             'trip_sheet_id' => $sheet?->id,
-            'trip_sheet_code' => $sheet?->code,
+            'trip_sheet_code' => $this->code,
             'side' =>  $sheet?->trip?->trip_side,
             'trip_title' => $trip?->trip_title,
             'starting_point' => $side === 'down' ? $route?->endPoint?->name : $route?->startPoint?->name,
@@ -50,12 +50,12 @@ class TripResource extends JsonResource
             'vehicle_code' => $this->vehicle?->vehicle_code,
             'trip_order_sequence_no' => $this->trip_order_sequence_no,
             'date' => $this->formatDate($sheet?->date),
-            'trip_sheet_status' => $sheet?->status,
-            'trip_sheet_status_label' => $this->tripSheetStatusLabel($sheet?->status),
+            'trip_sheet_status' => $this->status,
+            'trip_sheet_status_label' => $this->tripSheetStatusLabel($this->status),
             'roster_status' => $roster?->status,
             'roster_status_label' => $this->rosterStatusLabel($roster?->status),
-            'actual_start_time' => $this->formatTime($this->actual_start_time),
-            'actual_end_time' => $this->formatTime($this->actual_reach_time),
+            'actual_start_time' => $this->formatTime($this->actual_start_time ?? $this->departure_time),
+            'actual_end_time' => $this->formatTime($this->actual_reach_time ?? $this->arrival_time),
             'halt_time' => $trip?->halt_time
                 ? \Carbon\CarbonInterval::seconds(
                     \Carbon\Carbon::parse($trip->halt_time)->diffInSeconds(\Carbon\Carbon::parse('00:00:00'))
@@ -101,8 +101,8 @@ class TripResource extends JsonResource
             'trip_sheet_entry_id' => $this->id,
             'trip_sheet_id' => $sheet?->id,
             'trip_sheet_code' => $sheet?->code,
-            'trip_sheet_status' => $sheet?->status,
-            'trip_sheet_status_label' => $this->tripSheetStatusLabel($sheet?->status),
+            'trip_sheet_status' => $this->status,
+            'trip_sheet_status_label' => $this->tripSheetStatusLabel($this->status),
             'trip_date' => $this->formatDate($sheet?->date),
             'trip_id' => $trip?->id,
             'trip_code' => $trip?->code,
