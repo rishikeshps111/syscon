@@ -281,7 +281,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
-            'designations' => Designation::orderBy('name')->get(['id', 'name']),
+            'designations' => Designation::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'categories' => StaffProfile::CATEGORIES,
             'employmentTypes' => StaffProfile::EMPLOYMENT_TYPES,

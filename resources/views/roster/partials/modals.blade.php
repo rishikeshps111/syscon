@@ -1,3 +1,39 @@
+<div class="modal fade" id="generatedRosterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generated Roaster</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table id="generatedRosterTable" class="align-middle mb-0 table tble-cstm" style="width:100%">
+                        <thead><tr>
+                            <th class="text-center nowrap">SL No</th>
+                            <th class="text-center nowrap">Roster Code</th>
+                            <th class="text-center nowrap">Date</th>
+                            <th class="text-center nowrap">Depot</th>
+                            <th class="text-center nowrap">Shift Type</th>
+                            <th class="text-center nowrap">Driver Name</th>
+                            <th class="text-center nowrap">Vehicle</th>
+                            <th class="text-center nowrap">Trip Code</th>
+                            <th class="text-center nowrap">Reporting To Time</th>
+                            <th class="text-center nowrap">Action</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                @can('rosters.view')
+                    <button type="button" class="btn btn-success" id="exportGeneratedRoster">Export</button>
+                @endcan
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form id="statusForm" class="modal-content">

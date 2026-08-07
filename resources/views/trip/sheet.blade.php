@@ -116,10 +116,10 @@
                     <a href="{{ route('trips.sheet.import.form', $record->id) }}" class="btn btn-outline-primary">
                         <i class="fa-solid fa-file-import me-1"></i> Import Trip Sheet
                     </a>
-                    <a href="{{ route('trips.sheet.entries.create', $record->id) }}" class="btn btn-primary"
+                    {{-- <a href="{{ route('trips.sheet.entries.create', $record->id) }}" class="btn btn-primary"
                         title="Add Entry">
                         <i class="fa-solid fa-plus me-1"></i> Add Entry
-                    </a>
+                    </a> --}}
                     <a href="{{ route('trips.sheet.view', ['trip' => $record->id, 'export' => 'csv']) }}"
                         class="add-btn">Export</a>
                     <a href="{{ route('trips.index') }}" class="btn btn-secondary" title="Back">
@@ -128,21 +128,65 @@
                 </div>
             </div>
 
-            <div class="row align-items-end mb-3" id="sheetEntryFilters">
-                <div class="col-md-4 col-lg-3 o-f-inp mb-2 mb-md-0">
+            <div class="row align-items-end mb-3 g-2" id="sheetEntryFilters">
+                <div class="col-md-4 col-lg-2 o-f-inp">
                     <label for="entryDateFilter" class="form-label m-0">Date</label>
                     <input type="date" id="entryDateFilter" class="form-control shadow-none"
                         min="{{ $record->from_date?->format('Y-m-d') }}" max="{{ $record->to_date?->format('Y-m-d') }}">
                 </div>
-                <div class="col-md-4 col-lg-3 o-f-inp mb-2 mb-md-0">
+                <div class="col-md-4 col-lg-2 o-f-inp">
                     <label for="serSearchFilter" class="form-label m-0">SER Code</label>
                     <input type="text" id="serSearchFilter" class="form-control shadow-none"
                         placeholder="Search SER code">
                 </div>
-                <div class="col-md-4 col-lg-3 d-flex gap-2">
-                    <button type="button" id="resetSheetEntryFilters" class="btn btn-outline-secondary">
+                <div class="col-md-4 col-lg-2 o-f-inp">
+                    <label for="entryStatusFilter" class="form-label m-0">Status</label>
+                    <select id="entryStatusFilter" class="form-select shadow-none sheet-entry-select">
+                        <option value="">All Statuses</option>
+                        @foreach($statuses as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-2 o-f-inp">
+                    <label for="driverFilter" class="form-label m-0">Driver</label>
+                    <select id="driverFilter" class="form-select shadow-none sheet-entry-select">
+                        <option value="">All Drivers</option>
+                        @foreach($drivers as $driver)
+                            <option value="{{ $driver->id }}">{{ $driver->user?->name ?: '-' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-2 o-f-inp">
+                    <label for="vehicleFilter" class="form-label m-0">Vehicle</label>
+                    <select id="vehicleFilter" class="form-select shadow-none sheet-entry-select">
+                        <option value="">All Vehicles</option>
+                        @foreach($vehicles as $vehicle)
+                            <option value="{{ $vehicle->id }}">{{ $vehicle->vehicle_no ?: $vehicle->vehicle_code }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-4 col-lg-2 d-flex gap-2">
+                    <button type="button" id="resetSheetEntryFilters" class="btn btn-outline-secondary mb-1">
                         <i class="fa-solid fa-rotate-left me-1"></i> Reset
                     </button>
+                </div>
+                <div class="col-12 pt-2">
+                    <div class="assignment-filter-group">
+                        <span class="assignment-filter-title">Assignment</span>
+                        <label class="assignment-filter-option">
+                            <input class="form-check-input assignment-filter" type="checkbox" value="all" checked>
+                            <span>All</span>
+                        </label>
+                        <label class="assignment-filter-option">
+                            <input class="form-check-input assignment-filter" type="checkbox" value="unassigned">
+                            <span>UnAssigned</span>
+                        </label>
+                        <label class="assignment-filter-option">
+                            <input class="form-check-input assignment-filter" type="checkbox" value="assigned">
+                            <span>Assigned</span>
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -150,12 +194,12 @@
                 <table class="align-middle mb-0 table table-striped tble-cstm bg-transparent" id="sheetEntryTable">
                     <thead>
                         <tr>
-                            <th class="text-center nowrap">SL No</th>
+                            <th class="text-center">SL No</th>
                             <th class="text-center nowrap">Code</th>
                             <th class="text-center nowrap">Status</th>
                             <th class="text-center nowrap" style="min-width: 130px;">Date</th>
                             <th class="text-center nowrap">SER</th>
-                            <th class="text-center nowrap">Round</th>
+                            {{-- <th class="text-center nowrap">Round</th> --}}
                             {{-- <th class="text-center nowrap">NAT</th>
                             <th class="text-center nowrap">KMS</th> --}}
                             <th class="text-center nowrap">Departure</th>
@@ -163,14 +207,14 @@
                             <th class="text-center nowrap">Driver</th>
                             <th class="text-center nowrap">Vehicle</th>
                             {{-- <th class="text-center nowrap">Trip Order Sequence No</th> --}}
-                            <th class="text-center nowrap">Actual Start</th>
+                            {{-- <th class="text-center nowrap">Actual Start</th>
                             <th class="text-center nowrap">Actual Reach</th>
                             <th class="text-center nowrap">Starting Km</th>
                             <th class="text-center nowrap">Ending Km</th>
                             <th class="text-center nowrap">Starting Charge</th>
-                            <th class="text-center nowrap">Ending Charge</th>
-                            <th class="text-center nowrap">Vehicle Verified</th>
-                            <th class="text-center nowrap">Driver Verified</th>
+                            <th class="text-center nowrap">Ending Charge</th> --}}
+                            <th class="text-center">Vehicle Verified</th>
+                            <th class="text-center">Driver Verified</th>
                             <th class="text-center nowrap">Action</th>
                         </tr>
                     </thead>
@@ -202,6 +246,58 @@
             color: #6c757d;
             flex: 0 0 auto;
         }
+
+        .assignment-filter-group {
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid #d8e0eb;
+            border-radius: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 12px 14px;
+        }
+
+        .assignment-filter-title {
+            color: #344054;
+            font-size: 14px;
+            font-weight: 700;
+            margin-right: 4px;
+        }
+
+        .assignment-filter-option {
+            align-items: center;
+            background: #fff;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            color: #344054;
+            cursor: pointer;
+            display: inline-flex;
+            font-weight: 600;
+            gap: 8px;
+            margin: 0;
+            min-width: 125px;
+            padding: 9px 14px;
+            transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+        }
+
+        .assignment-filter-option:hover {
+            border-color: #86a8e7;
+        }
+
+        .assignment-filter-option:has(.assignment-filter:checked) {
+            background: #eaf2ff;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, .12);
+            color: #0b5ed7;
+        }
+
+        .assignment-filter-option .form-check-input {
+            flex: 0 0 auto;
+            height: 18px;
+            margin: 0;
+            width: 18px;
+        }
     </style>
 
     @section('scripts')
@@ -219,15 +315,19 @@
                         data: function (data) {
                             data.entry_date = $('#entryDateFilter').val();
                             data.ser_search = $('#serSearchFilter').val();
+                            data.entry_status = $('#entryStatusFilter').val();
+                            data.driver_profile_id = $('#driverFilter').val();
+                            data.vehicle_id = $('#vehicleFilter').val();
+                            data.assignment_status = $('.assignment-filter:checked').val() || 'all';
                         }
                     },
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'code', name: 'trip_sheet_entries.code', className: 'text-center' },
                         { data: 'status', name: 'trip_sheet_entries.status', className: 'text-center' },
-                         { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
+                        { data: 'trip_date', name: 'trip_sheets.date', className: 'text-center nowrap', width: '130px' },
                         { data: 'service_code', name: 'service_code', className: 'text-center' },
-                        { data: 'round_no', name: 'round_no', className: 'text-center' },
+                        // { data: 'round_no', name: 'round_no', className: 'text-center' },
                         //{ data: 'trip_nature', name: 'trip_nature', className: 'text-center' },
                         //{ data: 'schedule_km', name: 'schedule_km', className: 'text-center' },
                         { data: 'departure_time', name: 'departure_time', className: 'text-center' },
@@ -235,12 +335,12 @@
                         { data: 'driver_name', name: 'driverProfile.user.name', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'vehicle_no', name: 'vehicle.vehicle_no', orderable: false, searchable: false, className: 'text-center' },
                         //{ data: 'trip_order_sequence_no', name: 'trip_order_sequence_no', className: 'text-center' },
-                        { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
-                        { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
-                        { data: 'starting_km', name: 'starting_km', className: 'text-center' },
-                        { data: 'ending_km', name: 'ending_km', className: 'text-center' },
-                        { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
-                        { data: 'ending_electric_charge', name: 'ending_electric_charge', className: 'text-center' },
+                        // { data: 'actual_start_time', name: 'actual_start_time', className: 'text-center' },
+                        // { data: 'actual_reach_time', name: 'actual_reach_time', className: 'text-center' },
+                        // { data: 'starting_km', name: 'starting_km', className: 'text-center' },
+                        // { data: 'ending_km', name: 'ending_km', className: 'text-center' },
+                        // { data: 'starting_electric_charge', name: 'starting_electric_charge', className: 'text-center' },
+                        // { data: 'ending_electric_charge', name: 'ending_electric_charge', className: 'text-center' },
                         { data: 'is_vehicle_verified', name: 'is_vehicle_verified', className: 'text-center' },
                         { data: 'is_driver_verified', name: 'is_driver_verified', className: 'text-center' },
                         { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
@@ -263,8 +363,24 @@
                     sheetEntryTable.ajax.reload();
                 });
 
+                $('.sheet-entry-select').select2({ width: '100%' });
+                $('.sheet-entry-select').on('change', function () {
+                    sheetEntryTable.ajax.reload();
+                });
+
+                $('.assignment-filter').on('change', function () {
+                    $('.assignment-filter').not(this).prop('checked', false);
+                    if (!this.checked) {
+                        $('.assignment-filter[value="all"]').prop('checked', true);
+                    }
+                    sheetEntryTable.ajax.reload();
+                });
+
                 $('#resetSheetEntryFilters').on('click', function () {
-                    $('#entryDateFilter, #serSearchFilter').val('');
+                    $('#entryDateFilter, #serSearchFilter, #entryStatusFilter, #driverFilter, #vehicleFilter').val('');
+                    $('.sheet-entry-select').trigger('change.select2');
+                    $('.assignment-filter').prop('checked', false);
+                    $('.assignment-filter[value="all"]').prop('checked', true);
                     sheetEntryTable.ajax.reload();
                 });
 

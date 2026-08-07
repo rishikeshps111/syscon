@@ -345,13 +345,27 @@ class TripController extends Controller implements HasMiddleware
                 ->make(true);
         }
 
-        return view('trip.sheet', array_merge($this->assignmentData($trip), [
+        $depotId = $trip->depot_id ?: $trip->from_depot_id;
+
+        return view('trip.sheet', [
             'record' => $trip->load([
                 'route.startPoint',
                 'route.endPoint',
                 'route.stops' => fn($query) => $query->with('location')->orderBy('position'),
             ]),
-        ]));
+            'statuses' => TripSheet::STATUSES,
+            'drivers' => DriverProfile::with('user')
+                ->where('depot_id', $depotId)
+                ->whereHas('user', fn($query) => $query->where('is_active', true))
+                ->orderBy('id')
+                ->get(),
+            'vehicles' => Vehicle::query()
+                ->where('depot_id', $depotId)
+                ->where('vehicle_classification_id', $trip->vehicle_classification_id)
+                ->where('status', 'Active')
+                ->orderBy('vehicle_no')
+                ->get(['id', 'vehicle_no', 'vehicle_code']),
+        ]);
     }
 
     public function createSheetEntry(Trip $trip)
@@ -421,7 +435,7 @@ class TripController extends Controller implements HasMiddleware
         }
 
         return redirect()
-            ->route('trips.sheet.view', $trip->id)
+            ->route('trips.sheet', $trip->id)
             ->with('success', $message);
     }
 
@@ -1167,7 +1181,7 @@ class TripController extends Controller implements HasMiddleware
     private function sheetEntriesQuery(Trip $trip)
     {
         $query = TripSheetEntry::query()
-            ->with(['sheet.trip.assignments.driverProfile.user', 'sheet.trip.assignments.vehicle', 'driverProfile.user', 'vehicle'])
+            ->with(['sheet.trip.assignments.driverProfile.user', 'sheet.trip.assignments.vehicle', 'driverProfile.user', 'vehicle', 'dor'])
             ->join('trip_sheets', 'trip_sheet_entries.trip_sheet_id', '=', 'trip_sheets.id')
             ->where('trip_sheets.trip_id', $trip->id)
             ->select('trip_sheet_entries.*');
@@ -1180,24 +1194,62 @@ class TripController extends Controller implements HasMiddleware
             $query->where('trip_sheet_entries.service_code', 'like', '%' . trim((string) request('ser_search')) . '%');
         }
 
+        if (request()->filled('entry_status')) {
+            $query->where('trip_sheet_entries.status', request('entry_status'));
+        }
+
+        if (request()->filled('driver_profile_id')) {
+            $query->where('trip_sheet_entries.driver_profile_id', request('driver_profile_id'));
+        }
+
+        if (request()->filled('vehicle_id')) {
+            $query->where('trip_sheet_entries.vehicle_id', request('vehicle_id'));
+        }
+
+        if (request('assignment_status') === 'unassigned') {
+            $query->where(function ($assignmentQuery): void {
+                $assignmentQuery->whereNull('trip_sheet_entries.driver_profile_id')
+                    ->orWhereNull('trip_sheet_entries.vehicle_id');
+            });
+        } elseif (request('assignment_status') === 'assigned') {
+            $query->whereNotNull('trip_sheet_entries.driver_profile_id')
+                ->whereNotNull('trip_sheet_entries.vehicle_id');
+        }
+
         return $query->orderByDesc('trip_sheet_entries.id');
     }
 
     private function sheetEntryActionButtons(Trip $trip, TripSheetEntry $entry): string
     {
         $editUrl = route('trips.sheet.entries.edit', [$trip->id, $entry->id]);
-        $duplicateUrl = route('trips.sheet.entries.duplicate', [$trip->id, $entry->id]);
         $deleteUrl = route('trips.sheet.entries.destroy', [$trip->id, $entry->id]);
+        $dorUrl = route('trips.sheet.entries.dor', [$trip->id, $entry->id]);
+        $dorPreviewUrl = $entry->dor
+            ? route('trips.sheet.entries.dor.preview', [$trip->id, $entry->id])
+            : null;
+        $dorLabel = $entry->dor ? 'Edit DOR' : 'Create DOR';
 
-        return '<div class="d-flex justify-content-center gap-1">'
-            . '<a href="' . e($editUrl) . '" class="btn btn-sm btn-primary" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>'
-            . '<a href="' . e($duplicateUrl) . '" class="btn btn-sm btn-info text-white" title="Duplicate"><i class="fa-regular fa-copy"></i></a>'
-            . '<form method="POST" action="' . e($deleteUrl) . '" class="d-inline delete-sheet-entry">'
-            . csrf_field()
-            . method_field('DELETE')
-            . '<button type="submit" class="btn btn-sm btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></button>'
-            . '</form>'
-            . '</div>';
+        if ($entry->dor?->is_completed && ! $this->canCompleteDor()) {
+            $dorActions = '<li><a class="dropdown-item" href="' . e($dorPreviewUrl) . '">View DOR</a></li>';
+        } else {
+            $dorActions = '<li><a class="dropdown-item" href="' . e($dorUrl) . '">' . $dorLabel . '</a></li>';
+
+            if ($dorPreviewUrl) {
+                $dorActions .= '<li><a class="dropdown-item" href="' . e($dorPreviewUrl) . '">View DOR</a></li>';
+            }
+        }
+
+        return '<div class="action-btns justify-content-center"><div class="dropdown">'
+            . '<button class="dropdown-toggle tgle-cs-btns" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
+            . '<i class="fa-solid fa-ellipsis-vertical"></i></button>'
+            . '<ul class="dropdown-menu dropdown-menu-end dromenu-cs">'
+            . '<li><a class="dropdown-item" href="' . e($editUrl) . '">Edit</a></li>'
+            . '<li><form method="POST" action="' . e($deleteUrl) . '" class="delete-sheet-entry">'
+            . csrf_field() . method_field('DELETE')
+            . '<button type="submit" class="dropdown-item text-danger">Delete</button>'
+            . '</form></li>'
+            . $dorActions
+            . '</ul></div></div>';
     }
 
     private function sheetEntryPayload(TripSheetEntry $entry): array

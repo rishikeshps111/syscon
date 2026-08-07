@@ -3,10 +3,13 @@
         $('.select2-filter').select2({ placeholder: '---Select---', allowClear: true, width: '100%' });
 
         var generated = false;
-        var table = $('#table').DataTable({
+        var table = $('#generatedRosterTable').DataTable({
             processing: true,
             serverSide: true,
             searching: false,
+            paging: false,
+            info: false,
+            lengthChange: false,
             ajax: { url: "{{ route('rosters.index') }}", data: filters },
             columns: [
                 // { data: 'checkbox', name: 'checkbox', orderable: false, searchable: false, className: 'text-center' },
@@ -29,22 +32,14 @@
         $('#generateRoster').on('click', function () {
             if (!validateGenerateFilters()) return;
             generated = true;
+            $('#generatedRosterModal').modal('show');
             reloadTable();
         });
 
-        $('#generateExport').on('click', function () {
-            if (!validateGenerateFilters()) return;
-            generated = true;
-            reloadTable();
-            downloadGeneratedRoster();
-        });
+        $('#exportGeneratedRoster').on('click', downloadGeneratedRoster);
 
-        $('#resetFilters').on('click', function () {
-            $('#depotFilter, #dateFromFilter, #dateToFilter').val('');
-            $('.select2-filter').trigger('change.select2');
-            $('#checkAll').prop('checked', false);
-            generated = false;
-            reloadTable();
+        $('#generatedRosterModal').on('shown.bs.modal', function () {
+            table.columns.adjust();
         });
 
         $('#checkAll').on('change', function () {
@@ -220,6 +215,13 @@
         }
 
         function downloadGeneratedRoster() {
+            var button = $('#exportGeneratedRoster');
+            var originalContent = button.html();
+
+            button.prop('disabled', true).html(
+                '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Exporting...'
+            );
+
             $.ajax({
                 url: "{{ route('rosters.export') }}",
                 type: 'POST',
@@ -235,7 +237,10 @@
                     window.URL.revokeObjectURL(url);
                     link.remove();
                 },
-                error: function () { showToast('error', 'Export failed.'); }
+                error: function () { showToast('error', 'Export failed.'); },
+                complete: function () {
+                    button.prop('disabled', false).html(originalContent);
+                }
             });
         }
 

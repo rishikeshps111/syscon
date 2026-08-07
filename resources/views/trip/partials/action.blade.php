@@ -24,9 +24,9 @@
                             <a class="dropdown-item" href="{{ route('trips.sheet', $row->id) }}">Manage Trip Sheet
                             </a>
                         </li>
-                        <li>
+                        {{-- <li>
                             <a class="dropdown-item" href="{{ route('trips.sheet.view', $row->id) }}">View Trip Sheet</a>
-                        </li>
+                        </li> --}}
 
                     @endcan
                     @can('rosters.create')

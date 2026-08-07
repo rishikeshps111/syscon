@@ -17,7 +17,7 @@
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('trips.index') }}">Trip Management</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('trips.sheet.view', $record->id) }}">View Trip Sheet</a>
+                <li class="breadcrumb-item"><a href="{{ route('trips.sheet', $record->id) }}">Manage Trip Sheet</a>
                 </li>
                 <li class="breadcrumb-item active">DOR</li>
             </ol>
@@ -147,7 +147,7 @@
 
             <div class="col-lg-12 mt-3">
                 <div class="btn-flex" style="justify-content: center;">
-                    <a href="{{ route('trips.sheet.view', $record->id) }}" class="add-btn bg-filter">Back</a>
+                    <a href="{{ route('trips.sheet', $record->id) }}" class="add-btn bg-filter">Back</a>
                     @if($dor)
                         <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
                             class="add-btn">Preview</a>
