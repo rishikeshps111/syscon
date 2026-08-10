@@ -119,6 +119,7 @@
             ->oldest('notified_at')
             ->get();
         $driverDocumentExpiryAlertPayloads = $driverDocumentExpiryAlerts->map(fn ($alert) => [
+            'notification_type' => 'driver_document_expiry',
             'id' => $alert->id,
             'driver_name' => $alert->driverProfile?->user?->name,
             'document_type' => $alert->document_type,
@@ -130,11 +131,32 @@
                 : route('driver-management.index'),
             'notified_at' => $alert->notified_at?->toIso8601String(),
         ])->values();
+        $tripVerificationAlertPayloads = auth()->user()->hasRole('Super Admin')
+            ? \App\Models\TripVerificationCompletedAlert::query()
+                ->where('user_id', auth()->id())
+                ->where('notified_at', '>=', now()->subDays(3))
+                ->with('tripSheetEntry.sheet')
+                ->oldest('notified_at')
+                ->get()
+                ->map(fn ($alert) => [
+                    'id' => $alert->id,
+                    'notification_type' => 'trip_verification',
+                    'verification_stage' => $alert->verification_stage,
+                    'title' => $alert->verification_stage === 'initial' ? 'Initial Verification Completed' : 'Final Verification Completed',
+                    'message' => ($alert->verification_stage === 'initial' ? 'Initial' : 'Final') . ' verification completed for trip ' . ($alert->tripSheetEntry?->code ?: ('Entry #' . $alert->trip_sheet_entry_id)) . ' on ' . ($alert->tripSheetEntry?->sheet?->date?->format('d M Y') ?: '-') . '.',
+                    'url' => route('trips.sheet.entries.edit', [
+                        'trip' => $alert->tripSheetEntry?->sheet?->trip_id,
+                        'tripSheetEntry' => $alert->trip_sheet_entry_id,
+                    ]),
+                    'notified_at' => $alert->notified_at?->toIso8601String(),
+                ])->values()
+            : collect();
     @endphp
     <script>
         $(function () {
             var driverManagementUrl = @json(route('driver-management.index'));
             var initialDriverDocumentAlerts = @json($driverDocumentExpiryAlertPayloads);
+            var initialTripVerificationAlerts = @json($tripVerificationAlertPayloads);
             var driverDocumentAlertQueue = [];
             var driverDocumentAlertShowing = false;
             var chromeNotificationButton = null;
@@ -200,7 +222,7 @@
                         {
                             body: message,
                             icon: @json(asset('favicon.png')),
-                            tag: 'driver-document-expiry-' + (data.id || Date.now()),
+                            tag: (data.notification_type || 'system') + '-' + (data.id || Date.now()),
                             requireInteraction: true
                         }
                     );
@@ -238,7 +260,7 @@
             renderChromeNotificationButton();
 
             function alertStorageKey(data) {
-                return 'driver_document_expiry_alert_' + (data.id || data.notified_at || 'latest');
+                return (data.notification_type || 'driver_document_expiry') + '_alert_' + (data.id || data.notified_at || 'latest');
             }
 
             function queueDriverDocumentNotification(data) {
@@ -288,6 +310,14 @@
                 }
             });
 
+            initialTripVerificationAlerts.forEach(function (alert) {
+                var key = alertStorageKey(alert);
+
+                if (localStorage.getItem(key) !== 'shown') {
+                    queueDriverDocumentNotification(alert);
+                }
+            });
+
             @if(filled(config('broadcasting.connections.pusher.key')))
                 var licensePusher = new Pusher(@json(config('broadcasting.connections.pusher.key')), {
                     cluster: @json(config('broadcasting.connections.pusher.options.cluster') ?: 'mt1'),
@@ -301,6 +331,16 @@
                 licenseChannel.bind('driver-license.expired', function (data) {
                     queueDriverDocumentNotification(data || {});
                 });
+
+                @if(auth()->user()->hasRole('Super Admin'))
+                    var tripVerificationChannel = licensePusher.subscribe(@json('private-trip-verification.user.' . auth()->id()));
+
+                    tripVerificationChannel.bind('trip-verification.completed', function (data) {
+                        data = data || {};
+                        data.notification_type = 'trip_verification';
+                        queueDriverDocumentNotification(data);
+                    });
+                @endif
             @endif
         });
     </script>

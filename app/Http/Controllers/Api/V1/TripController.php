@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Events\TripVerificationCompleted;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
+use App\Models\TripVerificationCompletedAlert;
 use App\Models\TripSheet;
 use App\Models\TripSheetEntry;
 use App\Models\TripSheetEntryDor;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
+use Throwable;
 
 class TripController extends Controller
 {
@@ -603,6 +606,12 @@ class TripController extends Controller
             'driverVerifiedBy',
         ]);
 
+        if ($stage === 'pending' && $record->is_initial_verified) {
+            $this->notifySuperAdminsOfCompletedVerification($record, 'initial');
+        } elseif ($stage === 'initial_verification_completed' && $record->is_final_verified) {
+            $this->notifySuperAdminsOfCompletedVerification($record, 'final');
+        }
+
         return response()->json([
             'success' => true,
             'message' => $stage === 'pending'
@@ -610,6 +619,33 @@ class TripController extends Controller
                 : 'Final verification completed successfully.',
             'data' => (new TripResource($record))->withDetails()->resolve($request),
         ]);
+    }
+
+    private function notifySuperAdminsOfCompletedVerification(TripSheetEntry $record, string $verificationStage): void
+    {
+        User::role('Super Admin')
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->each(function (User $admin) use ($record, $verificationStage): void {
+                $alert = TripVerificationCompletedAlert::firstOrCreate(
+                    [
+                        'user_id' => $admin->id,
+                        'trip_sheet_entry_id' => $record->id,
+                        'verification_stage' => $verificationStage,
+                    ],
+                    ['notified_at' => now()],
+                );
+
+                if (! $alert->wasRecentlyCreated) {
+                    return;
+                }
+
+                try {
+                    broadcast(new TripVerificationCompleted($alert));
+                } catch (Throwable $exception) {
+                    report($exception);
+                }
+            });
     }
 
     private function depotTripQuery(int $depotId): Builder

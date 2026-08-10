@@ -13,3 +13,7 @@ Broadcast::channel('chat.admin', function ($user) {
 Broadcast::channel('license-alert.user.{userId}', function ($user, int $userId) {
     return (int) $user->id === $userId && $user->can('driver-management.view');
 });
+
+Broadcast::channel('trip-verification.user.{userId}', function ($user, int $userId) {
+    return (int) $user->id === $userId && $user->hasRole('Super Admin');
+});
