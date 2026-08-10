@@ -516,7 +516,7 @@
                         </ul>
                     </li>
                 @endcan
-                @canany(['dor-reports.view', 'license-expiry-reports.view', 'salary-reports.view'])
+                @canany(['dor-reports.view', 'trip-entry-reports.view', 'license-expiry-reports.view', 'salary-reports.view'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('reports.*', 'salary-reports.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarReports" data-bs-toggle="collapse" href="#">
@@ -533,6 +533,36 @@
                                         class="{{ request()->routeIs('reports.dor.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span>DOR Report</span>
+                                    </a>
+                                </li>
+                            @endcan
+                            @can('trip-entry-reports.view')
+                                <li>
+                                    <a href="{{ route('reports.trip-entries.index') }}"
+                                        class="{{ request()->routeIs('reports.trip-entries.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Trip Report</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('reports.driver-trips.index') }}"
+                                        class="{{ request()->routeIs('reports.driver-trips.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Driver Trip Report</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('reports.supervisor-trips.index') }}"
+                                        class="{{ request()->routeIs('reports.supervisor-trips.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Supervisor Trip Report</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('reports.controller-trips.index') }}"
+                                        class="{{ request()->routeIs('reports.controller-trips.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Controller Trip Report</span>
                                     </a>
                                 </li>
                             @endcan

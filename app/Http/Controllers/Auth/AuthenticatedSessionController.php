@@ -41,7 +41,7 @@ class AuthenticatedSessionController extends Controller
             Auth::guard('web')->logout();
 
             throw ValidationException::withMessages([
-                'email' => $this->portalErrorMessage($portal),
+                $request->loginField() => $this->portalErrorMessage($portal),
             ]);
         }
 

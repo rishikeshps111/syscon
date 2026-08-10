@@ -52,7 +52,7 @@ class HousekeepingManagementController extends Controller implements HasMiddlewa
     public function store(StoreHousekeepingManagementRequest $request)
     {
         $data = $request->validated();
-        $user = User::create(['code' => null, 'name' => $data['name'], 'email' => $data['email'], 'country_code' => $data['country_code'], 'phone' => $data['phone'], 'password' => Str::random(40), 'is_active' => $data['is_active']]);
+        $user = User::create(['code' => null, 'name' => $data['name'], 'email' => $data['email'] ?? null, 'country_code' => $data['country_code'], 'phone' => $data['phone'], 'password' => Str::random(40), 'is_active' => $data['is_active']]);
         $user->update(['code' => UserCodeGenerator::generate('Housekeeping', (int) $data['depot_id'], $user->id)]);
         $this->avatar($request, $user); $user->assignRole('Housekeeping');
         $user->housekeepingProfile()->create($this->profileData($data)); SalaryComponents::sync($user, $data['salary_components'] ?? []);

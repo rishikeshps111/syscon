@@ -74,7 +74,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $user = User::create([
             'code' => null,
             'name' => $data['name'],
-            'email' => $data['email'],
+            'email' => $data['email'] ?? null,
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
             'password' => $data['password'],
@@ -132,7 +132,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $data = $request->validated();
         $staff_management->update([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'email' => $data['email'] ?? null,
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
             'is_active' => $data['is_active'],

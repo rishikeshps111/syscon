@@ -23,13 +23,16 @@
                                     </div>
                                 </div>
                             @endif
-                            <!-- Email -->
+                            @php($isStaffPortal = ($portal ?? 'general') === 'staff')
+                            <!-- Login identifier -->
                             <div class="col-12">
                                 <div class="input-group has-validation form-login">
-                                    <input type="text" name="email" class="form-control shadow-none" id="yourEmail"
-                                        placeholder="Enter your email" value="{{ old('email') }}" required>
+                                    <input type="text" name="{{ $isStaffPortal ? 'phone' : 'email' }}"
+                                        class="form-control shadow-none" id="loginIdentifier"
+                                        placeholder="{{ $isStaffPortal ? 'Enter your phone number' : 'Enter your email' }}"
+                                        value="{{ old($isStaffPortal ? 'phone' : 'email') }}" required>
                                 </div>
-                                @error('email')
+                                @error($isStaffPortal ? 'phone' : 'email')
                                     <div class="text-danger small mt-1">
                                         {{ $message }}
                                     </div>

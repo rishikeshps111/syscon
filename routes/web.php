@@ -19,6 +19,7 @@ use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DorAccountResponsibleController;
 use App\Http\Controllers\DorKilometerLossReasonController;
 use App\Http\Controllers\DorReportController;
+use App\Http\Controllers\TripEntryReportController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
 use App\Http\Controllers\FinancialYearSettingController;
@@ -264,6 +265,16 @@ Route::middleware('auth')->group(function () {
         ->name('reports.dor.index');
     Route::get('/reports/dor/export', [DorReportController::class, 'export'])
         ->name('reports.dor.export');
+    Route::get('/reports/trip-entries', [TripEntryReportController::class, 'index'])
+        ->name('reports.trip-entries.index');
+    Route::get('/reports/trip-entries/export', [TripEntryReportController::class, 'export'])
+        ->name('reports.trip-entries.export');
+    Route::get('/reports/driver-trips', [TripEntryReportController::class, 'driverIndex'])->name('reports.driver-trips.index');
+    Route::get('/reports/driver-trips/export', [TripEntryReportController::class, 'driverExport'])->name('reports.driver-trips.export');
+    Route::get('/reports/supervisor-trips', [TripEntryReportController::class, 'supervisorIndex'])->name('reports.supervisor-trips.index');
+    Route::get('/reports/supervisor-trips/export', [TripEntryReportController::class, 'supervisorExport'])->name('reports.supervisor-trips.export');
+    Route::get('/reports/controller-trips', [TripEntryReportController::class, 'controllerIndex'])->name('reports.controller-trips.index');
+    Route::get('/reports/controller-trips/export', [TripEntryReportController::class, 'controllerExport'])->name('reports.controller-trips.export');
     Route::get('/reports/license-expiry', [LicenseExpiryReportController::class, 'index'])
         ->name('reports.license-expiry.index');
     Route::get('/reports/license-expiry/export', [LicenseExpiryReportController::class, 'export'])

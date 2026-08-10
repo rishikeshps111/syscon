@@ -238,7 +238,9 @@ class BulkImportController extends Controller
             'staff' => ['role' => 'Staff', 'relation' => 'staffProfile'],
         ][$module];
         $passwordField = $module === 'staff' ? 'password' : 'passcode';
-        $user = User::create(collect($data)->only(['name', 'email', 'country_code', 'phone', 'is_active'])->all() + [
+        $userData = collect($data)->only(['name', 'email', 'country_code', 'phone', 'is_active'])->all();
+        $userData['email'] = filled($userData['email'] ?? null) ? $userData['email'] : null;
+        $user = User::create($userData + [
             'code' => null, 'password' => $module === 'housekeeping' ? Str::random(40) : $data[$passwordField],
         ]);
         $user->update([
@@ -306,7 +308,10 @@ class BulkImportController extends Controller
             ];
         }
         $rules = [
-            'name' => ['required', 'max:255'], 'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'name' => ['required', 'max:255'],
+            'email' => in_array($module, ['staff', 'housekeeping'], true)
+                ? ['nullable', 'email', 'max:255', 'unique:users,email']
+                : ['required', 'email', 'max:255', 'unique:users,email'],
             'country_code' => ['required', 'max:10'], 'phone' => ['required', 'max:30'], 'is_active' => ['required', 'boolean'],
             'depot_id' => ['required'], 'employment_type' => ['required'], 'country' => ['required', 'max:100'],
             'state_id' => ['required'], 'district_id' => ['required'], 'location_id' => ['required'],
@@ -346,6 +351,7 @@ class BulkImportController extends Controller
             'bank_account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
         ];
         if ($module === 'staff') {
+            $rules['phone'][] = 'unique:users,phone';
             $rules += [
                 'designation_id' => ['required'],
                 'reporting_to' => ['nullable', 'integer', 'exists:staff_profiles,user_id'],

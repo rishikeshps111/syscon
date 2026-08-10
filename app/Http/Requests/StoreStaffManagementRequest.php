@@ -18,9 +18,9 @@ class StoreStaffManagementRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'country_code' => ['required', 'string', 'max:10'],
-            'phone' => ['required', 'string', 'max:30'],
+            'phone' => ['required', 'string', 'max:30', Rule::unique('users', 'phone')],
             'avatar' => ['nullable', 'image', 'max:2048'],
             'password' => ['required', 'string', 'min:8'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],

@@ -13,7 +13,7 @@ class StoreHousekeepingManagementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'], 'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'name' => ['required', 'string', 'max:255'], 'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
             'country_code' => ['required', 'string', 'max:10'], 'phone' => ['required', 'string', 'max:30'],
             'alternate_country_code' => ['nullable', 'string', 'max:10'], 'alternate_phone' => ['nullable', 'string', 'max:30'],
             'avatar' => ['nullable', 'image', 'max:2048'], 'is_active' => ['required', 'boolean'],

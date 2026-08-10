@@ -268,6 +268,7 @@ class PermissionSeeder extends Seeder
             ],
             'Reports' => [
                 'dor-reports.view',
+                'trip-entry-reports.view',
                 'license-expiry-reports.view',
             ],
             'Settings' => [

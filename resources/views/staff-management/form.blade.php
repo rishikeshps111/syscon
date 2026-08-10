@@ -84,11 +84,10 @@
                                         @error('name') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="email">Email <span class="text-danger">*</span></label>
+                                        <label for="email">Email</label>
                                         <input type="email"
                                             class="form-control shadow-none @error('email') is-invalid @enderror"
-                                            id="email" name="email" value="{{ old('email', $record->email ?? '') }}"
-                                            required>
+                                            id="email" name="email" value="{{ old('email', $record->email ?? '') }}">
                                         @error('email') <span class="text-danger">{{ $message }}</span> @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">

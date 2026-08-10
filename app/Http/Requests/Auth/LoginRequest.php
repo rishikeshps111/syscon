@@ -6,9 +6,11 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use App\Models\User;
 
 class LoginRequest extends FormRequest
 {
@@ -27,8 +29,12 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
+        $identifierRules = $this->input('portal') === 'staff'
+            ? ['required', 'string', 'max:30']
+            : ['required', 'string', 'email'];
+
         return [
-            'email' => ['required', 'string', 'email'],
+            $this->loginField() => $identifierRules,
             'password' => ['required', 'string'],
         ];
     }
@@ -42,11 +48,15 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $authenticated = $this->input('portal') === 'staff'
+            ? $this->authenticateStaff()
+            : Auth::attempt($this->only('email', 'password'), $this->boolean('remember'));
+
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                $this->loginField() => trans('auth.failed'),
             ]);
         }
 
@@ -69,7 +79,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            $this->loginField() => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -81,6 +91,24 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string($this->loginField())).'|'.$this->ip());
+    }
+
+    public function loginField(): string
+    {
+        return $this->input('portal') === 'staff' ? 'phone' : 'email';
+    }
+
+    private function authenticateStaff(): bool
+    {
+        $user = User::role('Staff')->where('phone', trim((string) $this->input('phone')))->first();
+
+        if (! $user || ! Hash::check((string) $this->input('password'), $user->password)) {
+            return false;
+        }
+
+        Auth::login($user, $this->boolean('remember'));
+
+        return true;
     }
 }

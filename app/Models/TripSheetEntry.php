@@ -137,4 +137,5 @@ class TripSheetEntry extends Model
     {
         return $this->belongsTo(User::class, 'driver_verified_by');
     }
+
 }
