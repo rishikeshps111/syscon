@@ -15,11 +15,11 @@ class SendControllerTodayTripNotifications extends Command
 {
     protected $signature = 'controllers:today-trip-notifications {--date= : Date in YYYY-MM-DD format} {--force : Resend an already successful notification}';
 
-    protected $description = "Send controllers and supervisors a Firebase notification with today's depot trip count.";
+    protected $description = "Send controllers and supervisors a Firebase notification with tomorrow's depot trip count.";
 
     public function handle(FirebaseMessaging $firebase): int
     {
-        $date = Carbon::parse($this->option('date') ?: today())->toDateString();
+        $date = Carbon::parse($this->option('date') ?: Carbon::tomorrow())->toDateString();
         $sentRecipients = 0;
         $failedRecipients = 0;
 
@@ -72,8 +72,8 @@ class SendControllerTodayTripNotifications extends Command
                         try {
                             $response = $firebase->send(
                                 $device->token,
-                                "Today's trips",
-                                $tripCount === 1 ? 'Your depot has 1 trip today.' : "Your depot has {$tripCount} trips today.",
+                                "Tomorrow's trips",
+                                $tripCount === 1 ? 'Your depot has 1 trip tomorrow.' : "Your depot has {$tripCount} trips tomorrow.",
                                 ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount],
                                 'operations'
                             );

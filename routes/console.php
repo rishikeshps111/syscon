@@ -13,8 +13,8 @@ Schedule::command('drivers:document-expiry-notifications')
     ->dailyAt('07:00')
     ->withoutOverlapping();
 Schedule::command('controllers:today-trip-notifications')
-    ->dailyAt('06:00')
+    ->dailyAt('21:00')
     ->withoutOverlapping();
 Schedule::command('drivers:today-trip-notifications')
-    ->dailyAt('06:00')
+    ->dailyAt('21:00')
     ->withoutOverlapping();

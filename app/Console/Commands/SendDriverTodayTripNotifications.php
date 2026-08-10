@@ -15,11 +15,11 @@ class SendDriverTodayTripNotifications extends Command
 {
     protected $signature = 'drivers:today-trip-notifications {--date= : Date in YYYY-MM-DD format} {--force : Resend an already successful notification}';
 
-    protected $description = "Send each driver a Firebase notification with today's assigned trip count.";
+    protected $description = "Send each driver a Firebase notification with tomorrow's assigned trip count.";
 
     public function handle(FirebaseMessaging $firebase): int
     {
-        $date = Carbon::parse($this->option('date') ?: today())->toDateString();
+        $date = Carbon::parse($this->option('date') ?: Carbon::tomorrow())->toDateString();
         $sentDrivers = 0;
         $failedDrivers = 0;
 
@@ -56,8 +56,8 @@ class SendDriverTodayTripNotifications extends Command
                         try {
                             $response = $firebase->send(
                                 $device->token,
-                                "Today's trips",
-                                $tripCount === 1 ? 'You have 1 assigned trip today.' : "You have {$tripCount} assigned trips today.",
+                                "Tomorrow's trips",
+                                $tripCount === 1 ? 'You have 1 assigned trip tomorrow.' : "You have {$tripCount} assigned trips tomorrow.",
                                 ['type' => 'today_trips', 'date' => $date, 'trip_count' => $tripCount],
                                 'driver'
                             );

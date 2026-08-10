@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 
 #[Fillable([
     'driver_profile_id',
+    'recipient_user_id',
+    'recipient_type',
     'document_type',
     'expiry_date',
+    'reminder_date',
     'expiry_status',
     'sent_count',
     'status',
@@ -23,6 +26,7 @@ class DriverDocumentExpiryNotificationLog extends Model
     {
         return [
             'expiry_date' => 'date',
+            'reminder_date' => 'date',
             'sent_at' => 'datetime',
         ];
     }
