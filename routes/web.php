@@ -778,4 +778,21 @@ Route::get('system/driver-document-expiry-notifications', function () {
     ], $successful ? 200 : 422);
 })->name('system.driver-document-expiry-notifications');
 
+Route::get('system/driver-license-expiry-alerts', function () {
+    $exitCode = Artisan::call('drivers:expired-license-alerts', [
+        '--force' => true,
+    ]);
+
+    $successful = $exitCode === 0;
+
+    return response()->json([
+        'success' => $successful,
+        'message' => $successful
+            ? 'Driver licence and badge expiry alerts executed successfully.'
+            : 'Driver licence and badge expiry alerts completed with broadcast failures. Check the command output.',
+        'exit_code' => $exitCode,
+        'output' => Artisan::output(),
+    ], $successful ? 200 : 422);
+})->name('system.driver-license-expiry-alerts');
+
 require __DIR__ . '/auth.php';

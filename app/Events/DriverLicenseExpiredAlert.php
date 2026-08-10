@@ -31,17 +31,29 @@ class DriverLicenseExpiredAlert implements ShouldBroadcastNow
 
     public function broadcastWith(): array
     {
+        $this->alert->loadMissing('driverProfile.user');
+        $driver = $this->alert->driverProfile;
+
         return [
             'id' => $this->alert->id,
-            'expired_count' => $this->alert->expired_count,
+            'expired_count' => 1,
+            'driver_name' => $driver?->user?->name,
+            'document_type' => $this->alert->document_type,
+            'title' => $this->alert->document_type === 'badge' ? 'Badge Going to Expire' : 'License Going to Expire',
+            'expiry_date' => $this->alert->expiry_date?->format('d M Y'),
             'message' => $this->message(),
-            'url' => route('driver-management.index', ['expiry_filter' => 'license_expired']),
+            'url' => $driver?->user_id ? route('driver-management.edit', $driver->user_id) : route('driver-management.index'),
             'notified_at' => $this->alert->notified_at?->format('d-m-Y h:i A'),
         ];
     }
 
     private function message(): string
     {
-        return $this->alert->expired_count . ' driver license' . ($this->alert->expired_count === 1 ? ' has' : 's have') . ' expired.';
+        $name = $this->alert->driverProfile?->user?->name ?: 'Driver';
+        $date = $this->alert->expiry_date?->format('d M Y') ?: '-';
+
+        $document = $this->alert->document_type === 'badge' ? 'badge' : 'license';
+
+        return "{$name}'s {$document} expires on {$date}. Please renew and update the system.";
     }
 }

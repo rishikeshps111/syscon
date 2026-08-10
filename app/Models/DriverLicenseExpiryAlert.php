@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'expired_count', 'notified_at'])]
+#[Fillable(['user_id', 'driver_profile_id', 'document_type', 'expiry_date', 'expired_count', 'notified_at'])]
 #[Table('driver_license_expiry_alerts')]
 class DriverLicenseExpiryAlert extends Model
 {
@@ -18,6 +18,7 @@ class DriverLicenseExpiryAlert extends Model
     {
         return [
             'expired_count' => 'integer',
+            'expiry_date' => 'date',
             'notified_at' => 'datetime',
         ];
     }
@@ -25,5 +26,10 @@ class DriverLicenseExpiryAlert extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function driverProfile(): BelongsTo
+    {
+        return $this->belongsTo(DriverProfile::class);
     }
 }

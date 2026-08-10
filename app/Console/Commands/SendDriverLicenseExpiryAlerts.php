@@ -11,53 +11,72 @@ use Throwable;
 
 class SendDriverLicenseExpiryAlerts extends Command
 {
-    protected $signature = 'drivers:expired-license-alerts';
+    protected $signature = 'drivers:expired-license-alerts {--date= : Date in YYYY-MM-DD format} {--force : Send even if alerted within the last three days}';
 
-    protected $description = 'Send expired driver license alerts to users with driver management access.';
+    protected $description = 'Send admins individual alerts for driver licences and badges expiring within six months.';
 
     public function handle(): int
     {
-        $expiredCount = DriverProfile::expiredLicenseCount();
-
-        if ($expiredCount === 0) {
-            $this->info('No expired driver licenses found.');
-
-            return self::SUCCESS;
-        }
-
-        $cutoff = now()->subDays(3);
+        $today = \Carbon\Carbon::parse($this->option('date') ?: today())->startOfDay();
+        $windowEnd = $today->copy()->addMonthsNoOverflow(6)->endOfMonth();
         $sent = 0;
+        $failed = 0;
+        $admins = User::role('Super Admin')->where('is_active', true)->get();
 
-        User::permission('driver-management.view')
+        DriverProfile::query()
+            ->with('user:id,name,email,phone,country_code')
+            ->whereHas('user', fn($query) => $query->where('is_active', true))
+            ->where(function ($query) use ($today, $windowEnd): void {
+                $query->whereBetween('expiry_date', [$today->toDateString(), $windowEnd->toDateString()])
+                    ->orWhereBetween('badge_expiry_date', [$today->toDateString(), $windowEnd->toDateString()]);
+            })
             ->orderBy('id')
-            ->chunkById(100, function ($users) use ($expiredCount, $cutoff, &$sent) {
-                foreach ($users as $user) {
-                    $lastAlert = DriverLicenseExpiryAlert::where('user_id', $user->id)
-                        ->latest('notified_at')
-                        ->first();
+            ->chunkById(100, function ($drivers) use ($admins, $today, &$sent, &$failed): void {
+                foreach ($drivers as $driver) {
+                    foreach (['licence' => $driver->expiry_date, 'badge' => $driver->badge_expiry_date] as $documentType => $expiryDate) {
+                        if (! $expiryDate || ! $today->betweenIncluded(
+                            $expiryDate->copy()->subMonthsNoOverflow(6),
+                            $expiryDate,
+                        )) {
+                            continue;
+                        }
 
-                    if ($lastAlert && $lastAlert->notified_at->gt($cutoff)) {
-                        continue;
+                        foreach ($admins as $admin) {
+                            $lastAlert = DriverLicenseExpiryAlert::query()
+                                ->where('user_id', $admin->id)
+                                ->where('driver_profile_id', $driver->id)
+                                ->where('document_type', $documentType)
+                                ->whereDate('expiry_date', $expiryDate->toDateString())
+                                ->latest('notified_at')
+                                ->first();
+
+                            if (! $this->option('force') && $lastAlert?->notified_at?->gt(now()->subDays(3))) {
+                                continue;
+                            }
+
+                            $alert = DriverLicenseExpiryAlert::create([
+                                'user_id' => $admin->id,
+                                'driver_profile_id' => $driver->id,
+                                'document_type' => $documentType,
+                                'expiry_date' => $expiryDate,
+                                'expired_count' => 1,
+                                'notified_at' => now(),
+                            ]);
+
+                            try {
+                                broadcast(new DriverLicenseExpiredAlert($alert));
+                                $sent++;
+                            } catch (Throwable $exception) {
+                                $failed++;
+                                $this->warn(ucfirst($documentType) . " alert failed for admin {$admin->id}, driver {$driver->id}: {$exception->getMessage()}");
+                            }
+                        }
                     }
-
-                    $alert = DriverLicenseExpiryAlert::create([
-                        'user_id' => $user->id,
-                        'expired_count' => $expiredCount,
-                        'notified_at' => now(),
-                    ]);
-
-                    try {
-                        broadcast(new DriverLicenseExpiredAlert($alert));
-                    } catch (Throwable $exception) {
-                        $this->warn("Pusher alert failed for user {$user->id}: {$exception->getMessage()}");
-                    }
-
-                    $sent++;
                 }
             });
 
-        $this->info("Expired driver license alerts sent: {$sent}.");
+        $this->info("Driver licence and badge expiry alerts sent to admins: {$sent}.");
 
-        return self::SUCCESS;
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 }

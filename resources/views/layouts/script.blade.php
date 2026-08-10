@@ -112,66 +112,181 @@
 @endif
 @if(auth()->check() && auth()->user()->can('driver-management.view'))
     @php
-        $driverLicenseExpiryAlert = \App\Models\DriverLicenseExpiryAlert::where('user_id', auth()->id())
+        $driverDocumentExpiryAlerts = \App\Models\DriverLicenseExpiryAlert::where('user_id', auth()->id())
+            ->whereNotNull('driver_profile_id')
             ->where('notified_at', '>=', now()->subDays(3))
-            ->latest('notified_at')
-            ->first();
-        $driverLicenseExpiryAlertPayload = $driverLicenseExpiryAlert ? [
-            'id' => $driverLicenseExpiryAlert->id,
-            'expired_count' => $driverLicenseExpiryAlert->expired_count,
-            'message' => $driverLicenseExpiryAlert->expired_count . ' driver license' . ($driverLicenseExpiryAlert->expired_count === 1 ? ' has' : 's have') . ' expired.',
-            'url' => route('driver-management.index', ['expiry_filter' => 'license_expired']),
-            'notified_at' => $driverLicenseExpiryAlert->notified_at?->toIso8601String(),
-        ] : null;
+            ->with('driverProfile.user')
+            ->oldest('notified_at')
+            ->get();
+        $driverDocumentExpiryAlertPayloads = $driverDocumentExpiryAlerts->map(fn ($alert) => [
+            'id' => $alert->id,
+            'driver_name' => $alert->driverProfile?->user?->name,
+            'document_type' => $alert->document_type,
+            'title' => $alert->document_type === 'badge' ? 'Badge Going to Expire' : 'License Going to Expire',
+            'expiry_date' => $alert->expiry_date?->format('d M Y'),
+            'message' => ($alert->driverProfile?->user?->name ?: 'Driver') . "'s " . ($alert->document_type === 'badge' ? 'badge' : 'license') . ' expires on ' . ($alert->expiry_date?->format('d M Y') ?: '-') . '. Please renew and update the system.',
+            'url' => $alert->driverProfile?->user_id
+                ? route('driver-management.edit', $alert->driverProfile->user_id)
+                : route('driver-management.index'),
+            'notified_at' => $alert->notified_at?->toIso8601String(),
+        ])->values();
     @endphp
     <script>
         $(function () {
-            var expiredLicenseUrl = @json(route('driver-management.index', ['expiry_filter' => 'license_expired']));
-            var initialLicenseAlert = @json($driverLicenseExpiryAlertPayload);
+            var driverManagementUrl = @json(route('driver-management.index'));
+            var initialDriverDocumentAlerts = @json($driverDocumentExpiryAlertPayloads);
+            var driverDocumentAlertQueue = [];
+            var driverDocumentAlertShowing = false;
+            var chromeNotificationButton = null;
 
-            function alertStorageKey(data) {
-                return 'driver_license_expired_alert_' + (data.id || data.notified_at || 'latest');
-            }
-
-            function showDriverLicenseExpiredToast(data) {
-                var count = Number(data.expired_count || 0);
-
-                if (count <= 0) {
+            function renderChromeNotificationButton() {
+                if (!('Notification' in window) || Notification.permission === 'granted') {
+                    if (chromeNotificationButton) {
+                        chromeNotificationButton.remove();
+                        chromeNotificationButton = null;
+                    }
                     return;
                 }
 
-                var url = data.url || expiredLicenseUrl;
-                var message = data.message || (count + ' driver licenses have expired.');
+                if (!chromeNotificationButton) {
+                    chromeNotificationButton = $('<button>', {
+                        type: 'button',
+                        class: 'btn btn-warning shadow',
+                        css: {
+                            position: 'fixed',
+                            right: '20px',
+                            bottom: '20px',
+                            zIndex: 99999
+                        }
+                    }).appendTo(document.body);
+                }
 
-                Swal.fire({
-                    toast: true,
-                    position: 'bottom-end',
-                    icon: 'warning',
-                    title: 'Expired Driver Licenses',
-                    html: message,
-                    showConfirmButton: true,
-                    confirmButtonText: 'View Expired Licenses',
-                    showCloseButton: true,
-                    timer: 12000,
-                    timerProgressBar: true,
-                    customClass: {
-                        popup: 'driver-license-expired-toast'
-                    }
-                }).then(function (result) {
-                    if (result.isConfirmed) {
-                        window.location.href = url;
-                    }
-                });
+                if (Notification.permission === 'denied') {
+                    chromeNotificationButton
+                        .text('Chrome notifications blocked — enable them in Site settings')
+                        .prop('disabled', true);
+                    return;
+                }
+
+                chromeNotificationButton
+                    .text('Enable Chrome Notifications')
+                    .prop('disabled', false)
+                    .off('click')
+                    .on('click', requestChromeNotificationPermission);
             }
 
-            if (initialLicenseAlert) {
-                var key = alertStorageKey(initialLicenseAlert);
+            function requestChromeNotificationPermission() {
+                if (!('Notification' in window) || Notification.permission !== 'default') {
+                    return;
+                }
 
-                if (localStorage.getItem(key) !== 'shown') {
-                    showDriverLicenseExpiredToast(initialLicenseAlert);
-                    localStorage.setItem(key, 'shown');
+                Notification.requestPermission().then(function (permission) {
+                    renderChromeNotificationButton();
+
+                    if (permission === 'granted') {
+                        showNextDriverDocumentAlert();
+                    }
+                }).catch(function () {});
+            }
+
+            function showChromeNotification(data, url, message, onFinished) {
+                if (!('Notification' in window) || Notification.permission !== 'granted') {
+                    return false;
+                }
+
+                try {
+                    var notification = new Notification(
+                        data.title || (data.document_type === 'badge' ? 'Badge Going to Expire' : 'License Going to Expire'),
+                        {
+                            body: message,
+                            icon: @json(asset('favicon.png')),
+                            tag: 'driver-document-expiry-' + (data.id || Date.now()),
+                            requireInteraction: true
+                        }
+                    );
+                } catch (error) {
+                    console.error('Unable to display Chrome notification:', error);
+                    return false;
+                }
+                var finished = false;
+
+                function finish() {
+                    if (finished) {
+                        return;
+                    }
+
+                    finished = true;
+                    onFinished();
+                }
+
+                notification.onclick = function () {
+                    window.focus();
+                    window.location.href = url;
+                    notification.close();
+                };
+                notification.onclose = finish;
+                notification.onerror = finish;
+
+                setTimeout(function () {
+                    notification.close();
+                    finish();
+                }, 12000);
+
+                return true;
+            }
+
+            renderChromeNotificationButton();
+
+            function alertStorageKey(data) {
+                return 'driver_document_expiry_alert_' + (data.id || data.notified_at || 'latest');
+            }
+
+            function queueDriverDocumentNotification(data) {
+                driverDocumentAlertQueue.push(data);
+
+                if (driverDocumentAlertShowing) {
+                    return;
+                }
+
+                showNextDriverDocumentAlert();
+            }
+
+            function showNextDriverDocumentAlert() {
+                if (!driverDocumentAlertQueue.length) {
+                    driverDocumentAlertShowing = false;
+                    return;
+                }
+
+                if (!('Notification' in window) || Notification.permission !== 'granted') {
+                    driverDocumentAlertShowing = false;
+                    return;
+                }
+
+                driverDocumentAlertShowing = true;
+                var data = driverDocumentAlertQueue.shift();
+                var url = data.url || driverManagementUrl;
+                var documentName = data.document_type === 'badge' ? 'badge' : 'license';
+                var message = data.message || ('Driver ' + documentName + ' is going to expire. Please renew and update the system.');
+                var displayed = showChromeNotification(data, url, message, function () {
+                    driverDocumentAlertShowing = false;
+                    showNextDriverDocumentAlert();
+                });
+
+                if (displayed) {
+                    localStorage.setItem(alertStorageKey(data), 'shown');
+                } else {
+                    driverDocumentAlertQueue.unshift(data);
+                    driverDocumentAlertShowing = false;
                 }
             }
+
+            initialDriverDocumentAlerts.forEach(function (alert) {
+                var key = alertStorageKey(alert);
+
+                if (localStorage.getItem(key) !== 'shown') {
+                    queueDriverDocumentNotification(alert);
+                }
+            });
 
             @if(filled(config('broadcasting.connections.pusher.key')))
                 var licensePusher = new Pusher(@json(config('broadcasting.connections.pusher.key')), {
@@ -184,7 +299,7 @@
                 var licenseChannel = licensePusher.subscribe(@json('private-license-alert.user.' . auth()->id()));
 
                 licenseChannel.bind('driver-license.expired', function (data) {
-                    showDriverLicenseExpiredToast(data || {});
+                    queueDriverDocumentNotification(data || {});
                 });
             @endif
         });
