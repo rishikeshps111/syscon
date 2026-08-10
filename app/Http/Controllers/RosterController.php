@@ -15,6 +15,7 @@ use App\Models\SupervisorProfile;
 use App\Models\TripAssignment;
 use App\Models\TripSheetEntry;
 use App\Models\Vehicle;
+use App\Services\RosterReassignmentNotifier;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -123,8 +124,11 @@ class RosterController extends Controller implements HasMiddleware
         ]));
     }
 
-    public function update(UpdateRosterRequest $request, Roster $roster)
+    public function update(UpdateRosterRequest $request, Roster $roster, RosterReassignmentNotifier $notifier)
     {
+        $oldDriverProfileId = $roster->driver_profile_id;
+        $oldVehicleId = $roster->vehicle_id;
+
         DB::transaction(function () use ($request, $roster) {
             $validated = $request->validated();
             $entryIds = $this->selectedTripEntryIds($validated);
@@ -134,6 +138,14 @@ class RosterController extends Controller implements HasMiddleware
             $this->syncRosterTripSheetEntries($roster, $entryIds);
             $this->syncTripSheetEntry($roster);
         });
+
+        $roster->refresh();
+        $driverChanged = (int) $oldDriverProfileId !== (int) $roster->driver_profile_id;
+        $vehicleChanged = (int) $oldVehicleId !== (int) $roster->vehicle_id;
+
+        if ($driverChanged || $vehicleChanged) {
+            $notifier->send($roster, $driverChanged, $vehicleChanged, $oldDriverProfileId);
+        }
 
         return redirect()->route('rosters.index')->with('success', 'Roaster updated successfully.');
     }
@@ -186,11 +198,13 @@ class RosterController extends Controller implements HasMiddleware
         return response()->json(['success' => true, 'message' => 'Attendance marked successfully.']);
     }
 
-    public function reassignDriver(Request $request, Roster $roster)
+    public function reassignDriver(Request $request, Roster $roster, RosterReassignmentNotifier $notifier)
     {
         $validated = $request->validate([
             'driver_profile_id' => ['required', 'integer', 'exists:driver_profiles,id'],
         ]);
+
+        $oldDriverProfileId = $roster->driver_profile_id;
 
         DB::transaction(function () use ($roster, $validated) {
             $this->ensureDriverCanBeAssigned((int) $validated['driver_profile_id'], $roster, $roster);
@@ -198,14 +212,25 @@ class RosterController extends Controller implements HasMiddleware
             $this->syncTripSheetEntry($roster);
         });
 
-        return response()->json(['success' => true, 'message' => 'Driver reassigned successfully.']);
+        $roster->refresh();
+        $notificationResult = (int) $oldDriverProfileId !== (int) $roster->driver_profile_id
+            ? $notifier->send($roster, true, false, $oldDriverProfileId)
+            : ['sent' => 0, 'failed' => 0];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Driver reassigned successfully.',
+            'notifications' => $notificationResult,
+        ]);
     }
 
-    public function reassignVehicle(Request $request, Roster $roster)
+    public function reassignVehicle(Request $request, Roster $roster, RosterReassignmentNotifier $notifier)
     {
         $validated = $request->validate([
             'vehicle_id' => ['required', 'integer', 'exists:vehicles,id'],
         ]);
+
+        $oldVehicleId = $roster->vehicle_id;
 
         DB::transaction(function () use ($roster, $validated) {
             $this->ensureVehicleCanBeAssigned((int) $validated['vehicle_id'], $roster, $roster);
@@ -213,7 +238,16 @@ class RosterController extends Controller implements HasMiddleware
             $this->syncTripSheetEntry($roster);
         });
 
-        return response()->json(['success' => true, 'message' => 'Vehicle reassigned successfully.']);
+        $roster->refresh();
+        $notificationResult = (int) $oldVehicleId !== (int) $roster->vehicle_id
+            ? $notifier->send($roster, false, true)
+            : ['sent' => 0, 'failed' => 0];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Vehicle reassigned successfully.',
+            'notifications' => $notificationResult,
+        ]);
     }
 
     public function tripEntries(Request $request)
