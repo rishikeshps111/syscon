@@ -33,6 +33,10 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class BulkImportController extends Controller
 {
+    private const DEFAULT_STAFF_PASSWORD = 'Syscon@123';
+
+    private const DEFAULT_OPERATIONS_PASSCODE = '111111';
+
     public function form(string $module)
     {
         $config = $this->config($module);
@@ -310,10 +314,15 @@ class BulkImportController extends Controller
     private function createUnifiedEmployee(array $data): void
     {
         $role = $data['role'];
+        $credential = match ($role) {
+            'Staff' => self::DEFAULT_STAFF_PASSWORD,
+            'Controller', 'Supervisor' => self::DEFAULT_OPERATIONS_PASSCODE,
+            default => Str::random(40),
+        };
         $user = User::create([
             'code' => null, 'ref_code' => $data['ref_code'] ?? null, 'name' => $data['name'],
             'email' => $data['email'] ?? null, 'country_code' => $data['country_code'], 'phone' => $data['phone'],
-            'is_active' => $data['is_active'], 'password' => Str::random(40),
+            'is_active' => $data['is_active'], 'password' => $credential,
         ]);
         $user->update(['code' => UserCodeGenerator::generate($role, (int) $data['depot_id'], $user->id)]);
         $salary = SalaryComponents::legacyProfileSalaryData([]);

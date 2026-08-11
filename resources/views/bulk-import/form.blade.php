@@ -13,6 +13,11 @@
             @if ($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
             <form class="js-loading-form" method="POST" action="{{ route('bulk-import.store', $module) }}" enctype="multipart/form-data">
                 @csrf
+                @if ($module === 'staff')
+                    <div class="alert alert-info mb-3">
+                        Imported Staff accounts use <strong>Syscon@123</strong> as the default login password. Imported Controller and Supervisor accounts use <strong>111111</strong> as the default passcode.
+                    </div>
+                @endif
                 <div class="o-f-inp mb-3"><label for="csv_file">{{ $module === 'staff' ? 'Excel or CSV file' : 'CSV file' }}</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept="{{ $module === 'staff' ? '.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv' : '.csv,text/csv' }}" required></div>
                 <div class="d-flex gap-2"><button class="btn btn-primary js-loading-submit" type="submit">Import</button><a class="btn btn-light" href="{{ route($config['index_route']) }}">Cancel</a></div>
             </form>
