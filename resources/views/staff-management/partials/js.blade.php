@@ -1,6 +1,6 @@
 <script>
     $(function () {
-        $('#designationFilter, #stateFilter, #districtFilter').select2({
+        $('#designationFilter, #depotFilter').select2({
             placeholder: '---Select---',
             allowClear: true,
             width: '100%'
@@ -27,12 +27,11 @@
                 },
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
+                { data: 'ref_code', name: 'ref_code', defaultContent: '-', className: 'text-center' },
                 { data: 'name', name: 'name', className: 'text-center' },
+                { data: 'role', name: 'role', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'designation', name: 'staffProfile.designation.name', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'employment_type', name: 'staffProfile.employment_type', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'location', name: 'staffProfile.location.name', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'date_of_joining', name: 'staffProfile.date_of_joining', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'gross_salary', name: 'staffProfile.gross_salary', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
@@ -49,45 +48,16 @@
 
         let isResettingFilters = false;
 
-        $('#stateFilter').on('change', function () {
-            if (isResettingFilters) {
-                return;
-            }
-
-            let stateId = $(this).val();
-            resetDistrictFilter('Loading...');
-
-            if (!stateId) {
-                resetDistrictFilter('---Select---');
-                reloadTable();
-                return;
-            }
-
-            $.ajax({
-                url: "{{ route('branch-locations.districts-by-state') }}",
-                type: 'GET',
-                data: { state_id: stateId },
-                success: function (districts) {
-                    let options = '<option value="">---Select---</option>';
-                    districts.forEach(function (district) {
-                        options += `<option value="${district.id}">${district.name}</option>`;
-                    });
-                    $('#districtFilter').html(options).prop('disabled', false).val('').trigger('change.select2');
-                    reloadTable();
-                },
-                error: function () {
-                    resetDistrictFilter('---Select---');
-                    showToast('error', 'Unable to load districts.');
-                    reloadTable();
-                }
-            });
+        $('#roleFilter').on('change', function () {
+            $('#designationFilterWrap').toggle($(this).val() === 'Staff');
+            if ($(this).val() !== 'Staff') $('#designationFilter').val('').trigger('change.select2');
         });
 
         $('#resetFilters').on('click', function () {
             isResettingFilters = true;
-            $('#designationFilter, #employmentTypeFilter, #categoryFilter, #stateFilter, #districtFilter, #statusFilter').val('');
-            resetDistrictFilter('---Select---');
-            $('#designationFilter, #stateFilter, #districtFilter').trigger('change.select2');
+            $('#roleFilter, #designationFilter, #depotFilter, #employmentTypeFilter, #statusFilter').val('');
+            $('#designationFilter, #depotFilter').trigger('change.select2');
+            $('#designationFilterWrap').show();
             $('#dateOfJoiningFilter').val('');
             $('#searchFilter').val('');
             $('#checkAll').prop('checked', false);
@@ -123,6 +93,65 @@
                 }
             });
         });
+
+        $(document).on('click', '.regenerate-passcode', function (event) {
+            event.preventDefault();
+            const url = $(this).data('url');
+            Swal.fire({
+                title: 'Are you sure?', text: 'Do you really want to regenerate this passcode?', icon: 'warning',
+                showCancelButton: true, confirmButtonText: 'Yes, regenerate it', cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+                $.post(url, { _token: "{{ csrf_token() }}" }).done(function (res) {
+                    table.ajax.reload(null, false);
+                    showPasscodePopup(res.passcode);
+                }).fail(function (xhr) {
+                    showToast('error', xhr.responseJSON?.message || 'Unable to regenerate passcode.');
+                });
+            });
+        });
+
+        function showPasscodePopup(passcode) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Passcode Regenerated',
+                html: '<p class="mb-2">The new passcode is:</p>' +
+                    '<input id="generatedPasscode" class="swal2-input text-center fw-bold" value="' + passcode + '" readonly>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-regular fa-copy me-1"></i> Copy Passcode',
+                cancelButtonText: 'Close',
+                focusConfirm: true
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    copyGeneratedPasscode(passcode);
+                }
+            });
+        }
+
+        function copyGeneratedPasscode(passcode) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(String(passcode)).then(function () {
+                    showToast('success', 'Passcode copied to clipboard.');
+                }).catch(function () {
+                    fallbackCopyPasscode(passcode);
+                });
+                return;
+            }
+
+            fallbackCopyPasscode(passcode);
+        }
+
+        function fallbackCopyPasscode(passcode) {
+            var input = document.createElement('textarea');
+            input.value = String(passcode);
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showToast('success', 'Passcode copied to clipboard.');
+        }
 
         $('#checkAll').on('change', function () {
             $('.row-check').prop('checked', this.checked);
@@ -166,11 +195,10 @@
 
         function filters(data) {
             data.search_text = $('#searchFilter').val();
+            data.role = $('#roleFilter').val();
             data.designation_id = $('#designationFilter').val();
+            data.depot_id = $('#depotFilter').val();
             data.employment_type = $('#employmentTypeFilter').val();
-            data.category = $('#categoryFilter').val();
-            data.state_id = $('#stateFilter').val();
-            data.district_id = $('#districtFilter').val();
             data.status = $('#statusFilter').val();
             data.date_of_joining = $('#dateOfJoiningFilter').val();
         }
@@ -180,13 +208,6 @@
             table.ajax.reload();
         }
 
-        function resetDistrictFilter(label) {
-            $('#districtFilter')
-                .html(`<option value="">${label}</option>`)
-                .prop('disabled', label === 'Loading...')
-                .val('')
-                .trigger('change.select2');
-        }
     });
 
     function deleteRow(id) {

@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Exports\StaffManagementExport;
-use App\Http\Requests\StoreStaffManagementRequest;
-use App\Http\Requests\UpdateStaffManagementRequest;
+use App\Http\Requests\SaveUnifiedStaffRequest;
+use App\Models\BranchLocation;
+use App\Models\ControllerProfile;
 use App\Models\Designation;
 use App\Models\Depot;
 use App\Models\District;
 use App\Models\Location;
+use App\Models\HousekeepingProfile;
 use App\Models\StaffProfile;
 use App\Models\State;
+use App\Models\SupervisorProfile;
 use App\Models\User;
 use App\Support\SalaryComponents;
 use App\Support\UserCodeGenerator;
@@ -19,20 +22,25 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
 
 class StaffManagementController extends Controller implements HasMiddleware
 {
+    private const ROLES = ['Staff', 'Housekeeping', 'Controller', 'Supervisor'];
+
     public static function middleware(): array
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('staff-management.view'), ['index', 'show', 'export', 'downloadPdf', 'districtsByState', 'locationsByDistrict']),
-            new Middleware(PermissionMiddleware::using('staff-management.create'), ['create', 'store']),
-            new Middleware(PermissionMiddleware::using('staff-management.edit'), ['edit', 'update', 'status']),
-            new Middleware(PermissionMiddleware::using('staff-management.delete'), ['destroy']),
+            new Middleware(PermissionMiddleware::using('staff-management.view|housekeeping-management.view|controller-management.view|supervisor-management.view'), ['index', 'show', 'export', 'downloadPdf', 'statesByCountry', 'districtsByState', 'locationsByDistrict', 'reportingManagers', 'salaryStructure']),
+            new Middleware(PermissionMiddleware::using('staff-management.create|housekeeping-management.create|controller-management.create|supervisor-management.create'), ['create', 'store']),
+            new Middleware(PermissionMiddleware::using('staff-management.edit|housekeeping-management.edit|controller-management.edit|supervisor-management.edit'), ['edit', 'update', 'status']),
+            new Middleware(PermissionMiddleware::using('staff-management.delete|housekeeping-management.delete|controller-management.delete|supervisor-management.delete'), ['destroy']),
         ];
     }
 
@@ -42,17 +50,15 @@ class StaffManagementController extends Controller implements HasMiddleware
             return DataTables::of($this->filteredQuery())
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
+                ->addColumn('role', fn(User $row) => $this->employeeRole($row))
                 ->addColumn('designation', fn($row) => $row->staffProfile?->designation?->name ?? '-')
-                ->addColumn('employment_type', fn($row) => $row->staffProfile?->employment_type_label ?? '-')
-                ->addColumn('location', fn($row) => $row->staffProfile?->location?->name ?? '-')
-                ->addColumn('date_of_joining', fn($row) => $row->staffProfile?->date_of_joining?->format('d-m-Y') ?? '-')
-                ->addColumn('gross_salary', fn($row) => $row->staffProfile?->gross_salary ?? '-')
+                ->addColumn('date_of_joining', fn(User $row) => $this->employeeDateOfJoining($row)?->format('d M y') ?? '-')
                 ->addColumn('status', function ($row) {
                     return $row->is_active
                         ? '<span class="status-green">Active</span>'
                         : '<span class="status-red">Inactive</span>';
                 })
-                ->addColumn('action', fn($row) => view('staff-management.partials.action', compact('row'))->render())
+                ->addColumn('action', fn($row) => view('staff-management.partials.action', ['row' => $row, 'role' => $this->employeeRole($row)])->render())
                 ->rawColumns(['checkbox', 'status', 'action'])
                 ->make(true);
         }
@@ -62,32 +68,36 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     public function create()
     {
-        return view('staff-management.form', array_merge($this->formData(), [
+        return view('staff-management.unified-form', array_merge($this->formData(), [
             'districts' => collect(),
             'locations' => collect(),
         ]));
     }
 
-    public function store(StoreStaffManagementRequest $request)
+    public function store(SaveUnifiedStaffRequest $request)
     {
         $data = $request->validated();
-        $user = User::create([
-            'code' => null,
-            'name' => $data['name'],
-            'email' => $data['email'] ?? null,
-            'country_code' => $data['country_code'],
-            'phone' => $data['phone'],
-            'password' => $data['password'],
-            'is_active' => $data['is_active'],
-        ]);
-        $user->code = UserCodeGenerator::generate('Staff', (int) $data['depot_id'], $user->id);
-        $user->save();
-        $this->storeAvatar($request, $user);
-        $user->staffProfile()->create($this->profileData($data));
-        SalaryComponents::sync($user, $data['salary_components'] ?? []);
-        $this->syncStaffRoles($user, (int) $data['designation_id']);
+        DB::transaction(function () use ($request, $data): void {
+            $role = $data['role'];
+            $credential = $role === 'Staff' ? ($data['password'] ?? null) : ($data['passcode'] ?? null);
+            $user = User::create([
+                'code' => null,
+                'ref_code' => $data['ref_code'] ?? null,
+                'name' => $data['name'],
+                'email' => $data['email'] ?? null,
+                'country_code' => $data['country_code'],
+                'phone' => $data['phone'],
+                'password' => $credential ?: Str::random(40),
+                'is_active' => $data['is_active'],
+            ]);
+            $user->update(['code' => UserCodeGenerator::generate($role, (int) $data['depot_id'], $user->id)]);
+            $this->storeAvatar($request, $user);
+            $this->saveEmployeeProfile($user, $role, $data);
+            SalaryComponents::sync($user, $data['salary_components'] ?? []);
+            $this->syncEmployeeRoles($user, $role, $data['designation_id'] ?? null);
+        });
 
-        return redirect()->route('staff-management.index')->with('success', 'Staff created successfully.');
+        return redirect()->route('staff-management.index')->with('success', 'Employee created successfully.');
     }
 
     public function show(User $staff_management)
@@ -115,8 +125,8 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     public function edit(User $staff_management)
     {
-        $record = $staff_management->load('staffProfile');
-        $profile = $record->staffProfile;
+        $record = $staff_management->load(['roles', 'staffProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile']);
+        $profile = $this->employeeProfile($record);
         $districts = $profile?->state_id
             ? District::where('state_id', $profile->state_id)->orderBy('name')->get(['id', 'name'])
             : collect();
@@ -124,28 +134,38 @@ class StaffManagementController extends Controller implements HasMiddleware
             ? Location::where('state_id', $profile->state_id)->where('district_id', $profile->district_id)->orderBy('name')->get(['id', 'name'])
             : collect();
 
-        return view('staff-management.form', array_merge($this->formData(), compact('record', 'districts', 'locations')));
+        return view('staff-management.unified-form', array_merge($this->formData(), [
+            'employeeRole' => $this->employeeRole($record),
+        ], compact('record', 'profile', 'districts', 'locations')));
     }
 
-    public function update(UpdateStaffManagementRequest $request, User $staff_management)
+    public function update(SaveUnifiedStaffRequest $request, User $staff_management)
     {
         $data = $request->validated();
-        $staff_management->update([
-            'name' => $data['name'],
-            'email' => $data['email'] ?? null,
-            'country_code' => $data['country_code'],
-            'phone' => $data['phone'],
-            'is_active' => $data['is_active'],
-        ] + (! empty($data['password']) ? ['password' => $data['password']] : []));
-        $this->storeAvatar($request, $staff_management);
-        $staff_management->staffProfile()->updateOrCreate(
-            ['user_id' => $staff_management->id],
-            $this->profileData($data)
-        );
-        SalaryComponents::sync($staff_management, $data['salary_components'] ?? []);
-        $this->syncStaffRoles($staff_management, (int) $data['designation_id']);
+        $previousRole = $this->employeeRole($staff_management);
+        $role = $data['role'];
+        DB::transaction(function () use ($request, $data, $role, $previousRole, $staff_management): void {
+            $credential = $role === 'Staff' ? ($data['password'] ?? null) : ($data['passcode'] ?? null);
+            $staff_management->update([
+                'ref_code' => $data['ref_code'] ?? null,
+                'name' => $data['name'],
+                'email' => $data['email'] ?? null,
+                'country_code' => $data['country_code'],
+                'phone' => $data['phone'],
+                'is_active' => $data['is_active'],
+            ] + (filled($credential) ? ['password' => $credential] : []));
+            $this->storeAvatar($request, $staff_management);
+            $this->saveEmployeeProfile($staff_management, $role, $data);
+            SalaryComponents::sync($staff_management, $data['salary_components'] ?? []);
+            $this->syncEmployeeRoles($staff_management, $role, $data['designation_id'] ?? null);
+            if ($previousRole !== $role) {
+                $staff_management->update([
+                    'code' => UserCodeGenerator::generate($role, (int) $data['depot_id'], $staff_management->id),
+                ]);
+            }
+        });
 
-        return redirect()->route('staff-management.index')->with('success', 'Staff updated successfully.');
+        return redirect()->route('staff-management.index')->with('success', 'Employee updated successfully.');
     }
 
     public function destroy(User $staff_management)
@@ -181,7 +201,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             'status' => ['required', 'boolean'],
         ]);
 
-        $staff = User::role('Staff')->findOrFail($request->id);
+        $staff = User::role(self::ROLES)->findOrFail($request->id);
         $staff->is_active = $request->status;
         $staff->save();
 
@@ -202,6 +222,15 @@ class StaffManagementController extends Controller implements HasMiddleware
             District::where('state_id', $request->state_id)
                 ->orderBy('name')
                 ->get(['id', 'name'])
+        );
+    }
+
+    public function statesByCountry(Request $request)
+    {
+        $request->validate(['country' => ['required', Rule::in(['India'])]]);
+
+        return response()->json(
+            State::where('is_active', true)->orderBy('name')->get(['id', 'name'])
         );
     }
 
@@ -227,26 +256,71 @@ class StaffManagementController extends Controller implements HasMiddleware
     public function reportingManagers(Request $request)
     {
         $data = $request->validate([
-            'designation_id' => ['required', 'integer', 'exists:designations,id'],
+            'role' => ['required', Rule::in(self::ROLES)],
+            'designation_id' => ['nullable', 'integer', 'exists:designations,id'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'exclude_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
+        $query = match ($data['role']) {
+            'Staff' => filled($data['designation_id'] ?? null)
+                ? StaffReportingManagers::query((int) $data['designation_id'], (int) $data['depot_id'], $data['exclude_user_id'] ?? null)
+                : User::query()->whereRaw('1 = 0'),
+            'Controller', 'Housekeeping' => User::role('Supervisor')
+                ->where('is_active', true)
+                ->whereHas('supervisorProfile', fn($profile) => $profile->where('depot_id', $data['depot_id'])),
+            'Supervisor' => User::query()->whereRaw('1 = 0'),
+        };
+
         return response()->json(
-            StaffReportingManagers::query(
-                (int) $data['designation_id'],
-                (int) $data['depot_id'],
-                isset($data['exclude_user_id']) ? (int) $data['exclude_user_id'] : null,
-            )
+            $query->when($data['exclude_user_id'] ?? null, fn($users, $id) => $users->where('users.id', '<>', $id))
                 ->orderBy('users.name')
                 ->get(['users.id', 'users.code', 'users.name'])
         );
     }
 
+    public function salaryStructure(Request $request)
+    {
+        $data = $request->validate([
+            'role' => ['required', Rule::in(self::ROLES)],
+            'designation_id' => ['nullable', 'integer', 'exists:designations,id'],
+            'user_id' => ['nullable', 'integer', 'exists:users,id'],
+        ]);
+
+        $user = filled($data['user_id'] ?? null) ? User::find($data['user_id']) : null;
+
+        return view('components.dynamic-salary-structure', [
+            'salaryComponents' => SalaryComponents::forRole(
+                $data['role'],
+                $data['role'] === 'Staff' ? ($data['designation_id'] ?? null) : null,
+            ),
+            'componentValues' => SalaryComponents::valuesFor($user),
+        ]);
+    }
+
     private function filteredQuery()
     {
-        $query = User::role('Staff')
-            ->with(['roles', 'staffProfile.depot', 'staffProfile.designation', 'staffProfile.reportingTo', 'staffProfile.location'])
+        $query = User::role(self::ROLES)
+            ->with([
+                'roles',
+                'staffProfile.depot',
+                'staffProfile.designation',
+                'staffProfile.state',
+                'staffProfile.district',
+                'staffProfile.location',
+                'housekeepingProfile.depot',
+                'housekeepingProfile.state',
+                'housekeepingProfile.district',
+                'housekeepingProfile.location',
+                'controllerProfile.depot',
+                'controllerProfile.state',
+                'controllerProfile.district',
+                'controllerProfile.location',
+                'supervisorProfile.depot',
+                'supervisorProfile.state',
+                'supervisorProfile.district',
+                'supervisorProfile.location',
+            ])
             ->select('users.*');
 
         if (request()->filled('search_text')) {
@@ -254,21 +328,37 @@ class StaffManagementController extends Controller implements HasMiddleware
             $query->where(function ($subQuery) use ($search) {
                 $subQuery->where('users.code', 'like', '%' . $search . '%')
                     ->orWhere('users.name', 'like', '%' . $search . '%')
-                    ->orWhereHas('staffProfile', function ($profileQuery) use ($search) {
-                        $profileQuery->where('aadhaar_number', 'like', '%' . $search . '%')
-                            ->orWhere('pan_number', 'like', '%' . $search . '%');
-                    });
+                    ->orWhere('users.ref_code', 'like', '%' . $search . '%');
             });
         }
 
-        foreach (['depot_id', 'designation_id', 'employment_type', 'category', 'state_id', 'district_id'] as $field) {
-            if (request()->filled($field)) {
-                $query->whereHas('staffProfile', fn($profileQuery) => $profileQuery->where($field, request($field)));
-            }
+        if (request()->filled('role')) {
+            $query->role(request('role'));
+        }
+        if (request()->filled('designation_id')) {
+            $query->whereHas('staffProfile', fn($profile) => $profile->where('designation_id', request('designation_id')));
+        }
+        if (request()->filled('depot_id')) {
+            $query->where(fn($employee) => $employee
+                ->whereHas('staffProfile', fn($profile) => $profile->where('depot_id', request('depot_id')))
+                ->orWhereHas('housekeepingProfile', fn($profile) => $profile->where('depot_id', request('depot_id')))
+                ->orWhereHas('controllerProfile', fn($profile) => $profile->where('depot_id', request('depot_id')))
+                ->orWhereHas('supervisorProfile', fn($profile) => $profile->where('depot_id', request('depot_id'))));
+        }
+        if (request()->filled('employment_type')) {
+            $query->where(fn($employee) => $employee
+                ->whereHas('staffProfile', fn($profile) => $profile->where('employment_type', request('employment_type')))
+                ->orWhereHas('housekeepingProfile', fn($profile) => $profile->where('employment_type', request('employment_type')))
+                ->orWhereHas('controllerProfile', fn($profile) => $profile->where('employment_type', request('employment_type')))
+                ->orWhereHas('supervisorProfile', fn($profile) => $profile->where('employment_type', request('employment_type'))));
         }
 
         if (request()->filled('date_of_joining')) {
-            $query->whereHas('staffProfile', fn($profileQuery) => $profileQuery->whereDate('date_of_joining', request('date_of_joining')));
+            $query->where(fn($employee) => $employee
+                ->whereHas('staffProfile', fn($profile) => $profile->whereDate('date_of_joining', request('date_of_joining')))
+                ->orWhereHas('housekeepingProfile', fn($profile) => $profile->whereDate('joining_date', request('date_of_joining')))
+                ->orWhereHas('controllerProfile', fn($profile) => $profile->whereDate('date_of_joining', request('date_of_joining')))
+                ->orWhereHas('supervisorProfile', fn($profile) => $profile->whereDate('date_of_joining', request('date_of_joining'))));
         }
 
         if (request()->filled('status') && in_array(request('status'), ['0', '1'], true)) {
@@ -283,8 +373,12 @@ class StaffManagementController extends Controller implements HasMiddleware
         return [
             'designations' => Designation::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'branches' => BranchLocation::orderBy('name')->get(['id', 'name']),
+            'employeeRoles' => self::ROLES,
             'categories' => StaffProfile::CATEGORIES,
             'employmentTypes' => StaffProfile::EMPLOYMENT_TYPES,
+            'housekeepingEmploymentTypes' => HousekeepingProfile::EMPLOYMENT_TYPES,
+            'verificationStatuses' => HousekeepingProfile::VERIFICATION_STATUSES,
             'states' => State::orderBy('name')->get(['id', 'name']),
             'districts' => District::orderBy('name')->get(['id', 'name']),
             'locations' => Location::orderBy('name')->get(['id', 'name']),
@@ -295,10 +389,7 @@ class StaffManagementController extends Controller implements HasMiddleware
                 '50001-100000' => '50,001 - 1,00,000',
                 '100001-' => 'Above 1,00,000',
             ],
-            'salaryComponents' => SalaryComponents::forRole(
-                'Staff',
-                request()->route('staff_management')?->staffProfile?->designation_id
-            ),
+            'salaryComponents' => SalaryComponents::forRole($this->requestEmployeeRole(), request()->route('staff_management')?->staffProfile?->designation_id),
             'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('staff_management')),
         ];
     }
@@ -336,6 +427,112 @@ class StaffManagementController extends Controller implements HasMiddleware
             'bonus' => $salaryData['bonus'],
             'gross_salary' => $salaryData['gross_salary'],
         ])->all();
+    }
+
+    private function saveEmployeeProfile(User $user, string $role, array $data): void
+    {
+        $salary = SalaryComponents::legacyProfileSalaryData($data['salary_components'] ?? []);
+        $common = collect($data)->only([
+            'depot_id',
+            'reporting_to',
+            'employment_type',
+            'father_name',
+            'date_of_birth',
+            'aadhaar_number',
+            'pan_number',
+            'date_of_joining',
+            'uan',
+            'esic_wc',
+            'country',
+            'state_id',
+            'district_id',
+            'location_id',
+            'bank_account_number',
+            'ifsc_code',
+        ])->merge(collect($salary)->only([
+            'basic',
+            'vda',
+            'basic_vda',
+            'hra',
+            'special_allowance',
+            'conveyance_allowance',
+            'bonus',
+            'gross_salary',
+        ]))->all();
+
+        if ($role === 'Staff') {
+            $user->staffProfile()->updateOrCreate(['user_id' => $user->id], $common + [
+                'designation_id' => $data['designation_id'],
+                'category' => $data['category'] ?? null,
+            ]);
+            return;
+        }
+
+        if ($role === 'Housekeeping') {
+            $housekeeping = $common;
+            unset($housekeeping['date_of_joining'], $housekeeping['bank_account_number']);
+            $housekeeping += collect($data)->only([
+                'branch_location_id',
+                'pincode',
+                'address',
+                'emergency_contact_name',
+                'emergency_country_code',
+                'emergency_contact_no',
+                'medical_fitness_expiry',
+                'police_verification_status',
+                'verification_status',
+            ])->all();
+            $housekeeping['joining_date'] = $data['date_of_joining'];
+            $housekeeping['account_number'] = $data['bank_account_number'];
+            $housekeeping['salary'] = $salary['salary'];
+            $user->housekeepingProfile()->updateOrCreate(['user_id' => $user->id], $housekeeping);
+            return;
+        }
+
+        $relation = $role === 'Controller' ? 'controllerProfile' : 'supervisorProfile';
+        $user->{$relation}()->updateOrCreate(['user_id' => $user->id], $common);
+    }
+
+    private function syncEmployeeRoles(User $user, string $role, ?int $designationId): void
+    {
+        $roles = [$role];
+        if ($role === 'Staff' && $designationId) {
+            $designationRole = Designation::with('role')->find($designationId)?->role?->name;
+            if ($designationRole) {
+                $roles[] = $designationRole;
+            }
+        }
+        $user->syncRoles($roles);
+    }
+
+    private function employeeRole(User $user): string
+    {
+        return collect(self::ROLES)->first(fn(string $role) => $user->hasRole($role)) ?: 'Staff';
+    }
+
+    private function employeeProfile(User $user): mixed
+    {
+        return match ($this->employeeRole($user)) {
+            'Housekeeping' => $user->housekeepingProfile,
+            'Controller' => $user->controllerProfile,
+            'Supervisor' => $user->supervisorProfile,
+            default => $user->staffProfile,
+        };
+    }
+
+    private function employeeDateOfJoining(User $user): mixed
+    {
+        $profile = $this->employeeProfile($user);
+        return $this->employeeRole($user) === 'Housekeeping' ? $profile?->joining_date : $profile?->date_of_joining;
+    }
+
+    private function requestEmployeeRole(): string
+    {
+        $record = request()->route('staff_management');
+        if ($record instanceof User) {
+            return $this->employeeRole($record);
+        }
+        return in_array(request('role'), self::ROLES, true) ? request('role') : 'Staff';
     }
 
     private function salaryComponent(array $data, string $field): float
@@ -438,7 +635,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             'IFSC Code' => $profile?->ifsc_code ?: '-',
         ]);
 
-        $money = fn ($value) => filled($value) ? number_format((float) $value, 2) : '-';
+        $money = fn($value) => filled($value) ? number_format((float) $value, 2) : '-';
         $this->pdfSection($content, 'Salary Structure', 40, 105, 515, [
             'Basic' => $money($profile?->basic),
             'VDA' => $money($profile?->vda),
@@ -580,5 +777,4 @@ class StaffManagementController extends Controller implements HasMiddleware
 
         return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $text);
     }
-
 }

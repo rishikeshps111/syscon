@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\BranchLocation;
 use App\Models\ControllerProfile;
 use App\Models\Depot;
@@ -26,6 +27,9 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\PermissionRegistrar;
 use Spatie\Permission\Models\Role;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class BulkImportController extends Controller
 {
@@ -42,6 +46,24 @@ class BulkImportController extends Controller
         $config = $this->config($module);
         $this->authorizeModule($config);
 
+        if ($module === 'staff') {
+            return response()->streamDownload(function () use ($config) {
+                $spreadsheet = new Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+                $sheet->setTitle('Staff Import');
+                $sheet->fromArray($config['sample_headers'], null, 'A1');
+                $sheet->fromArray($config['sample'], null, 'A2');
+                $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->getFont()->setBold(true);
+                foreach (range('A', $sheet->getHighestColumn()) as $column) {
+                    $sheet->getColumnDimension($column)->setAutoSize(true);
+                }
+                (new Xlsx($spreadsheet))->save('php://output');
+                $spreadsheet->disconnectWorksheets();
+            }, 'staff-import-sample.xlsx', [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
+        }
+
         return response()->streamDownload(function () use ($config) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, $config['headers']);
@@ -54,9 +76,14 @@ class BulkImportController extends Controller
     {
         $config = $this->config($module);
         $this->authorizeModule($config);
-        $request->validate(['csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120']]);
+        $request->validate([
+            'csv_file' => ['required', 'file', $module === 'staff' ? 'mimes:xlsx,xls,csv,txt' : 'mimes:csv,txt', 'max:5120'],
+        ]);
 
-        [$rows, $readErrors] = $this->readCsv($request->file('csv_file')->getRealPath(), $config['headers']);
+        $file = $request->file('csv_file');
+        [$rows, $readErrors] = in_array(Str::lower($file->getClientOriginalExtension()), ['xlsx', 'xls'], true)
+            ? $this->readSpreadsheet($file->getRealPath(), $config['headers'])
+            : $this->readCsv($file->getRealPath(), $config['headers']);
         if ($readErrors) {
             throw ValidationException::withMessages(['csv_file' => $readErrors]);
         }
@@ -133,10 +160,9 @@ class BulkImportController extends Controller
                 'reporting_to' => [Role::class, 'name', 'reporting_to'],
             ];
         } elseif (in_array($module, ['drivers', 'housekeeping'], true)) {
-            $lookups['branch'] = [BranchLocation::class, 'name', 'branch_location_id'];
         } elseif ($module === 'staff') {
             $lookups['designation'] = [Designation::class, 'name', 'designation_id'];
-            $lookups['reporting_to'] = [User::class, 'name', 'reporting_to'];
+            $lookups['branch'] = [BranchLocation::class, 'name', 'branch_location_id'];
         }
 
         foreach ($lookups as $csvField => [$model, $column, $idField]) {
@@ -157,9 +183,6 @@ class BulkImportController extends Controller
                 $query->where('guard_name', 'web')
                     ->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor']);
             }
-            if ($csvField === 'reporting_to' && $module === 'staff') {
-                $query->whereHas('staffProfile');
-            }
             $matches = $query->limit(2)->get();
             if ($matches->count() !== 1) {
                 $errors[] = "Row {$line}: {$csvField} '{$name}' " . ($matches->isEmpty() ? 'was not found.' : 'is ambiguous.');
@@ -174,6 +197,22 @@ class BulkImportController extends Controller
 
     private function normalize(array $data, string $module): array
     {
+        if ($module === 'staff') {
+            $data['is_active'] = $data['status'] ?? null;
+            $data['bank_account_number'] = $data['account_number'] ?? null;
+            [$data['country_code'], $data['phone']] = $this->splitPhone((string) ($data['phone'] ?? ''));
+
+            foreach (['date_of_birth', 'date_of_joining'] as $dateField) {
+                if (filled($data[$dateField] ?? null)) {
+                    try {
+                        $data[$dateField] = Carbon::parse($data[$dateField])->format('Y-m-d');
+                    } catch (\Throwable) {
+                        // Leave the original value for the validator to report.
+                    }
+                }
+            }
+        }
+
         foreach (['is_active', 'gps_enabled'] as $field) {
             if (array_key_exists($field, $data)) {
                 $data[$field] = $this->booleanValue($data[$field]);
@@ -230,6 +269,10 @@ class BulkImportController extends Controller
 
     private function createPerson(string $module, array $data): void
     {
+        if ($module === 'staff') {
+            $this->createUnifiedEmployee($data);
+            return;
+        }
         $meta = [
             'drivers' => ['role' => 'Driver', 'relation' => 'driverProfile'],
             'housekeeping' => ['role' => 'Housekeeping', 'relation' => 'housekeepingProfile'],
@@ -261,6 +304,42 @@ class BulkImportController extends Controller
             $user->syncRoles($roles);
         } else {
             $user->assignRole($meta['role']);
+        }
+    }
+
+    private function createUnifiedEmployee(array $data): void
+    {
+        $role = $data['role'];
+        $user = User::create([
+            'code' => null, 'ref_code' => $data['ref_code'] ?? null, 'name' => $data['name'],
+            'email' => $data['email'] ?? null, 'country_code' => $data['country_code'], 'phone' => $data['phone'],
+            'is_active' => $data['is_active'], 'password' => Str::random(40),
+        ]);
+        $user->update(['code' => UserCodeGenerator::generate($role, (int) $data['depot_id'], $user->id)]);
+        $salary = SalaryComponents::legacyProfileSalaryData([]);
+        $common = collect($data)->only([
+            'depot_id', 'employment_type', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number',
+            'date_of_joining', 'uan', 'esic_wc', 'country', 'state_id', 'district_id', 'location_id',
+            'bank_account_number', 'ifsc_code',
+        ])->merge(collect($salary)->only(['basic','vda','basic_vda','hra','special_allowance','conveyance_allowance','bonus','gross_salary']))->all();
+
+        if ($role === 'Staff') {
+            $user->staffProfile()->create($common + ['designation_id' => $data['designation_id'], 'category' => null]);
+            $roles = ['Staff'];
+            $designationRole = Designation::with('role')->find($data['designation_id'])?->role?->name;
+            if ($designationRole) $roles[] = $designationRole;
+            $user->syncRoles($roles);
+        } elseif ($role === 'Housekeeping') {
+            unset($common['date_of_joining'], $common['bank_account_number']);
+            $user->housekeepingProfile()->create($common + collect($data)->only([
+                'branch_location_id','pincode','address','emergency_contact_name','emergency_country_code',
+                'emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status',
+            ])->all() + ['joining_date' => $data['date_of_joining'], 'account_number' => $data['bank_account_number'], 'salary' => $salary['salary']]);
+            $user->assignRole($role);
+        } else {
+            $relation = $role === 'Controller' ? 'controllerProfile' : 'supervisorProfile';
+            $user->{$relation}()->create($common);
+            $user->assignRole($role);
         }
     }
 
@@ -342,7 +421,20 @@ class BulkImportController extends Controller
                 'verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
             ];
         }
-        $class = ['controllers' => ControllerProfile::class, 'supervisors' => SupervisorProfile::class, 'staff' => StaffProfile::class][$module];
+        if ($module === 'staff') {
+            return $rules + [
+                'ref_code' => ['nullable', 'string', 'max:100'],
+                'role' => ['required', Rule::in(['Staff', 'Housekeeping', 'Controller', 'Supervisor'])],
+                'phone' => ['required', 'max:30', 'unique:users,phone'],
+                'employment_type' => ['required', Rule::in(array_keys(StaffProfile::EMPLOYMENT_TYPES))],
+                'father_name' => ['required', 'max:255'], 'date_of_birth' => ['required', 'date'],
+                'aadhaar_number' => ['required', 'max:20'], 'pan_number' => ['required', 'max:20'],
+                'date_of_joining' => ['required', 'date'], 'uan' => ['required', 'max:50'], 'esic_wc' => ['required', 'max:50'],
+                'bank_account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
+                'designation_id' => ['nullable', 'required_if:role,Staff', 'exists:designations,id'],
+            ];
+        }
+        $class = ['controllers' => ControllerProfile::class, 'supervisors' => SupervisorProfile::class][$module];
         $rules += [
             ($module === 'staff' ? 'password' : 'passcode') => $module === 'staff' ? ['required', 'min:8'] : ['required', 'digits:6'],
             'employment_type' => ['required', Rule::in(array_keys($class::EMPLOYMENT_TYPES))], 'father_name' => ['required', 'max:255'],
@@ -367,7 +459,7 @@ class BulkImportController extends Controller
         if (! $handle) return [[], ['Unable to read the uploaded CSV file.']];
         $header = fgetcsv($handle);
         if (! $header) return [[], ['CSV file is empty.']];
-        $header = array_map(fn ($v) => Str::of((string) $v)->trim()->lower()->replace([' ', '-'], '_')->toString(), $header);
+        $header = array_map(fn ($value) => $this->normalizeHeader($value), $header);
         $missing = array_diff($expected, $header);
         if ($missing) { fclose($handle); return [[], ['Missing column(s): ' . implode(', ', $missing) . '.']]; }
         $rows = []; $errors = []; $line = 1;
@@ -380,6 +472,66 @@ class BulkImportController extends Controller
         fclose($handle);
         if (! $rows && ! $errors) $errors[] = 'CSV file does not contain any data rows.';
         return [$rows, $errors];
+    }
+
+    private function readSpreadsheet(string $path, array $expected): array
+    {
+        try {
+            $reader = IOFactory::createReaderForFile($path);
+            $reader->setReadDataOnly(true);
+            $sheet = $reader->load($path)->getActiveSheet();
+        } catch (\Throwable) {
+            return [[], ['Unable to read the uploaded Excel file.']];
+        }
+
+        $highestColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $header = [];
+        for ($column = 1; $column <= $highestColumn; $column++) {
+            $header[] = $this->normalizeHeader($sheet->getCell([$column, 1])->getValue());
+        }
+
+        $missing = array_diff($expected, $header);
+        if ($missing) {
+            return [[], ['Missing column(s): ' . implode(', ', $missing) . '.']];
+        }
+
+        $rows = [];
+        for ($row = 2; $row <= $sheet->getHighestDataRow(); $row++) {
+            $values = [];
+            for ($column = 1; $column <= $highestColumn; $column++) {
+                $values[] = $sheet->getCell([$column, $row])->getFormattedValue();
+            }
+            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) {
+                continue;
+            }
+            $rows[] = ['line' => $row, 'data' => array_combine($header, $values)];
+        }
+
+        return $rows ? [$rows, []] : [[], ['Excel file does not contain any data rows.']];
+    }
+
+    private function normalizeHeader(mixed $value): string
+    {
+        return Str::of((string) $value)
+            ->trim()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', '_')
+            ->trim('_')
+            ->toString();
+    }
+
+    private function splitPhone(string $value): array
+    {
+        $value = trim($value);
+        $countryCode = '+91';
+        $phone = $value;
+
+        if (preg_match('/^(\+\d{1,4})[\s-]*(.+)$/', $value, $matches)) {
+            $countryCode = $matches[1];
+            $phone = $matches[2];
+        }
+
+        return [$countryCode, preg_replace('/[^0-9]/', '', $phone) ?: $phone];
     }
 
     private function booleanValue(mixed $value): mixed
@@ -439,21 +591,42 @@ class BulkImportController extends Controller
                 'unique_csv'=>['email'], 'profile_fields'=>$key === 'staff' ? array_merge($personProfile, ['designation_id','reporting_to','category']) : $personProfile,
             ];
         }
+        $configs['staff'] = [
+            'label' => 'Employees', 'permission' => 'staff-management.create', 'index_route' => 'staff-management.index',
+            'headers' => [
+                'ref_code','name','email','phone','role','designation','depot','employment_type','status',
+                'father_name','date_of_birth','aadhaar_number','pan_number','date_of_joining','uan','esic_wc','country','state',
+                'district','location','account_number','ifsc_code',
+            ],
+            'sample_headers' => [
+                'Ref Code', 'Name', 'Email', 'Phone', 'Role', 'Designation', 'Depot', 'Employment Type', 'Status',
+                'Father Name', 'Date of Birth', 'Aadhaar Number', 'PAN Number', 'Date of Joining', 'UAN', 'ESIC / WC',
+                'Country', 'State', 'District', 'Location', 'Account Number', 'IFSC Code',
+            ],
+            'sample' => [
+                'REF-001','Sample Employee','employee@example.com','+91 9876543210','Staff','Manager','Central Depot',
+                'full_time','Active','Father Name','1990-01-01','123456789012','ABCDE1234F','2026-01-01','UAN001',
+                'ESIC001','India','Maharashtra','Pune','Pune','1234567890','ABCD0001234',
+            ],
+            'unique_csv' => ['email', 'phone'],
+        ];
         abort_unless(isset($configs[$module]), 404);
         $optional = match ($module) {
             'vehicles' => ['variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_imei', 'remarks'],
             'drivers' => ['alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date'],
             'housekeeping' => ['alternate_country_code', 'alternate_phone'],
-            'staff' => ['reporting_to'],
+            'staff' => ['email', 'ref_code'],
             'designations' => ['reporting_to', 'description'],
             default => [],
         };
         $configs[$module]['instructions'] = collect($configs[$module]['headers'])
-            ->map(fn (string $column) => [
-                'column' => $column,
+            ->map(fn (string $column, int $index) => [
+                'column' => $configs[$module]['sample_headers'][$index] ?? $column,
                 'required' => in_array($column, ['battery_capacity', 'range_km', 'gps_imei'], true)
                     ? 'Conditional'
-                    : (in_array($column, $optional, true) ? 'No' : 'Yes'),
+                    : ($module === 'staff' && $column === 'designation'
+                        ? 'Staff only'
+                    : (in_array($column, $optional, true) ? 'No' : 'Yes')),
                 'instruction' => $this->columnInstruction($column, $module),
             ])->all();
 
@@ -468,12 +641,17 @@ class BulkImportController extends Controller
                 : 'Full name, maximum 255 characters.',
             'email' => 'Valid and unique email address. It must not already belong to another user or appear twice in the CSV.',
             'country_code' => 'Telephone country code, for example +91.',
-            'phone' => 'Primary phone number, maximum 30 characters.',
+            'phone' => $module === 'staff'
+                ? 'Full phone number with country code, for example +91 9876543210. If omitted, +91 is used.'
+                : 'Primary phone number, maximum 30 characters.',
+            'ref_code' => 'Optional external reference code.',
+            'role' => 'Use Staff, Housekeeping, Controller, or Supervisor.',
             'alternate_country_code' => 'Optional alternate telephone country code, for example +91.',
             'alternate_phone' => 'Optional alternate phone number, maximum 30 characters.',
             'passcode' => 'Exactly 6 digits. This becomes the initial login passcode.',
             'password' => 'Initial login password containing at least 8 characters.',
             'is_active' => 'Use yes/no, true/false, active/inactive, or 1/0.',
+            'status' => 'Use Active or Inactive. yes/no, true/false, and 1/0 are also accepted.',
             'father_name' => 'Father name, maximum 255 characters.',
             'date_of_birth' => 'Use YYYY-MM-DD.',
             'aadhaar_number' => in_array($module, ['drivers', 'housekeeping'], true) ? 'Aadhaar number, maximum 20 characters; must be unique.' : 'Aadhaar number, maximum 20 characters.',

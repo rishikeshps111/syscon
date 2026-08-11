@@ -8,7 +8,8 @@
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{{ $backRoute }}">Management</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('staff-management.index') }}">Staff Management</a>
+                    </li>
                     <li class="breadcrumb-item active">Assign Depot</li>
                 </ol>
             </nav>
@@ -37,7 +38,8 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form id="depotAssignmentForm" method="POST" action="{{ $storeUrl }}" data-store-url="{{ $storeUrl }}">
+                            <form id="depotAssignmentForm" method="POST" action="{{ $storeUrl }}"
+                                data-store-url="{{ $storeUrl }}">
                                 @csrf
                                 <input type="hidden" name="_method" id="assignmentMethod" value="POST">
                                 <div class="row">
@@ -72,8 +74,10 @@
                                     </div>
                                     <div class="col-lg-12 d-flex justify-content-center align-items-center">
                                         <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn" id="assignmentSubmitBtn">Submit</button>
+                                            <button type="button" class="btn btn-secondary"
+                                                data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="submit-btn"
+                                                id="assignmentSubmitBtn">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -88,7 +92,7 @@
             <div class="row mb-3">
                 <div class="col-lg-12 d-flex justify-content-end align-items-end">
                     <div class="btn-flex">
-                        <a href="{{ $backRoute }}" class="add-btn bg-filter">Back</a>
+                        <a href="{{ route('staff-management.index') }}" class="add-btn bg-filter">Back</a>
                         @if($canEdit)
                             <a class="add-btn" data-bs-toggle="modal" href="#depotAssignmentModal" role="button">
                                 Add Assignment
@@ -164,7 +168,7 @@
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                         { data: 'depot_name', name: 'depot.name', orderable: false, searchable: false, className: 'text-center' },
                         @if($requiresReportingManager)
-                        { data: 'reporting_to_name', name: 'reporting_to_name', orderable: false, searchable: false, className: 'text-center' },
+                            { data: 'reporting_to_name', name: 'reporting_to_name', orderable: false, searchable: false, className: 'text-center' },
                         @endif
                         { data: 'from_date_display', name: 'from_date', className: 'text-center' },
                         { data: 'to_date_display', name: 'to_date', className: 'text-center' },
@@ -175,43 +179,43 @@
                 });
 
                 @if($requiresReportingManager)
-                var pendingReportingTo = '';
+                    var pendingReportingTo = '';
 
-                function loadReportingManagers() {
-                    var depotId = $('#depotId').val();
+                    function loadReportingManagers() {
+                        var depotId = $('#depotId').val();
 
-                    if (!depotId) {
-                        $('#reportingTo').html('<option value="">--- Select ---</option>').val('').trigger('change.select2');
-                        return;
+                        if (!depotId) {
+                            $('#reportingTo').html('<option value="">--- Select ---</option>').val('').trigger('change.select2');
+                            return;
+                        }
+
+                        $('#reportingTo').html('<option value="">Loading...</option>').prop('disabled', true).trigger('change.select2');
+
+                        $.ajax({
+                            url: "{{ route('depot-assignments.reporting-managers') }}",
+                            type: 'GET',
+                            data: {
+                                module: @json($module),
+                                depot_id: depotId
+                            },
+                            success: function (managers) {
+                                var options = '<option value="">--- Select ---</option>';
+                                managers.forEach(function (manager) {
+                                    var code = manager.code ? ` (${manager.code})` : '';
+                                    var role = manager.role ? ` - ${manager.role}` : '';
+                                    options += `<option value="${manager.id}">${manager.name}${code}${role}</option>`;
+                                });
+                                $('#reportingTo').html(options).prop('disabled', false).val(pendingReportingTo).trigger('change.select2');
+                                pendingReportingTo = '';
+                            },
+                            error: function () {
+                                $('#reportingTo').html('<option value="">--- Select ---</option>').prop('disabled', false).trigger('change.select2');
+                                showToast('error', 'Unable to load reporting managers.');
+                            }
+                        });
                     }
 
-                    $('#reportingTo').html('<option value="">Loading...</option>').prop('disabled', true).trigger('change.select2');
-
-                    $.ajax({
-                        url: "{{ route('depot-assignments.reporting-managers') }}",
-                        type: 'GET',
-                        data: {
-                            module: @json($module),
-                            depot_id: depotId
-                        },
-                        success: function (managers) {
-                            var options = '<option value="">--- Select ---</option>';
-                            managers.forEach(function (manager) {
-                                var code = manager.code ? ` (${manager.code})` : '';
-                                var role = manager.role ? ` - ${manager.role}` : '';
-                                options += `<option value="${manager.id}">${manager.name}${code}${role}</option>`;
-                            });
-                            $('#reportingTo').html(options).prop('disabled', false).val(pendingReportingTo).trigger('change.select2');
-                            pendingReportingTo = '';
-                        },
-                        error: function () {
-                            $('#reportingTo').html('<option value="">--- Select ---</option>').prop('disabled', false).trigger('change.select2');
-                            showToast('error', 'Unable to load reporting managers.');
-                        }
-                    });
-                }
-
-                $('#depotId').on('change', loadReportingManagers);
+                    $('#depotId').on('change', loadReportingManagers);
                 @endif
 
                 $('#depotAssignmentModal').on('show.bs.modal', function (event) {
@@ -228,7 +232,7 @@
                     $('#depotAssignmentForm').attr('action', button.data('url'));
                     $('#assignmentMethod').val('PUT');
                     @if($requiresReportingManager)
-                    pendingReportingTo = String(button.data('reporting-to') || '');
+                        pendingReportingTo = String(button.data('reporting-to') || '');
                     @endif
                     $('#depotId').val(button.data('depot-id')).trigger('change');
                     $('#fromDate').val(button.data('from-date'));
@@ -281,8 +285,8 @@
                     $('#depotAssignmentModalTitle').text('Add Depot Assignment');
                     $('#depotId').val('').trigger('change');
                     @if($requiresReportingManager)
-                    pendingReportingTo = '';
-                    $('#reportingTo').html('<option value="">--- Select ---</option>').prop('disabled', false).val('').trigger('change.select2');
+                        pendingReportingTo = '';
+                        $('#reportingTo').html('<option value="">--- Select ---</option>').prop('disabled', false).val('').trigger('change.select2');
                     @endif
                     $('#assignmentSubmitBtn').text('Submit');
                     form.find('.error-text').text('');

@@ -330,40 +330,19 @@
                                     </ul>
                                 </li>
                             @endcanany
-                            @can('staff-management.view')
+                            @canany(['staff-management.view', 'housekeeping-management.view', 'controller-management.view', 'supervisor-management.view'])
                                 <li>
                                     <a href="{{ route('staff-management.index') }}"
-                                        class="{{ request()->routeIs('staff-management.*') || $bulkImportModule === 'staff' || $letterUserModule === 'staff' ? 'sub-active' : '' }}">
+                                        class="{{ request()->routeIs('staff-management.*', 'housekeeping-management.*', 'controller-management.*', 'supervisor-management.*') || in_array($bulkImportModule, ['staff', 'housekeeping', 'controllers', 'supervisors'], true) || in_array($letterUserModule, ['staff', 'housekeeping', 'controllers', 'supervisors'], true) ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Staff Management</span>
                                     </a>
                                 </li>
-                            @endcan
+                            @endcanany
                             @can('driver-management.view')
                                 <li>
                                     <a href="{{ route('driver-management.index') }}"
                                         class="{{ request()->routeIs('driver-management.*') || $bulkImportModule === 'drivers' || $letterUserModule === 'drivers' ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Driver Management</span>
-                                    </a>
-                                </li>
-                            @endcan
-                            @can('housekeeping-management.view')
-                                <li><a href="{{ route('housekeeping-management.index') }}" class="{{ request()->routeIs('housekeeping-management.*') || $bulkImportModule === 'housekeeping' || $letterUserModule === 'housekeeping' ? 'sub-active' : '' }}"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Housekeeping Management</span></a></li>
-                            @endcan
-                            @can('controller-management.view')
-                                <li>
-                                    <a href="{{ route('controller-management.index') }}"
-                                        class="{{ request()->routeIs('controller-management.*') || $bulkImportModule === 'controllers' || $letterUserModule === 'controllers' ? 'sub-active' : '' }}">
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Controller
-                                            Management</span>
-                                    </a>
-                                </li>
-                            @endcan
-                            @can('supervisor-management.view')
-                                <li>
-                                    <a href="{{ route('supervisor-management.index') }}"
-                                        class="{{ request()->routeIs('supervisor-management.*') || $bulkImportModule === 'supervisors' || $letterUserModule === 'supervisors' ? 'sub-active' : '' }}">
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i><span>Supervisor
-                                            Management</span>
                                     </a>
                                 </li>
                             @endcan

@@ -7,22 +7,22 @@
         </div>
         <div class="main-table-container">
             <div class="mb-4">
-                <p>Upload a CSV containing the same fields available on the add/edit form. Relationship columns use names, never database IDs. Names must exactly identify an existing record.</p>
+                <p>Upload {{ $module === 'staff' ? 'an Excel or CSV file' : 'a CSV' }} containing the fields listed below. Relationship columns use names, never database IDs. Names must exactly identify an existing record.</p>
                 <p class="mb-0"><strong>Dates:</strong> YYYY-MM-DD &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
             </div>
             @if ($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
             <form class="js-loading-form" method="POST" action="{{ route('bulk-import.store', $module) }}" enctype="multipart/form-data">
                 @csrf
-                <div class="o-f-inp mb-3"><label for="csv_file">CSV file</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept=".csv,text/csv" required></div>
+                <div class="o-f-inp mb-3"><label for="csv_file">{{ $module === 'staff' ? 'Excel or CSV file' : 'CSV file' }}</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept="{{ $module === 'staff' ? '.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv' : '.csv,text/csv' }}" required></div>
                 <div class="d-flex gap-2"><button class="btn btn-primary js-loading-submit" type="submit">Import</button><a class="btn btn-light" href="{{ route($config['index_route']) }}">Cancel</a></div>
             </form>
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h5 class="mb-0">CSV Instructions</h5>
-                    <a href="{{ route('bulk-import.sample', $module) }}" class="btn btn-outline-primary">Download Sample CSV</a>
+                    <h5 class="mb-0">{{ $module === 'staff' ? 'Import Instructions' : 'CSV Instructions' }}</h5>
+                    <a href="{{ route('bulk-import.sample', $module) }}" class="btn btn-outline-primary">Download Sample {{ $module === 'staff' ? 'Excel' : 'CSV' }}</a>
                 </div>
-                <p class="mb-2">Create a CSV file with this exact header row:</p>
-                <code class="d-block mb-3">{{ implode(',', $config['headers']) }}</code>
+                <p class="mb-2">Use these columns in this exact order:</p>
+                <code class="d-block mb-3">{{ implode(', ', $config['sample_headers'] ?? $config['headers']) }}</code>
                 <div class="table-over mb-3">
                     <table class="align-middle mb-0 table tble-cstm" style="width:100%;">
                         <thead><tr><th>Column</th><th>Required</th><th>Instruction</th></tr></thead>

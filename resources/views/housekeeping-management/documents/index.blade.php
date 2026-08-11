@@ -8,7 +8,7 @@
             <nav>
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{{ route('housekeeping-management.index') }}">Housekeeping Management</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('staff-management.index') }}">Staff Management</a></li>
                     <li class="breadcrumb-item active">Documents</li>
                 </ol>
             </nav>
@@ -115,7 +115,7 @@
             <div class="row mb-3">
                 <div class="col-lg-12 d-flex justify-content-end align-items-end">
                     <div class="btn-flex">
-                        <a href="{{ route('housekeeping-management.index') }}" class="add-btn bg-filter">Back</a>
+                        <a href="{{ route('staff-management.index') }}" class="add-btn bg-filter">Back</a>
                         @can('housekeeping-management.edit')
                             <a class="add-btn" data-bs-toggle="modal" href="#addDocumentModal" role="button">
                                 Add Document

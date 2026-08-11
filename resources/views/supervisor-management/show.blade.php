@@ -7,7 +7,7 @@
         <nav>
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('supervisor-management.index') }}">Supervisor Management</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('staff-management.index') }}">Staff Management</a></li>
                 <li class="breadcrumb-item active">View Details</li>
             </ol>
         </nav>
@@ -15,8 +15,8 @@
 
     @php
         $profile = $record->supervisorProfile;
-        $money = fn ($value) => filled($value) ? number_format((float) $value, 2) : '-';
-        $date = fn ($value) => $value ? $value->format('d-m-Y') : '-';
+        $money = fn($value) => filled($value) ? number_format((float) $value, 2) : '-';
+        $date = fn($value) => $value ? $value->format('d-m-Y') : '-';
     @endphp
 
     <section class="section dashboard">
@@ -26,8 +26,9 @@
                     <div class="row">
                         <div class="col-lg-12 mb-3">
                             <div class="btn-flex justify-content-end">
-                                <a href="{{ route('supervisor-management.index') }}" class="btn btn-secondary">Back</a>
-                                <a href="{{ route('supervisor-management.download-pdf', $record->id) }}" class="btn btn-primary">Download PDF</a>
+                                <a href="{{ route('staff-management.index') }}" class="btn btn-secondary">Back</a>
+                                <a href="{{ route('supervisor-management.download-pdf', $record->id) }}"
+                                    class="btn btn-primary">Download PDF</a>
                             </div>
                         </div>
 
@@ -55,7 +56,9 @@
                                     <li>Phone : <span>{{ $record->full_phone ?: '-' }}</span></li>
                                     <li>Date of Birth : <span>{{ $date($profile?->date_of_birth) }}</span></li>
                                     <li>Father's Name : <span>{{ $profile?->father_name ?: '-' }}</span></li>
-                                    <li>Role : <span>{{ $record->roles->pluck('name')->implode(', ') ?: 'Supervisor' }}</span></li>
+                                    <li>Role :
+                                        <span>{{ $record->roles->pluck('name')->implode(', ') ?: 'Supervisor' }}</span>
+                                    </li>
                                     <li>Depot : <span>{{ $profile?->depot?->name ?: '-' }}</span></li>
                                     <li>DOJ : <span>{{ $date($profile?->date_of_joining) }}</span></li>
                                     <li>Aadhaar Number : <span>{{ $profile?->aadhaar_number ?: '-' }}</span></li>
@@ -76,8 +79,10 @@
                                 <ul>
                                     <li><label>Country :</label> <span>{{ $profile?->country ?: '-' }}</span></li>
                                     <li><label>State :</label> <span>{{ $profile?->state?->name ?: '-' }}</span></li>
-                                    <li><label>District :</label> <span>{{ $profile?->district?->name ?: '-' }}</span></li>
-                                    <li><label>Location :</label> <span>{{ $profile?->location?->name ?: '-' }}</span></li>
+                                    <li><label>District :</label> <span>{{ $profile?->district?->name ?: '-' }}</span>
+                                    </li>
+                                    <li><label>Location :</label> <span>{{ $profile?->location?->name ?: '-' }}</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -86,8 +91,10 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Employment Details</h6>
                                 <ul>
-                                    <li><label>Employment Type :</label> <span>{{ $profile?->employment_type_label ?: '-' }}</span></li>
-                                    <li><label>Joining Date :</label> <span>{{ $date($profile?->date_of_joining) }}</span></li>
+                                    <li><label>Employment Type :</label>
+                                        <span>{{ $profile?->employment_type_label ?: '-' }}</span></li>
+                                    <li><label>Joining Date :</label>
+                                        <span>{{ $date($profile?->date_of_joining) }}</span></li>
                                     <li><label>UAN :</label> <span>{{ $profile?->uan ?: '-' }}</span></li>
                                     <li><label>ESIC / WC :</label> <span>{{ $profile?->esic_wc ?: '-' }}</span></li>
                                 </ul>
@@ -99,12 +106,16 @@
                                 <ul>
                                     <li><label>Basic :</label> <span>{{ $money($profile?->basic) }}</span></li>
                                     <li><label>VDA :</label> <span>{{ $money($profile?->vda) }}</span></li>
-                                    <li><label>Basic + VDA :</label> <span>{{ $money($profile?->basic_vda) }}</span></li>
+                                    <li><label>Basic + VDA :</label> <span>{{ $money($profile?->basic_vda) }}</span>
+                                    </li>
                                     <li><label>HRA :</label> <span>{{ $money($profile?->hra) }}</span></li>
-                                    <li><label>Special Allowance :</label> <span>{{ $money($profile?->special_allowance) }}</span></li>
-                                    <li><label>Conveyance Allowance / Incentive :</label> <span>{{ $money($profile?->conveyance_allowance) }}</span></li>
+                                    <li><label>Special Allowance :</label>
+                                        <span>{{ $money($profile?->special_allowance) }}</span></li>
+                                    <li><label>Conveyance Allowance / Incentive :</label>
+                                        <span>{{ $money($profile?->conveyance_allowance) }}</span></li>
                                     <li><label>Bonus :</label> <span>{{ $money($profile?->bonus) }}</span></li>
-                                    <li><label>Gross Salary :</label> <span>{{ $money($profile?->gross_salary) }}</span></li>
+                                    <li><label>Gross Salary :</label> <span>{{ $money($profile?->gross_salary) }}</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -112,7 +123,8 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Bank Details</h6>
                                 <ul>
-                                    <li><label>Account Number :</label> <span>{{ $profile?->bank_account_number ?: '-' }}</span></li>
+                                    <li><label>Account Number :</label>
+                                        <span>{{ $profile?->bank_account_number ?: '-' }}</span></li>
                                     <li><label>IFSC Code :</label> <span>{{ $profile?->ifsc_code ?: '-' }}</span></li>
                                 </ul>
                             </div>
@@ -127,8 +139,8 @@
                                             <div class="v-doc-preview s-doc-preview">
                                                 <p>{{ $document->documentType?->name ?: 'Document' }}</p>
                                                 <img src="{{ asset('assets/img/file.avif') }}" alt="Document">
-                                                <a href="#!" class="mb-3 view-document"
-                                                    data-bs-toggle="modal" data-bs-target="#viewDoc"
+                                                <a href="#!" class="mb-3 view-document" data-bs-toggle="modal"
+                                                    data-bs-target="#viewDoc"
                                                     data-preview="{{ route('supervisor-documents.preview', $document->id) }}"
                                                     data-download="{{ route('supervisor-documents.download', $document->id) }}">
                                                     View
@@ -184,7 +196,3 @@
         </script>
     @endsection
 </x-app-layout>
-
-
-
-

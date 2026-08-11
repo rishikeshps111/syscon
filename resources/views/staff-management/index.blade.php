@@ -21,6 +21,15 @@
                         <div class="row">
                             <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
+                                    <label for="roleFilter">Filter by Role</label>
+                                    <select id="roleFilter" class="form-select shadow-none">
+                                        <option value="">---Select---</option>
+                                        @foreach($employeeRoles as $role)<option value="{{ $role }}">{{ $role }}</option>@endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3" id="designationFilterWrap">
+                                <div class="o-f-inp">
                                     <label for="designationFilter">Filter by Designation</label>
                                     <select id="designationFilter" class="form-select shadow-none select2-filter">
                                         <option value="">---Select---</option>
@@ -32,7 +41,16 @@
                             </div>
                             <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
-                                    <label for="employmentTypeFilter">Employment Type</label>
+                                    <label for="depotFilter">Filter by Depot</label>
+                                    <select id="depotFilter" class="form-select shadow-none select2-filter">
+                                        <option value="">---Select---</option>
+                                        @foreach($depots as $depot)<option value="{{ $depot->id }}">{{ $depot->name }}</option>@endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 mb-3">
+                                <div class="o-f-inp">
+                                    <label for="employmentTypeFilter">Filter by Employment Type</label>
                                     <select id="employmentTypeFilter" class="form-select shadow-none">
                                         <option value="">---Select---</option>
                                         @foreach ($employmentTypes as $value => $label)
@@ -40,42 +58,6 @@
                                         @endforeach
                                     </select>
                                 </div>
-                            </div>
-                            <div class="col-lg-3 mb-3">
-                                <div class="o-f-inp">
-                                    <label for="categoryFilter">Category</label>
-                                    <select id="categoryFilter" class="form-select shadow-none">
-                                        <option value="">---Select---</option>
-                                        @foreach ($categories as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-lg-3 mb-3">
-                                <div class="o-f-inp">
-                                    <label for="stateFilter">State</label>
-                                    <select id="stateFilter" class="form-select shadow-none select2-filter">
-                                        <option value="">---Select---</option>
-                                        @foreach ($states as $state)
-                                            <option value="{{ $state->id }}">{{ $state->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-lg-3 mb-3">
-                                <div class="o-f-inp">
-                                    <label for="districtFilter">District</label>
-                                    <select id="districtFilter" class="form-select shadow-none select2-filter">
-                                        <option value="">---Select---</option>
-                                        @foreach ($districts as $district)
-                                            <option value="{{ $district->id }}">{{ $district->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-lg-12">
-                                <h3 style="font-size: 15px;font-weight: 600;">Advanced Search</h3>
                             </div>
                             <div class="col-lg-4 mb-3">
                                 <div class="o-f-inp">
@@ -113,7 +95,7 @@
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
                             @can('staff-management.create')
                                 <a href="{{ route('bulk-import.form', 'staff') }}" class="add-btn">Import Staff</a>
-                                <a href="{{ route('staff-management.create') }}" class="add-btn">Add New Employee</a>
+                                <a href="{{ route('staff-management.create') }}" class="add-btn">Add New Staff</a>
                             @endcan
                         </div>
                     </div>
@@ -124,8 +106,7 @@
                             <div class="row justify-content-end">
                                 <div class="col-lg-8">
                                     <div class="table-search">
-                                        <label for="searchFilter" class="nowrap">Search (Name / Staff Code / Aadhaar /
-                                            PAN)</label>
+                                        <label for="searchFilter" class="nowrap">Search (Name / Code / Ref Code)</label>
                                         <input type="text" id="searchFilter" class="form-control shadow-none">
                                         @can('staff-management.view')
                                             <button id="exportSelected" class="exp-btn">Export Data</button>
@@ -140,12 +121,11 @@
                                             <th class="text-center nowrap"><input type="checkbox" id="checkAll"></th>
                                             <th class="text-center nowrap">SL NO</th>
                                             <th class="text-center nowrap">Staff Code</th>
+                                            <th class="text-center nowrap">Ref Code</th>
                                             <th class="text-center nowrap">Staff Name</th>
+                                            <th class="text-center nowrap">Role</th>
                                             <th class="text-center">Designation</th>
-                                            <th class="text-center">Employment Type</th>
-                                            <th class="text-center">Location</th>
                                             <th class="text-center">DOJ</th>
-                                            <th class="text-center">Gross Salary</th>
                                             <th class="text-center">Status</th>
                                             <th class="text-center">Actions</th>
                                         </tr>

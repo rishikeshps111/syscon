@@ -531,12 +531,16 @@ Route::middleware('auth')->group(function () {
         ->name('staff-management.status');
     Route::post('/staff-management/export', [StaffManagementController::class, 'export'])
         ->name('staff-management.export');
+    Route::get('/staff-management/states-by-country', [StaffManagementController::class, 'statesByCountry'])
+        ->name('staff-management.states-by-country');
     Route::get('/staff-management/districts-by-state', [StaffManagementController::class, 'districtsByState'])
         ->name('staff-management.districts-by-state');
     Route::get('/staff-management/locations-by-district', [StaffManagementController::class, 'locationsByDistrict'])
         ->name('staff-management.locations-by-district');
     Route::get('/staff-management/reporting-managers', [StaffManagementController::class, 'reportingManagers'])
         ->name('staff-management.reporting-managers');
+    Route::get('/staff-management/salary-structure', [StaffManagementController::class, 'salaryStructure'])
+        ->name('staff-management.salary-structure');
     Route::get('/staff-management/{staff_management}/download-pdf', [StaffManagementController::class, 'downloadPdf'])
         ->name('staff-management.download-pdf');
     Route::get('/staff-management/{staff}/documents', [StaffDocumentController::class, 'index'])

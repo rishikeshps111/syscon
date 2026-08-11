@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'user_id',
     'depot_id',
+    'reporting_to',
     'employment_type',
     'father_name',
     'date_of_birth',
@@ -73,6 +74,11 @@ class ControllerProfile extends Model
     public function depot(): BelongsTo
     {
         return $this->belongsTo(Depot::class);
+    }
+
+    public function reportingTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reporting_to');
     }
 
     public function state(): BelongsTo

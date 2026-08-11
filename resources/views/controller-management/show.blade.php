@@ -7,7 +7,7 @@
         <nav>
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('controller-management.index') }}">Controller Management</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('staff-management.index') }}">Staff Management</a></li>
                 <li class="breadcrumb-item active">View Details</li>
             </ol>
         </nav>
@@ -26,7 +26,7 @@
                     <div class="row">
                         <div class="col-lg-12 mb-3">
                             <div class="btn-flex justify-content-end">
-                                <a href="{{ route('controller-management.index') }}" class="btn btn-secondary">Back</a>
+                                <a href="{{ route('staff-management.index') }}" class="btn btn-secondary">Back</a>
                                 <a href="{{ route('controller-management.download-pdf', $record->id) }}" class="btn btn-primary">Download PDF</a>
                             </div>
                         </div>

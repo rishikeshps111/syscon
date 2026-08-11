@@ -7,7 +7,7 @@
         <nav>
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('housekeeping-management.index') }}">Housekeeping Management</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('staff-management.index') }}">Staff Management</a></li>
                 <li class="breadcrumb-item active">View Details</li>
             </ol>
         </nav>
@@ -15,9 +15,9 @@
 
     @php
         $profile = $record->housekeepingProfile;
-        $money = fn ($value) => filled($value) ? number_format((float) $value, 2) : '-';
-        $date = fn ($value) => $value ? $value->format('d-m-Y') : '-';
-        $verification = fn ($value) => \App\Models\HousekeepingProfile::VERIFICATION_STATUSES[$value] ?? '-';
+        $money = fn($value) => filled($value) ? number_format((float) $value, 2) : '-';
+        $date = fn($value) => $value ? $value->format('d-m-Y') : '-';
+        $verification = fn($value) => \App\Models\HousekeepingProfile::VERIFICATION_STATUSES[$value] ?? '-';
         $alternatePhone = trim(($profile?->alternate_country_code ?? '') . ' ' . ($profile?->alternate_phone ?? ''));
         $emergencyPhone = trim(($profile?->emergency_country_code ?? '') . ' ' . ($profile?->emergency_contact_no ?? ''));
     @endphp
@@ -29,8 +29,9 @@
                     <div class="row">
                         <div class="col-lg-12 mb-3">
                             <div class="btn-flex justify-content-end">
-                                <a href="{{ route('housekeeping-management.index') }}" class="btn btn-secondary">Back</a>
-                                <a href="{{ route('housekeeping-management.download-pdf', $record->id) }}" class="btn btn-primary">Download PDF</a>
+                                <a href="{{ route('staff-management.index') }}" class="btn btn-secondary">Back</a>
+                                <a href="{{ route('housekeeping-management.download-pdf', $record->id) }}"
+                                    class="btn btn-primary">Download PDF</a>
                             </div>
                         </div>
 
@@ -58,7 +59,9 @@
                                     <li>Phone : <span>{{ $record->full_phone ?: '-' }}</span></li>
                                     <li>Alternate Phone : <span>{{ $alternatePhone ?: '-' }}</span></li>
                                     <li>Aadhaar Number : <span>{{ $profile?->aadhaar_number ?: '-' }}</span></li>
-                                    <li>Role : <span>{{ $record->roles->pluck('name')->implode(', ') ?: 'Housekeeping' }}</span></li>
+                                    <li>Role :
+                                        <span>{{ $record->roles->pluck('name')->implode(', ') ?: 'Housekeeping' }}</span>
+                                    </li>
                                     <li>Status :
                                         @if ($record->is_active)
                                             <span class="status-green">Active</span>
@@ -77,7 +80,8 @@
                                     <li><label>Address :</label> <span>{{ $profile?->address ?: '-' }}</span></li>
                                     <li><label>Country :</label> <span>{{ $profile?->country ?: '-' }}</span></li>
                                     <li><label>State :</label> <span>{{ $profile?->state?->name ?: '-' }}</span></li>
-                                    <li><label>District :</label> <span>{{ $profile?->district?->name ?: '-' }}</span></li>
+                                    <li><label>District :</label> <span>{{ $profile?->district?->name ?: '-' }}</span>
+                                    </li>
                                     <li><label>City :</label> <span>{{ $profile?->location?->name ?: '-' }}</span></li>
                                     <li><label>Pincode :</label> <span>{{ $profile?->pincode ?: '-' }}</span></li>
                                 </ul>
@@ -88,11 +92,14 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Employment Details</h6>
                                 <ul>
-                                    <li><label>Employment Type :</label> <span>{{ $profile?->employment_type_label ?: '-' }}</span></li>
-                                    <li><label>Joining Date :</label> <span>{{ $date($profile?->joining_date) }}</span></li>
+                                    <li><label>Employment Type :</label>
+                                        <span>{{ $profile?->employment_type_label ?: '-' }}</span></li>
+                                    <li><label>Joining Date :</label> <span>{{ $date($profile?->joining_date) }}</span>
+                                    </li>
                                     <li><label>Salary :</label> <span>{{ $money($profile?->salary) }}</span></li>
                                     <li><label>Depot :</label> <span>{{ $profile?->depot?->name ?: '-' }}</span></li>
-                                    <li><label>Branch :</label> <span>{{ $profile?->branchLocation?->name ?: '-' }}</span></li>
+                                    <li><label>Branch :</label>
+                                        <span>{{ $profile?->branchLocation?->name ?: '-' }}</span></li>
                                 </ul>
                             </div>
                         </div>
@@ -101,15 +108,18 @@
                             <div class="v-preview-widget s-preview-address mb-3" style="height: unset;">
                                 <h6>Emergency & Medical</h6>
                                 <ul>
-                                    <li><label>Emergency Contact :</label> <span>{{ $profile?->emergency_contact_name ?: '-' }}</span></li>
+                                    <li><label>Emergency Contact :</label>
+                                        <span>{{ $profile?->emergency_contact_name ?: '-' }}</span></li>
                                     <li><label>Emergency Phone :</label> <span>{{ $emergencyPhone ?: '-' }}</span></li>
-                                    <li><label>Medical Fitness Expiry :</label> <span>{{ $date($profile?->medical_fitness_expiry) }}</span></li>
+                                    <li><label>Medical Fitness Expiry :</label>
+                                        <span>{{ $date($profile?->medical_fitness_expiry) }}</span></li>
                                 </ul>
                             </div>
                             <div class="v-preview-widget s-preview-address" style="height: unset;">
                                 <h6>Bank Details</h6>
                                 <ul>
-                                    <li><label>Account Number :</label> <span>{{ $profile?->account_number ?: '-' }}</span></li>
+                                    <li><label>Account Number :</label>
+                                        <span>{{ $profile?->account_number ?: '-' }}</span></li>
                                     <li><label>IFSC Code :</label> <span>{{ $profile?->ifsc_code ?: '-' }}</span></li>
                                 </ul>
                             </div>
@@ -119,8 +129,10 @@
                             <div class="v-preview-widget s-preview-address">
                                 <h6>Status & Verification</h6>
                                 <ul>
-                                    <li><label>Police Verification :</label> <span>{{ $verification($profile?->police_verification_status) }}</span></li>
-                                    <li><label>Verification Status :</label> <span>{{ $verification($profile?->verification_status) }}</span></li>
+                                    <li><label>Police Verification :</label>
+                                        <span>{{ $verification($profile?->police_verification_status) }}</span></li>
+                                    <li><label>Verification Status :</label>
+                                        <span>{{ $verification($profile?->verification_status) }}</span></li>
                                 </ul>
                             </div>
                         </div>
@@ -134,8 +146,8 @@
                                             <div class="v-doc-preview s-doc-preview">
                                                 <p>{{ $document->documentType?->name ?: 'Document' }}</p>
                                                 <img src="{{ asset('assets/img/file.avif') }}" alt="Document">
-                                                <a href="#!" class="mb-3 view-document"
-                                                    data-bs-toggle="modal" data-bs-target="#viewDoc"
+                                                <a href="#!" class="mb-3 view-document" data-bs-toggle="modal"
+                                                    data-bs-target="#viewDoc"
                                                     data-preview="{{ route('housekeeping-documents.preview', $document->id) }}"
                                                     data-download="{{ route('housekeeping-documents.download', $document->id) }}">
                                                     View
