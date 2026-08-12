@@ -24,6 +24,7 @@ class StoreDriverManagementRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'ref_code' => ['nullable', 'string', 'max:100'],
             'country_code' => ['required', 'string', 'max:10'],
             'phone' => ['required', 'string', 'max:30'],
             'alternate_country_code' => ['nullable', 'string', 'max:10'],

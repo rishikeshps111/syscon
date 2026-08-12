@@ -72,6 +72,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         $data = $request->validated();
         $user = User::create([
             'code' => null,
+            'ref_code' => $data['ref_code'] ?? null,
             'name' => $data['name'],
             'email' => $data['email'],
             'country_code' => $data['country_code'],
@@ -147,6 +148,7 @@ class DriverManagementController extends Controller implements HasMiddleware
 
         $data = $request->validated();
         $driver_management->update([
+            'ref_code' => $data['ref_code'] ?? null,
             'name' => $data['name'],
             'email' => $data['email'],
             'country_code' => $data['country_code'],
@@ -268,6 +270,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             $search = request('search_text');
             $query->where(function ($subQuery) use ($search) {
                 $subQuery->where('users.code', 'like', '%' . $search . '%')
+                    ->orWhere('users.ref_code', 'like', '%' . $search . '%')
                     ->orWhere('users.name', 'like', '%' . $search . '%')
                     ->orWhere('users.phone', 'like', '%' . $search . '%');
             });

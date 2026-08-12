@@ -116,7 +116,7 @@
                             <div class="row justify-content-end">
                                 <div class="col-lg-8">
                                     <div class="table-search">
-                                        <label for="searchFilter" class="nowrap">Search (Code / Name / Phone)</label>
+                                        <label for="searchFilter" class="nowrap">Search (Code / Ref Code / Name / Phone)</label>
                                         <input type="text" id="searchFilter" class="form-control shadow-none">
                                         @can('driver-management.view')
                                             <button id="exportSelected" class="exp-btn">Export Data</button>
@@ -131,6 +131,7 @@
                                             <th class="text-center nowrap"><input type="checkbox" id="checkAll"></th>
                                             <th class="text-center nowrap">SL NO</th>
                                             <th class="text-center nowrap">Driver Code</th>
+                                            <th class="text-center nowrap">Ref Code</th>
                                             <th class="text-center nowrap">Name</th>
                                             <th class="text-center nowrap">Phone</th>
                                             <th class="text-center nowrap">License Type</th>

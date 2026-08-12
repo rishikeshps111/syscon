@@ -285,7 +285,7 @@ class BulkImportController extends Controller
             'staff' => ['role' => 'Staff', 'relation' => 'staffProfile'],
         ][$module];
         $passwordField = $module === 'staff' ? 'password' : 'passcode';
-        $userData = collect($data)->only(['name', 'email', 'country_code', 'phone', 'is_active'])->all();
+        $userData = collect($data)->only(['ref_code', 'name', 'email', 'country_code', 'phone', 'is_active'])->all();
         $userData['email'] = filled($userData['email'] ?? null) ? $userData['email'] : null;
         $user = User::create($userData + [
             'code' => null, 'password' => $module === 'housekeeping' ? Str::random(40) : $data[$passwordField],
@@ -397,6 +397,7 @@ class BulkImportController extends Controller
         }
         $rules = [
             'name' => ['required', 'max:255'],
+            'ref_code' => ['nullable', 'string', 'max:100'],
             'email' => in_array($module, ['staff', 'housekeeping'], true)
                 ? ['nullable', 'email', 'max:255', 'unique:users,email']
                 : ['required', 'email', 'max:255', 'unique:users,email'],
@@ -568,8 +569,8 @@ class BulkImportController extends Controller
             ],
             'drivers' => [
                 'label'=>'Drivers','permission'=>'driver-management.create','index_route'=>'driver-management.index',
-                'headers'=>['name','country_code','phone','alternate_country_code','alternate_phone','email','passcode','is_active','aadhaar_number','country','state','district','location','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot','branch','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
-                'sample'=>['Sample Driver','+91','9876543210','','','driver@example.com','123456','yes','123456789012','India','Maharashtra','Pune','Pune','411001','Sample address','DL001','hmv','2024-01-01','2029-01-01','','','permanent','2026-01-01','Central Depot','Main Branch','1234567890','ABCD0001234','Contact Person','+91','9876543211','2027-01-01','verified','verified'],
+                'headers'=>['ref_code','name','country_code','phone','alternate_country_code','alternate_phone','email','passcode','is_active','aadhaar_number','country','state','district','location','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot','branch','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
+                'sample'=>['DRV-REF-001','Sample Driver','+91','9876543210','','','driver@example.com','123456','yes','123456789012','India','Maharashtra','Pune','Pune','411001','Sample address','DL001','hmv','2024-01-01','2029-01-01','','','permanent','2026-01-01','Central Depot','Main Branch','1234567890','ABCD0001234','Contact Person','+91','9876543211','2027-01-01','verified','verified'],
                 'unique_csv'=>['email','aadhaar_number','license_number'],
                 'profile_fields'=>['alternate_country_code','alternate_phone','aadhaar_number','country','state_id','district_id','location_id','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot_id','branch_location_id','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
             ],
@@ -622,7 +623,7 @@ class BulkImportController extends Controller
         abort_unless(isset($configs[$module]), 404);
         $optional = match ($module) {
             'vehicles' => ['variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_imei', 'remarks'],
-            'drivers' => ['alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date'],
+            'drivers' => ['ref_code', 'alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date'],
             'housekeeping' => ['alternate_country_code', 'alternate_phone'],
             'staff' => ['email', 'ref_code'],
             'designations' => ['reporting_to', 'description'],

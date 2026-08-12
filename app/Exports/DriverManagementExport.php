@@ -22,6 +22,7 @@ class DriverManagementExport implements FromCollection, WithHeadings
 
             return [
                 'Driver Code' => $user->code,
+                'Ref Code' => $user->ref_code,
                 'Name' => $user->name,
                 'Email' => $user->email,
                 'Phone' => $user->full_phone,
@@ -50,6 +51,7 @@ class DriverManagementExport implements FromCollection, WithHeadings
     {
         return [
             'Driver Code',
+            'Ref Code',
             'Name',
             'Email',
             'Phone',

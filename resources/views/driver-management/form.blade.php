@@ -79,6 +79,15 @@
                                         @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="ref_code">Ref Code</label>
+                                        <input type="text" id="ref_code" name="ref_code"
+                                            class="form-control shadow-none @error('ref_code') is-invalid @enderror"
+                                            value="{{ old('ref_code', $record->ref_code ?? '') }}" maxlength="100">
+                                        @error('ref_code')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                    <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="phone">Phone <span class="text-danger">*</span></label>
                                         <div class="input-group">
                                             <select name="country_code" id="country_code"

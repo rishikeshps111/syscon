@@ -31,6 +31,7 @@
                 },
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
+                { data: 'ref_code', name: 'ref_code', className: 'text-center', defaultContent: '-' },
                 { data: 'name', name: 'name', className: 'text-center' },
                 { data: 'phone_number', name: 'phone', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'license_type', name: 'driverProfile.license_type', orderable: false, searchable: false, className: 'text-center' },
@@ -39,7 +40,7 @@
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
-            order: [[3, 'asc']]
+            order: [[4, 'asc']]
         });
 
         let searchTimer;
