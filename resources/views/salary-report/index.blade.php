@@ -79,13 +79,13 @@
                                 data-loading-text="Downloading...">
                                 Download Excel
                             </a>
-                            <a href="#" id="downloadReportPdf" class="btn btn-danger disabled" aria-disabled="true"
+                            {{-- <a href="#" id="downloadReportPdf" class="btn btn-danger disabled" aria-disabled="true"
                                 data-loading-text="Downloading...">
                                 Download PDF
                             </a>
                             <button type="button" id="sendReportMail" class="btn btn-primary" disabled>
                                 Send PDF Mail
-                            </button>
+                            </button> --}}
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>

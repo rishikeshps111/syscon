@@ -181,6 +181,11 @@ class SalaryReportController extends Controller implements HasMiddleware
             'items.salaryProcessing.approver',
             'items.user.roles',
             'items.user.staffProfile.designation',
+            'items.user.staffProfile.location',
+            'items.user.driverProfile.location',
+            'items.user.housekeepingProfile.location',
+            'items.user.controllerProfile.location',
+            'items.user.supervisorProfile.location',
         ])
             ->where('year', $filters['year'])
             ->where('month', $filters['month'])
