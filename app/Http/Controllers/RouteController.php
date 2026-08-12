@@ -146,8 +146,10 @@ class RouteController extends Controller implements HasMiddleware
     public function create()
     {
         $generatedCode = generate_code('Route Module', ((int) RouteModel::max('id')) + 1, 3, 'RT');
+        $defaultState = State::where('is_active', true)->where('is_default', true)->first();
+        $defaultDistrict = $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->where('is_default', true)->first() : null;
 
-        return view('route.form', $this->formData() + compact('generatedCode'));
+        return view('route.form', $this->formData() + ['generatedCode' => $generatedCode, 'defaultStateId' => $defaultState?->id, 'defaultDistrictId' => $defaultDistrict?->id]);
     }
 
     public function store(StoreRouteRequest $request)
@@ -277,8 +279,8 @@ class RouteController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
-            'states' => State::orderBy('name')->get(['id', 'name']),
-            'districts' => District::orderBy('name')->get(['id', 'name', 'state_id']),
+            'states' => State::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'districts' => District::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_id']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_id', 'district_id']),
             'routeTypes' => RouteModel::ROUTE_TYPES,
             'routeCategories' => RouteModel::ROUTE_CATEGORIES,

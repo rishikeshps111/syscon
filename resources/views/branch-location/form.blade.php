@@ -21,7 +21,7 @@
         <select class="form-select shadow-none select2" id="state_id" name="state_id" style="height: 45px;">
             <option value="">Select State</option>
             @foreach ($states as $state)
-                <option value="{{ $state->id }}" {{ old('state_id', $record->state_id ?? '') == $state->id ? 'selected' : '' }}>
+                <option value="{{ $state->id }}" {{ old('state_id', $record->state_id ?? $defaultStateId ?? '') == $state->id ? 'selected' : '' }}>
                     {{ $state->name }}
                 </option>
             @endforeach
@@ -34,10 +34,10 @@
             District <span class="text-danger">*</span>
         </label>
         <select class="form-select shadow-none select2" id="district_id" name="district_id" style="height: 45px;"
-            {{ isset($record) ? '' : 'disabled' }}>
+            {{ $districts->isEmpty() ? 'disabled' : '' }}>
             <option value="">{{ isset($record) ? 'Select District' : 'Select State First' }}</option>
             @foreach ($districts as $district)
-                <option value="{{ $district->id }}" {{ old('district_id', $record->district_id ?? '') == $district->id ? 'selected' : '' }}>
+                <option value="{{ $district->id }}" {{ old('district_id', $record->district_id ?? $defaultDistrictId ?? '') == $district->id ? 'selected' : '' }}>
                     {{ $district->name }}
                 </option>
             @endforeach
@@ -50,10 +50,10 @@
             Location <span class="text-danger">*</span>
         </label>
         <select class="form-select shadow-none select2" id="location_id" name="location_id" style="height: 45px;"
-            {{ isset($record) ? '' : 'disabled' }}>
+            {{ $locations->isEmpty() ? 'disabled' : '' }}>
             <option value="">{{ isset($record) ? 'Select Location' : 'Select District First' }}</option>
             @foreach ($locations as $location)
-                <option value="{{ $location->id }}" {{ old('location_id', $record->location_id ?? '') == $location->id ? 'selected' : '' }}>
+                <option value="{{ $location->id }}" {{ old('location_id', $record->location_id ?? $defaultLocationId ?? '') == $location->id ? 'selected' : '' }}>
                     {{ $location->name }}
                 </option>
             @endforeach

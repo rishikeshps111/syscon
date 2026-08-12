@@ -118,7 +118,7 @@ class BulkImportController extends Controller
         $seen = [];
 
         foreach ($rows as $row) {
-            $data = array_map(fn ($value) => is_string($value) ? trim($value) : $value, $row['data']);
+            $data = array_map(fn($value) => is_string($value) ? trim($value) : $value, $row['data']);
             $data = $this->resolveRelations($data, $module, $row['line'], $errors);
             $data = $this->normalize($data, $module);
             $validator = Validator::make($data, $this->rules($module));
@@ -180,8 +180,8 @@ class BulkImportController extends Controller
                 $query->where('state_id', $data['state_id']);
             }
             if ($csvField === 'location') {
-                $query->when(! empty($data['state_id']), fn ($q) => $q->where('state_id', $data['state_id']))
-                    ->when(! empty($data['district_id']), fn ($q) => $q->where('district_id', $data['district_id']));
+                $query->when(! empty($data['state_id']), fn($q) => $q->where('state_id', $data['state_id']))
+                    ->when(! empty($data['district_id']), fn($q) => $q->where('district_id', $data['district_id']));
             }
             if ($csvField === 'reporting_to' && $module === 'designations') {
                 $query->where('guard_name', 'web')
@@ -288,7 +288,8 @@ class BulkImportController extends Controller
         $userData = collect($data)->only(['ref_code', 'name', 'email', 'country_code', 'phone', 'is_active'])->all();
         $userData['email'] = filled($userData['email'] ?? null) ? $userData['email'] : null;
         $user = User::create($userData + [
-            'code' => null, 'password' => $module === 'housekeeping' ? Str::random(40) : $data[$passwordField],
+            'code' => null,
+            'password' => $module === 'housekeeping' ? Str::random(40) : $data[$passwordField],
         ]);
         $user->update([
             'code' => UserCodeGenerator::generate($meta['role'], (int) $data['depot_id'], $user->id),
@@ -320,17 +321,35 @@ class BulkImportController extends Controller
             default => Str::random(40),
         };
         $user = User::create([
-            'code' => null, 'ref_code' => $data['ref_code'] ?? null, 'name' => $data['name'],
-            'email' => $data['email'] ?? null, 'country_code' => $data['country_code'], 'phone' => $data['phone'],
-            'is_active' => $data['is_active'], 'password' => $credential,
+            'code' => null,
+            'ref_code' => $data['ref_code'] ?? null,
+            'name' => $data['name'],
+            'email' => $data['email'] ?? null,
+            'country_code' => $data['country_code'],
+            'phone' => $data['phone'],
+            // 'is_active' => $data['is_active'],
+            'is_active' => 0,
+            'password' => $credential,
         ]);
         $user->update(['code' => UserCodeGenerator::generate($role, (int) $data['depot_id'], $user->id)]);
         $salary = SalaryComponents::legacyProfileSalaryData([]);
         $common = collect($data)->only([
-            'depot_id', 'employment_type', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number',
-            'date_of_joining', 'uan', 'esic_wc', 'country', 'state_id', 'district_id', 'location_id',
-            'bank_account_number', 'ifsc_code',
-        ])->merge(collect($salary)->only(['basic','vda','basic_vda','hra','special_allowance','conveyance_allowance','bonus','gross_salary']))->all();
+            'depot_id',
+            'employment_type',
+            'father_name',
+            'date_of_birth',
+            'aadhaar_number',
+            'pan_number',
+            'date_of_joining',
+            'uan',
+            'esic_wc',
+            'country',
+            'state_id',
+            'district_id',
+            'location_id',
+            'bank_account_number',
+            'ifsc_code',
+        ])->merge(collect($salary)->only(['basic', 'vda', 'basic_vda', 'hra', 'special_allowance', 'conveyance_allowance', 'bonus', 'gross_salary']))->all();
 
         if ($role === 'Staff') {
             $user->staffProfile()->create($common + ['designation_id' => $data['designation_id'], 'category' => null]);
@@ -341,8 +360,15 @@ class BulkImportController extends Controller
         } elseif ($role === 'Housekeeping') {
             unset($common['date_of_joining'], $common['bank_account_number']);
             $user->housekeepingProfile()->create($common + collect($data)->only([
-                'branch_location_id','pincode','address','emergency_contact_name','emergency_country_code',
-                'emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status',
+                'branch_location_id',
+                'pincode',
+                'address',
+                'emergency_contact_name',
+                'emergency_country_code',
+                'emergency_contact_no',
+                'medical_fitness_expiry',
+                'police_verification_status',
+                'verification_status',
             ])->all() + ['joining_date' => $data['date_of_joining'], 'account_number' => $data['bank_account_number'], 'salary' => $salary['salary']]);
             $user->assignRole($role);
         } else {
@@ -362,7 +388,7 @@ class BulkImportController extends Controller
                     'nullable',
                     'integer',
                     Rule::exists('roles', 'id')->where(
-                        fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+                        fn($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
                     ),
                 ],
                 'name' => [
@@ -370,7 +396,7 @@ class BulkImportController extends Controller
                     'string',
                     'max:255',
                     'unique:designations,name',
-                    Rule::unique('roles', 'name')->where(fn ($query) => $query->where('guard_name', 'web')),
+                    Rule::unique('roles', 'name')->where(fn($query) => $query->where('guard_name', 'web')),
                 ],
                 'description' => ['nullable', 'string'],
                 'is_active' => ['required', 'boolean'],
@@ -379,20 +405,33 @@ class BulkImportController extends Controller
 
         if ($module === 'vehicles') {
             return [
-                'state_id' => ['required'], 'oem_id' => ['required'], 'depot_id' => ['required'], 'branch_id' => ['required'],
+                'state_id' => ['required'],
+                'oem_id' => ['required'],
+                'depot_id' => ['required'],
+                'branch_id' => ['required'],
                 'vehicle_no' => ['required', 'max:20', 'unique:vehicles,vehicle_no'],
                 'vehicle_type' => ['required', Rule::in(array_keys(Vehicle::TYPES))],
                 'fuel_type' => ['required', Rule::in(array_keys(Vehicle::FUEL_TYPES))],
                 'vehicle_category' => ['required', Rule::in(array_keys(Vehicle::CATEGORIES))],
-                'make' => ['required', 'max:255'], 'model' => ['required', 'max:255'], 'variant' => ['nullable', 'max:255'],
-                'capacity_seating' => ['nullable', 'integer', 'min:0'], 'capacity_load' => ['nullable', 'numeric', 'min:0'],
+                'make' => ['required', 'max:255'],
+                'model' => ['required', 'max:255'],
+                'variant' => ['nullable', 'max:255'],
+                'capacity_seating' => ['nullable', 'integer', 'min:0'],
+                'capacity_load' => ['nullable', 'numeric', 'min:0'],
                 'battery_capacity' => ['nullable', 'numeric', 'min:0', 'required_if:fuel_type,ELECTRIC'],
                 'range_km' => ['nullable', 'integer', 'min:0', 'required_if:fuel_type,ELECTRIC'],
-                'engine_no' => ['nullable', 'max:255'], 'chassis_no' => ['required', 'max:255', 'unique:vehicles,chassis_no'],
-                'registration_date' => ['nullable', 'date'], 'registration_valid_upto' => ['nullable', 'date', 'after_or_equal:registration_date'],
-                'fitness_expiry' => ['nullable', 'date'], 'permit_expiry' => ['nullable', 'date'], 'insurance_expiry' => ['nullable', 'date'], 'pollution_expiry' => ['nullable', 'date'],
-                'gps_enabled' => ['required', 'boolean'], 'gps_imei' => ['nullable', 'max:255', 'required_if:gps_enabled,1'],
-                'status' => ['required', Rule::in(array_keys(Vehicle::STATUSES))], 'remarks' => ['nullable'],
+                'engine_no' => ['nullable', 'max:255'],
+                'chassis_no' => ['required', 'max:255', 'unique:vehicles,chassis_no'],
+                'registration_date' => ['nullable', 'date'],
+                'registration_valid_upto' => ['nullable', 'date', 'after_or_equal:registration_date'],
+                'fitness_expiry' => ['nullable', 'date'],
+                'permit_expiry' => ['nullable', 'date'],
+                'insurance_expiry' => ['nullable', 'date'],
+                'pollution_expiry' => ['nullable', 'date'],
+                'gps_enabled' => ['required', 'boolean'],
+                'gps_imei' => ['nullable', 'max:255', 'required_if:gps_enabled,1'],
+                'status' => ['required', Rule::in(array_keys(Vehicle::STATUSES))],
+                'remarks' => ['nullable'],
             ];
         }
         $rules = [
@@ -401,32 +440,59 @@ class BulkImportController extends Controller
             'email' => in_array($module, ['staff', 'housekeeping'], true)
                 ? ['nullable', 'email', 'max:255', 'unique:users,email']
                 : ['required', 'email', 'max:255', 'unique:users,email'],
-            'country_code' => ['required', 'max:10'], 'phone' => ['required', 'max:30'], 'is_active' => ['required', 'boolean'],
-            'depot_id' => ['required'], 'employment_type' => ['required'], 'country' => ['required', 'max:100'],
-            'state_id' => ['required'], 'district_id' => ['required'], 'location_id' => ['required'],
+            'country_code' => ['required', 'max:10'],
+            'phone' => ['required', 'max:30'],
+            'is_active' => ['required', 'boolean'],
+            'depot_id' => ['required'],
+            'employment_type' => ['required'],
+            'country' => ['required', 'max:100'],
+            'state_id' => ['required'],
+            'district_id' => ['required'],
+            'location_id' => ['required'],
         ];
         if ($module === 'drivers') {
             return $rules + [
-                'passcode' => ['required', 'digits:6'], 'alternate_country_code' => ['nullable', 'max:10'], 'alternate_phone' => ['nullable', 'max:30'],
-                'aadhaar_number' => ['required', 'max:20', 'unique:driver_profiles,aadhaar_number'], 'pincode' => ['required', 'max:10'], 'address' => ['required', 'max:1000'],
-                'license_number' => ['required', 'max:50', 'unique:driver_profiles,license_number'], 'license_type' => ['required', Rule::in(array_keys(DriverProfile::LICENSE_TYPES))],
-                'issue_date' => ['required', 'date'], 'expiry_date' => ['required', 'date', 'after_or_equal:issue_date'], 'badge_number' => ['nullable', 'max:50'], 'badge_expiry_date' => ['nullable', 'date', 'after_or_equal:issue_date'],
-                'employment_type' => ['required', Rule::in(array_keys(DriverProfile::EMPLOYMENT_TYPES))], 'joining_date' => ['required', 'date'], 'branch_location_id' => ['required'],
-                'account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'], 'emergency_contact_name' => ['required', 'max:255'],
-                'emergency_country_code' => ['required', 'max:10'], 'emergency_contact_no' => ['required', 'max:30'], 'medical_fitness_expiry' => ['required', 'date'],
-                'police_verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))], 'verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],
+                'passcode' => ['required', 'digits:6'],
+                'alternate_country_code' => ['nullable', 'max:10'],
+                'alternate_phone' => ['nullable', 'max:30'],
+                'aadhaar_number' => ['required', 'max:20', 'unique:driver_profiles,aadhaar_number'],
+                'pincode' => ['required', 'max:10'],
+                'address' => ['required', 'max:1000'],
+                'license_number' => ['required', 'max:50', 'unique:driver_profiles,license_number'],
+                'license_type' => ['required', Rule::in(array_keys(DriverProfile::LICENSE_TYPES))],
+                'issue_date' => ['required', 'date'],
+                'expiry_date' => ['required', 'date', 'after_or_equal:issue_date'],
+                'badge_number' => ['nullable', 'max:50'],
+                'badge_expiry_date' => ['nullable', 'date', 'after_or_equal:issue_date'],
+                'employment_type' => ['required', Rule::in(array_keys(DriverProfile::EMPLOYMENT_TYPES))],
+                'joining_date' => ['required', 'date'],
+                'branch_location_id' => ['required'],
+                'account_number' => ['required', 'max:50'],
+                'ifsc_code' => ['required', 'max:20'],
+                'emergency_contact_name' => ['required', 'max:255'],
+                'emergency_country_code' => ['required', 'max:10'],
+                'emergency_contact_no' => ['required', 'max:30'],
+                'medical_fitness_expiry' => ['required', 'date'],
+                'police_verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],
+                'verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],
             ];
         }
         if ($module === 'housekeeping') {
             return $rules + [
-                'alternate_country_code' => ['nullable', 'max:10'], 'alternate_phone' => ['nullable', 'max:30'],
+                'alternate_country_code' => ['nullable', 'max:10'],
+                'alternate_phone' => ['nullable', 'max:30'],
                 'aadhaar_number' => ['required', 'max:20', 'unique:housekeeping_profiles,aadhaar_number'],
-                'pincode' => ['required', 'max:10'], 'address' => ['required', 'max:1000'],
+                'pincode' => ['required', 'max:10'],
+                'address' => ['required', 'max:1000'],
                 'employment_type' => ['required', Rule::in(array_keys(HousekeepingProfile::EMPLOYMENT_TYPES))],
-                'joining_date' => ['required', 'date'], 'branch_location_id' => ['required'],
-                'account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
-                'emergency_contact_name' => ['required', 'max:255'], 'emergency_country_code' => ['required', 'max:10'],
-                'emergency_contact_no' => ['required', 'max:30'], 'medical_fitness_expiry' => ['required', 'date'],
+                'joining_date' => ['required', 'date'],
+                'branch_location_id' => ['required'],
+                'account_number' => ['required', 'max:50'],
+                'ifsc_code' => ['required', 'max:20'],
+                'emergency_contact_name' => ['required', 'max:255'],
+                'emergency_country_code' => ['required', 'max:10'],
+                'emergency_contact_no' => ['required', 'max:30'],
+                'medical_fitness_expiry' => ['required', 'date'],
                 'police_verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
                 'verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
             ];
@@ -437,20 +503,31 @@ class BulkImportController extends Controller
                 'role' => ['required', Rule::in(['Staff', 'Housekeeping', 'Controller', 'Supervisor'])],
                 'phone' => ['required', 'max:30', 'unique:users,phone'],
                 'employment_type' => ['required', Rule::in(array_keys(StaffProfile::EMPLOYMENT_TYPES))],
-                'father_name' => ['required', 'max:255'], 'date_of_birth' => ['required', 'date'],
-                'aadhaar_number' => ['required', 'max:20'], 'pan_number' => ['required', 'max:20'],
-                'date_of_joining' => ['required', 'date'], 'uan' => ['required', 'max:50'], 'esic_wc' => ['required', 'max:50'],
-                'bank_account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
+                'father_name' => ['required', 'max:255'],
+                'date_of_birth' => ['required', 'date'],
+                'aadhaar_number' => ['required', 'max:20'],
+                'pan_number' => ['required', 'max:20'],
+                'date_of_joining' => ['required', 'date'],
+                'uan' => ['required', 'max:50'],
+                'esic_wc' => ['required', 'max:50'],
+                'bank_account_number' => ['required', 'max:50'],
+                'ifsc_code' => ['required', 'max:20'],
                 'designation_id' => ['nullable', 'required_if:role,Staff', 'exists:designations,id'],
             ];
         }
         $class = ['controllers' => ControllerProfile::class, 'supervisors' => SupervisorProfile::class][$module];
         $rules += [
             ($module === 'staff' ? 'password' : 'passcode') => $module === 'staff' ? ['required', 'min:8'] : ['required', 'digits:6'],
-            'employment_type' => ['required', Rule::in(array_keys($class::EMPLOYMENT_TYPES))], 'father_name' => ['required', 'max:255'],
-            'date_of_birth' => ['required', 'date'], 'aadhaar_number' => ['required', 'max:20'], 'pan_number' => ['required', 'max:20'],
-            'date_of_joining' => ['required', 'date'], 'uan' => ['required', 'max:50'], 'esic_wc' => ['required', 'max:50'],
-            'bank_account_number' => ['required', 'max:50'], 'ifsc_code' => ['required', 'max:20'],
+            'employment_type' => ['required', Rule::in(array_keys($class::EMPLOYMENT_TYPES))],
+            'father_name' => ['required', 'max:255'],
+            'date_of_birth' => ['required', 'date'],
+            'aadhaar_number' => ['required', 'max:20'],
+            'pan_number' => ['required', 'max:20'],
+            'date_of_joining' => ['required', 'date'],
+            'uan' => ['required', 'max:50'],
+            'esic_wc' => ['required', 'max:50'],
+            'bank_account_number' => ['required', 'max:50'],
+            'ifsc_code' => ['required', 'max:20'],
         ];
         if ($module === 'staff') {
             $rules['phone'][] = 'unique:users,phone';
@@ -469,14 +546,22 @@ class BulkImportController extends Controller
         if (! $handle) return [[], ['Unable to read the uploaded CSV file.']];
         $header = fgetcsv($handle);
         if (! $header) return [[], ['CSV file is empty.']];
-        $header = array_map(fn ($value) => $this->normalizeHeader($value), $header);
+        $header = array_map(fn($value) => $this->normalizeHeader($value), $header);
         $missing = array_diff($expected, $header);
-        if ($missing) { fclose($handle); return [[], ['Missing column(s): ' . implode(', ', $missing) . '.']]; }
-        $rows = []; $errors = []; $line = 1;
+        if ($missing) {
+            fclose($handle);
+            return [[], ['Missing column(s): ' . implode(', ', $missing) . '.']];
+        }
+        $rows = [];
+        $errors = [];
+        $line = 1;
         while (($values = fgetcsv($handle)) !== false) {
             $line++;
-            if (count(array_filter($values, fn ($v) => trim((string) $v) !== '')) === 0) continue;
-            if (count($values) > count($header)) { $errors[] = "Row {$line}: too many columns."; continue; }
+            if (count(array_filter($values, fn($v) => trim((string) $v) !== '')) === 0) continue;
+            if (count($values) > count($header)) {
+                $errors[] = "Row {$line}: too many columns.";
+                continue;
+            }
             $rows[] = ['line' => $line, 'data' => array_combine($header, array_pad($values, count($header), ''))];
         }
         fclose($handle);
@@ -511,7 +596,7 @@ class BulkImportController extends Controller
             for ($column = 1; $column <= $highestColumn; $column++) {
                 $values[] = $sheet->getCell([$column, $row])->getFormattedValue();
             }
-            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) {
+            if (count(array_filter($values, fn($value) => trim((string) $value) !== '')) === 0) {
                 continue;
             }
             $rows[] = ['line' => $row, 'data' => array_combine($header, $values)];
@@ -547,7 +632,11 @@ class BulkImportController extends Controller
     private function booleanValue(mixed $value): mixed
     {
         $value = Str::lower(trim((string) $value));
-        return match ($value) { '1', 'yes', 'true', 'active', 'enabled' => 1, '0', 'no', 'false', 'inactive', 'disabled' => 0, default => $value };
+        return match ($value) {
+            '1', 'yes', 'true', 'active', 'enabled' => 1,
+            '0', 'no', 'false', 'inactive', 'disabled' => 0,
+            default => $value
+        };
     }
 
     private function authorizeModule(array $config): void
@@ -557,29 +646,35 @@ class BulkImportController extends Controller
 
     private function config(string $module): array
     {
-        $commonPerson = ['name','email','country_code','phone','depot','employment_type','is_active','father_name','date_of_birth','aadhaar_number','pan_number','date_of_joining','uan','esic_wc','country','state','district','location','bank_account_number','ifsc_code'];
-        $personProfile = ['depot_id','employment_type','father_name','date_of_birth','aadhaar_number','pan_number','date_of_joining','uan','esic_wc','country','state_id','district_id','location_id','bank_account_number','ifsc_code'];
+        $commonPerson = ['name', 'email', 'country_code', 'phone', 'depot', 'employment_type', 'is_active', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number', 'date_of_joining', 'uan', 'esic_wc', 'country', 'state', 'district', 'location', 'bank_account_number', 'ifsc_code'];
+        $personProfile = ['depot_id', 'employment_type', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number', 'date_of_joining', 'uan', 'esic_wc', 'country', 'state_id', 'district_id', 'location_id', 'bank_account_number', 'ifsc_code'];
         $configs = [
             'vehicles' => [
-                'label'=>'Vehicles','permission'=>'vehicles.create','index_route'=>'vehicles.index',
-                'headers'=>['state','oem','depot','branch','vehicle_no','vehicle_type','fuel_type','vehicle_category','make','model','variant','capacity_seating','capacity_load','battery_capacity','range_km','engine_no','chassis_no','registration_date','registration_valid_upto','fitness_expiry','permit_expiry','insurance_expiry','pollution_expiry','gps_enabled','gps_imei','status','remarks'],
-                'sample'=>['Maharashtra','Sample OEM','Central Depot','Main Branch','MH12AB1234','BUS','DIESEL','Passenger','Tata','Starbus','','40','','','','ENG001','CHS001','2026-01-01','2031-01-01','2027-01-01','2027-01-01','2027-01-01','2027-01-01','no','','Active',''],
-                'unique_csv'=>['vehicle_no','chassis_no'],
-                'database_fields'=>['state_id','oem_id','depot_id','branch_id','vehicle_no','vehicle_type','fuel_type','vehicle_category','make','model','variant','capacity_seating','capacity_load','battery_capacity','range_km','engine_no','chassis_no','registration_date','registration_valid_upto','fitness_expiry','permit_expiry','insurance_expiry','pollution_expiry','gps_enabled','gps_imei','status','remarks'],
+                'label' => 'Vehicles',
+                'permission' => 'vehicles.create',
+                'index_route' => 'vehicles.index',
+                'headers' => ['state', 'oem', 'depot', 'branch', 'vehicle_no', 'vehicle_type', 'fuel_type', 'vehicle_category', 'make', 'model', 'variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'chassis_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_enabled', 'gps_imei', 'status', 'remarks'],
+                'sample' => ['Maharashtra', 'Sample OEM', 'Central Depot', 'Main Branch', 'MH12AB1234', 'BUS', 'DIESEL', 'Passenger', 'Tata', 'Starbus', '', '40', '', '', '', 'ENG001', 'CHS001', '2026-01-01', '2031-01-01', '2027-01-01', '2027-01-01', '2027-01-01', '2027-01-01', 'no', '', 'Active', ''],
+                'unique_csv' => ['vehicle_no', 'chassis_no'],
+                'database_fields' => ['state_id', 'oem_id', 'depot_id', 'branch_id', 'vehicle_no', 'vehicle_type', 'fuel_type', 'vehicle_category', 'make', 'model', 'variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'chassis_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_enabled', 'gps_imei', 'status', 'remarks'],
             ],
             'drivers' => [
-                'label'=>'Drivers','permission'=>'driver-management.create','index_route'=>'driver-management.index',
-                'headers'=>['ref_code','name','country_code','phone','alternate_country_code','alternate_phone','email','passcode','is_active','aadhaar_number','country','state','district','location','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot','branch','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
-                'sample'=>['DRV-REF-001','Sample Driver','+91','9876543210','','','driver@example.com','123456','yes','123456789012','India','Maharashtra','Pune','Pune','411001','Sample address','DL001','hmv','2024-01-01','2029-01-01','','','permanent','2026-01-01','Central Depot','Main Branch','1234567890','ABCD0001234','Contact Person','+91','9876543211','2027-01-01','verified','verified'],
-                'unique_csv'=>['email','aadhaar_number','license_number'],
-                'profile_fields'=>['alternate_country_code','alternate_phone','aadhaar_number','country','state_id','district_id','location_id','pincode','address','license_number','license_type','issue_date','expiry_date','badge_number','badge_expiry_date','employment_type','joining_date','depot_id','branch_location_id','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
+                'label' => 'Drivers',
+                'permission' => 'driver-management.create',
+                'index_route' => 'driver-management.index',
+                'headers' => ['ref_code', 'name', 'country_code', 'phone', 'alternate_country_code', 'alternate_phone', 'email', 'passcode', 'is_active', 'aadhaar_number', 'country', 'state', 'district', 'location', 'pincode', 'address', 'license_number', 'license_type', 'issue_date', 'expiry_date', 'badge_number', 'badge_expiry_date', 'employment_type', 'joining_date', 'depot', 'branch', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status'],
+                'sample' => ['DRV-REF-001', 'Sample Driver', '+91', '9876543210', '', '', 'driver@example.com', '123456', 'yes', '123456789012', 'India', 'Maharashtra', 'Pune', 'Pune', '411001', 'Sample address', 'DL001', 'hmv', '2024-01-01', '2029-01-01', '', '', 'permanent', '2026-01-01', 'Central Depot', 'Main Branch', '1234567890', 'ABCD0001234', 'Contact Person', '+91', '9876543211', '2027-01-01', 'verified', 'verified'],
+                'unique_csv' => ['email', 'aadhaar_number', 'license_number'],
+                'profile_fields' => ['alternate_country_code', 'alternate_phone', 'aadhaar_number', 'country', 'state_id', 'district_id', 'location_id', 'pincode', 'address', 'license_number', 'license_type', 'issue_date', 'expiry_date', 'badge_number', 'badge_expiry_date', 'employment_type', 'joining_date', 'depot_id', 'branch_location_id', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status'],
             ],
             'housekeeping' => [
-                'label'=>'Housekeeping','permission'=>'housekeeping-management.create','index_route'=>'housekeeping-management.index',
-                'headers'=>['name','country_code','phone','alternate_country_code','alternate_phone','email','is_active','aadhaar_number','country','state','district','location','pincode','address','employment_type','joining_date','depot','branch','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
-                'sample'=>['Sample Housekeeper','+91','9876543210','','','housekeeper@example.com','yes','123456789012','India','Maharashtra','Pune','Pune','411001','Sample address','permanent','2026-01-01','Central Depot','Main Branch','1234567890','ABCD0001234','Contact Person','+91','9876543211','2027-01-01','verified','verified'],
-                'unique_csv'=>['email','aadhaar_number'],
-                'profile_fields'=>['alternate_country_code','alternate_phone','aadhaar_number','country','state_id','district_id','location_id','pincode','address','employment_type','joining_date','depot_id','branch_location_id','account_number','ifsc_code','emergency_contact_name','emergency_country_code','emergency_contact_no','medical_fitness_expiry','police_verification_status','verification_status'],
+                'label' => 'Housekeeping',
+                'permission' => 'housekeeping-management.create',
+                'index_route' => 'housekeeping-management.index',
+                'headers' => ['name', 'country_code', 'phone', 'alternate_country_code', 'alternate_phone', 'email', 'is_active', 'aadhaar_number', 'country', 'state', 'district', 'location', 'pincode', 'address', 'employment_type', 'joining_date', 'depot', 'branch', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status'],
+                'sample' => ['Sample Housekeeper', '+91', '9876543210', '', '', 'housekeeper@example.com', 'yes', '123456789012', 'India', 'Maharashtra', 'Pune', 'Pune', '411001', 'Sample address', 'permanent', '2026-01-01', 'Central Depot', 'Main Branch', '1234567890', 'ABCD0001234', 'Contact Person', '+91', '9876543211', '2027-01-01', 'verified', 'verified'],
+                'unique_csv' => ['email', 'aadhaar_number'],
+                'profile_fields' => ['alternate_country_code', 'alternate_phone', 'aadhaar_number', 'country', 'state_id', 'district_id', 'location_id', 'pincode', 'address', 'employment_type', 'joining_date', 'depot_id', 'branch_location_id', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status'],
             ],
             'designations' => [
                 'label' => 'Designations',
@@ -590,33 +685,95 @@ class BulkImportController extends Controller
                 'unique_csv' => ['name'],
             ],
         ];
-        foreach (['controllers'=>['Controller','Controller Management Module','CTL'], 'supervisors'=>['Supervisor','Supervisor Management Module','SUP'], 'staff'=>['Staff','Staff Management Module','STF']] as $key => $meta) {
-            $extra = $key === 'staff' ? ['password','designation','reporting_to','category'] : ['passcode'];
+        foreach (['controllers' => ['Controller', 'Controller Management Module', 'CTL'], 'supervisors' => ['Supervisor', 'Supervisor Management Module', 'SUP'], 'staff' => ['Staff', 'Staff Management Module', 'STF']] as $key => $meta) {
+            $extra = $key === 'staff' ? ['password', 'designation', 'reporting_to', 'category'] : ['passcode'];
             $headers = array_merge(array_slice($commonPerson, 0, 4), $extra, array_slice($commonPerson, 4));
-            $sampleExtra = $key === 'staff' ? ['password123','Manager','','skilled'] : ['123456'];
+            $sampleExtra = $key === 'staff' ? ['password123', 'Manager', '', 'skilled'] : ['123456'];
             $configs[$key] = [
-                'label'=>$meta[0] . 's','permission'=>Str::singular($key) . '-management.create','index_route'=>Str::singular($key) . '-management.index',
-                'headers'=>$headers,
-                'sample'=>array_merge(['Sample ' . $meta[0], $key . '@example.com','+91','9876543210'], $sampleExtra, ['Central Depot','full_time','yes','Father Name','1990-01-01','123456789012','ABCDE1234F','2026-01-01','UAN001','ESIC001','India','Maharashtra','Pune','Pune','1234567890','ABCD0001234']),
-                'unique_csv'=>['email'], 'profile_fields'=>$key === 'staff' ? array_merge($personProfile, ['designation_id','reporting_to','category']) : $personProfile,
+                'label' => $meta[0] . 's',
+                'permission' => Str::singular($key) . '-management.create',
+                'index_route' => Str::singular($key) . '-management.index',
+                'headers' => $headers,
+                'sample' => array_merge(['Sample ' . $meta[0], $key . '@example.com', '+91', '9876543210'], $sampleExtra, ['Central Depot', 'full_time', 'yes', 'Father Name', '1990-01-01', '123456789012', 'ABCDE1234F', '2026-01-01', 'UAN001', 'ESIC001', 'India', 'Maharashtra', 'Pune', 'Pune', '1234567890', 'ABCD0001234']),
+                'unique_csv' => ['email'],
+                'profile_fields' => $key === 'staff' ? array_merge($personProfile, ['designation_id', 'reporting_to', 'category']) : $personProfile,
             ];
         }
         $configs['staff'] = [
-            'label' => 'Employees', 'permission' => 'staff-management.create', 'index_route' => 'staff-management.index',
+            'label' => 'Employees',
+            'permission' => 'staff-management.create',
+            'index_route' => 'staff-management.index',
             'headers' => [
-                'ref_code','name','email','phone','role','designation','depot','employment_type','status',
-                'father_name','date_of_birth','aadhaar_number','pan_number','date_of_joining','uan','esic_wc','country','state',
-                'district','location','account_number','ifsc_code',
+                'ref_code',
+                'name',
+                'email',
+                'phone',
+                'role',
+                'designation',
+                'depot',
+                'employment_type',
+                'status',
+                'father_name',
+                'date_of_birth',
+                'aadhaar_number',
+                'pan_number',
+                'date_of_joining',
+                'uan',
+                'esic_wc',
+                'country',
+                'state',
+                'district',
+                'location',
+                'account_number',
+                'ifsc_code',
             ],
             'sample_headers' => [
-                'Ref Code', 'Name', 'Email', 'Phone', 'Role', 'Designation', 'Depot', 'Employment Type', 'Status',
-                'Father Name', 'Date of Birth', 'Aadhaar Number', 'PAN Number', 'Date of Joining', 'UAN', 'ESIC / WC',
-                'Country', 'State', 'District', 'Location', 'Account Number', 'IFSC Code',
+                'Ref Code',
+                'Name',
+                'Email',
+                'Phone',
+                'Role',
+                'Designation',
+                'Depot',
+                'Employment Type',
+                'Status',
+                'Father Name',
+                'Date of Birth',
+                'Aadhaar Number',
+                'PAN Number',
+                'Date of Joining',
+                'UAN',
+                'ESIC / WC',
+                'Country',
+                'State',
+                'District',
+                'Location',
+                'Account Number',
+                'IFSC Code',
             ],
             'sample' => [
-                'REF-001','Sample Employee','employee@example.com','+91 9876543210','Staff','Manager','Central Depot',
-                'full_time','Active','Father Name','1990-01-01','123456789012','ABCDE1234F','2026-01-01','UAN001',
-                'ESIC001','India','Maharashtra','Pune','Pune','1234567890','ABCD0001234',
+                'REF-001',
+                'Sample Employee',
+                'employee@example.com',
+                '+91 9876543210',
+                'Staff',
+                'Manager',
+                'Central Depot',
+                'full_time',
+                'Active',
+                'Father Name',
+                '1990-01-01',
+                '123456789012',
+                'ABCDE1234F',
+                '2026-01-01',
+                'UAN001',
+                'ESIC001',
+                'India',
+                'Maharashtra',
+                'Pune',
+                'Pune',
+                '1234567890',
+                'ABCD0001234',
             ],
             'unique_csv' => ['email', 'phone'],
         ];
@@ -630,13 +787,13 @@ class BulkImportController extends Controller
             default => [],
         };
         $configs[$module]['instructions'] = collect($configs[$module]['headers'])
-            ->map(fn (string $column, int $index) => [
+            ->map(fn(string $column, int $index) => [
                 'column' => $configs[$module]['sample_headers'][$index] ?? $column,
                 'required' => in_array($column, ['battery_capacity', 'range_km', 'gps_imei'], true)
                     ? 'Conditional'
                     : ($module === 'staff' && $column === 'designation'
                         ? 'Staff only'
-                    : (in_array($column, $optional, true) ? 'No' : 'Yes')),
+                        : (in_array($column, $optional, true) ? 'No' : 'Yes')),
                 'instruction' => $this->columnInstruction($column, $module),
             ])->all();
 

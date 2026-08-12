@@ -18,7 +18,7 @@ class HousekeepingDocumentController extends Controller implements HasMiddleware
  public function preview(HousekeepingDocument $housekeepingDocument){$this->fileGuard($housekeepingDocument);return response()->file(Storage::disk('public')->path($housekeepingDocument->file_path));}
  public function download(HousekeepingDocument $housekeepingDocument){$this->fileGuard($housekeepingDocument);return Storage::disk('public')->download($housekeepingDocument->file_path,$housekeepingDocument->original_name?:basename($housekeepingDocument->file_path));}
  public function destroy(HousekeepingDocument $housekeepingDocument){abort_unless($housekeepingDocument->housekeeping?->hasRole('Housekeeping'),404);Storage::disk('public')->delete($housekeepingDocument->file_path);$housekeepingDocument->delete();return response()->json(['success'=>true,'message'=>'Document deleted successfully.']);}
- private function types(){return HrmsDocumentType::where('is_active',true)->where('applicable_for','all')->orderBy('name')->get();}
+ private function types(){return HrmsDocumentType::where('is_active',true)->whereIn('applicable_for',['all','housekeeping'])->orderBy('name')->get();}
  private function validateAllowedFileType(HrmsDocumentType $type,string $extension):void{$allowed=collect($type->allowed_file_types)->map(fn($value)=>strtolower(ltrim($value,'.')))->filter();if($allowed->isNotEmpty()&&!$allowed->contains(strtolower($extension)))throw ValidationException::withMessages(['document_file'=>'The selected file type is not allowed for this document.']);}
  private function fileGuard(HousekeepingDocument $doc):void{abort_unless($doc->housekeeping?->hasRole('Housekeeping')&&Storage::disk('public')->exists($doc->file_path),404);}
 }

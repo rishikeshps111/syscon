@@ -63,8 +63,15 @@ class OemController extends Controller implements HasMiddleware
 
     public function create()
     {
+        $defaultState = State::where('is_active', true)->where('is_default', true)->first();
+        $defaultDistrict = $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->where('is_default', true)->first() : null;
+        $defaultLocation = $defaultDistrict ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->where('is_default', true)->first() : null;
+
         return view('oem.form', array_merge($this->formData(), [
             'generatedCode' => $this->generateOemCode(((int) Oem::max('id')) + 1),
+            'defaultStateId' => $defaultState?->id,
+            'defaultDistrictId' => $defaultDistrict?->id,
+            'defaultLocationId' => $defaultLocation?->id,
         ]));
     }
 
@@ -210,9 +217,9 @@ class OemController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
-            'states' => State::orderBy('name')->get(['id', 'name']),
-            'districts' => District::orderBy('name')->get(['id', 'state_id', 'name']),
-            'locations' => Location::orderBy('name')->get(['id', 'state_id', 'district_id', 'name', 'pincode']),
+            'states' => State::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'districts' => District::where('is_active', true)->orderBy('name')->get(['id', 'state_id', 'name']),
+            'locations' => Location::where('is_active', true)->orderBy('name')->get(['id', 'state_id', 'district_id', 'name', 'pincode']),
             'oemTypes' => OemType::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'registrationTypes' => Oem::REGISTRATION_TYPES,
             'addressTypes' => \App\Models\OemAddress::ADDRESS_TYPES,

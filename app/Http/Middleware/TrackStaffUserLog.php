@@ -5,12 +5,31 @@ namespace App\Http\Middleware;
 use App\Models\UserLog;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class TrackStaffUserLog
 {
     public function handle(Request $request, Closure $next): Response
     {
+        $user = $request->user();
+
+        if ($user?->hasRole('Staff') && ! $user->is_active) {
+            $user->userLogs()->open()->update([
+                'last_activity_at' => now(),
+                'logout_at' => now(),
+                'logout_reason' => 'account_deactivated',
+            ]);
+
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login.staff')->withErrors([
+                'phone' => 'Your staff account is inactive. Please contact the administrator.',
+            ]);
+        }
+
         UserLog::expireStaleOpenLogs();
 
         if ($request->user()?->hasRole(['Staff', 'Super Admin'])) {

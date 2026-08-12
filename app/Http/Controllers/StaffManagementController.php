@@ -18,6 +18,7 @@ use App\Models\User;
 use App\Support\SalaryComponents;
 use App\Support\UserCodeGenerator;
 use App\Support\StaffReportingManagers;
+use App\Support\EmployeeActivationGuard;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -68,9 +69,20 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     public function create()
     {
+        $defaultState = State::where('is_active', true)->where('is_default', true)->first();
+        $defaultDistrict = $defaultState
+            ? District::where('state_id', $defaultState->id)->where('is_active', true)->where('is_default', true)->first()
+            : null;
+        $defaultLocation = $defaultDistrict
+            ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->where('is_default', true)->first()
+            : null;
+
         return view('staff-management.unified-form', array_merge($this->formData(), [
-            'districts' => collect(),
-            'locations' => collect(),
+            'districts' => $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect(),
+            'locations' => $defaultDistrict ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect(),
+            'defaultStateId' => $defaultState?->id,
+            'defaultDistrictId' => $defaultDistrict?->id,
+            'defaultLocationId' => $defaultLocation?->id,
         ]));
     }
 
@@ -194,7 +206,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         return Excel::download(new StaffManagementExport($query), 'staff-management.xlsx');
     }
 
-    public function status(Request $request)
+    public function status(Request $request, EmployeeActivationGuard $activationGuard)
     {
         $request->validate([
             'id' => ['required', 'integer', 'exists:users,id'],
@@ -202,6 +214,23 @@ class StaffManagementController extends Controller implements HasMiddleware
         ]);
 
         $staff = User::role(self::ROLES)->findOrFail($request->id);
+
+        if ($request->boolean('status')) {
+            $role = $this->employeeRole($staff);
+            $missingDocuments = $activationGuard->missingMandatoryDocuments($staff, $role);
+
+            if ($missingDocuments->isNotEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This employee cannot be activated until all mandatory documents are uploaded.',
+                    'errors' => [
+                        'documents' => ['Missing mandatory documents: ' . $missingDocuments->pluck('name')->implode(', ') . '.'],
+                    ],
+                    'missing_documents' => $missingDocuments->pluck('name')->values(),
+                ], 422);
+            }
+        }
+
         $staff->is_active = $request->status;
         $staff->save();
 
@@ -220,6 +249,7 @@ class StaffManagementController extends Controller implements HasMiddleware
 
         return response()->json(
             District::where('state_id', $request->state_id)
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name'])
         );
@@ -248,6 +278,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         return response()->json(
             Location::where('state_id', $request->state_id)
                 ->where('district_id', $request->district_id)
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name'])
         );

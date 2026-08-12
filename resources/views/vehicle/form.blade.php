@@ -197,7 +197,7 @@
                                 <select id="state_id" name="state_id" class="form-select shadow-none select2 @error('state_id') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach ($states as $state)
-                                        <option value="{{ $state->id }}" @selected((int) old('state_id', $record->state_id ?? 0) === $state->id)>{{ $state->name }}</option>
+                                        <option value="{{ $state->id }}" @selected((int) old('state_id', $record->state_id ?? $defaultStateId ?? 0) === $state->id)>{{ $state->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('state_id')<span class="text-danger">{{ $message }}</span>@enderror

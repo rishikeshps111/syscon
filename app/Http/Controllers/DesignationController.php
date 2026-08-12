@@ -84,8 +84,8 @@ class DesignationController extends Controller implements HasMiddleware
 
     public function create(Request $request)
     {
-        $departments = Department::orderBy('name')->get(['id', 'name']);
-        $levels = Level::orderBy('name')->get(['id', 'name']);
+        $departments = Department::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $levels = Level::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $roles = $this->reportingRoles();
 
         if ($request->id) {

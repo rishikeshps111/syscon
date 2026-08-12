@@ -38,18 +38,18 @@ class VehicleController extends Controller implements HasMiddleware
         if (request()->ajax()) {
             return DataTables::of($this->filteredQuery())
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn (Vehicle $row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
-                ->addColumn('type', fn (Vehicle $row) => Vehicle::TYPES[$row->vehicle_type] ?? $row->vehicle_type)
-                ->addColumn('fuel', fn (Vehicle $row) => Vehicle::FUEL_TYPES[$row->fuel_type] ?? $row->fuel_type)
-                ->addColumn('oem_name', fn (Vehicle $row) => $row->oem?->oem_name ?? '-')
-                ->addColumn('capacity', fn (Vehicle $row) => $this->capacityText($row))
-                ->addColumn('insurance_expiry_badge', fn (Vehicle $row) => $this->expiryBadge($row->insurance_expiry))
-                ->addColumn('fitness_expiry_badge', fn (Vehicle $row) => $this->expiryBadge($row->fitness_expiry))
-                ->addColumn('gps_status', fn (Vehicle $row) => $row->gps_enabled
+                ->addColumn('checkbox', fn(Vehicle $row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
+                ->addColumn('type', fn(Vehicle $row) => Vehicle::TYPES[$row->vehicle_type] ?? $row->vehicle_type)
+                ->addColumn('fuel', fn(Vehicle $row) => Vehicle::FUEL_TYPES[$row->fuel_type] ?? $row->fuel_type)
+                ->addColumn('oem_name', fn(Vehicle $row) => $row->oem?->oem_name ?? '-')
+                ->addColumn('capacity', fn(Vehicle $row) => $this->capacityText($row))
+                ->addColumn('insurance_expiry_badge', fn(Vehicle $row) => $this->expiryBadge($row->insurance_expiry))
+                ->addColumn('fitness_expiry_badge', fn(Vehicle $row) => $this->expiryBadge($row->fitness_expiry))
+                ->addColumn('gps_status', fn(Vehicle $row) => $row->gps_enabled
                     ? '<span class="status-green">Enabled</span>'
                     : '<span class="status-red">Disabled</span>')
-                ->addColumn('status_badge', fn (Vehicle $row) => $this->statusBadge($row->status))
-                ->addColumn('action', fn (Vehicle $row) => view('vehicle.partials.action', compact('row'))->render())
+                ->addColumn('status_badge', fn(Vehicle $row) => $this->statusBadge($row->status))
+                ->addColumn('action', fn(Vehicle $row) => view('vehicle.partials.action', compact('row'))->render())
                 ->rawColumns(['checkbox', 'insurance_expiry_badge', 'fitness_expiry_badge', 'gps_status', 'status_badge', 'action'])
                 ->make(true);
         }
@@ -61,6 +61,7 @@ class VehicleController extends Controller implements HasMiddleware
     {
         return view('vehicle.form', array_merge($this->formData(), [
             'generatedCode' => $this->generateVehicleCode(((int) Vehicle::max('id')) + 1),
+            'defaultStateId' => State::where('is_active', true)->where('is_default', true)->value('id'),
         ]));
     }
 
@@ -195,8 +196,8 @@ class VehicleController extends Controller implements HasMiddleware
     private function indexData(): array
     {
         return [
-            'states' => State::orderBy('name')->get(['id', 'name']),
-            'oems' => Oem::orderBy('oem_name')->get(['id', 'oem_name']),
+            'states' => State::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'oems' => Oem::orderBy('oem_name')->where('status', 'Active')->get(['id', 'oem_name']),
             'vehicleTypes' => Vehicle::TYPES,
             'fuelTypes' => Vehicle::FUEL_TYPES,
             'statuses' => Vehicle::STATUSES,
@@ -349,12 +350,14 @@ class VehicleController extends Controller implements HasMiddleware
         $this->pdfText($details, 'Vehicle Additional Details', 50, 790, 20, 'F2');
         $y = 735;
 
-        foreach ([
-            'Documents' => $record->documents->map(fn ($item) => ($item->documentType?->name ?: 'Document') . ' | ' . ($item->is_verified ? 'Verified' : 'Not Verified') . ($item->expiry_date ? ' | Expiry ' . $item->expiry_date->format('d-m-Y') : '')),
-            'Assignments' => $record->assignments->take(8)->map(fn ($item) => ($item->driver?->name ?: '-') . ' | ' . ($item->route?->route_name ?: '-') . ' | ' . $item->status),
-            'Maintenance' => $record->maintenanceLogs->take(8)->map(fn ($item) => $item->maintenance_type . ' | ' . ($item->service_date?->format('d-m-Y') ?: '-') . ' | ' . $item->status),
-            'Fuel Logs' => $record->fuelLogs->take(8)->map(fn ($item) => $item->fuel_type . ' | ' . $item->quantity . ' | ' . ($item->date?->format('d-m-Y') ?: '-')),
-        ] as $title => $rows) {
+        foreach (
+            [
+                'Documents' => $record->documents->map(fn($item) => ($item->documentType?->name ?: 'Document') . ' | ' . ($item->is_verified ? 'Verified' : 'Not Verified') . ($item->expiry_date ? ' | Expiry ' . $item->expiry_date->format('d-m-Y') : '')),
+                'Assignments' => $record->assignments->take(8)->map(fn($item) => ($item->driver?->name ?: '-') . ' | ' . ($item->route?->route_name ?: '-') . ' | ' . $item->status),
+                'Maintenance' => $record->maintenanceLogs->take(8)->map(fn($item) => $item->maintenance_type . ' | ' . ($item->service_date?->format('d-m-Y') ?: '-') . ' | ' . $item->status),
+                'Fuel Logs' => $record->fuelLogs->take(8)->map(fn($item) => $item->fuel_type . ' | ' . $item->quantity . ' | ' . ($item->date?->format('d-m-Y') ?: '-')),
+            ] as $title => $rows
+        ) {
             $this->pdfText($details, $title, 50, $y, 14, 'F2');
             $y -= 24;
 

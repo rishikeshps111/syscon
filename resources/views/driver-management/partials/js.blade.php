@@ -83,6 +83,17 @@
                 },
                 error: function (xhr) {
                     table.ajax.reload();
+                    if (xhr.status === 422 && Array.isArray(xhr.responseJSON?.missing_documents)) {
+                        const documents = xhr.responseJSON.missing_documents;
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Mandatory Documents Required',
+                            html: '<p>Please add the following mandatory documents to make this user active:</p>' +
+                                '<ul class="text-start mb-0">' + documents.map(document => '<li>' + $('<div>').text(document).html() + '</li>').join('') + '</ul>',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
                     let message = xhr.responseJSON?.message || 'An error occurred. Please try again.';
                     if (xhr.status === 422 && xhr.responseJSON?.errors) {
                         message = Object.values(xhr.responseJSON.errors).flat().join('<br>');

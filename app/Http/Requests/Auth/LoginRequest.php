@@ -107,6 +107,12 @@ class LoginRequest extends FormRequest
             return false;
         }
 
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'phone' => 'Your staff account is inactive. Please contact the administrator.',
+            ]);
+        }
+
         Auth::login($user, $this->boolean('remember'));
 
         return true;

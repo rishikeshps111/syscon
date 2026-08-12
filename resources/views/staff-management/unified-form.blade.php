@@ -6,7 +6,8 @@
         $selectedRole = old('role', $employeeRole ?? 'Staff');
         $selectedReporting = old('reporting_to', $profile?->reporting_to);
         $countryCodes = ['+91', '+1', '+44', '+61', '+971', '+65', '+60', '+81', '+49', '+33'];
-        $value = fn($field, $default = '') => old($field, $profile?->{$field} ?? $default);
+        $locationDefaults = ['state_id' => $defaultStateId ?? '', 'district_id' => $defaultDistrictId ?? '', 'location_id' => $defaultLocationId ?? ''];
+        $value = fn($field, $default = '') => old($field, $profile?->{$field} ?? ($locationDefaults[$field] ?? $default));
         $dateValue = fn($field) => old($field, $profile?->{$field}?->format('Y-m-d'));
         $avatarUrl = $record?->avatar_url ?? asset('assets/img/user.png');
     @endphp
@@ -143,16 +144,19 @@
                                     <option value="">--- Select ---</option>
                                 </select>@error('reporting_to')<span class="text-danger">{{ $message }}</span>@enderror
                             </div>
-                            <div class="col-lg-4 o-f-inp mb-3"><label for="is_active">Status <span
+                            {{-- <div class="col-lg-4 o-f-inp mb-3"><label for="is_active">Status <span
                                         class="text-danger">*</span></label><select name="is_active" id="is_active"
                                     class="form-select shadow-none select2 @error('is_active') is-invalid @enderror"
                                     required>
                                     <option value="1" @selected(old('is_active', $record?->is_active ?? 1) == 1)>Active
                                     </option>
-                                    <option value="0" @selected(old('is_active', $record?->is_active ?? 1) == 0)>Inactive
+                                    <option value="0" @selected(old('is_active', $record?->is_active ?? 1) ==
+                                        0)>Inactive
                                     </option>
                                 </select>@error('is_active')<span class="text-danger">{{ $message }}</span>@enderror
-                            </div>
+                            </div> --}}
+                            <input type="hidden" name="is_active"
+                                value="{{ old('is_active', $record ? (int) $record->is_active : 0) }}">
                             <div class="col-lg-4 o-f-inp mb-3"><label for="avatar">Image</label>
                                 <div class="d-flex align-items-center gap-3"><img id="employeeAvatarPreview"
                                         src="{{ $avatarUrl }}" width="72" height="72"
@@ -369,29 +373,33 @@
                 updateCredentialFields(); loadManagers(); loadSalaryStructure(true);
 
                 $('#country').on('change', function () {
+                    const targetState = String($('#state_id').val() || @json($value('state_id')) || '');
+                    const targetDistrict = String(@json($value('district_id')) || '');
+                    const targetLocation = String(@json($value('location_id')) || '');
                     resetSelect('#state_id', this.value ? 'Loading...' : '--- Select ---', !!this.value);
                     resetSelect('#district_id', '--- Select ---', true); resetSelect('#location_id', '--- Select ---', true);
                     if (!this.value) return;
                     $.get(@json(route('staff-management.states-by-country')), { country: this.value }).done(rows => {
                         const select = $('#state_id').html(new Option('--- Select ---', '')).prop('disabled', false);
                         rows.forEach(row => select.append(new Option(row.name, row.id)));
-                        select.trigger('change.select2');
+                        select.val(targetState).trigger('change.select2').trigger('change', [targetDistrict, targetLocation]);
                     }).fail(() => showToast('error', 'Unable to load states.'));
                 });
-                $('#state_id').on('change', function () {
+                $('#state_id').on('change', function (event, targetDistrict = '', targetLocation = '') {
                     resetSelect('#district_id', this.value ? 'Loading...' : '--- Select ---', !!this.value); resetSelect('#location_id', '--- Select ---', true);
                     if (!this.value) return;
                     $.get(@json(route('staff-management.districts-by-state')), { state_id: this.value }).done(rows => {
-                        const select = $('#district_id').html(new Option('--- Select ---', '')).prop('disabled', false); rows.forEach(row => select.append(new Option(row.name, row.id))); select.trigger('change.select2');
+                        const select = $('#district_id').html(new Option('--- Select ---', '')).prop('disabled', false); rows.forEach(row => select.append(new Option(row.name, row.id))); select.val(targetDistrict).trigger('change.select2').trigger('change', [targetLocation]);
                     }).fail(() => showToast('error', 'Unable to load districts.'));
                 });
-                $('#district_id').on('change', function () {
+                $('#district_id').on('change', function (event, targetLocation = '') {
                     resetSelect('#location_id', this.value ? 'Loading...' : '--- Select ---', !!this.value);
                     if (!this.value || !$('#state_id').val()) return;
                     $.get(@json(route('staff-management.locations-by-district')), { state_id: $('#state_id').val(), district_id: this.value }).done(rows => {
-                        const select = $('#location_id').html(new Option('--- Select ---', '')).prop('disabled', false); rows.forEach(row => select.append(new Option(row.name, row.id))); select.trigger('change.select2');
+                        const select = $('#location_id').html(new Option('--- Select ---', '')).prop('disabled', false); rows.forEach(row => select.append(new Option(row.name, row.id))); select.val(targetLocation).trigger('change.select2');
                     }).fail(() => showToast('error', 'Unable to load locations.'));
                 });
+                if (!isEditing && $('#country').val()) $('#country').trigger('change');
 
                 $('.credential-toggle').on('click', function () { const input = document.getElementById(this.dataset.target); const show = input.type === 'password'; input.type = show ? 'text' : 'password'; $(this).find('i').toggleClass('fa-eye', !show).toggleClass('fa-eye-slash', show); });
                 $('#avatar').on('change', function () { const file = this.files?.[0]; if (!file) return; const url = URL.createObjectURL(file); $('#employeeAvatarPreview').attr('src', url).one('load', () => URL.revokeObjectURL(url)); });

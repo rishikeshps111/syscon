@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Support\SalaryComponents;
 use App\Support\SimpleQrCode;
 use App\Support\UserCodeGenerator;
+use App\Support\EmployeeActivationGuard;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -61,9 +62,16 @@ class DriverManagementController extends Controller implements HasMiddleware
 
     public function create()
     {
+        $defaultState = State::where('is_active', true)->where('is_default', true)->first();
+        $defaultDistrict = $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->where('is_default', true)->first() : null;
+        $defaultLocation = $defaultDistrict ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->where('is_default', true)->first() : null;
+
         return view('driver-management.form', array_merge($this->formData(), [
-            'districts' => collect(),
-            'locations' => collect(),
+            'districts' => $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect(),
+            'locations' => $defaultDistrict ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'pincode']) : collect(),
+            'defaultStateId' => $defaultState?->id,
+            'defaultDistrictId' => $defaultDistrict?->id,
+            'defaultLocationId' => $defaultLocation?->id,
         ]));
     }
 
@@ -136,7 +144,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             ? District::where('state_id', $profile->state_id)->orderBy('name')->get(['id', 'name'])
             : collect();
         $locations = $profile
-            ? Location::where('state_id', $profile->state_id)->where('district_id', $profile->district_id)->orderBy('name')->get(['id', 'name'])
+            ? Location::where('state_id', $profile->state_id)->where('district_id', $profile->district_id)->orderBy('name')->get(['id', 'name', 'pincode'])
             : collect();
 
         return view('driver-management.form', array_merge($this->formData(), compact('record', 'districts', 'locations')));
@@ -194,7 +202,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         return Excel::download(new DriverManagementExport($query), 'driver-management.xlsx');
     }
 
-    public function status(Request $request)
+    public function status(Request $request, EmployeeActivationGuard $activationGuard)
     {
         $request->validate([
             'id' => ['required', 'integer', 'exists:users,id'],
@@ -202,6 +210,22 @@ class DriverManagementController extends Controller implements HasMiddleware
         ]);
 
         $driver = User::role('Driver')->findOrFail($request->id);
+
+        if ($request->boolean('status')) {
+            $missingDocuments = $activationGuard->missingMandatoryDocuments($driver, 'Driver');
+
+            if ($missingDocuments->isNotEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This driver cannot be activated until all mandatory documents are uploaded.',
+                    'errors' => [
+                        'documents' => ['Missing mandatory documents: ' . $missingDocuments->pluck('name')->implode(', ') . '.'],
+                    ],
+                    'missing_documents' => $missingDocuments->pluck('name')->values(),
+                ], 422);
+            }
+        }
+
         $driver->is_active = $request->status;
         $driver->save();
 
@@ -237,7 +261,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         }
 
         return response()->json(
-            District::where('state_id', $request->state_id)->orderBy('name')->get(['id', 'name'])
+            District::where('state_id', $request->state_id)->where('is_active', true)->orderBy('name')->get(['id', 'name'])
         );
     }
 
@@ -255,6 +279,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         return response()->json(
             Location::where('state_id', $request->state_id)
                 ->where('district_id', $request->district_id)
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'pincode'])
         );

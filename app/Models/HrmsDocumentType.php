@@ -37,7 +37,8 @@ class HrmsDocumentType extends Model
         'driver' => 'Driver',
         'controller' => 'Controller',
         'supervisor' => 'Supervisor',
-        'staff' => 'Staff'
+        'staff' => 'Staff',
+        'housekeeping' => 'Housekeeping',
     ];
 
     public const ALLOWED_FILE_TYPES = [

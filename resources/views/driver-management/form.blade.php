@@ -203,7 +203,7 @@
                                             <option value="">---Select---</option>
                                             @foreach ($states as $state)
                                                 <option value="{{ $state->id }}"
-                                                    {{ old('state_id', $profile->state_id ?? '') == $state->id ? 'selected' : '' }}>
+                                                    {{ old('state_id', $profile->state_id ?? $defaultStateId ?? '') == $state->id ? 'selected' : '' }}>
                                                     {{ $state->name }}</option>
                                             @endforeach
                                         </select>
@@ -218,7 +218,7 @@
                                             <option value="">---Select---</option>
                                             @foreach ($districts as $district)
                                                 <option value="{{ $district->id }}"
-                                                    {{ old('district_id', $profile->district_id ?? '') == $district->id ? 'selected' : '' }}>
+                                                    {{ old('district_id', $profile->district_id ?? $defaultDistrictId ?? '') == $district->id ? 'selected' : '' }}>
                                                     {{ $district->name }}</option>
                                             @endforeach
                                         </select>
@@ -234,7 +234,7 @@
                                             @foreach ($locations as $location)
                                                 <option value="{{ $location->id }}"
                                                     data-pincode="{{ $location->pincode }}"
-                                                    {{ old('location_id', $profile->location_id ?? '') == $location->id ? 'selected' : '' }}>
+                                                    {{ old('location_id', $profile->location_id ?? $defaultLocationId ?? '') == $location->id ? 'selected' : '' }}>
                                                     {{ $location->name }}</option>
                                             @endforeach
                                         </select>
@@ -471,7 +471,7 @@
 
                             <div class="tab-pane fade" id="drv7" role="tabpanel">
                                 <div class="row">
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    {{-- <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="is_active">Status <span class="text-danger">*</span></label>
                                         <select name="is_active" id="is_active"
                                             class="form-select shadow-none @error('is_active') is-invalid @enderror"
@@ -486,7 +486,9 @@
                                         @error('is_active')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
-                                    </div>
+                                    </div> --}}
+                                   <input type="hidden" name="is_active"
+                                value="{{ old('is_active', $record ? (int) $record->is_active : 0) }}">
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="police_verification_status">Police Verification Status <span
                                                 class="text-danger">*</span></label>
@@ -686,6 +688,10 @@
                 var pincode = $(this).find(':selected').data('pincode') || '';
                 $('#pincode').val(pincode);
             });
+
+            if ($('#location_id').val()) {
+                $('#location_id').trigger('change');
+            }
 
             function resetSelect(selector, label) {
                 $(selector)

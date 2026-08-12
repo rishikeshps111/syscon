@@ -18,6 +18,16 @@
                         Imported Staff accounts use <strong>Syscon@123</strong> as the default login password. Imported Controller and Supervisor accounts use <strong>111111</strong> as the default passcode.
                     </div>
                 @endif
+                @if (in_array($module, ['staff', 'drivers'], true))
+                    <div class="alert alert-warning mb-3">
+                        <strong>Salary template warning:</strong>
+                        @if ($module === 'staff')
+                            If no salary template is assigned for an imported employee's role and designation, the salary values will remain zero until a template is assigned.
+                        @else
+                            If no salary template is assigned for the Driver role, the imported driver's salary values will remain zero until a template is assigned.
+                        @endif
+                    </div>
+                @endif
                 <div class="o-f-inp mb-3"><label for="csv_file">{{ $module === 'staff' ? 'Excel or CSV file' : 'CSV file' }}</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept="{{ $module === 'staff' ? '.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv' : '.csv,text/csv' }}" required></div>
                 <div class="d-flex gap-2"><button class="btn btn-primary js-loading-submit" type="submit">Import</button><a class="btn btn-light" href="{{ route($config['index_route']) }}">Cancel</a></div>
             </form>

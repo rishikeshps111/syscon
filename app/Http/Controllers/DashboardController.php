@@ -23,7 +23,7 @@ class DashboardController extends Controller
         // }
 
         $cards = collect($this->cards())
-            ->filter(fn (array $card) => auth()->user()->can($card['permission']))
+            ->filter(fn(array $card) => auth()->user()->can($card['permission']))
             ->values();
 
         if ($cards->isEmpty()) {
@@ -43,7 +43,7 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-handshake',
                 'class' => 'card-green',
                 'label' => 'Total OEM',
-                'value' => Oem::count(),
+                'value' => Oem::where('status', 'Active')->count(),
                 'route' => 'oems.index',
             ],
             [
@@ -51,7 +51,7 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-warehouse',
                 'class' => 'card-purple',
                 'label' => 'Total Depots',
-                'value' => Depot::count(),
+                'value' => Depot::where('is_active', true)->count(),
                 'route' => 'depots.index',
             ],
             [
@@ -75,28 +75,23 @@ class DashboardController extends Controller
                 'icon' => 'fa-solid fa-id-badge',
                 'class' => 'card-orange',
                 'label' => 'Total Controllers',
-                'value' => User::role('Controller')->count(),
-                'route' => 'controller-management.index',
+                'value' => User::role('Controller')->where('is_active', true)->count(),
+                'route' => 'staff-management.index',
             ],
             [
                 'permission' => 'supervisor-management.view',
                 'icon' => 'fa-solid fa-id-badge',
                 'class' => 'card-teal',
                 'label' => 'Total Supervisor',
-                'value' => User::role('Supervisor')->count(),
-                'route' => 'supervisor-management.index',
+                'value' => User::role('Supervisor')->where('is_active', true)->count(),
+                'route' => 'staff-management.index',
             ],
             [
                 'permission' => 'trips.view',
                 'icon' => 'fa-solid fa-route',
                 'class' => 'card-orange',
-                'label' => 'Trips Today',
+                'label' => 'Trips',
                 'value' => Trip::where('status', 'Active')
-                    ->whereDate('from_date', '<=', $today)
-                    ->where(function ($query) use ($today) {
-                        $query->whereNull('to_date')
-                            ->orWhereDate('to_date', '>=', $today);
-                    })
                     ->count(),
                 'route' => 'trips.index',
             ],
@@ -106,7 +101,7 @@ class DashboardController extends Controller
                 'class' => 'card-green',
                 'label' => 'Completed Trip Sheet',
                 'value' => TripSheetEntry::whereNotNull('actual_reach_time')->count(),
-                'route' => 'completed.trips.index',
+                'route' => 'trips.index',
             ],
             [
                 'permission' => 'trips.view',
@@ -116,7 +111,7 @@ class DashboardController extends Controller
                 'value' => TripSheetEntry::whereNotNull('actual_reach_time')
                     ->whereColumn('actual_reach_time', '>', 'arrival_time')
                     ->count(),
-                'route' => 'completed.trips.index',
+                'route' => 'trips.index',
             ],
             [
                 'permission' => 'trips.view',

@@ -43,7 +43,7 @@
                                 <select id="state_id" name="state_id" class="form-select shadow-none select2 @error('state_id') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach ($states as $state)
-                                        <option value="{{ $state->id }}" @selected((int) old('state_id', $record->state_id ?? 0) === $state->id)>{{ $state->name }}</option>
+                                        <option value="{{ $state->id }}" @selected((int) old('state_id', $record->state_id ?? $defaultStateId ?? 0) === $state->id)>{{ $state->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('state_id')<span class="text-danger">{{ $message }}</span>@enderror
@@ -53,7 +53,7 @@
                                 <select id="district_id" name="district_id" class="form-select shadow-none select2 @error('district_id') is-invalid @enderror">
                                     <option value="">---Select---</option>
                                     @foreach ($districts as $district)
-                                        <option value="{{ $district->id }}" data-state-id="{{ $district->state_id }}" @selected((int) old('district_id', $record->district_id ?? 0) === $district->id)>{{ $district->name }}</option>
+                                        <option value="{{ $district->id }}" data-state-id="{{ $district->state_id }}" @selected((int) old('district_id', $record->district_id ?? $defaultDistrictId ?? 0) === $district->id)>{{ $district->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('district_id')<span class="text-danger">{{ $message }}</span>@enderror
@@ -177,7 +177,7 @@
                 var districts = @json($districtOptions);
                 var depots = @json($depotOptions);
 
-                var selectedDistrictId = "{{ old('district_id', $record->district_id ?? '') }}";
+                var selectedDistrictId = "{{ old('district_id', $record->district_id ?? $defaultDistrictId ?? '') }}";
                 var selectedStartPointId = "{{ old('start_point_id', $record->start_point_id ?? '') }}";
                 var selectedEndPointId = "{{ old('end_point_id', $record->end_point_id ?? '') }}";
 

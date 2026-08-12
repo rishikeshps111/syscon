@@ -87,7 +87,7 @@ class BranchLocationController extends Controller implements HasMiddleware
 
     public function create(Request $request)
     {
-        $states = State::orderBy('name')->get(['id', 'name']);
+        $states = State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         if ($request->id) {
             $record = BranchLocation::findOrFail($request->id);
@@ -103,12 +103,15 @@ class BranchLocationController extends Controller implements HasMiddleware
             ]);
         }
 
-        $districts = collect();
-        $locations = collect();
+        $defaultState = State::where('is_active', true)->where('is_default', true)->first();
+        $defaultDistrict = $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->where('is_default', true)->first() : null;
+        $defaultLocation = $defaultDistrict ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->where('is_default', true)->first() : null;
+        $districts = $defaultState ? District::where('state_id', $defaultState->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
+        $locations = $defaultDistrict ? Location::where('state_id', $defaultState->id)->where('district_id', $defaultDistrict->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']) : collect();
         $generatedCode = generate_code('Branch Location Module', ((int) BranchLocation::max('id')) + 1, 3, 'BL');
 
         return response()->json([
-            'html' => view('branch-location.form', compact('generatedCode', 'states', 'districts', 'locations'))->render(),
+            'html' => view('branch-location.form', ['generatedCode' => $generatedCode, 'states' => $states, 'districts' => $districts, 'locations' => $locations, 'defaultStateId' => $defaultState?->id, 'defaultDistrictId' => $defaultDistrict?->id, 'defaultLocationId' => $defaultLocation?->id])->render(),
             'title' => 'Add Branch Location',
         ]);
     }
@@ -193,6 +196,7 @@ class BranchLocationController extends Controller implements HasMiddleware
 
         return response()->json(
             District::where('state_id', $request->state_id)
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name'])
         );
@@ -212,6 +216,7 @@ class BranchLocationController extends Controller implements HasMiddleware
         return response()->json(
             Location::where('state_id', $request->state_id)
                 ->where('district_id', $request->district_id)
+                ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name'])
         );
