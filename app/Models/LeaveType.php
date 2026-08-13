@@ -41,6 +41,8 @@ class LeaveType extends Model
     public const APPLICABLE_FOR = [
         'all_employees' => 'All Employees',
         'drivers' => 'Drivers',
+        'staff' => 'Staff',
+        'housekeeping' => 'Housekeeping',
         'controllers' => 'Controllers',
         'supervisors' => 'Supervisors',
     ];

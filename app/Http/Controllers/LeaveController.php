@@ -21,7 +21,7 @@ use Yajra\DataTables\Facades\DataTables;
 
 class LeaveController extends Controller implements HasMiddleware
 {
-    private const GENERAL_LEAVE_ROLES = ['Supervisor', 'Controller', 'Staff'];
+    private const GENERAL_LEAVE_ROLES = ['Supervisor', 'Controller', 'Staff', 'Housekeeping'];
 
     private const FILTER_ROLES = ['Supervisor', 'Controller', 'Staff', 'Driver', 'Housekeeping'];
 
@@ -103,6 +103,9 @@ class LeaveController extends Controller implements HasMiddleware
             'leave_for' => ['required', Rule::in(array_keys(Leave::TYPES))],
             'leave_type_id' => ['nullable', 'integer', 'exists:leave_types,id'],
             'exclude_leave_id' => ['nullable', 'integer', 'exists:leaves,id'],
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date', 'after_or_equal:from_date'],
+            'day_type' => ['nullable', Rule::in(array_keys(Leave::DAY_TYPES))],
         ]);
 
         [$financialYearStart, $financialYearEnd] = $this->financialYearRange();
@@ -111,13 +114,16 @@ class LeaveController extends Controller implements HasMiddleware
             $leaveTypes = $this->activeLeaveTypesFor($validated['leave_for'])
                 ->get(['id', 'leave_name', 'short_name', 'max_leaves_per_year']);
 
+            $requestedDays = $this->requestedBalanceDays($validated);
+            $selectedLeaveTypeId = (int) ($validated['leave_type_id'] ?? 0);
             $balances = $leaveTypes->map(fn (LeaveType $leaveType) => $this->leaveTypeBalance(
                 (int) $validated['user_id'],
                 $leaveType,
                 $financialYearStart,
                 $financialYearEnd,
                 $validated['exclude_leave_id'] ?? null,
-                $validated['leave_for']
+                $validated['leave_for'],
+                $leaveType->id === $selectedLeaveTypeId ? $requestedDays : 0
             ))->values();
 
             return response()->json([
@@ -547,13 +553,14 @@ class LeaveController extends Controller implements HasMiddleware
         Carbon $financialYearStart,
         Carbon $financialYearEnd,
         ?int $excludeLeaveId = null,
-        string $leaveFor = 'general'
+        string $leaveFor = 'general',
+        float $requestedDays = 0
     ): array {
         $used = Leave::query()
             ->where('user_id', $userId)
             ->where('leave_for', $leaveFor)
             ->where('leave_type_id', $leaveType->id)
-            ->whereNotIn('status', ['Rejected', 'Cancelled'])
+            ->whereRaw("LOWER(status) IN ('pending', 'approved', 'auto marked')")
             ->when($excludeLeaveId, fn ($query) => $query->whereKeyNot($excludeLeaveId))
             ->where(function ($query) use ($financialYearStart, $financialYearEnd) {
                 $query->whereBetween('from_date', [$financialYearStart->toDateString(), $financialYearEnd->toDateString()])
@@ -561,7 +568,8 @@ class LeaveController extends Controller implements HasMiddleware
                     ->orWhere(function ($rangeQuery) use ($financialYearStart, $financialYearEnd) {
                         $rangeQuery->whereDate('from_date', '<=', $financialYearStart->toDateString())
                             ->whereDate('to_date', '>=', $financialYearEnd->toDateString());
-                    });
+                    })
+                    ->orWhereBetween('leave_date', [$financialYearStart->toDateString(), $financialYearEnd->toDateString()]);
             })
             ->sum('number_of_days');
 
@@ -572,8 +580,24 @@ class LeaveController extends Controller implements HasMiddleware
             'label' => $leaveType->short_name ?: $leaveType->leave_name,
             'limit' => $limit,
             'used' => (float) $used,
+            'requested' => $requestedDays,
             'remaining' => $limit === null ? null : max(0, $limit - (float) $used),
+            'remaining_after_request' => $limit === null ? null : max(0, $limit - (float) $used - $requestedDays),
         ];
+    }
+
+    private function requestedBalanceDays(array $validated): float
+    {
+        if (empty($validated['from_date']) || empty($validated['to_date'])) {
+            return 0;
+        }
+
+        if (($validated['day_type'] ?? 'full_day') === 'half_day') {
+            return 0.5;
+        }
+
+        return (float) (Carbon::parse($validated['from_date'])->startOfDay()
+            ->diffInDays(Carbon::parse($validated['to_date'])->startOfDay()) + 1);
     }
 
     private function usedDriverLeaves(
@@ -585,7 +609,7 @@ class LeaveController extends Controller implements HasMiddleware
         return (float) Leave::query()
             ->where('user_id', $userId)
             ->where('leave_for', 'driver')
-            ->whereNotIn('status', ['Rejected', 'Cancelled'])
+            ->whereRaw("LOWER(status) IN ('pending', 'approved', 'auto marked')")
             ->when($excludeLeaveId, fn ($query) => $query->whereKeyNot($excludeLeaveId))
             ->whereBetween('leave_date', [$financialYearStart->toDateString(), $financialYearEnd->toDateString()])
             ->sum('number_of_days');
@@ -594,8 +618,8 @@ class LeaveController extends Controller implements HasMiddleware
     private function activeLeaveTypesFor(string $leaveFor)
     {
         $applicable = $leaveFor === 'driver'
-            ? ['all_employees', 'drivers']
-            : ['all_employees', 'controllers', 'supervisors'];
+            ? ['all_employees', 'drivers', 'housekeeping']
+            : ['all_employees', 'controllers', 'supervisors', 'staff', 'housekeeping'];
 
         return LeaveType::query()
             ->where('is_active', true)

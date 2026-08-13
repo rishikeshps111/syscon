@@ -135,6 +135,7 @@
                 var selectedEmployeeId = @json((string) old('user_id', $record->user_id ?? ''));
                 var balanceUrl = @json(route('leaves.balances'));
                 var excludeLeaveId = @json($record->id ?? null);
+                var balanceRequest = null;
 
                 function findSelectedEmployeeRole() {
                     if (! selectedEmployeeId) {
@@ -224,13 +225,14 @@
                     var rows = response.balances.map(function (balance) {
                         var selected = selectedLeaveTypeId === Number(balance.leave_type_id);
                         var limit = balance.limit === null ? 'No yearly limit' : formatDays(balance.limit);
-                        var remaining = balance.remaining === null ? '-' : formatDays(balance.remaining);
+                        var usedWithCurrentLeave = Number(balance.used || 0) + Number(balance.requested || 0);
+                        var remaining = balance.remaining_after_request === null ? '-' : formatDays(balance.remaining_after_request);
 
                         return '<div class="leave-balance-row' + (selected ? ' selected' : '') + '">' +
                             '<div class="leave-balance-name">' + balance.label + (selected ? '<span>Selected</span>' : '') + '</div>' +
                             '<div class="leave-balance-metrics">' +
                                 '<div><small>Limit</small><strong>' + limit + '</strong></div>' +
-                                '<div><small>Used</small><strong>' + formatDays(balance.used) + '</strong></div>' +
+                                '<div><small>Used</small><strong>' + formatDays(usedWithCurrentLeave) + '</strong></div>' +
                                 '<div><small>Remaining</small><strong>' + remaining + '</strong></div>' +
                             '</div>' +
                         '</div>';
@@ -253,17 +255,27 @@
                         return;
                     }
 
-                    $.get(balanceUrl, {
+                    if (balanceRequest) balanceRequest.abort();
+                    var requestedUserId = userId;
+                    balanceRequest = $.get(balanceUrl, {
                         user_id: userId,
                         leave_for: 'general',
                         leave_type_id: $('#leave_type_id').val(),
+                        from_date: $('#from_date').val(),
+                        to_date: $('#to_date').val(),
+                        day_type: $('#day_type').val(),
                         exclude_leave_id: excludeLeaveId
-                    }).done(renderBalances).fail(function () {
-                        $('#leave_balance_box').text('Unable to load leave balance.');
+                    }).done(function (response) {
+                        if (String($('#user_id').val()) === String(requestedUserId)) renderBalances(response);
+                    }).fail(function (xhr) {
+                        if (xhr.statusText !== 'abort') $('#leave_balance_box').text('Unable to load leave balance.');
                     });
                 }
 
-                $('#from_date, #to_date, #day_type').on('change', calculateDays);
+                $('#from_date, #to_date, #day_type').on('change', function () {
+                    calculateDays();
+                    loadBalances();
+                });
                 $('#user_type').on('change', function () {
                     selectedEmployeeId = '';
                     loadEmployeesForRole($(this).val());
