@@ -29,8 +29,8 @@ class StoreDriverManagementRequest extends FormRequest
             'phone' => ['required', 'string', 'max:30'],
             'alternate_country_code' => ['nullable', 'string', 'max:10'],
             'alternate_phone' => ['nullable', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'passcode' => ['required', 'digits:6'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'passcode' => ['nullable', 'digits:6'],
             'avatar' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['required', 'boolean'],
 
@@ -61,6 +61,9 @@ class StoreDriverManagementRequest extends FormRequest
 
             'employment_type' => ['required', Rule::in(array_keys(DriverProfile::EMPLOYMENT_TYPES))],
             'joining_date' => ['required', 'date'],
+            'uan' => ['required', 'string', 'max:50'],
+            'wc_policy' => ['required', 'string', 'max:100'],
+            'pan_number' => ['required', 'string', 'max:20'],
             'salary_components' => ['nullable', 'array'],
             'salary_components.*' => ['nullable', 'numeric', 'min:0'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
@@ -69,9 +72,9 @@ class StoreDriverManagementRequest extends FormRequest
             'account_number' => ['required', 'string', 'max:50'],
             'ifsc_code' => ['required', 'string', 'max:20'],
 
-            'emergency_contact_name' => ['required', 'string', 'max:255'],
-            'emergency_country_code' => ['required', 'string', 'max:10'],
-            'emergency_contact_no' => ['required', 'string', 'max:30'],
+            'emergency_contact_name' => ['nullable', 'string', 'max:255'],
+            'emergency_country_code' => ['nullable', 'string', 'max:10'],
+            'emergency_contact_no' => ['nullable', 'string', 'max:30'],
             'medical_fitness_expiry' => ['required', 'date'],
 
             'police_verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],

@@ -8,7 +8,7 @@
         <div class="main-table-container">
             <div class="mb-4">
                 <p>Upload {{ $module === 'staff' ? 'an Excel or CSV file' : 'a CSV' }} containing the fields listed below. Relationship columns use names, never database IDs. Names must exactly identify an existing record.</p>
-                <p class="mb-0"><strong>Dates:</strong> YYYY-MM-DD &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
+                <p class="mb-0"><strong>Dates:</strong> {{ in_array($module, ['staff', 'drivers'], true) ? 'dd-mm-yyyy' : 'YYYY-MM-DD' }} &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
             </div>
             @if ($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
             <form class="js-loading-form" method="POST" action="{{ route('bulk-import.store', $module) }}" enctype="multipart/form-data">
@@ -29,7 +29,7 @@
                     </div>
                 @endif
                 <div class="o-f-inp mb-3"><label for="csv_file">{{ $module === 'staff' ? 'Excel or CSV file' : 'CSV file' }}</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept="{{ $module === 'staff' ? '.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv' : '.csv,text/csv' }}" required></div>
-                <div class="d-flex gap-2"><button class="btn btn-primary js-loading-submit" type="submit">Import</button><a class="btn btn-light" href="{{ route($config['index_route']) }}">Cancel</a></div>
+                <div class="d-flex gap-2"><button class="btn btn-primary js-loading-submit" type="submit" data-loading-text="Loading..."><span class="js-submit-label">Import</span></button><a class="btn btn-light" href="{{ route($config['index_route']) }}">Cancel</a></div>
             </form>
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
@@ -57,4 +57,22 @@
             @if (in_array($module, ['drivers', 'controllers', 'supervisors', 'staff', 'housekeeping'], true))<div class="alert alert-info mb-0">Salary structure is intentionally excluded. Imported profiles start with the existing zero/default salary values.</div>@endif
         </div>
     </section>
+    @section('scripts')
+        <script>
+            $(function () {
+                $('.js-loading-form').on('submit', function () {
+                    var button = $(this).find('.js-loading-submit');
+
+                    if (button.prop('disabled')) {
+                        return;
+                    }
+
+                    button.prop('disabled', true).html(
+                        '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' +
+                        (button.data('loading-text') || 'Loading...')
+                    );
+                });
+            });
+        </script>
+    @endsection
 </x-app-layout>

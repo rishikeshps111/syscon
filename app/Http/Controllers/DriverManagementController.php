@@ -85,7 +85,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'email' => $data['email'],
             'country_code' => $data['country_code'],
             'phone' => $data['phone'],
-            'password' => $data['passcode'],
+            'password' => $data['passcode'] ?? $this->generatePasscode(),
             'is_active' => $data['is_active'],
         ]);
         $user->code = UserCodeGenerator::generate('Driver', (int) $data['depot_id'], $user->id);
@@ -367,6 +367,9 @@ class DriverManagementController extends Controller implements HasMiddleware
             'badge_expiry_date',
             'employment_type',
             'joining_date',
+            'uan',
+            'wc_policy',
+            'pan_number',
             'depot_id',
             'branch_location_id',
             'account_number',

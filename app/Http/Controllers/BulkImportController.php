@@ -33,6 +33,8 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class BulkImportController extends Controller
 {
+    private array $relationLookupCache = [];
+
     private const DEFAULT_STAFF_PASSWORD = 'Syscon@123';
 
     private const DEFAULT_OPERATIONS_PASSCODE = '111111';
@@ -113,6 +115,7 @@ class BulkImportController extends Controller
 
     private function validateRows(string $module, array $rows, array $config): array
     {
+        $this->relationLookupCache = [];
         $valid = [];
         $errors = [];
         $seen = [];
@@ -120,6 +123,12 @@ class BulkImportController extends Controller
         foreach ($rows as $row) {
             $data = array_map(fn($value) => is_string($value) ? trim($value) : $value, $row['data']);
             $data = $this->resolveRelations($data, $module, $row['line'], $errors);
+            foreach ($this->importDateFields($module) as $dateField) {
+                if (filled($data[$dateField] ?? null) && $this->parseImportDate($data[$dateField]) === null) {
+                    $providedDate = (string) $data[$dateField];
+                    $errors[] = "Row {$row['line']}: {$dateField} received '{$providedDate}'; expected the dd-mm-yyyy format (for example, 10-04-1981).";
+                }
+            }
             $data = $this->normalize($data, $module);
             $validator = Validator::make($data, $this->rules($module));
 
@@ -164,6 +173,10 @@ class BulkImportController extends Controller
                 'reporting_to' => [Role::class, 'name', 'reporting_to'],
             ];
         } elseif (in_array($module, ['drivers', 'housekeeping'], true)) {
+            // Driver and housekeeping imports use the branch_location_id
+            // profile field. The CSV/XLSX column is still named `branch`,
+            // so it must be resolved before validation.
+            $lookups['branch'] = [BranchLocation::class, 'name', 'branch_location_id'];
         } elseif ($module === 'staff') {
             $lookups['designation'] = [Designation::class, 'name', 'designation_id'];
             $lookups['branch'] = [BranchLocation::class, 'name', 'branch_location_id'];
@@ -187,12 +200,28 @@ class BulkImportController extends Controller
                 $query->where('guard_name', 'web')
                     ->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor']);
             }
-            $matches = $query->limit(2)->get();
-            if ($matches->count() !== 1) {
-                $errors[] = "Row {$line}: {$csvField} '{$name}' " . ($matches->isEmpty() ? 'was not found.' : 'is ambiguous.');
+            $cacheKey = implode('|', [
+                $model,
+                $column,
+                Str::lower((string) $name),
+                (string) ($data['state_id'] ?? ''),
+                (string) ($data['district_id'] ?? ''),
+                $module,
+            ]);
+            if (! array_key_exists($cacheKey, $this->relationLookupCache)) {
+                $matches = $query->limit(2)->get();
+                $this->relationLookupCache[$cacheKey] = [
+                    'count' => $matches->count(),
+                    'id' => $matches->count() === 1 ? $matches->first()->id : null,
+                ];
+            }
+
+            $lookup = $this->relationLookupCache[$cacheKey];
+            if ($lookup['count'] !== 1) {
+                $errors[] = "Row {$line}: {$csvField} '{$name}' " . ($lookup['count'] === 0 ? 'was not found.' : 'is ambiguous.');
                 $data[$idField] = null;
             } else {
-                $data[$idField] = $matches->first()->id;
+                $data[$idField] = $lookup['id'];
             }
         }
 
@@ -201,20 +230,21 @@ class BulkImportController extends Controller
 
     private function normalize(array $data, string $module): array
     {
+        if (in_array($module, ['staff', 'drivers'], true)) {
+            foreach ($this->importDateFields($module) as $dateField) {
+                if (filled($data[$dateField] ?? null)) {
+                    $parsedDate = $this->parseImportDate($data[$dateField]);
+                    if ($parsedDate !== null) {
+                        $data[$dateField] = $parsedDate->format('Y-m-d');
+                    }
+                }
+            }
+        }
+
         if ($module === 'staff') {
             $data['is_active'] = $data['status'] ?? null;
             $data['bank_account_number'] = $data['account_number'] ?? null;
             [$data['country_code'], $data['phone']] = $this->splitPhone((string) ($data['phone'] ?? ''));
-
-            foreach (['date_of_birth', 'date_of_joining'] as $dateField) {
-                if (filled($data[$dateField] ?? null)) {
-                    try {
-                        $data[$dateField] = Carbon::parse($data[$dateField])->format('Y-m-d');
-                    } catch (\Throwable) {
-                        // Leave the original value for the validator to report.
-                    }
-                }
-            }
         }
 
         foreach (['is_active', 'gps_enabled'] as $field) {
@@ -289,7 +319,9 @@ class BulkImportController extends Controller
         $userData['email'] = filled($userData['email'] ?? null) ? $userData['email'] : null;
         $user = User::create($userData + [
             'code' => null,
-            'password' => $module === 'housekeeping' ? Str::random(40) : $data[$passwordField],
+            'password' => $module === 'housekeeping'
+                ? Str::random(40)
+                : ($data[$passwordField] ?? $this->generatePasscode()),
         ]);
         $user->update([
             'code' => UserCodeGenerator::generate($meta['role'], (int) $data['depot_id'], $user->id),
@@ -437,7 +469,7 @@ class BulkImportController extends Controller
         $rules = [
             'name' => ['required', 'max:255'],
             'ref_code' => ['nullable', 'string', 'max:100'],
-            'email' => in_array($module, ['staff', 'housekeeping'], true)
+            'email' => in_array($module, ['staff', 'drivers', 'housekeeping'], true)
                 ? ['nullable', 'email', 'max:255', 'unique:users,email']
                 : ['required', 'email', 'max:255', 'unique:users,email'],
             'country_code' => ['required', 'max:10'],
@@ -452,7 +484,7 @@ class BulkImportController extends Controller
         ];
         if ($module === 'drivers') {
             return $rules + [
-                'passcode' => ['required', 'digits:6'],
+                'passcode' => ['nullable', 'digits:6'],
                 'alternate_country_code' => ['nullable', 'max:10'],
                 'alternate_phone' => ['nullable', 'max:30'],
                 'aadhaar_number' => ['required', 'max:20', 'unique:driver_profiles,aadhaar_number'],
@@ -469,12 +501,15 @@ class BulkImportController extends Controller
                 'branch_location_id' => ['required'],
                 'account_number' => ['required', 'max:50'],
                 'ifsc_code' => ['required', 'max:20'],
-                'emergency_contact_name' => ['required', 'max:255'],
-                'emergency_country_code' => ['required', 'max:10'],
-                'emergency_contact_no' => ['required', 'max:30'],
+                'emergency_contact_name' => ['nullable', 'max:255'],
+                'emergency_country_code' => ['nullable', 'max:10'],
+                'emergency_contact_no' => ['nullable', 'max:30'],
                 'medical_fitness_expiry' => ['required', 'date'],
                 'police_verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],
                 'verification_status' => ['required', Rule::in(array_keys(DriverProfile::VERIFICATION_STATUSES))],
+                'uan' => ['required', 'max:50'],
+                'wc_policy' => ['required', 'max:100'],
+                'pan_number' => ['required', 'max:20'],
             ];
         }
         if ($module === 'housekeeping') {
@@ -489,9 +524,9 @@ class BulkImportController extends Controller
                 'branch_location_id' => ['required'],
                 'account_number' => ['required', 'max:50'],
                 'ifsc_code' => ['required', 'max:20'],
-                'emergency_contact_name' => ['required', 'max:255'],
-                'emergency_country_code' => ['required', 'max:10'],
-                'emergency_contact_no' => ['required', 'max:30'],
+                'emergency_contact_name' => ['nullable', 'max:255'],
+                'emergency_country_code' => ['nullable', 'max:10'],
+                'emergency_contact_no' => ['nullable', 'max:30'],
                 'medical_fitness_expiry' => ['required', 'date'],
                 'police_verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
                 'verification_status' => ['required', Rule::in(array_keys(HousekeepingProfile::VERIFICATION_STATUSES))],
@@ -629,6 +664,50 @@ class BulkImportController extends Controller
         return [$countryCode, preg_replace('/[^0-9]/', '', $phone) ?: $phone];
     }
 
+    private function importDateFields(string $module): array
+    {
+        return match ($module) {
+            'staff' => ['date_of_birth', 'date_of_joining'],
+            'drivers' => ['issue_date', 'expiry_date', 'badge_expiry_date', 'joining_date', 'medical_fitness_expiry'],
+            default => [],
+        };
+    }
+
+    private function parseImportDate(mixed $value): ?Carbon
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            $serial = (float) $value;
+
+            // Excel stores dates as the number of days since 1899-12-30.
+            // Convert valid serial dates before applying the dd-mm-yyyy check.
+            if ($serial <= 0 || $serial > 2958465) {
+                return null;
+            }
+
+            try {
+                return Carbon::instance(
+                    \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($serial)
+                );
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        $value = trim((string) $value);
+
+        try {
+            $date = Carbon::createFromFormat('!d-m-Y', $value);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $date->format('d-m-Y') === $value ? $date : null;
+    }
+
     private function booleanValue(mixed $value): mixed
     {
         $value = Str::lower(trim((string) $value));
@@ -662,10 +741,10 @@ class BulkImportController extends Controller
                 'label' => 'Drivers',
                 'permission' => 'driver-management.create',
                 'index_route' => 'driver-management.index',
-                'headers' => ['ref_code', 'name', 'country_code', 'phone', 'alternate_country_code', 'alternate_phone', 'email', 'passcode', 'is_active', 'aadhaar_number', 'country', 'state', 'district', 'location', 'pincode', 'address', 'license_number', 'license_type', 'issue_date', 'expiry_date', 'badge_number', 'badge_expiry_date', 'employment_type', 'joining_date', 'depot', 'branch', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status'],
-                'sample' => ['DRV-REF-001', 'Sample Driver', '+91', '9876543210', '', '', 'driver@example.com', '123456', 'yes', '123456789012', 'India', 'Maharashtra', 'Pune', 'Pune', '411001', 'Sample address', 'DL001', 'hmv', '2024-01-01', '2029-01-01', '', '', 'permanent', '2026-01-01', 'Central Depot', 'Main Branch', '1234567890', 'ABCD0001234', 'Contact Person', '+91', '9876543211', '2027-01-01', 'verified', 'verified'],
+                'headers' => ['ref_code', 'name', 'country_code', 'phone', 'alternate_country_code', 'alternate_phone', 'email', 'passcode', 'is_active', 'aadhaar_number', 'country', 'state', 'district', 'location', 'pincode', 'address', 'license_number', 'license_type', 'issue_date', 'expiry_date', 'badge_number', 'badge_expiry_date', 'employment_type', 'joining_date', 'depot', 'branch', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status', 'uan', 'wc_policy', 'pan_number'],
+                'sample' => ['DRV-REF-001', 'Sample Driver', '+91', '9876543210', '', '', 'driver@example.com', '123456', 'yes', '123456789012', 'India', 'Maharashtra', 'Pune', 'Pune', '411001', 'Sample address', 'DL001', 'hmv', '01-01-2024', '01-01-2029', '', '', 'permanent', '01-01-2026', 'Central Depot', 'Main Branch', '1234567890', 'ABCD0001234', 'Contact Person', '+91', '9876543211', '01-01-2027', 'verified', 'verified', '100000000001', 'WC-001', 'ABCDE1234F'],
                 'unique_csv' => ['email', 'aadhaar_number', 'license_number'],
-                'profile_fields' => ['alternate_country_code', 'alternate_phone', 'aadhaar_number', 'country', 'state_id', 'district_id', 'location_id', 'pincode', 'address', 'license_number', 'license_type', 'issue_date', 'expiry_date', 'badge_number', 'badge_expiry_date', 'employment_type', 'joining_date', 'depot_id', 'branch_location_id', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status'],
+                'profile_fields' => ['alternate_country_code', 'alternate_phone', 'aadhaar_number', 'country', 'state_id', 'district_id', 'location_id', 'pincode', 'address', 'license_number', 'license_type', 'issue_date', 'expiry_date', 'badge_number', 'badge_expiry_date', 'employment_type', 'joining_date', 'depot_id', 'branch_location_id', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status', 'uan', 'wc_policy', 'pan_number'],
             ],
             'housekeeping' => [
                 'label' => 'Housekeeping',
@@ -762,10 +841,10 @@ class BulkImportController extends Controller
                 'full_time',
                 'Active',
                 'Father Name',
-                '1990-01-01',
+                '01-01-1990',
                 '123456789012',
                 'ABCDE1234F',
-                '2026-01-01',
+                '01-01-2026',
                 'UAN001',
                 'ESIC001',
                 'India',
@@ -780,7 +859,7 @@ class BulkImportController extends Controller
         abort_unless(isset($configs[$module]), 404);
         $optional = match ($module) {
             'vehicles' => ['variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_imei', 'remarks'],
-            'drivers' => ['ref_code', 'alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date'],
+            'drivers' => ['ref_code', 'alternate_country_code', 'alternate_phone', 'badge_number', 'badge_expiry_date', 'passcode', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no'],
             'housekeeping' => ['alternate_country_code', 'alternate_phone'],
             'staff' => ['email', 'ref_code'],
             'designations' => ['reporting_to', 'description'],
@@ -820,12 +899,13 @@ class BulkImportController extends Controller
             'is_active' => 'Use yes/no, true/false, active/inactive, or 1/0.',
             'status' => 'Use Active or Inactive. yes/no, true/false, and 1/0 are also accepted.',
             'father_name' => 'Father name, maximum 255 characters.',
-            'date_of_birth' => 'Use YYYY-MM-DD.',
+            'date_of_birth' => $module === 'staff' ? 'Use dd-mm-yyyy.' : 'Use YYYY-MM-DD.',
             'aadhaar_number' => in_array($module, ['drivers', 'housekeeping'], true) ? 'Aadhaar number, maximum 20 characters; must be unique.' : 'Aadhaar number, maximum 20 characters.',
             'pan_number' => 'PAN number, maximum 20 characters.',
-            'date_of_joining' => 'Use YYYY-MM-DD.',
-            'joining_date' => 'Use YYYY-MM-DD.',
+            'date_of_joining' => $module === 'staff' ? 'Use dd-mm-yyyy.' : 'Use YYYY-MM-DD.',
+            'joining_date' => $module === 'drivers' ? 'Use dd-mm-yyyy.' : 'Use YYYY-MM-DD.',
             'uan' => 'UAN, maximum 50 characters.',
+            'wc_policy' => 'WC policy number or reference, maximum 100 characters.',
             'esic_wc' => 'ESIC/WC value, maximum 50 characters.',
             'country' => 'Country name, for example India.',
             'state' => 'Exact existing state name. Do not use an ID.',
@@ -849,14 +929,14 @@ class BulkImportController extends Controller
             'address' => 'Full address, maximum 1,000 characters.',
             'license_number' => 'Driving licence number, maximum 50 characters; must be unique.',
             'license_type' => 'Use lmv, hmv, or transport.',
-            'issue_date' => 'Licence issue date in YYYY-MM-DD format.',
-            'expiry_date' => 'Licence expiry date in YYYY-MM-DD format; cannot be before issue_date.',
+            'issue_date' => $module === 'drivers' ? 'Licence issue date in dd-mm-yyyy format.' : 'Licence issue date in YYYY-MM-DD format.',
+            'expiry_date' => $module === 'drivers' ? 'Licence expiry date in dd-mm-yyyy format; cannot be before issue_date.' : 'Licence expiry date in YYYY-MM-DD format; cannot be before issue_date.',
             'badge_number' => 'Optional badge number, maximum 50 characters.',
-            'badge_expiry_date' => 'Optional badge expiry date in YYYY-MM-DD format; cannot be before issue_date.',
+            'badge_expiry_date' => $module === 'drivers' ? 'Optional badge expiry date in dd-mm-yyyy format; cannot be before issue_date.' : 'Optional badge expiry date in YYYY-MM-DD format; cannot be before issue_date.',
             'emergency_contact_name' => 'Emergency contact person name, maximum 255 characters.',
             'emergency_country_code' => 'Emergency telephone country code, for example +91.',
             'emergency_contact_no' => 'Emergency contact number, maximum 30 characters.',
-            'medical_fitness_expiry' => 'Use YYYY-MM-DD.',
+            'medical_fitness_expiry' => $module === 'drivers' ? 'Use dd-mm-yyyy.' : 'Use YYYY-MM-DD.',
             'police_verification_status' => 'Use pending, verified, or rejected.',
             'verification_status' => 'Use pending, verified, or rejected.',
             'oem' => 'Exact existing OEM name. Do not use an ID.',

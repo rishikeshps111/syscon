@@ -127,24 +127,21 @@
                                         @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="email">Email <span class="text-danger">*</span></label>
+                                        <label for="email">Email</label>
                                         <input type="email" id="email" name="email"
                                             class="form-control shadow-none @error('email') is-invalid @enderror"
-                                            value="{{ old('email', $record->email ?? '') }}" required>
+                                            value="{{ old('email', $record->email ?? '') }}">
                                         @error('email')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="passcode">Passcode @if (!isset($record))
-                                                <span class="text-danger">*</span>
-                                            @endif
-                                        </label>
+                                        <label for="passcode">Passcode</label>
                                         <div class="input-group">
                                             <input type="password" id="passcode" name="passcode"
                                                 class="form-control shadow-none @error('passcode') is-invalid @enderror"
                                                 inputmode="numeric" pattern="[0-9]{6}" maxlength="6"
-                                                {{ isset($record) ? '' : 'required' }}>
+                                                >
                                             <button type="button" class="btn btn-outline-secondary" id="togglePasscode"
                                                 title="Show passcode">
                                                 <i class="fa-solid fa-eye"></i>
@@ -361,6 +358,24 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
+                                    <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="uan">UAN <span class="text-danger">*</span></label>
+                                        <input type="text" id="uan" name="uan" class="form-control shadow-none"
+                                            value="{{ old('uan', $profile->uan ?? '') }}" required>
+                                        @error('uan')<span class="text-danger">{{ $message }}</span>@enderror
+                                    </div>
+                                    <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="wc_policy">WC Policy <span class="text-danger">*</span></label>
+                                        <input type="text" id="wc_policy" name="wc_policy" class="form-control shadow-none"
+                                            value="{{ old('wc_policy', $profile->wc_policy ?? '') }}" required>
+                                        @error('wc_policy')<span class="text-danger">{{ $message }}</span>@enderror
+                                    </div>
+                                    <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="pan_number">PAN <span class="text-danger">*</span></label>
+                                        <input type="text" id="pan_number" name="pan_number" class="form-control shadow-none"
+                                            value="{{ old('pan_number', $profile->pan_number ?? '') }}" required>
+                                        @error('pan_number')<span class="text-danger">{{ $message }}</span>@enderror
+                                    </div>
                                     <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="depot_id">Depot <span class="text-danger">*</span></label>
                                         <select name="depot_id" id="depot_id"
@@ -423,30 +438,26 @@
                             <div class="tab-pane fade" id="drv6" role="tabpanel">
                                 <div class="row">
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="emergency_contact_name">Emergency Contact Name <span
-                                                class="text-danger">*</span></label>
+                                        <label for="emergency_contact_name">Emergency Contact Name</label>
                                         <input type="text" id="emergency_contact_name"
                                             name="emergency_contact_name" class="form-control shadow-none"
-                                            value="{{ old('emergency_contact_name', $profile->emergency_contact_name ?? '') }}"
-                                            required>
+                                            value="{{ old('emergency_contact_name', $profile->emergency_contact_name ?? '') }}">
                                         @error('emergency_contact_name')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="emergency_contact_no">Emergency Contact No <span
-                                                class="text-danger">*</span></label>
+                                        <label for="emergency_contact_no">Emergency Contact No</label>
                                         <div class="input-group">
                                             <select name="emergency_country_code" id="emergency_country_code"
-                                                class="form-select shadow-none" style="max-width: 112px;" required>
+                                                class="form-select shadow-none" style="max-width: 112px;">
                                                 @foreach ($countryCodes as $code => $label)
                                                     <option value="{{ $code }}" @selected($selectedEmergencyCountryCode === $code)>{{ $label }}</option>
                                                 @endforeach
                                             </select>
                                             <input type="text" id="emergency_contact_no" name="emergency_contact_no"
                                                 class="form-control shadow-none"
-                                                value="{{ old('emergency_contact_no', $profile->emergency_contact_no ?? '') }}"
-                                                required>
+                                                value="{{ old('emergency_contact_no', $profile->emergency_contact_no ?? '') }}">
                                         </div>
                                         @error('emergency_country_code')
                                             <span class="text-danger">{{ $message }}</span>
@@ -487,8 +498,8 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div> --}}
-                                   <input type="hidden" name="is_active"
-                                value="{{ old('is_active', $record ? (int) $record->is_active : 0) }}">
+                                    <input type="hidden" name="is_active"
+                                        value="{{ old('is_active', isset($record) ? (int) $record->is_active : 0) }}">
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="police_verification_status">Police Verification Status <span
                                                 class="text-danger">*</span></label>

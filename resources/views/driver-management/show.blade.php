@@ -106,6 +106,9 @@
                                 <ul>
                                     <li><label>Employment Type :</label> <span>{{ $profile?->employment_type_label ?: '-' }}</span></li>
                                     <li><label>Joining Date :</label> <span>{{ $date($profile?->joining_date) }}</span></li>
+                                    <li><label>UAN :</label> <span>{{ $profile?->uan ?: '-' }}</span></li>
+                                    <li><label>WC Policy :</label> <span>{{ $profile?->wc_policy ?: '-' }}</span></li>
+                                    <li><label>PAN :</label> <span>{{ $profile?->pan_number ?: '-' }}</span></li>
                                     <li><label>Salary :</label> <span>{{ $money($profile?->salary) }}</span></li>
                                     <li><label>Depot :</label> <span>{{ $profile?->depot?->name ?: '-' }}</span></li>
                                     <li><label>Branch :</label> <span>{{ $profile?->branchLocation?->name ?: '-' }}</span></li>
