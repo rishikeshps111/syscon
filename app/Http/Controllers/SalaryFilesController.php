@@ -8,6 +8,8 @@ use App\Models\Depot;
 use App\Models\SalaryProcessing;
 use App\Models\SalaryProcessingItem;
 use Carbon\Carbon;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -126,6 +128,7 @@ class SalaryFilesController extends Controller implements HasMiddleware
             'year' => $processing->year,
             'depot' => $processing->depot,
             'role' => $processing->role,
+            'roleLabel' => $processing->role?->name ?: '-',
         ];
     }
 
@@ -163,35 +166,16 @@ class SalaryFilesController extends Controller implements HasMiddleware
 
     private function buildPdf(array $report): string
     {
-        $lines = [
-            'SYSCON Salary File',
-            'Period: ' . $this->periodLabel($report),
-            'Depo: ' . ($report['depot']?->name ?? '-'),
-            'Role: ' . ($report['role']?->name ?? '-'),
-            'Generated: ' . now()->format('d-m-Y h:i A'),
-            '',
-            'SL  Code        Name                         Gross       Deduction   LOP        Net        Status',
-        ];
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isRemoteEnabled', false);
 
-        foreach ($report['items'] as $index => $item) {
-            $lines[] = sprintf(
-                '%-3s %-11s %-28s %10s %10s %10s %10s %s',
-                $index + 1,
-                substr((string) ($item->user?->code ?: '-'), 0, 11),
-                substr((string) ($item->user?->name ?: '-'), 0, 28),
-                $this->money($item->basic_salary),
-                $this->money($item->deduction),
-                $this->money($item->lop),
-                $this->money($item->net_salary),
-                $item->salaryProcessing?->status ?: '-'
-            );
-        }
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml(view('salary-files.pdf', compact('report'))->render());
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
 
-        if ($report['items']->isEmpty()) {
-            $lines[] = 'No salary records found in this file.';
-        }
-
-        return $this->simplePdf($lines);
+        return $dompdf->output();
     }
 
     private function simplePdf(array $lines): string

@@ -1,5 +1,5 @@
 @forelse ($rows as $index => $row)
-    <tr data-basic="{{ $row['basic_salary'] }}" data-deduction="{{ $row['deduction'] }}" data-incentive="{{ $row['incentive'] }}" data-working-days="{{ $row['total_working_days'] }}">
+    <tr data-basic="{{ $row['basic_salary'] }}" data-deduction="{{ $row['deduction'] }}" data-incentive="{{ $row['incentive'] }}" data-working-days="{{ $row['total_working_days'] }}" data-unpaid-leave-days="{{ $row['unpaid_leave_days'] ?? 0 }}">
         <td class="text-center">
             {{ $index + 1 }}
             <input type="hidden" name="items[{{ $index }}][user_id]" value="{{ $row['user_id'] }}">
@@ -11,7 +11,7 @@
         <td class="text-center">{{ number_format((float) $row['total_leave_taken'], 2) }}</td>
         <td class="text-center driver-only {{ $isDriver ? '' : 'd-none' }}">{{ $isDriver ? $row['total_shifts_completed'] : '-' }}</td>
         <td class="text-center non-driver-only {{ $isDriver ? 'd-none' : '' }}">{{ $row['total_working_days'] }}</td>
-        <td class="text-center lop">{{ number_format((float) $row['lop'], 2) }}</td>
+        <td class="text-center lop"><span class="lop-days">{{ rtrim(rtrim(number_format((float) ($row['unpaid_leave_days'] ?? 0), 2, '.', ''), '0'), '.') }}</span></td>
         <td class="text-center">
             <span class="gross-salary">{{ number_format((float) $row['basic_salary'], 2) }}</span>
             <button type="button" class="btn btn-link p-0 view-split" data-split='@json($row['salary_split'])'>[View Split]</button>
@@ -37,6 +37,6 @@
     </tr>
 @empty
     <tr>
-        <td colspan="11" class="text-center text-muted">Select depo and role.</td>
+        <td colspan="10" class="text-center text-muted">Select depo and role.</td>
     </tr>
 @endforelse

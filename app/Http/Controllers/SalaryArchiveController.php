@@ -30,6 +30,13 @@ class SalaryArchiveController extends Controller implements HasMiddleware
                 ->with(['depot', 'role', 'creator', 'approver'])
                 ->withCount('items')
                 ->where('status', 'Approved')
+                ->where(function ($periodQuery) {
+                    $periodQuery->where('year', '<', now()->year)
+                        ->orWhere(function ($currentYearQuery) {
+                            $currentYearQuery->where('year', now()->year)
+                                ->where('month', '<', now()->month);
+                        });
+                })
                 ->latest('approved_at');
 
             foreach (['year', 'month', 'depot_id', 'role_id'] as $field) {

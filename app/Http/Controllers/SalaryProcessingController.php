@@ -101,7 +101,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     public function edit(SalaryProcessing $salaryProcessing)
     {
-        $salaryProcessing->load(['items.user', 'depot', 'role']);
+        $salaryProcessing->load(['items.user', 'items.salaryProcessing.role', 'depot', 'role']);
         $rows = $salaryProcessing->items->map(fn($item) => $this->storedRow($item))->values();
 
         return view('salary-processing.form', $this->commonData() + [
@@ -270,8 +270,12 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 $user,
                 $earningSplit->reject(fn($item) => $this->isIncentiveComponent($item))->all()
             );
-            $deduction = (float) collect($split)->where('type', 'deduction')->sum('amount');
+            $componentDeduction = (float) collect($split)->where('type', 'deduction')->sum('amount');
             $leaveTaken = $this->leaveTaken($user->id, $start, $end);
+            $unpaidLeaveDays = $this->unpaidLeaveTaken($user->id, $start, $end);
+            $leaveDeduction = $workingDays > 0
+                ? round(((float) $grossSalary / $workingDays) * $unpaidLeaveDays, 2)
+                : 0;
             $totalShifts = match ($role->name) {
                 'Driver' => $this->completedDriverShifts($user, $start, $end),
                 'Housekeeping' => Attendance::where('user_id', $user->id)->whereBetween('attendance_date', [$start, $end])->whereIn('status', ['present', 'half_day'])->count(),
@@ -284,10 +288,11 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'aadhaar_no' => $this->aadhaarNo($user, $role->name),
                 'user_details' => $this->userDetails($user, $role->name),
                 'total_leave_taken' => $leaveTaken,
+                'unpaid_leave_days' => $unpaidLeaveDays,
                 'total_shifts_completed' => $totalShifts,
                 'total_working_days' => $workingDays,
                 'basic_salary' => $grossSalary,
-                'deduction' => $deduction,
+                'deduction' => $componentDeduction + $leaveDeduction,
                 'incentive' => $incentive,
                 'salary_split' => collect($split)->values()->all(),
             ];
@@ -421,6 +426,21 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             ->sum('number_of_days');
     }
 
+    private function unpaidLeaveTaken(int $userId, Carbon $start, Carbon $end): float
+    {
+        return (float) Leave::where('user_id', $userId)
+            ->whereIn('status', ['Pending', 'Approved', 'Auto Marked'])
+            ->whereHas('leaveType', fn ($query) => $query->where('leave_category', 'Unpaid Leave'))
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('leave_date', [$start, $end])
+                    ->orWhere(function ($subQuery) use ($start, $end) {
+                        $subQuery->whereDate('from_date', '<=', $end)
+                            ->whereDate('to_date', '>=', $start);
+                    });
+            })
+            ->sum('number_of_days');
+    }
+
     private function completedDriverShifts(User $user, Carbon $start, Carbon $end): int
     {
         $driverProfileId = $user->driverProfile?->id;
@@ -462,6 +482,14 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function storedRow(SalaryProcessingItem $item): array
     {
+        $processing = $item->salaryProcessing;
+        $start = $processing
+            ? Carbon::create((int) $processing->year, (int) $processing->month, 1)->startOfMonth()
+            : null;
+        $unpaidLeaveDays = $start
+            ? $this->unpaidLeaveTaken($item->user_id, $start, $start->copy()->endOfMonth())
+            : 0;
+
         return [
             'user_id' => $item->user_id,
             'name' => $item->user?->name ?? '-',
@@ -469,6 +497,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'aadhaar_no' => $item->aadhaar_no,
             'user_details' => $this->userDetails($item->user, $item->salaryProcessing?->role?->name ?? ''),
             'total_leave_taken' => (float) $item->total_leave_taken,
+            'unpaid_leave_days' => $unpaidLeaveDays,
             'total_shifts_completed' => $item->total_shifts_completed,
             'total_working_days' => $item->total_working_days,
             'lop' => (float) $item->lop,

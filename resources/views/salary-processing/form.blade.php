@@ -89,7 +89,7 @@
                                 <th
                                     class="text-center non-driver-only {{ $selectedRoleName === 'Driver' ? 'd-none' : '' }}">
                                     Total Working Days</th>
-                                <th class="text-center">LOP</th>
+                                <th class="text-center">LOP Days</th>
                                 <th class="text-center">Gross Salary</th>
                                 <th class="text-center">Deduction</th>
                                 <th class="text-center">Incentive</th>
@@ -185,13 +185,13 @@
                     }).map(function (item) {
                         return '<input type="hidden" class="selected-component-input" name="items[' + index + '][selected_components][]" value="' + item.id + '">';
                     }).join('');
-                    return '<tr data-basic="' + row.basic_salary + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '">' +
+                    return '<tr data-basic="' + row.basic_salary + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
                         '<td class="text-center">' + (index + 1) + '<input type="hidden" name="items[' + index + '][user_id]" value="' + row.user_id + '"></td>' +
                         '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button></td>' +
                         '<td class="text-center">' + row.total_leave_taken + '</td>' +
                         '<td class="text-center driver-only ' + (isDriver ? '' : 'd-none') + '">' + (isDriver ? row.total_shifts_completed : '-') + '</td>' +
                         '<td class="text-center non-driver-only ' + (isDriver ? 'd-none' : '') + '">' + row.total_working_days + '</td>' +
-                        '<td class="text-center lop">' + Number(row.lop).toFixed(2) + '</td>' +
+                        '<td class="text-center lop"><span class="lop-days">' + Number(row.unpaid_leave_days || 0) + '</span></td>' +
                         '<td class="text-center"><span class="gross-salary">' + Number(row.basic_salary).toFixed(2) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
                         '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"></td>' +
                         '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment incentive-input" name="items[' + index + '][incentive]" value="' + Number(row.incentive || 0).toFixed(2) + '"></td>' +
@@ -233,7 +233,7 @@
                     var unauthorized = Number(row.find('.unauthorized-leaves').val()) || 0;
                     var lop = workingDays > 0 ? (basic / workingDays) * unauthorized : 0;
                     var net = basic + incentive - deduction - lop;
-                    row.find('.lop').text(lop.toFixed(2));
+                    row.find('.lop-amount').text(lop.toFixed(2));
                     row.find('.net-salary').text(net.toFixed(2));
                 }
 
