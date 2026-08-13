@@ -217,7 +217,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             if ($missingDocuments->isNotEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This driver cannot be activated until all mandatory documents are uploaded.',
+                    'message' => 'This driver cannot be activated until all mandatory documents are uploaded and verified.',
                     'errors' => [
                         'documents' => ['Missing mandatory documents: ' . $missingDocuments->pluck('name')->implode(', ') . '.'],
                     ],

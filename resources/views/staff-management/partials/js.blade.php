@@ -90,7 +90,7 @@
                         Swal.fire({
                             icon: 'warning',
                             title: 'Mandatory Documents Required',
-                            html: '<p>Please add the following mandatory documents to make this user active:</p>' +
+                            html: '<p>Please add and verify the following mandatory documents to make this user active:</p>' +
                                 '<ul class="text-start mb-0">' + documents.map(document => '<li>' + $('<div>').text(document).html() + '</li>').join('') + '</ul>',
                             confirmButtonText: 'OK'
                         });

@@ -547,6 +547,8 @@ Route::middleware('auth')->group(function () {
         ->name('staff-management.documents.index');
     Route::post('/staff-management/{staff}/documents', [StaffDocumentController::class, 'store'])
         ->name('staff-management.documents.store');
+    Route::put('/staff-documents/{staffDocument}', [StaffDocumentController::class, 'update'])
+        ->name('staff-documents.update');
     Route::get('/staff-documents/{staffDocument}/download', [StaffDocumentController::class, 'download'])
         ->name('staff-documents.download');
     Route::get('/staff-documents/{staffDocument}/preview', [StaffDocumentController::class, 'preview'])
@@ -633,6 +635,8 @@ Route::middleware('auth')->group(function () {
         ->name('driver-management.documents.index');
     Route::post('/driver-management/{driver}/documents', [DriverDocumentController::class, 'store'])
         ->name('driver-management.documents.store');
+    Route::put('/driver-documents/{driverDocument}', [DriverDocumentController::class, 'update'])
+        ->name('driver-documents.update');
     Route::get('/driver-documents/{driverDocument}/download', [DriverDocumentController::class, 'download'])
         ->name('driver-documents.download');
     Route::get('/driver-documents/{driverDocument}/preview', [DriverDocumentController::class, 'preview'])

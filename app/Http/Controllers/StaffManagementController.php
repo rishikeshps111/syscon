@@ -222,7 +222,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             if ($missingDocuments->isNotEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'This employee cannot be activated until all mandatory documents are uploaded.',
+                    'message' => 'This employee cannot be activated until all mandatory documents are uploaded and verified.',
                     'errors' => [
                         'documents' => ['Missing mandatory documents: ' . $missingDocuments->pluck('name')->implode(', ') . '.'],
                     ],

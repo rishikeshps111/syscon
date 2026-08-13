@@ -70,7 +70,11 @@ class HrLetterController extends Controller implements HasMiddleware
 
     public function pdf(GeneratedHrLetter $hrLetter)
     {
-        $options = new Options(); $options->set('isRemoteEnabled', true); $options->set('defaultFont', 'DejaVu Sans');
+        $options = new Options();
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+        $chroot = [base_path(), storage_path(), resource_path('fonts')];
+        $options->setChroot($chroot);
         $dompdf = new Dompdf($options); $dompdf->loadHtml(view('hr-letter.pdf', compact('hrLetter'))->render()); $dompdf->setPaper('A4'); $dompdf->render();
         return response($dompdf->output())->header('Content-Type', 'application/pdf')->header('Content-Disposition', 'attachment; filename="' . $hrLetter->letter_number . '.pdf"');
     }

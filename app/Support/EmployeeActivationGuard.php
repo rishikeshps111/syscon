@@ -39,6 +39,7 @@ class EmployeeActivationGuard
 
         $uploadedTypeIds = $user->{$relation}()
             ->whereIn('hrms_document_type_id', $required->pluck('id'))
+            ->where('is_verified', true)
             ->pluck('hrms_document_type_id')
             ->map(fn ($id) => (int) $id)
             ->unique();

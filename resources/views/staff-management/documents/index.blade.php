@@ -77,7 +77,8 @@
                                     </div>
                                     <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="documentFile">Document File <span class="text-danger">*</span></label>
-                                        <input type="file" name="document_file" id="documentFile" class="form-control shadow-none" required>
+                                        <input type="file" name="document_file" id="documentFile" class="form-control shadow-none">
+                                        <a id="currentDocumentPreview" class="small d-none" href="#" target="_blank">Preview current file</a>
                                     </div>
                                     <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="isVerified" class="flex-check">
@@ -105,7 +106,7 @@
                     <div class="btn-flex">
                         <a href="{{ route('staff-management.index') }}" class="add-btn bg-filter">Back</a>
                         @can('staff-management.edit')
-                            <a class="add-btn" data-bs-toggle="modal" href="#addDocumentModal" role="button">
+                            <a class="add-btn add-document-link" data-bs-toggle="modal" href="#addDocumentModal" role="button">
                                 Add Document
                             </a>
                         @endcan
@@ -209,6 +210,26 @@
                     $('#documentFile').attr('accept', acceptFor(fileType));
                 }).trigger('change');
 
+                $(document).on('click', '.edit-document', function () {
+                    var button = $(this);
+                    $('#addDocumentLabel').text('Edit Document');
+                    $('#documentForm').attr('action', button.data('action')).data('editing', true);
+                    $('#documentType').val(button.data('type')).trigger('change');
+                    $('#expiryDate').val(button.data('expiry') || '');
+                    $('#isVerified').prop('checked', button.data('verified') == 1);
+                    $('#documentFile').prop('required', false).val('');
+                    $('#currentDocumentPreview').attr('href', button.data('preview')).removeClass('d-none');
+                    $('#addDocumentModal').modal('show');
+                });
+
+                $('#addDocumentModal').on('show.bs.modal', function (event) {
+                    if ($(event.relatedTarget).hasClass('add-document-link')) {
+                        $('#addDocumentLabel').text('Add Document');
+                        $('#documentForm').attr('action', "{{ route('staff-management.documents.store', $staff->id) }}").data('editing', false);
+                        $('#documentFile').prop('required', true);
+                    }
+                });
+
                 $(document).on('click', '.view-document', function () {
                     $('#documentPreviewFrame').attr('src', $(this).data('preview'));
                     $('#documentDownloadLink').attr('href', $(this).data('download'));
@@ -229,12 +250,16 @@
                     $.ajax({
                         url: form.attr('action'),
                         type: 'POST',
-                        data: new FormData(this),
+                        data: (function () { var data = new FormData(form[0]); if (form.data('editing')) data.append('_method', 'PUT'); return data; })(),
                         processData: false,
                         contentType: false,
                         success: function (res) {
                             $('#addDocumentModal').modal('hide');
                             form[0].reset();
+                            form.attr('action', "{{ route('staff-management.documents.store', $staff->id) }}").data('editing', false);
+                            $('#addDocumentLabel').text('Add Document');
+                            $('#documentFile').prop('required', true);
+                            $('#currentDocumentPreview').attr('href', '#').addClass('d-none');
                             $('#documentType').val('').trigger('change');
                             $('#isVerified').prop('checked', false);
                             table.ajax.reload();
