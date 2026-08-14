@@ -10,6 +10,8 @@ use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Depot;
+use App\Models\Location;
 
 class TripResource extends JsonResource
 {
@@ -43,7 +45,9 @@ class TripResource extends JsonResource
             'trip_title' => $trip?->trip_title,
             'starting_point' => $side === 'down' ? $route?->endPoint?->name : $route?->startPoint?->name,
             'ending_point' => $side === 'down' ? $route?->startPoint?->name : $route?->endPoint?->name,
-            'stops' => $this->stops(),
+            // 'stops' => $this->stops(),
+            'schedule_stop_times' => $this->formattedScheduleStopTimes(),
+            'depot_schedule_stop_times' => $this->depotScheduleStopTimes(),
             'driver_name' => $this->driverProfile?->user?->name,
             'depot_name' => $trip?->depot?->name,
             'vehicle_number' => $this->vehicle?->vehicle_no,
@@ -408,5 +412,290 @@ class TripResource extends JsonResource
         }
 
         return Roster::STATUSES[$status] ?? $status;
+    }
+
+    private function formattedScheduleStopTimes(bool $depotOnly = false): array
+    {
+        $scheduleStopTimes = $this->scheduleStopTimes
+            ->sortBy('sequence_no')
+            ->values();
+
+        if ($scheduleStopTimes->isEmpty()) {
+            return [];
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Get unique short names first
+    |--------------------------------------------------------------------------
+    |
+    | location_id != null => Depot
+    | location_id == null => Location
+    |
+    */
+
+        $depotShortNames = $scheduleStopTimes
+            ->whereNotNull('location_id')
+            ->pluck('location_name')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $locationShortNames = $scheduleStopTimes
+            ->whereNull('location_id')
+            ->pluck('location_name')
+            ->filter()
+            ->unique()
+            ->values();
+
+        /*
+    |--------------------------------------------------------------------------
+    | Load masters once
+    |--------------------------------------------------------------------------
+    |
+    | This avoids querying the database inside every loop iteration.
+    |
+    */
+
+        $depots = Depot::query()
+            ->whereIn('short_name', $depotShortNames)
+            ->get()
+            ->keyBy('short_name');
+
+        $locations = Location::query()
+            ->whereIn('short_name', $locationShortNames)
+            ->get()
+            ->keyBy('short_name');
+
+        $result = [];
+
+        foreach ($scheduleStopTimes as $schedule) {
+
+            $isDepot = ! is_null($schedule->location_id);
+
+            /*
+        |--------------------------------------------------------------------------
+        | Depot-only response
+        |--------------------------------------------------------------------------
+        */
+
+            if ($depotOnly && ! $isDepot) {
+                continue;
+            }
+
+            $shortName = $schedule->location_name;
+
+            /*
+        |--------------------------------------------------------------------------
+        | Resolve actual name
+        |--------------------------------------------------------------------------
+        */
+
+            if ($isDepot) {
+                $master = $depots->get($shortName);
+            } else {
+                $master = $locations->get($shortName);
+            }
+
+            $actualName = $master?->name ?? $shortName;
+
+            /*
+        |--------------------------------------------------------------------------
+        | Create unique key
+        |--------------------------------------------------------------------------
+        |
+        | We DON'T globally group by short name because:
+        |
+        | Panjagutta appears once during onward journey
+        | and again during return journey.
+        |
+        | We only merge consecutive arrival/departure records.
+        |
+        */
+
+            $key = ($isDepot ? 'depot_' : 'location_') . $shortName;
+
+            $lastIndex = count($result) - 1;
+
+            $canMerge =
+                $lastIndex >= 0
+                && $result[$lastIndex]['_key'] === $key;
+
+            if (! $canMerge) {
+
+                $result[] = [
+                    '_key' => $key,
+
+                    'sequence' => count($result) + 1,
+
+                    'type' => $isDepot
+                        ? 'depot'
+                        : 'location',
+
+                    'id' => $isDepot
+                        ? $schedule->location_id
+                        : $schedule->route_stop_id,
+
+                    'short_name' => $shortName,
+
+                    'location' => $actualName,
+
+                    'arrival_time' => null,
+                    'departure_time' => null,
+
+                    '_arrival_time_raw' => null,
+                    '_departure_time_raw' => null,
+
+                    'halt_time' => null,
+                ];
+
+                $lastIndex = count($result) - 1;
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Set arrival/departure
+        |--------------------------------------------------------------------------
+        */
+
+            if ($schedule->event === 'arrival') {
+
+                $result[$lastIndex]['arrival_time'] =
+                    $this->formatTime($schedule->scheduled_time);
+
+                $result[$lastIndex]['_arrival_time_raw'] =
+                    $schedule->scheduled_time;
+            }
+
+            if ($schedule->event === 'departure') {
+
+                $result[$lastIndex]['departure_time'] =
+                    $this->formatTime($schedule->scheduled_time);
+
+                $result[$lastIndex]['_departure_time_raw'] =
+                    $schedule->scheduled_time;
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | Calculate halt time
+        |--------------------------------------------------------------------------
+        */
+
+            if (
+                $result[$lastIndex]['_arrival_time_raw'] &&
+                $result[$lastIndex]['_departure_time_raw']
+            ) {
+                $result[$lastIndex]['halt_time'] =
+                    $this->calculateHaltTime(
+                        $result[$lastIndex]['_arrival_time_raw'],
+                        $result[$lastIndex]['_departure_time_raw']
+                    );
+            }
+        }
+
+        /*
+    |--------------------------------------------------------------------------
+    | Remove internal helper fields
+    |--------------------------------------------------------------------------
+    */
+
+        return collect($result)
+            ->map(function (array $item) {
+
+                unset(
+                    $item['_key'],
+                    $item['_arrival_time_raw'],
+                    $item['_departure_time_raw']
+                );
+
+                return $item;
+            })
+            ->values()
+            ->all();
+    }
+
+    private function calculateHaltTime(
+        string $arrivalTime,
+        string $departureTime
+    ): ?string {
+        $arrival = Carbon::createFromFormat(
+            'H:i:s',
+            $arrivalTime
+        );
+
+        $departure = Carbon::createFromFormat(
+            'H:i:s',
+            $departureTime
+        );
+
+        /*
+     * Departure is on the next day.
+     *
+     * Example:
+     * arrival   23:00
+     * departure 00:00
+     */
+        if ($departure->lessThan($arrival)) {
+            $departure->addDay();
+        }
+
+        $seconds = $arrival->diffInSeconds($departure);
+
+        if ($seconds <= 0) {
+            return null;
+        }
+
+        return \Carbon\CarbonInterval::seconds($seconds)
+            ->cascade()
+            ->forHumans([
+                'parts' => 2,
+                'short' => false,
+            ]);
+    }
+
+    private function depotScheduleStopTimes(): array
+    {
+        $scheduleStopTimes = $this->scheduleStopTimes
+            ->whereNotNull('location_id')
+            ->sortBy('sequence_no')
+            ->values();
+
+        if ($scheduleStopTimes->isEmpty()) {
+            return [];
+        }
+
+        $shortNames = $scheduleStopTimes
+            ->pluck('location_name')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $depots = Depot::query()
+            ->whereIn('short_name', $shortNames)
+            ->get()
+            ->keyBy('short_name');
+
+        return $scheduleStopTimes
+            ->map(function ($schedule, $index) use ($depots) {
+
+                $shortName = $schedule->location_name;
+
+                $depot = $depots->get($shortName);
+
+                return [
+                    'sequence' => $index + 1,
+                    'type' => 'depot',
+                    'id' => $schedule->location_id,
+                    'short_name' => $shortName,
+                    'location' => $depot?->name ?? $shortName,
+                    'event' => $schedule->event,
+                    'scheduled_time' => $this->formatTime(
+                        $schedule->scheduled_time
+                    ),
+                ];
+            })
+            ->values()
+            ->all();
     }
 }
