@@ -435,14 +435,14 @@ class TripResource extends JsonResource
     */
 
         $depotShortNames = $scheduleStopTimes
-            ->whereNotNull('location_id')
+            ->whereNull('route_stop_id ')
             ->pluck('location_name')
             ->filter()
             ->unique()
             ->values();
 
         $locationShortNames = $scheduleStopTimes
-            ->whereNull('location_id')
+            ->whereNotNull('route_stop_id')
             ->pluck('location_name')
             ->filter()
             ->unique()
@@ -471,7 +471,7 @@ class TripResource extends JsonResource
 
         foreach ($scheduleStopTimes as $schedule) {
 
-            $isDepot = ! is_null($schedule->location_id);
+            $isDepot = is_null($schedule->route_stop_id);
 
             /*
         |--------------------------------------------------------------------------
@@ -657,7 +657,7 @@ class TripResource extends JsonResource
     private function depotScheduleStopTimes(): array
     {
         $scheduleStopTimes = $this->scheduleStopTimes
-            ->whereNotNull('location_id')
+            ->whereNull('route_stop_id')
             ->sortBy('sequence_no')
             ->values();
 
