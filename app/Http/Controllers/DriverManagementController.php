@@ -16,6 +16,8 @@ use App\Support\SalaryComponents;
 use App\Support\SimpleQrCode;
 use App\Support\UserCodeGenerator;
 use App\Support\EmployeeActivationGuard;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -30,7 +32,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('driver-management.view'), ['index', 'show', 'export', 'downloadPdf', 'qrCode', 'districtsByState', 'locationsByDistrict']),
+            new Middleware(PermissionMiddleware::using('driver-management.view'), ['index', 'show', 'export', 'downloadPdf', 'idCard', 'qrCode', 'districtsByState', 'locationsByDistrict']),
             new Middleware(PermissionMiddleware::using('driver-management.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('driver-management.edit'), ['edit', 'update', 'status', 'regeneratePasscode']),
             new Middleware(PermissionMiddleware::using('driver-management.delete'), ['destroy']),
@@ -118,6 +120,33 @@ class DriverManagementController extends Controller implements HasMiddleware
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+        ]);
+    }
+
+    public function idCard(User $driver_management)
+    {
+        abort_unless($driver_management->hasRole('Driver'), 404);
+
+        $record = $this->driverRecord($driver_management);
+        $options = new Options();
+        $options->set('isRemoteEnabled', false);
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('defaultFont', 'DejaVu Sans');
+
+        $dompdf = new Dompdf($options);
+        // The Blade template contains two 72mm x 104mm panels side by side.
+        // Keep the PDF page size in sync with the rendered card sheet:
+        // 144.2mm x 104mm (CSS millimetres converted to PDF points).
+        $dompdf->setPaper([0, 0, 408.76, 294.80]);
+        $dompdf->loadHtml($this->buildDriverIdCardView($record));
+        $dompdf->render();
+
+        $fileName = ($record->code ?: 'driver') . '-id-card.pdf';
+        $disposition = request()->boolean('download') ? 'attachment' : 'inline';
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition . '; filename="' . $fileName . '"',
         ]);
     }
 
@@ -449,9 +478,9 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function buildDriverPdf(User $record): string
     {
         $profile = $record->driverProfile;
-        $date = fn ($value) => $value ? $value->format('d-m-Y') : '-';
-        $money = fn ($value) => filled($value) ? number_format((float) $value, 2) : '-';
-        $verification = fn ($value) => DriverProfile::VERIFICATION_STATUSES[$value] ?? '-';
+        $date = fn($value) => $value ? $value->format('d-m-Y') : '-';
+        $money = fn($value) => filled($value) ? number_format((float) $value, 2) : '-';
+        $verification = fn($value) => DriverProfile::VERIFICATION_STATUSES[$value] ?? '-';
         $alternatePhone = trim(($profile?->alternate_country_code ?? '') . ' ' . ($profile?->alternate_phone ?? '')) ?: '-';
         $emergencyPhone = trim(($profile?->emergency_country_code ?? '') . ' ' . ($profile?->emergency_contact_no ?? '')) ?: '-';
 
@@ -544,6 +573,199 @@ class DriverManagementController extends Controller implements HasMiddleware
         $pages[] = $documentContent;
 
         return $this->pdfDocument($pages);
+    }
+
+    private function buildDriverIdCard(User $record): string
+    {
+        $profile = $record->driverProfile;
+        $date = fn($value) => $value ? $value->format('d-m-Y') : '-';
+        $escape = fn($value) => e(filled($value) ? $value : '-');
+        $photo = $this->pdfImageData($record->avatar
+            ? storage_path('app/public/' . $record->avatar)
+            : public_path('assets/img/user.png'));
+        $logo = $this->pdfImageData(public_path('assets/img/compny.png'));
+        $office = $profile?->branchLocation?->name ?: ($profile?->depot?->name ?: 'Branch Office');
+        $address = trim(collect([
+            $profile?->address,
+            $profile?->location?->name,
+            $profile?->district?->name,
+            $profile?->state?->name,
+            $profile?->pincode,
+        ])->filter()->implode(', '));
+        $instructions = [
+            'This card must be carried always and must be produced when demanded by the authority.',
+            'Loss of this card should be reported immediately to the issuing authority in writing.',
+            'This card is the property of Syscon Functional Networks Pvt Ltd.',
+            'This card is not transferable and must be surrendered immediately upon cessation of service.',
+            'If found, return to Syscon Functional Networks Pvt Ltd.',
+        ];
+        $instructionHtml = collect($instructions)->map(fn($item) => '<li>' . e($item) . '</li>')->implode('');
+
+        return '<!doctype html><html><head><meta charset="UTF-8"><style>
+            @page { margin: 0; size: 171.2mm 54mm; }
+            * { box-sizing: border-box; }
+            body { margin: 0; font-family: DejaVu Sans, sans-serif; color: #252525; }
+            .sheet { width: 171.2mm; height: 54mm; position: relative; }
+            .panel { width: 85.6mm; height: 54mm; position: absolute; top: 0; overflow: hidden; border: .25mm solid #a5a5a5; background: #fff; }
+            .front { border-right: 0; }
+            .sheet > .front { left: 0; }
+            .sheet > .back { left: 85.6mm; }
+            .blue-top { height: 18mm; background: #0964ad; color: #fff; padding: 2.5mm 4mm; position: relative; overflow: hidden; }
+            .blue-top:after { content: ""; position: absolute; width: 72mm; height: 25mm; right: -28mm; bottom: -17mm; border-radius: 50%; background: #777; border: 1mm solid #fff; }
+            .brand-logo { width: 18mm; height: 10mm; object-fit: contain; vertical-align: middle; }
+            .brand-name { display: inline-block; vertical-align: middle; font-size: 13pt; line-height: .9; font-weight: bold; margin-left: 1mm; }
+            .brand-name small { display: block; font-size: 7pt; text-align: center; margin-top: 1mm; }
+            .id-pill { position: absolute; z-index: 2; left: 13mm; bottom: -5mm; background: #ed1d55; border-radius: 5mm; color: #fff; padding: 1.5mm 7mm; font-size: 9pt; font-weight: bold; }
+            .front-main { position: absolute; top: 16mm; left: 7mm; right: 7mm; height: 35mm; padding: 0; }
+            .photo { position: absolute; left: 12mm; top: 0; width: 31mm; height: 22mm; border: 1mm solid #18a9df; border-radius: 0 8mm 0 8mm; object-fit: cover; }
+            .driver-name { position: absolute; left: 0; top: 23mm; color: #d82463; font-size: 9pt; font-weight: bold; text-transform: uppercase; }
+            .detail { position: absolute; left: 0; font-size: 7.2pt; line-height: 1.35; font-weight: bold; }
+            .front-main .detail:nth-child(3) { top: 28mm; }
+            .front-main .detail:nth-child(4) { top: 31.5mm; }
+            .front-main .detail:nth-child(5) { top: 35mm; }
+            .front-main .detail:nth-child(6) { top: 38.5mm; }
+            .detail .label { display: inline-block; width: 28mm; color: #555; }
+            .detail .value { color: #17558e; }
+            .front-bottom { position: absolute; z-index: 1; bottom: 0; left: 0; width: 54mm; height: 8mm; background: #0a62aa; border-radius: 0 10mm 0 0; }
+            .front-bottom:before { content: ""; position: absolute; left: 0; top: -2mm; width: 48mm; height: 5mm; background: #888; border-radius: 50%; }
+            .signature { position: absolute; z-index: 2; right: 5mm; bottom: 2mm; font-size: 6pt; text-align: center; border-top: .3mm solid #333; padding-top: 1mm; width: 28mm; }
+            .back { padding: 0; }
+            .instructions-title { position: absolute; top: 4mm; left: 0; right: 0; text-align: center; text-decoration: underline; font-size: 10pt; font-weight: bold; }
+            .instructions { position: absolute; top: 11mm; left: 7mm; right: 5mm; height: 26mm; overflow: hidden; margin: 0; padding-left: 6mm; font-size: 7.2pt; line-height: 1.35; }
+            .instructions li { padding-left: 1mm; margin-bottom: 1.4mm; }
+            .instructions li::marker { color: #f4ab16; font-size: 14pt; }
+            .back-rule { border-left: .35mm solid #999; position: absolute; top: 3mm; bottom: 3mm; left: 2mm; }
+            .company { position: absolute; left: 7mm; right: 7mm; bottom: 3mm; height: 15mm; text-align: center; border-top: .3mm solid #999; padding-top: 1mm; }
+            .company img { width: 25mm; height: 10mm; object-fit: contain; }
+            .company-name { color: #06416b; font-size: 10pt; line-height: 1.05; font-weight: bold; }
+            .company-office { color: #e32755; font-size: 8pt; font-weight: bold; }
+            .company-address { font-size: 7pt; line-height: 1.25; }
+            .company-phone { color: #1260a0; font-size: 8pt; font-weight: bold; }
+        </style></head><body><div class="sheet">
+            <div class="panel front"><div class="blue-top"><img class="brand-logo" src="' . $logo . '"><div class="brand-name">SYSCON<small>FUNCTIONAL NETWORKS</small></div><div class="id-pill">EMPLOYEE ID CARD</div></div>
+                <div class="front-main"><img class="photo" src="' . $photo . '"><div class="driver-name">' . $escape($record->name) . '</div>
+                    <div class="detail"><span class="label">Staff ID</span>: <span class="value">' . $escape($record->code) . '</span></div>
+                    <div class="detail"><span class="label">Designation</span>: <span class="value">' . $escape($profile?->license_type_label ?: 'Driver') . '</span></div>
+                    <div class="detail"><span class="label">Contact No.</span>: <span class="value">' . $escape($record->full_phone) . '</span></div>
+                    <div class="detail"><span class="label">License No.</span>: <span class="value">' . $escape($profile?->license_number) . '</span></div>
+                </div><div class="signature">Authorised Signature</div><div class="front-bottom"></div>
+            </div><div class="panel back"><div class="back-rule"></div><div class="instructions-title">INSTRUCTIONS</div><ul class="instructions">' . $instructionHtml . '</ul>
+                <div class="company"><img src="' . $logo . '"><div class="company-name">SYSCON FUNCTIONAL<br>NETWORKS PVT LTD</div><div class="company-office">' . $escape($office) . '</div><div class="company-address">' . $escape($address ?: 'Please contact the issuing office.') . '</div><div class="company-phone">Ph. No. ' . $escape($record->full_phone) . '</div></div>
+            </div>
+        </div></body></html>';
+    }
+
+    private function buildDriverIdCardView(User $record): string
+    {
+        $profile = $record->driverProfile;
+
+        $photo = $this->pdfImageData($record->avatar
+            ? storage_path('app/public/' . $record->avatar)
+            : public_path('assets/img/user.png'));
+
+        $sysconLogo = $this->pdfImageData(public_path('assets/img/syscon-logo.png'));
+        $tgsrtcLogo = $this->pdfImageData(public_path('assets/img/tgsrtc-logo.png'));
+        $jbmLogo    = $this->pdfImageData(public_path('assets/img/jbm-vertical.png')); // Pre-rotated vertical JBM image
+        $signature  = $this->pdfImageData(public_path('assets/img/signature.png'));
+
+        $office = $profile?->branchLocation?->name ?: ($profile?->depot?->name ?: 'Branch Office');
+        $depot  = $profile?->depot?->name ?: 'WL-2 DEPOT';
+
+        $address = trim(collect([
+            $profile?->address,
+            $profile?->location?->name,
+            $profile?->district?->name,
+            $profile?->state?->name,
+            $profile?->pincode,
+        ])->filter()->implode(', '));
+
+        $instructions = [
+            'This Card Must be Carried always and must produced when damaged by the authority.',
+            'Loss of theft of this card should be report immediately to issuing authority in writing.',
+            'This card is the property of the Syscon Functional Networks Pvt Ltd',
+            'This card is not transferable and must be surrendered immediately upon cessation of organisation on instruction of issuing authority.',
+            'If found return to Syscon Functional Networks Pvt Ltd',
+        ];
+
+        return view('driver-management.id-card', compact(
+            'record',
+            'profile',
+            'photo',
+            'sysconLogo',
+            'tgsrtcLogo',
+            'jbmLogo',
+            'signature',
+            'office',
+            'depot',
+            'address',
+            'instructions'
+        ))->render();
+    }
+
+    public function idCardPreview(User $driver_management)
+    {
+        abort_unless($driver_management->hasRole('Driver'), 404);
+
+        $record = $this->driverRecord($driver_management);
+
+        $profile = $record->driverProfile;
+
+        $photo = $this->pdfImageData(
+            $record->avatar
+                ? storage_path('app/public/' . $record->avatar)
+                : public_path('assets/img/user.png')
+        );
+
+        $sysconLogo = $this->pdfImageData(public_path('assets/img/syscon-logo.png'));
+        $tgsrtcLogo = $this->pdfImageData(public_path('assets/img/tgsrtc-logo.png'));
+        $jbmLogo = $this->pdfImageData(public_path('assets/img/jbm-vertical.png'));
+        $signature = $this->pdfImageData(public_path('assets/img/signature.png'));
+
+        $office = $profile?->branchLocation?->name
+            ?: ($profile?->depot?->name ?: 'Branch Office');
+
+        $depot = $profile?->depot?->name ?: 'WL-2 DEPOT';
+
+        $address = trim(collect([
+            $profile?->address,
+            $profile?->location?->name,
+            $profile?->district?->name,
+            $profile?->state?->name,
+            $profile?->pincode,
+        ])->filter()->implode(', '));
+
+        $instructions = [
+            'This Card Must be Carried always and must produced when damaged by the authority.',
+            'Loss of theft of this card should be report immediately to issuing authority in writing.',
+            'This card is the property of the Syscon Functional Networks Pvt Ltd',
+            'This card is not transferable and must be surrendered immediately upon cessation of organisation on instruction of issuing authority.',
+            'If found return to Syscon Functional Networks Pvt Ltd',
+        ];
+
+        return view('driver-management.id-card', compact(
+            'record',
+            'profile',
+            'photo',
+            'sysconLogo',
+            'tgsrtcLogo',
+            'jbmLogo',
+            'signature',
+            'office',
+            'depot',
+            'address',
+            'instructions'
+        ));
+    }
+
+    private function pdfImageData(string $path): string
+    {
+        if (! is_file($path)) {
+            return '';
+        }
+
+        $mime = mime_content_type($path) ?: 'image/png';
+
+        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
     }
 
     private function pdfDocument(array $contents): string

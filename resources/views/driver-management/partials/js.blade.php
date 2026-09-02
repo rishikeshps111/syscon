@@ -193,6 +193,91 @@
             });
         });
 
+        $(document).on('click', '.generate-driver-id-card', function (event) {
+            event.preventDefault();
+            var previewUrl = $(this).data('preview-url');
+            var downloadUrl = $(this).data('download-url');
+            var fileName = $(this).data('file-name') || 'driver-id-card.pdf';
+            var previewFrame = null;
+
+            Swal.fire({
+                title: 'Driver ID Card Preview',
+                html: '<iframe class="driver-id-card-preview" src="' + previewUrl + '" title="Driver ID Card Preview"></iframe>',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-download"></i> Download PDF',
+                cancelButtonText: 'Close',
+                showLoaderOnConfirm: true,
+                width: 720,
+                customClass: { popup: 'driver-id-card-popup' },
+                didOpen: function () {
+                    previewFrame = Swal.getPopup().querySelector('.driver-id-card-preview');
+                },
+                preConfirm: function () {
+                    return captureDriverIdCard(previewFrame, fileName, downloadUrl);
+                }
+            });
+        });
+
+        async function captureDriverIdCard(iframe, fileName, fallbackUrl) {
+            if (!iframe || !iframe.contentDocument) {
+                window.location.href = fallbackUrl;
+                return;
+            }
+
+            var sheet = iframe.contentDocument.querySelector('.sheet');
+
+            if (!sheet) {
+                await new Promise(function (resolve) {
+                    iframe.addEventListener('load', resolve, { once: true });
+                });
+                sheet = iframe.contentDocument.querySelector('.sheet');
+            }
+
+            if (!sheet || typeof html2canvas === 'undefined' || !window.jspdf) {
+                window.location.href = fallbackUrl;
+                return false;
+            }
+
+            try {
+                var images = Array.from(sheet.querySelectorAll('img'));
+                await Promise.all(images.map(function (image) {
+                    return image.complete
+                        ? Promise.resolve()
+                        : new Promise(function (resolve) {
+                            image.addEventListener('load', resolve, { once: true });
+                            image.addEventListener('error', resolve, { once: true });
+                        });
+                }));
+
+                var canvas = await html2canvas(sheet, {
+                    backgroundColor: '#ffffff',
+                    scale: 3,
+                    useCORS: true,
+                    logging: false,
+                    width: sheet.scrollWidth,
+                    height: sheet.scrollHeight
+                });
+
+                var pdfWidth = 144.2;
+                var pdfHeight = pdfWidth * canvas.height / canvas.width;
+                var pdf = new window.jspdf.jsPDF({
+                    orientation: pdfWidth >= pdfHeight ? 'landscape' : 'portrait',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight],
+                    compress: true
+                });
+
+                // Open the generated PDF at 150% in supported PDF viewers.
+                pdf.setDisplayMode('150%', 'continuous', 'UseThumbs');
+                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pdfWidth, pdfHeight);
+                pdf.save(fileName);
+                return true;
+            } catch (error) {
+                Swal.showValidationMessage('PDF generation failed. The preview could not be captured. Please try again.');
+                return false;
+            }
+        }
+
         function showDriverQrAlert(data) {
             Swal.fire({
                 title: 'Driver QR',
@@ -280,7 +365,23 @@
     }
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
+    .driver-id-card-popup .swal2-html-container {
+        margin: 0 1rem 1rem;
+        overflow: hidden;
+    }
+
+    .driver-id-card-preview {
+        border: 1px solid #d8e2eb;
+        border-radius: 8px;
+        display: block;
+        height: 430px;
+        width: 100%;
+    }
+
     .driver-license-badge {
         border-radius: 6px;
         display: inline-block;

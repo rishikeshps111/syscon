@@ -629,6 +629,12 @@ Route::middleware('auth')->group(function () {
         ->name('driver-management.export');
     Route::get('/driver-management/{driver_management}/download-pdf', [DriverManagementController::class, 'downloadPdf'])
         ->name('driver-management.download-pdf');
+    Route::get('/driver-management/{driver_management}/id-card', [DriverManagementController::class, 'idCard'])
+        ->name('driver-management.id-card');
+    Route::get(
+        '/driver-management/{driver_management}/id-card-preview',
+        [DriverManagementController::class, 'idCardPreview']
+    )->name('driver-management.id-card-preview');
     Route::get('/driver-management/{driver_management}/qr-code', [DriverManagementController::class, 'qrCode'])
         ->name('driver-management.qr-code');
     Route::get('/driver-management/{driver}/documents', [DriverDocumentController::class, 'index'])

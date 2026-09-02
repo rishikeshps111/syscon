@@ -14,14 +14,31 @@
                 </button>
                 <ul class="dropdown-menu dromenu-cs">
                     <li><a class="dropdown-item" href="{{ route('driver-management.show', $row->id) }}">View Details</a></li>
-                    <li><a class="dropdown-item view-driver-qr" href="#!" data-url="{{ route('driver-management.qr-code', $row->id) }}">View QR</a></li>
+                    <li><a class="dropdown-item generate-driver-id-card" href="#!"
+                            data-preview-url="{{ route('driver-management.id-card-preview', $row->id) }}"
+                            data-download-url="{{ route('driver-management.id-card', [$row->id, 'download' => 1]) }}"
+                            data-file-name="{{ ($row->code ?: 'driver') . '-id-card.pdf' }}">Generate
+                            ID Card</a></li>
+                    {{-- <a class="dropdown-item" href="{{ route('driver-management.id-card-preview', $row) }}" target="_blank"
+                        class="">
+                        View ID Card
+                    </a> --}}
+                    <li><a class="dropdown-item view-driver-qr" href="#!"
+                            data-url="{{ route('driver-management.qr-code', $row->id) }}">View QR</a></li>
                     <li><a class="dropdown-item" href="{{ route('driver-management.documents.index', $row->id) }}">Documents</a>
                     </li>
-                    @can('hr-letters.generate')<li><a class="dropdown-item" href="{{ route('hr-letters.create', $row->id) }}">Generate Letter</a></li>@endcan
-                    @can('hr-letters.view')<li><a class="dropdown-item" href="{{ route('hr-letters.index', $row->id) }}">View Letters</a></li>@endcan
-                    <li><a class="dropdown-item" href="{{ route('driver-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>
+                    @can('hr-letters.generate')
+                        <li><a class="dropdown-item" href="{{ route('hr-letters.create', $row->id) }}">Generate Letter</a></li>
+                    @endcan
+                    @can('hr-letters.view')
+                        <li><a class="dropdown-item" href="{{ route('hr-letters.index', $row->id) }}">View Letters</a></li>
+                    @endcan
+                    <li><a class="dropdown-item"
+                            href="{{ route('driver-management.depot-assignments.index', $row->id) }}">Assign Depot</a></li>
                     @can('driver-management.edit')
-                        <li><a class="dropdown-item regenerate-passcode" href="#!" data-url="{{ route('driver-management.regenerate-passcode', $row->id) }}">Regenerate Passcode</a></li>
+                        <li><a class="dropdown-item regenerate-passcode" href="#!"
+                                data-url="{{ route('driver-management.regenerate-passcode', $row->id) }}">Regenerate Passcode</a>
+                        </li>
                     @endcan
                 </ul>
             </div>
