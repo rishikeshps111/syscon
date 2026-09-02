@@ -16,12 +16,19 @@
 
     <section class="section dashboard">
         <div class="dor-wrap">
-            <div class="btn-flex">
-                <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}" class="add-btn mb-3"
-                    style="background-color: #6c757d; border-color: #6c757d;">Back</a>
-                <a href="#!" class="add-btn mb-3" style="background-color: #b23939; border-color: #b23939;"
-                    onclick="window.print(); return false;">Print</a>
-            </div>
+            <div class="btn-group-print-cs">
+    <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}" class="btn-back-print-cs">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back</span>
+    </a>
+
+    <a href="#!" class="btn-download-print-cs" onclick="window.print(); return false;">
+        <i class="fa-solid fa-file-pdf"></i>
+        <span>Print</span>
+    </a>
+</div>
+            
+          
 
             @if($dor->is_completed)
                 <div class="alert alert-success">DOR marked as complete.</div>

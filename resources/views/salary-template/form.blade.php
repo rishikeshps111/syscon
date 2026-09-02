@@ -1,4 +1,192 @@
 @section('title', isset($record) ? 'Edit Salary Template' : 'Add Salary Template')
+<style>
+    .alert{
+        font-size:13px;
+    }
+    #componentRows > * {
+    height: 100%;
+}
+
+#componentRows .border.rounded.p-3.h-100 {
+    position: relative !important;
+    overflow: hidden !important;
+
+    padding: 17px !important;
+
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+
+    transition: all 0.25s ease !important;
+}
+
+
+/* Left accent */
+#componentRows .border.rounded.p-3.h-100::before {
+    content: "" !important;
+
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+
+    width: 4px !important;
+
+    background: #2563eb !important;
+
+    border-radius: 12px 0 0 12px !important;
+}
+
+
+/* Decorative circle */
+#componentRows .border.rounded.p-3.h-100::after {
+    content: "" !important;
+
+    position: absolute !important;
+    width: 75px !important;
+    height: 75px !important;
+
+    top: -35px !important;
+    right: -25px !important;
+
+    background: #eff6ff !important;
+    border-radius: 50% !important;
+
+    pointer-events: none !important;
+}
+
+
+/* Hover */
+#componentRows .border.rounded.p-3.h-100:hover {
+    transform: translateY(-3px) !important;
+
+    border-color: #bfdbfe !important;
+
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.09) !important;
+}
+
+
+/* =========================================
+   Header
+   ========================================= */
+
+#componentRows .border.rounded.p-3.h-100 .d-flex {
+    position: relative !important;
+    z-index: 2 !important;
+}
+
+
+#componentRows .border.rounded.p-3.h-100 label {
+    color: #1e293b !important;
+
+    font-size: 14px !important;
+    font-weight: 700 !important;
+}
+
+
+/* Earning text */
+#componentRows .border.rounded.p-3.h-100 label small {
+    margin-left: 3px !important;
+
+    color: #64748b !important;
+
+    font-size: 10px !important;
+    font-weight: 500 !important;
+
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+}
+
+
+/* =========================================
+   Remove Button
+   ========================================= */
+
+#componentRows .remove-component {
+    position: relative !important;
+    z-index: 3 !important;
+
+    width: 30px !important;
+    height: 30px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    padding: 0 !important;
+
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+
+    border: 1px solid #fecaca !important;
+    border-radius: 7px !important;
+
+    font-size: 12px !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+#componentRows .remove-component:hover {
+    color: #ffffff !important;
+    background: #dc2626 !important;
+    border-color: #dc2626 !important;
+
+    transform: scale(1.06) !important;
+
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.18) !important;
+}
+
+
+/* =========================================
+   Amount Input
+   ========================================= */
+
+#componentRows .form-control {
+    position: relative !important;
+    z-index: 2 !important;
+
+    height: 42px !important;
+
+    margin-top: 5px !important;
+
+    color: #1e293b !important;
+    background: #f8fafc !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+
+    font-size: 14px !important;
+    font-weight: 600 !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+#componentRows .form-control:hover {
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+}
+
+
+#componentRows .form-control:focus {
+    color: #1e293b !important;
+    background: #ffffff !important;
+
+    border-color: #60a5fa !important;
+
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10) !important;
+}
+
+
+/* Number input arrows */
+#componentRows input[type="number"] {
+    appearance: auto !important;
+}
+
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -42,9 +230,9 @@
                         <div class="col-12"><div class="alert alert-info">Select a role{{ isset($record) && $record->role?->name === 'Staff' ? ' and designation' : '' }} to load salary components.</div></div>
                     </div>
                 </div>
-                <div class="text-center mt-3">
-                    <a href="{{ route('salary-templates.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                    <button class="btn btn-primary" type="submit" data-loading-text="Loading...">
+                <div class="text-center modal-btns-last mt-3">
+                    <a href="{{ route('salary-templates.index') }}" class=" modal-btn-1">Cancel</a>
+                    <button class="modal-btn-2" type="submit" data-loading-text="Loading...">
                         {{ isset($record) ? 'Update' : 'Submit' }}
                     </button>
                 </div>

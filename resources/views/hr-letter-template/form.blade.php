@@ -1,4 +1,16 @@
 @section('title', $record ? 'Edit Letter Template' : 'Create Letter Template')
+<style>
+    .btn-light{
+            background: #fcf5e0 !important;
+    color: #ad8406 !important;
+    border:1px solid #fcf5e0 !important;
+    }
+    .btn-light:hover{
+            background: #ad8406 !important;
+    color: #fff !important;
+    border:1px solid #ad8406 !important;
+    }
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -11,8 +23,8 @@
                     @method('PUT')
                 @endif
                 <div class="row">
-                    <div class="col-md-4 mb-3"><label>Entity <span class="text-danger">*</span></label><select
-                            class="form-select select2" name="entity_type" required>
+                    <div class="col-lg-4 mb-3"><label>Entity <span class="text-danger">*</span></label><select
+                            class="form-select select2 shadow-none" name="entity_type" required>
                             <option value="">--- Select ---</option>
                             @foreach ($entityTypes as $value => $label)
                                 <option value="{{ $value }}" @selected(old('entity_type', $record?->entity_type) === $value)>
@@ -24,8 +36,8 @@
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-                    <div class="col-md-4 mb-3"><label>Language <span class="text-danger">*</span></label><select
-                            class="form-select select2" name="language" required>
+                    <div class="col-lg-4 mb-3"><label>Language <span class="text-danger">*</span></label><select
+                            class="form-select select2 shadow-none" name="language" required>
                             <option value="">--- Select ---</option>
                             @foreach ($languages as $language)
                                 <option value="{{ $language }}" @selected(old('language', $record?->language) === $language)>
@@ -37,13 +49,13 @@
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-                    <div class="col-md-4 mb-3"><label>Template Name <span class="text-danger">*</span></label><input
-                            class="form-control" name="template_name"
+                    <div class="col-lg-4 mb-3 o-f-inp"><label>Template Name <span class="text-danger">*</span></label><input
+                            class="form-control shadow-none" name="template_name"
                             value="{{ old('template_name', $record?->template_name) }}" required></div>
-                    <div class="col-12 mb-3"><label>Subject Line <span class="text-danger">*</span></label><input
-                            class="form-control" name="subject" value="{{ old('subject', $record?->subject) }}"
+                    <div class="col-12 mb-3 o-f-inp"><label>Subject Line <span class="text-danger">*</span></label><input
+                            class="form-control shadow-none" name="subject" value="{{ old('subject', $record?->subject) }}"
                             required></div>
-                    <div class="col-12 mb-2"><label>Available Variables</label>
+                    <div class="col-12 mb-2 o-f-inp"><label>Available Variables</label>
                         <div>
                             @foreach ($placeholders as $placeholder)
                                 <button type="button" class="btn btn-sm btn-light border mb-1 js-placeholder"
@@ -51,23 +63,23 @@
                             @endforeach
                         </div>
                     </div>
-                    <div class="col-12 mb-3"><label>Letter Content <span class="text-danger">*</span></label>
-                        <textarea id="letter_content" class="form-control"
+                    <div class="col-12 mb-3 o-f-inp"><label>Letter Content <span class="text-danger">*</span></label>
+                        <textarea id="letter_content" class="form-control shadow-none"
                             name="content">{{ old('content', $record?->content) }}</textarea>
                         @error('content')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-                    <div class="col-md-6 mb-3"><label>Header Address</label>
-                        <textarea class="form-control" name="header_address"
+                    <div class="col-md-6 mb-3 o-f-inp"><label>Header Address</label>
+                        <textarea class="form-control shadow-none" name="header_address"
                             rows="3">{{ old('header_address', $record?->header_address) }}</textarea>
                     </div>
-                    <div class="col-md-6 mb-3"><label>Footer Data</label>
-                        <textarea class="form-control" name="footer_content"
+                    <div class="col-md-6 mb-3 o-f-inp"><label>Footer Data</label>
+                        <textarea class="form-control shadow-none" name="footer_content"
                             rows="3">{{ old('footer_content', $record?->footer_content) }}</textarea>
                     </div>
-                    <div class="col-md-4 mb-3"><label for="header_logo">Header Logo</label><input type="file"
-                            id="header_logo" class="form-control" name="header_logo" accept="image/*">
+                    <div class="col-md-4 mb-3 o-f-inp file-input"><label for="header_logo">Header Logo</label><input type="file"
+                            id="header_logo" class="form-control shadow-none" name="header_logo" accept="image/*">
                         <div class="mt-2"><img id="header_logo_preview"
                                 style="max-height:90px;max-width:100%;{{ $record?->header_logo ? '' : 'display:none;' }}"
                                 src="{{ $record?->header_logo ? asset('storage/' . $record->header_logo) : '' }}"
@@ -77,7 +89,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-4 mb-3"><label>Status</label><select class="form-select select2"
+                    <div class="col-md-4 mb-3 o-f-inp"><label>Status</label><select class="form-select select2 shadow-none"
                             name="is_active">
                             <option value="1" @selected((string) old('is_active', $record?->is_active ?? 1) === '1')>
                                 Active
@@ -85,10 +97,10 @@
                             <option value="0" @selected((string) old('is_active', $record?->is_active ?? 1) === '0')>
                                 Inactive</option>
                         </select></div>
-                    <div class="col-12 d-flex justify-content-center mt-3">
-                        <div class="btn-flex">
-                            <a class="reset-btn me-2" href="{{ route('hr-letter-templates.index') }}">Cancel</a><button
-                                type="submit" class="submit-btn js-loading-submit"
+                    <div class="col-12  mt-3">
+                        <div class="modal-btns-last">
+                            <a class="reset-btn me-2 modal-btn-1" href="{{ route('hr-letter-templates.index') }}">Cancel</a><button
+                                type="submit" class="modal-btn-2 js-loading-submit"
                                 data-loading-text="Loading...">{{ $record ? 'Update' : 'Submit' }}</button>
                         </div>
                     </div>

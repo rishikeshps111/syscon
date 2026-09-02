@@ -95,7 +95,7 @@
                                         <div class="input-group">
                                             <select name="country_code" id="country_code"
                                                 class="form-select shadow-none @error('country_code') is-invalid @enderror"
-                                                style="max-width: 112px;" required>
+                                                style="max-width: 75px;" required>
                                                 @foreach ($countryCodes as $code => $label)
                                                     <option value="{{ $code }}" @selected($selectedCountryCode === $code)>
                                                         {{ $label }}</option>

@@ -61,10 +61,10 @@
             </select>
         </div>
     </div>
-    <div class="col-lg-6 d-flex justify-content-start align-items-end flex-wrap gap-2 mb-3">
-        <button type="button" class="btn btn-danger" id="resetConsolidatedReport">Reset</button>
-        <button type="button" class="btn btn-primary" id="filterConsolidatedReport">Filter</button>
-        <button type="button" class="btn btn-success" id="downloadConsolidatedReport">Download Consolidated
+    <div class="col-lg-6  btns-group-container mb-3" style="justify-content:flex-start !important;">
+        <button type="button" class="fil-btn" id="resetConsolidatedReport">Reset</button>
+        <button type="button" class="filter-btnss" id="filterConsolidatedReport">Filter</button>
+        <button type="button" class="exp-btn" id="downloadConsolidatedReport" style="width:fit-content;">Download Consolidated
             Report</button>
     </div>
 </div>

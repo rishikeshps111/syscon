@@ -17,42 +17,88 @@
         <div class="main-table-container mb-3">
             <h5 class="title-w-sec mb-3">Basic Details</h5>
             <div class="row">
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
-                        <span>Vehicle Code</span>
-                        <strong>{{ $vehicle->vehicle_code }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
-                        <span>Vehicle No</span>
-                        <strong>{{ $vehicle->vehicle_no }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
-                        <span>Type</span>
-                        <strong>{{ $vehicle->vehicle_type }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
-                        <span>Fuel Type</span>
-                        <strong>{{ $vehicle->fuel_type }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
-                        <span>OEM</span>
-                        <strong>{{ $vehicle->oem?->oem_name ?? '-' }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
-                        <span>Depot</span>
-                        <strong>{{ $vehicle->depot?->name ?? '-' }}</strong>
-                    </div>
-                </div>
+               <div class="col-lg-3 col-md-6 mb-3">
+    <div class="vehicle-detail-card vehicle-widget-code">
+        <div class="vehicle-detail-icon">
+            <i class="fa-solid fa-barcode"></i>
+        </div>
+
+        <div class="vehicle-detail-content">
+            <span>Vehicle Code</span>
+            <strong>{{ $vehicle->vehicle_code }}</strong>
+        </div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="vehicle-detail-card vehicle-widget-no">
+        <div class="vehicle-detail-icon">
+            <i class="fa-solid fa-car"></i>
+        </div>
+
+        <div class="vehicle-detail-content">
+            <span>Vehicle No</span>
+            <strong>{{ $vehicle->vehicle_no }}</strong>
+        </div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="vehicle-detail-card vehicle-widget-type">
+        <div class="vehicle-detail-icon">
+            <i class="fa-solid fa-truck"></i>
+        </div>
+
+        <div class="vehicle-detail-content">
+            <span>Type</span>
+            <strong>{{ $vehicle->vehicle_type }}</strong>
+        </div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="vehicle-detail-card vehicle-widget-fuel">
+        <div class="vehicle-detail-icon">
+            <i class="fa-solid fa-gas-pump"></i>
+        </div>
+
+        <div class="vehicle-detail-content">
+            <span>Fuel Type</span>
+            <strong>{{ $vehicle->fuel_type }}</strong>
+        </div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="vehicle-detail-card vehicle-widget-oem">
+        <div class="vehicle-detail-icon">
+            <i class="fa-solid fa-industry"></i>
+        </div>
+
+        <div class="vehicle-detail-content">
+            <span>OEM</span>
+            <strong>{{ $vehicle->oem?->oem_name ?? '-' }}</strong>
+        </div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="vehicle-detail-card vehicle-widget-depot">
+        <div class="vehicle-detail-icon">
+            <i class="fa-solid fa-warehouse"></i>
+        </div>
+
+        <div class="vehicle-detail-content">
+            <span>Depot</span>
+            <strong>{{ $vehicle->depot?->name ?? '-' }}</strong>
+        </div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -95,10 +141,10 @@
                                             Is Verified
                                         </label>
                                     </div>
-                                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                        <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn">Submit</button>
+                                    <div class="col-lg-12 ">
+                                        <div class="modal-btns-last">
+                                            <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="modal-btn-2">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -111,11 +157,11 @@
 
         <div class="main-table-container">
             <div class="row mb-3">
-                <div class="col-lg-12 d-flex justify-content-end align-items-end">
-                    <div class="btn-flex">
-                        <a href="{{ route('vehicles.index') }}" class="add-btn bg-filter">Back</a>
+                <div class="col-lg-12 ">
+                    <div class="btns-group-container">
+                        <a href="{{ route('vehicles.index') }}" class="bk-btn">Back</a>
                         @can('vehicles.edit')
-                            <a class="add-btn" data-bs-toggle="modal" href="#addDocumentModal" role="button">
+                            <a class="add-btn m-0" data-bs-toggle="modal" href="#addDocumentModal" role="button">
                                 Add Document
                             </a>
                         @endcan

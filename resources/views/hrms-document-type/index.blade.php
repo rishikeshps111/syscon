@@ -18,8 +18,18 @@
         <div class="row">
             <div class="col-lg-12 mb-3">
                 <div class="main-table-container">
-                    <div class="row mb-4">
-                        <div class="col-lg-3">
+                      <div class="row mb-2">
+                        <div class="col-lg-4 ms-auto btns-group-container">
+                            @can('hrms-document-types.create')
+                                <button type="button" id="addNewHrmsDocumentType" class="add-btn form-btn">Add Document Type</button>
+                            @endcan
+                            @can('hrms-document-types.view')
+                                <button id="exportSelected" class="exp-btn ms-1">Export</button>
+                            @endcan
+                        </div>
+                    </div>
+                    <div class="row ">
+                        <div class="col-lg-3 mb-2 ps-3">
                             <div class="o-f-inp">
                                 <label for="categoryFilter">Filter by Category</label>
                                 <select name="category" id="categoryFilter" class="form-select shadow-none">
@@ -30,7 +40,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-3">
+                        <div class="col-lg-3 mb-2">
                             <div class="o-f-inp">
                                 <label for="applicableForFilter">Applicable For</label>
                                 <select name="applicable_for" id="applicableForFilter" class="form-select shadow-none">
@@ -41,7 +51,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-2">
+                        <div class="col-lg-3 mb-2">
                             <div class="o-f-inp">
                                 <label for="mandatoryFilter">Mandatory</label>
                                 <select name="mandatory" id="mandatoryFilter" class="form-select shadow-none">
@@ -51,7 +61,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-2">
+                        <div class="col-lg-3 mb-2">
                             <div class="o-f-inp">
                                 <label for="statusFilter">Filter by Status</label>
                                 <select name="status" id="statusFilter" class="form-select shadow-none">
@@ -61,26 +71,18 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-2 d-flex align-items-end">
+                        <div class="col-lg-3 d-flex align-items-end">
                             <button type="button" id="resetFilters" class="btn btn-secondary mb-1">
                                 Reset
                             </button>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-lg-4 ms-auto justify-content-end d-flex">
-                            @can('hrms-document-types.create')
-                                <button type="button" id="addNewHrmsDocumentType" class="add-btn form-btn">Add Document Type</button>
-                            @endcan
-                            @can('hrms-document-types.view')
-                                <button id="exportSelected" class="exp-btn ms-1">Export</button>
-                            @endcan
-                        </div>
-                    </div>
+                  
                     <div class="row">
                         <div class="col-lg-12">
                             <div class=" mt-3 table-container">
-                                <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
+                                <div class="table-over-cs">
+                                    <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
                                     style="width:100%;">
                                     <thead>
                                         <tr>
@@ -100,6 +102,7 @@
                                     </thead>
                                     <tbody></tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>

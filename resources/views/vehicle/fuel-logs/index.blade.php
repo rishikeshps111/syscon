@@ -18,25 +18,25 @@
             <h5 class="title-w-sec mb-3">Basic Details</h5>
             <div class="row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
+                    <div class="vehicle-detail-card-2">
                         <span>Vehicle Code</span>
                         <strong>{{ $vehicle->vehicle_code }}</strong>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
+                    <div class="vehicle-detail-card-2">
                         <span>Vehicle No</span>
                         <strong>{{ $vehicle->vehicle_no }}</strong>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
+                    <div class="vehicle-detail-card-2">
                         <span>Fuel Type</span>
                         <strong>{{ $fuelTypes[$vehicle->fuel_type] ?? $vehicle->fuel_type }}</strong>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card">
+                    <div class="vehicle-detail-card-2">
                         <span>Depot</span>
                         <strong>{{ $vehicle->depot?->name ?? '-' }}</strong>
                     </div>
@@ -96,10 +96,10 @@
                                             required>
                                     </div>
                                     <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                        <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary"
+                                        <div class="modal-btns-last">
+                                            <button type="button" class="modal-btn-1"
                                                 data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn" id="fuelLogSubmitBtn">Submit</button>
+                                            <button type="submit" class="modal-btn-2" id="fuelLogSubmitBtn">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -112,11 +112,11 @@
 
         <div class="main-table-container">
             <div class="row mb-3">
-                <div class="col-lg-12 d-flex justify-content-end align-items-end">
-                    <div class="btn-flex">
-                        <a href="{{ route('vehicles.index') }}" class="add-btn bg-filter">Back</a>
+                <div class="col-lg-12 ">
+                    <div class="btns-group-container" style="margin-bottom:-20px;">
+                        <a href="{{ route('vehicles.index') }}" class="bk-btn">Back</a>
                         @can('vehicles.edit')
-                            <a class="add-btn" data-bs-toggle="modal" href="#fuelLogModal" role="button">
+                            <a class="add-btn m-0" data-bs-toggle="modal" href="#fuelLogModal" role="button">
                                 Add Fuel / Energy Log
                             </a>
                         @endcan

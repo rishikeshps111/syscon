@@ -24,10 +24,17 @@
                 <div class="main-table-container mt-3 bg-white">
                     <div class="row">
                         <div class="col-lg-12 mb-3">
-                            <div class="btn-flex justify-content-end">
-                                <a href="{{ route('oems.index') }}" class="btn btn-secondary">Back</a>
-                                <a href="{{ route('oems.download-pdf', $record->id) }}" class="btn btn-primary">Download PDF</a>
-                            </div>
+                            <div class="btn-group-print-cs">
+    <a href="{{ route('oems.index') }}" class="btn-back-print-cs">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>Back</span>
+    </a>
+
+    <a href="{{ route('oems.download-pdf', $record->id) }}" class="btn-download-print-cs">
+        <i class="fa-solid fa-file-pdf"></i>
+        <span>Download PDF</span>
+    </a>
+</div>
                         </div>
 
                         <div class="col-lg-12 mb-3">

@@ -47,7 +47,7 @@
                             @method('PUT')
                         @endif
 
-                        <ul class="nav nav-tabs nav-tabs-bordered justify-content-start" role="tablist">
+                        <ul class="nav nav-tabs-custom" role="tablist">
                             @foreach ([
         'drv1' => 'Basic Information',
         'drv2' => 'Identity Details',
@@ -151,7 +151,7 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    <div class="col-lg-4 o-f-inp file-input mb-3">
                                         <label for="avatar">Driver Image</label>
                                         <div class="d-flex align-items-center gap-3">
                                             <img id="driverAvatarPreview" src="{{ $avatarUrl }}"
@@ -539,13 +539,13 @@
                         </div>
 
                         <div class="col-lg-12 mt-3">
-                            <div class="btn-flex">
+                            <div class="btn-flex-cs">
                                 <a href="{{ route('driver-management.index') }}"
-                                    class="btn btn-secondary me-2">Cancel</a>
-                                <button type="button" class="btn btn-secondary me-2"
+                                    class="btn-cancel-cs">Cancel</a>
+                                <button type="button" class="btn-prev-cs"
                                     id="wizardPrev">Previous</button>
-                                <button type="button" class="submit-btn" id="wizardNext">Next</button>
-                                <button type="submit" class="submit-btn js-loading-submit" id="wizardSubmit"
+                                <button type="button" class="btn-next-cs" id="wizardNext">Next</button>
+                                <button type="submit" class="btn-submit-cs js-loading-submit" id="wizardSubmit"
                                     data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
                             </div>
                         </div>

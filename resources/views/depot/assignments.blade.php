@@ -60,12 +60,15 @@
                             value="{{ $filters['date_to'] ?? '' }}">
                     </div>
                 </div>
-                <div class="col-lg-6 d-flex align-items-end justify-content-end mb-3">
-                    <div class="btn-flex">
-                        <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
-                        <a href="{{ route('depots.index') }}" class="add-btn bg-filter">Back</a>
+                <div class="col-lg-1">
+                    <button type="button" id="resetFilters" class="btn btn-secondary mt-4">Reset</button>
+                </div>
+                <div class="col-lg-5 d-flex align-items-end justify-content-end mb-3">
+                    <div class="btns-group-container">
+                        
+                        <a href="{{ route('depots.index') }}" class="bk-btn bg-filter">Back</a>
                         <a href="{{ route('depots.assignments.index', $depot->id, ['export' => 'csv']) }}"
-                            id="exportCsv" class="btn btn-primary">Export CSV</a>
+                            id="exportCsv" class="exp-btn">Export CSV</a>
                     </div>
                 </div>
             </div>

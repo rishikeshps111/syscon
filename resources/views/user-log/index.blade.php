@@ -15,7 +15,7 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <div class="main-table-container">
+                <div class="main-table-container report-bn">
                     <form method="GET" id="userLogFilterForm">
                         <div class="row align-items-end">
                             <div class="col-lg-3 mb-3">
@@ -54,15 +54,16 @@
                                 </div>
                             </div>
                             <div class="col-lg-3 mb-3">
-                                <div class="filter-btns-top justify-content-start">
-                                    <button type="button" id="resetFilters" class="reset-btn border-0">Reset</button>
+                                <div class="btns-group-container" style="justify-content:flex-start !important;">
+                                    <button type="button" id="resetFilters" class="fil-btn">Reset</button>
                                 </div>
                             </div>
                         </div>
                     </form>
 
                     <div class="table-container">
-                        <table id="userLogsTable" class="table align-middle mb-0 table tble-cstm mt-3"
+                        <div class="table-over">
+                            <table id="userLogsTable" class="table align-middle mb-0 table tble-cstm mt-3"
                             style="width:100%;">
                             <thead>
                                 <tr>
@@ -75,6 +76,7 @@
                             </thead>
                             <tbody></tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -18,6 +18,17 @@
         <div class="row">
             <div class="col-lg-12 mb-3">
                 <div class="main-table-container">
+                    <div class="row mb-3">
+                        <div class="col-lg-6 ms-auto btns-group-container">
+                            @can('holidays.create')
+                                <a href="{{ route('holidays.create') }}" class="add-btn form-btn me-1">Add Holiday</a>
+                            @endcan
+                            @can('holidays.view')
+                                <a href="{{ route('holidays.calendar-view') }}" class="holiday-btn m-0">Holiday calendar</a>
+                                <button id="exportSelected" class="exp-btn ms-1">Export</button>
+                            @endcan
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-lg-3 d-none">
                             <div class="o-f-inp">
@@ -60,7 +71,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-2">
+                        <div class="col-lg-3 center-gap ps-1">
                             <div class="o-f-inp">
                                 <label for="statusFilter">Status</label>
                                 <select id="statusFilter" class="form-select shadow-none">
@@ -69,28 +80,18 @@
                                     <option value="0">Inactive</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="col-lg-1 d-flex align-items-end">
                             <button type="button" id="resetFilters" class="btn btn-secondary mb-1">
                                 Reset
                             </button>
                         </div>
+                        
                     </div>
-                    <div class="row mt-4">
-                        <div class="col-lg-6 ms-auto justify-content-end d-flex">
-                            @can('holidays.create')
-                                <a href="{{ route('holidays.create') }}" class="add-btn form-btn me-1">Add Holiday</a>
-                            @endcan
-                            @can('holidays.view')
-                                <a href="{{ route('holidays.calendar-view') }}" class="add-btn m-0">Holiday calendar</a>
-                                <button id="exportSelected" class="exp-btn ms-1">Export</button>
-                            @endcan
-                        </div>
-                    </div>
+                    
                     <div class="row">
                         <div class="col-lg-12">
                             <div class="mt-3 table-container">
-                                <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
+                                <div class="table-over-cs">
+                                    <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
                                     style="width:100%;">
                                     <thead>
                                         <tr>
@@ -109,6 +110,7 @@
                                     </thead>
                                     <tbody></tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>

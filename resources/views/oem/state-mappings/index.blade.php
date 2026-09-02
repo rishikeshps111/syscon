@@ -18,41 +18,76 @@
             <h5 class="title-w-sec mb-3">Basic Details</h5>
             <div class="row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="oem-detail-card">
-                        <span>OEM Code</span>
+    <div class="oem-depo-widget oem-widget-blue">
+        <div class="oem-widget-icon">
+            <i class="fa-solid fa-barcode"></i>
+        </div>
+        <div class="oem-widget-content">
+            <span>OEM Code</span>
                         <strong>{{ $oem->oem_code }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="oem-detail-card">
-                        <span>OEM Name</span>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="oem-depo-widget oem-widget-purple">
+        <div class="oem-widget-icon">
+            <i class="fa-solid fa-building"></i>
+        </div>
+        <div class="oem-widget-content">
+            <span>OEM Name</span>
                         <strong>{{ $oem->oem_name }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="oem-detail-card">
-                        <span>Type</span>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="oem-depo-widget oem-widget-green">
+        <div class="oem-widget-icon">
+            <i class="fa-solid fa-layer-group"></i>
+        </div>
+        <div class="oem-widget-content">
+              <span>Type</span>
                         <strong>{{ $oem->oem_type ?? '-' }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="oem-detail-card">
-                        <span>Registered State</span>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="oem-depo-widget oem-widget-orange">
+        <div class="oem-widget-icon">
+            <i class="fa-solid fa-location-dot"></i>
+        </div>
+        <div class="oem-widget-content">
+            <span>State</span>
                         <strong>{{ $oem->state?->name ?? '-' }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="oem-detail-card">
-                        <span>GST Number</span>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="oem-depo-widget oem-widget-red">
+        <div class="oem-widget-icon">
+            <i class="fa-solid fa-receipt"></i>
+        </div>
+        <div class="oem-widget-content">
+            <span>GST Number</span>
                         <strong>{{ $oem->gst_number ?: '-' }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="oem-detail-card">
-                        <span>Primary Contact</span>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="oem-depo-widget oem-widget-cyan">
+        <div class="oem-widget-icon">
+            <i class="fa-solid fa-user-tie"></i>
+        </div>
+        <div class="oem-widget-content">
+             <span>Primary Contact</span>
                         <strong>{{ $oem->primaryContact?->contact_person ?? '-' }}</strong>
-                    </div>
-                </div>
+        </div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -90,9 +125,9 @@
                                         </select>
                                     </div>
                                     <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                        <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn">Submit</button>
+                                        <div class="modal-btns-last">
+                                            <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="modal-btn-2">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -106,8 +141,8 @@
         <div class="main-table-container">
             <div class="row mb-3">
                 <div class="col-lg-12 d-flex justify-content-end align-items-end">
-                    <div class="btn-flex">
-                        <a href="{{ route('oems.index') }}" class="add-btn bg-filter">Back</a>
+                    <div class="btn-flex btns-group-container">
+                        <a href="{{ route('oems.index') }}" class="btn-back-cs"><i class="fa-solid fa-arrow-left"></i>Back</a>
                         @can('oems.edit')
                             <a class="add-btn" data-bs-toggle="modal" href="#stateMappingModal" role="button" id="addStateMapping">
                                 Add State Mapping

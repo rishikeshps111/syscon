@@ -31,7 +31,7 @@
                             <div class="alert alert-danger">{{ $message }}</div>
                         @enderror
 
-                        <div class="accordion" id="permissionAccordion">
+                        <div class="accordion role-accordion" id="permissionAccordion">
                             @foreach($permissionTree as $section)
                                 @php $sectionId = 'section_' . $loop->index; @endphp
                                 <div class="accordion-item mb-2">
@@ -79,10 +79,10 @@
                             @endforeach
                         </div>
 
-                        <div class="d-flex justify-content-center gap-2 mt-4">
-                            <a href="{{ route('role-permissions.index') }}" class="btn btn-secondary">Back</a>
+                        <div class="modal-btns-last mt-4">
+                            <a href="{{ route('role-permissions.index') }}" class="modal-btn-1">Back</a>
                             @can('role-permissions.edit')
-                                <button type="submit" class="btn btn-primary" id="savePermissionBtn">
+                                <button type="submit" class="modal-btn-2" id="savePermissionBtn">
                                     Save Permissions
                                 </button>
                             @endcan

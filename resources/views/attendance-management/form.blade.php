@@ -66,8 +66,8 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-lg-12 d-flex justify-content-end align-items-end mb-3">
-                        <button type="submit" class="btn btn-primary mb-1 filter-btn">Load</button>
+                    <div class="col-lg-12 btns-group-container mb-3">
+                        <button type="submit" class="add-btn">Load</button>
                     </div>
                 </div>
             </form>
@@ -170,9 +170,9 @@
                 </div>
             @endforeach
 
-            <div class="d-flex justify-content-end gap-2">
-                <a href="{{ route('attendance-management.index') }}" class="btn btn-secondary">Back</a>
-                <button type="submit" class="btn btn-primary js-loading-submit">Submit</button>
+            <div class="modal-btns-last">
+                <a href="{{ route('attendance-management.index') }}" class="modal-btn-1">Back</a>
+                <button type="submit" class="modal-btn-2 js-loading-submit">Submit</button>
             </div>
         </form>
 

@@ -18,7 +18,7 @@
             <form id="licenseExpiryReportForm" method="GET" action="{{ route('reports.license-expiry.index') }}">
                 <input type="hidden" name="generate" value="1">
                 <div class="row align-items-end">
-                    <div class="col-lg-3 col-md-6 o-f-inp mb-2">
+                    <div class="col-lg-4 col-md-6 o-f-inp mb-2">
                         <label for="expiry_filter">Filter By <span class="text-danger">*</span></label>
                         <select id="expiry_filter" name="expiry_filter" class="form-select shadow-none select2-filter" required>
                             <option value="">--- Select ---</option>
@@ -28,7 +28,7 @@
                         </select>
                         @error('expiry_filter')<span class="text-danger">{{ $message }}</span>@enderror
                     </div>
-                    <div class="col-lg-3 col-md-6 o-f-inp mb-2">
+                    <div class="col-lg-4 col-md-6 o-f-inp mb-2">
                         <label for="depot_id">Filter by Depo</label>
                         <select id="depot_id" name="depot_id" class="form-select shadow-none select2-filter">
                             <option value="">All</option>
@@ -37,25 +37,25 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-2">
+                    <div class="col-lg-4 col-md-6 o-f-inp mb-2">
                         <label for="name">Filter by Name</label>
                         <input type="text" id="name" name="name" class="form-control shadow-none"
                             value="{{ $filters['name'] ?? '' }}" placeholder="Driver name">
                     </div>
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-2">
+                    <div class="col-lg-4 col-md-6 o-f-inp mb-2">
                         <label for="phone">Filter by Phone No</label>
                         <input type="text" id="phone" name="phone" class="form-control shadow-none"
                             value="{{ $filters['phone'] ?? '' }}" placeholder="Phone no">
                     </div>
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-2">
+                    <div class="col-lg-4 col-md-6 o-f-inp mb-2">
                         <label for="license">Filter by License</label>
                         <input type="text" id="license" name="license" class="form-control shadow-none"
                             value="{{ $filters['license'] ?? '' }}" placeholder="License no">
                     </div>
-                    <div class="col-lg-12 col-md-4 mb-2">
-                        <div class="d-flex gap-2 justify-content-end">
-                            <button type="button" id="resetReportFilters" class="btn btn-secondary">Reset</button>
-                            <button type="submit" class="btn btn-primary" data-loading-text="Generating...">Generate Report</button>
+                    <div class="col-lg-4 col-md-6 mb-2">
+                        <div class="btns-group-container" style="justify-content:flex-start !important;">
+                            <button type="button" id="resetReportFilters" class="fil-btn">Reset</button>
+                            <button type="submit" class="exp-btn m-0" data-loading-text="Generating...">Generate Report</button>
                         </div>
                     </div>
                 </div>
@@ -65,15 +65,15 @@
         <div class="modal fade" id="licenseExpiryReportModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header between-cs-modal">
                         <h5 class="modal-title">Generated License Expiry Report</h5>
-                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
+                        <div class="report-excel">
                             <a href="#" id="downloadLicenseExpiryExcel" class="btn btn-success disabled" aria-disabled="true"
                                 data-loading-text="Downloading...">
                                 Download Excel
                             </a>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="licenseExpiryReportModalBody">
                         <div class="text-center py-5 text-muted">Generate a report to view details.</div>

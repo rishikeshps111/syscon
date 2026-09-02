@@ -9,8 +9,8 @@
         <div class="main-table-container">
             <form id="tripEntryReportForm" action="{{ route($indexRoute) }}" method="GET">
                 <input type="hidden" name="generate" value="1">
-                <div class="row align-items-end">
-                    <div class="col-lg-5 col-md-6 mb-3 o-f-inp">
+                <div class="row ">
+                    <div class="col-lg-12 col-md-6 mb-3 o-f-inp">
                         <label for="report_entity_id">{{ $selectorLabel }} <span class="text-danger">*</span></label>
                         <select id="report_entity_id" name="{{ $filterKey }}" class="form-select shadow-none select2-filter" required>
                             <option value="">---Select {{ $selectorLabel }}---</option>
@@ -21,19 +21,22 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-5 col-md-6 mb-3 o-f-inp">
-                        <label>Report Columns</label>
-                        <div id="selectedTripColumnsInputs"></div>
-                        <div class="report-column-picker">
-                            <div><strong id="selectedTripColumnsCount">{{ count($selectedColumns) }}</strong> <span>columns selected</span></div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#tripColumnModal">Choose Columns</button>
+                    <div class="col-lg-6 mb-3 o-f-inp">
+                        <div class="col-box-cs">
+                             <label>Report Columns</label>
+                        <div id="selectedTripColumnsInputs" class="col-box-top"></div>
+                        <div class="report-column-picker col-box-middle">
+                            <div class="col-box-bottom"><strong id="selectedTripColumnsCount">{{ count($selectedColumns) }}</strong> <span>columns selected</span></div>
+                            <button type="button" class="col-box-button" data-bs-toggle="modal" data-bs-target="#tripColumnModal">Choose Columns</button>
                         </div>
-                        <div id="selectedTripColumnsPreview" class="report-column-preview"></div>
+                        <div id="selectedTripColumnsPreview" class="report-column-preview col-box-preview"></div>
+                        </div>
+                       
                     </div>
-                    <div class="col-lg-2 mb-3">
-                        <div class="d-flex gap-2">
-                            <button type="button" id="resetTripReport" class="btn btn-secondary">Reset</button>
-                            <button type="submit" class="btn btn-primary" data-loading-text="Generating...">Generate</button>
+                    <div class="col-lg-4 mb-3 ms-auto">
+                        <div class="btns-group-container">
+                            <button type="button" id="resetTripReport" class="fil-btn">Reset</button>
+                            <button type="submit" class="exp-btn m-0" data-loading-text="Generating...">Generate</button>
                         </div>
                     </div>
                 </div>
@@ -43,10 +46,12 @@
         <div class="modal fade" id="tripEntryReportModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header between-cs-modal" >
                         <h5 class="modal-title">Generated {{ $reportTitle }}</h5>
-                        <a href="#" id="downloadTripEntryReport" class="btn btn-success disabled ms-auto me-3" aria-disabled="true">Download Excel</a>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                       <div class="report-excel">
+                            <a href="#" id="downloadTripEntryReport" class=" disabled ms-auto me-3" aria-disabled="true">Download Excel</a>
+                       </div>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body" id="tripEntryReportBody"><div class="text-center py-5 text-muted">Generate a report to view details.</div></div>
                 </div>
@@ -56,20 +61,20 @@
         <div class="modal fade" id="tripColumnModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header between-cs-modal">
                         <h5 class="modal-title">Choose Trip Entry and DOR Columns</h5>
-                        <div class="d-flex gap-2 ms-auto me-3">
-                            <button type="button" id="checkAllTripColumns" class="btn btn-sm btn-primary">Check All</button>
-                            <button type="button" id="uncheckAllTripColumns" class="btn btn-sm btn-secondary">Uncheck All</button>
+                        <div class="check-btns-modal">
+                            <button type="button" id="checkAllTripColumns" class="btnCheck1">Check All</button>
+                            <button type="button" id="uncheckAllTripColumns" class="btnCheck2">Uncheck All</button>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body"><div class="report-column-grid">
+                    <div class="modal-body check-modl"><div class="report-column-grid">
                         @foreach($reportColumns as $value => $label)
                             <label class="report-column-option"><input type="checkbox" class="trip-column-check" value="{{ $value }}" data-label="{{ $label }}" @checked(in_array($value, $selectedColumns, true))><span>{{ $label }}</span></label>
                         @endforeach
                     </div></div>
-                    <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">Apply Columns</button></div>
+                    <div class="modal-btns-last p-3"><button type="button" class="modal-btn-2" data-bs-dismiss="modal">Apply Columns</button></div>
                 </div>
             </div>
         </div>

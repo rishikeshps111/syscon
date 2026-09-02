@@ -1,6 +1,211 @@
 @section('title')
     Vehicle Management
 @endsection
+<style>
+    .tble-cstm tr td span{
+        white-space:nowrap;
+    }
+.swal2-popup:has(.vehicle-qr-modal) {
+    width: 440px !important;
+    max-width: calc(100% - 30px);
+    padding: 24px !important;
+
+    border-radius: 14px !important;
+    background: #fff !important;
+
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18) !important;
+}
+
+
+.swal2-popup:has(.vehicle-qr-modal) .swal2-title {
+    margin: 0 0 18px;
+
+    color: #1e293b;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+
+
+.vehicle-qr-modal {
+    text-align: center;
+    padding: 4px 0 0;
+}
+
+.vehicle-qr-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: fit-content;
+    margin: 0 auto 14px;
+    padding: 14px;
+
+    background: #fff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+
+.vehicle-qr-box svg {
+    display: block;
+
+    width: 250px;
+    height: 250px;
+
+    max-width: 100%;
+
+    border-radius: 4px;
+}
+
+
+.vehicle-qr-code {
+    margin-top: 8px;
+
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.vehicle-qr-code strong {
+    display: inline-block;
+
+    margin-left: 3px;
+
+    color: #2a74a6;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.vehicle-qr-name {
+    margin-top: 6px;
+
+    color: #1e293b;
+
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+
+
+.vehicle-qr-modal .btn {
+    min-height: 38px;
+    padding: 0 16px;
+
+    border-radius: 6px !important;
+
+    font-size: 13px !important;
+    font-weight: 600 !important;
+
+    transition: all 0.2s ease;
+}
+
+.vehicle-qr-modal .btn-primary {
+    color: #fff !important;
+    background: #2a74a6 !important;
+
+    border: 1px solid #2a74a6 !important;
+
+    box-shadow: none !important;
+}
+
+.vehicle-qr-modal .btn-primary:hover {
+    background: #235f88 !important;
+    border-color: #235f88 !important;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 5px 12px rgba(42, 116, 166, 0.2) !important;
+}
+
+.vehicle-qr-modal .btn-outline-primary {
+    color: #2a74a6 !important;
+    background: #fff !important;
+
+    border: 1px solid #2a74a6 !important;
+
+    box-shadow: none !important;
+}
+
+.vehicle-qr-modal .btn-outline-primary:hover {
+    color: #fff !important;
+    background: #2a74a6 !important;
+    border-color: #2a74a6 !important;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 5px 12px rgba(42, 116, 166, 0.15) !important;
+}
+
+
+.swal2-popup:has(.vehicle-qr-modal) .swal2-actions {
+    gap: 2px;
+    margin-top: 6px;
+}
+
+
+.swal2-popup:has(.vehicle-qr-modal) .swal2-confirm {
+    min-height: 38px;
+    padding: 0 16px;
+
+    color: #fff !important;
+    background: #2a74a6 !important;
+
+    border: 1px solid #2a74a6 !important;
+    border-radius: 6px !important;
+
+    font-size: 13px !important;
+    font-weight: 600 !important;
+
+    box-shadow: none !important;
+
+    transition: all 0.2s ease;
+}
+
+.swal2-popup:has(.vehicle-qr-modal) .swal2-confirm:hover {
+    background: #235f88 !important;
+    border-color: #235f88 !important;
+
+    transform: translateY(-1px);
+
+    box-shadow: 0 5px 12px rgba(42, 116, 166, 0.2) !important;
+}
+
+
+.swal2-popup:has(.vehicle-qr-modal) .swal2-cancel {
+    min-height: 38px;
+    padding: 0 16px;
+
+    color: #475569 !important;
+    background: #fff !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    box-shadow: none !important;
+
+    transition: all 0.2s ease;
+        width: 122px;
+    margin-right: 8px !important;
+}
+
+.swal2-popup:has(.vehicle-qr-modal) .swal2-cancel:hover {
+    color: #1e293b !important;
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+
+    transform: translateY(-1px);
+}
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -83,7 +288,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-12">
+                            <div class="col-lg-3 pt-4 justify-content-start">
                                 <div class="filter-btns-top">
                                     <a href="#!" class="reset-btn" id="resetFilters">Reset</a>
                                     <button type="button" class="search-btn" id="searchFilters">Search</button>
@@ -99,12 +304,12 @@
             <div class="main-table-container">
                 <div class="row">
                     <div class="col-lg-12 ms-auto">
-                        <div class="btn-flex">
-                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
+                        <div class="btns-group-container">
+                            <a class="filter-btnss" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="true" aria-controls="filterCollapse">Filters</a>
                             @can('vehicles.create')
-                                <a href="{{ route('bulk-import.form', 'vehicles') }}" class="add-btn">Import Vehicles</a>
-                                <a href="{{ route('vehicles.create') }}" class="add-btn">Add Vehicle</a>
+                                <a href="{{ route('bulk-import.form', 'vehicles') }}" class="imp-btn">Import Vehicles</a>
+                                <a href="{{ route('vehicles.create') }}" class="add-btn m-0">Add Vehicle</a>
                             @endcan
                         </div>
                     </div>
@@ -114,7 +319,7 @@
                         <div class="mt-3 table-container">
                             <div class="row justify-content-end">
                                 <div class="col-lg-8">
-                                    <div class="table-search">
+                                    <div class="table-search btns-group-container" style="margin-bottom:-20px">
                                         <label for="searchFilter" class="nowrap">Search</label>
                                         <input type="text" id="searchFilter" class="form-control shadow-none"
                                             placeholder="Vehicle no / Code / Engine / Chassis">
@@ -133,8 +338,8 @@
                                             <th class="text-center nowrap">Vehicle No</th>
                                             <th class="text-center nowrap">Type</th>
                                             <th class="text-center nowrap">Fuel Type</th>
-                                            <th class="text-center nowrap">OEM</th>
-                                            <th class="text-center nowrap">Capacity</th>
+                                            <th class="text-center nowrap" style="min-width:180px;">OEM</th>
+                                            <th class="text-center nowrap" style="min-width:180px;">Capacity</th>
                                             <th class="text-center nowrap">Insurance Expiry</th>
                                             <th class="text-center nowrap">Fitness Expiry</th>
                                             <th class="text-center nowrap">GPS Status</th>
@@ -171,9 +376,9 @@
                         <span class="text-danger error-text status_error"></span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
+                <div class="modal-btns-last p-3">
+                    <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="modal-btn-2">Update</button>
                 </div>
             </form>
         </div>

@@ -19,16 +19,25 @@
                     <div class="card-body pt-3 profile-container">
                         <h3 class="title-spa">{{ Auth::user()->roles->first()->name ?? 'User' }}</h3>
                         <!-- Bordered Tabs -->
-                        <ul class="nav nav-tabs nav-tabs-bordered justify-content-start">
-                            <li class="nav-item ps-0 ms-0">
-                                <button class="nav-link ms-0 active" data-bs-toggle="tab"
-                                    data-bs-target="#profile-overview">Edit Profile</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" data-bs-toggle="tab"
-                                    data-bs-target="#profile-change-password">Change Password</button>
-                            </li>
-                        </ul>
+                       <ul class="nav nav-tabs nav-tabs-custom">
+    <li class="nav-item ps-0 ms-0">
+        <button class="nav-link ms-0 active"
+                data-bs-toggle="tab"
+                data-bs-target="#profile-overview">
+            <i class="fa-solid fa-user-pen me-2"></i>
+            Edit Profile
+        </button>
+    </li>
+
+    <li class="nav-item">
+        <button class="nav-link"
+                data-bs-toggle="tab"
+                data-bs-target="#profile-change-password">
+            <i class="fa-solid fa-key me-2"></i>
+            Change Password
+        </button>
+    </li>
+</ul>
                         <div class="tab-content pt-2">
                             @include('profile.partials.update-profile-information-form')
                             @include('profile.partials.update-password-form')

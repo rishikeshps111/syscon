@@ -361,3 +361,209 @@
 .card-dark {
   background: linear-gradient(135deg, #111827, #1f2937);
 }
+
+
+.card-dashboard-sec {
+    position: relative;
+    min-height: 120px;
+    padding: 22px 20px;
+
+    align-items: center;
+    gap: 17px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+    border: 1px solid #e9efee;
+    border-radius: 18px;
+
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.055);
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+
+    isolation: isolate;
+}
+
+/* Decorative background shape */
+
+.card-dashboard-sec::after {
+    content: "";
+    position: absolute;
+
+    width: 130px;
+    height: 130px;
+
+    right: -45px;
+    bottom: -50px;
+
+    border-radius: 50%;
+
+    background: rgba(0, 105, 92, 0.055);
+
+    z-index: -1;
+
+    transition: transform 0.3s ease;
+}
+
+/* Hover */
+
+.card-dashboard-sec:hover {
+    transform: translateY(-4px);
+
+    border-color: rgba(0, 105, 92, 0.15);
+
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.09);
+}
+
+.card-dashboard-sec:hover::after {
+    transform: scale(1.5);
+}
+
+/* =========================================
+   Icon
+========================================= */
+
+.card-dashboard-widget-icon-sec {
+    flex: 0 0 58px;
+
+    width: 58px;
+    height: 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 16px;
+
+    color: #00695c;
+    background: #eaf7f4;
+
+    font-size: 21px;
+
+    transition:
+        background 0.25s ease,
+        color 0.25s ease,
+        transform 0.25s ease;
+}
+
+.card-dashboard-sec
+.card-dashboard-widget-icon-sec {
+   color: #5fba5b;
+    background: #ccf1ca;
+    transform: scale(1.05);
+}
+
+/* =========================================
+   Card Information
+========================================= */
+
+.card-dashboard-widget-info-sec {
+    min-width: 0;
+}
+
+.card-dashboard-widget-info-sec h3 {
+    margin: 0 0 4px;
+
+    color: #173b38;
+
+    font-size: 27px;
+    font-weight: 600;
+
+    line-height: 1.1;
+}
+
+.card-dashboard-widget-info-sec p {
+    margin: 0;
+
+    color: #222;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    line-height: 1.4;
+}
+
+/* =========================================
+   Arrow indicator
+========================================= */
+
+.card-dashboard-sec::before {
+    content: "\f061";
+
+    position: absolute;
+
+    top: 16px;
+    right: 18px;
+
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+
+    color: #b4c4c1;
+
+    font-size: 11px;
+
+    transition:
+        color 0.25s ease,
+        transform 0.25s ease;
+}
+
+.card-dashboard-sec:hover::before {
+    color: #00695c;
+    transform: translateX(3px);
+}
+
+/* =========================================
+   Optional Color Variants
+========================================= */
+
+.card-dashboard-sec.card-blue
+.card-dashboard-widget-icon-sec {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.card-dashboard-sec.card-blue
+.card-dashboard-widget-icon-sec {
+    color: #ffffff;
+    background: #2563eb;
+}
+
+.card-dashboard-sec.card-orange
+.card-dashboard-widget-icon-sec {
+        color: #ffffff;
+    background: #d6b62b;
+}
+
+.card-dashboard-sec.card-orange
+.card-dashboard-widget-icon-sec {
+   color: #ea580c;
+    background: #fae4d8;
+}
+
+.card-dashboard-sec.card-purple
+.card-dashboard-widget-icon-sec {
+    color: #7c3aed;
+    background: #f5f3ff;
+}
+
+.card-dashboard-sec.card-purple
+.card-dashboard-widget-icon-sec {
+   color: #641fdb;
+    background: #d4c5ee;
+}
+
+.card-dashboard-sec.card-red
+.card-dashboard-widget-icon-sec {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.card-dashboard-sec.card-red
+.card-dashboard-widget-icon-sec {
+   color: #dc2626;
+    background: #f5cfcf;
+}

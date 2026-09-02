@@ -26,6 +26,7 @@
 <link href="{{ asset('assets/css/custom.css') }}" rel="stylesheet">
 <link href="{{ asset('assets/css/custom-two.css') }}" rel="stylesheet">
 <link href="{{ asset('assets/css/dashboard.css') }}" rel="stylesheet">
+<link href="{{ asset('assets/css/responsive.css') }}" rel="stylesheet">
 
 @yield('styles')
 <style>

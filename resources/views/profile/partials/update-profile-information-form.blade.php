@@ -17,49 +17,106 @@
 <div class="tab-pane fade show active profile-overview" id="profile-overview">
     <form id="profileForm" enctype="multipart/form-data">
         @csrf
-        <div class="row mb-3 o-f-inp">
-            <div class="col-lg-4">
-                <label class="col-form-label">Profile Image</label>
-                <div class="d-flex align-items-center gap-3 profile-img">
-                    <img id="avatarPreview" src="{{ $user->avatar_url }}" width="70">
-                    <div>
-                        <label for="upload" class="btn btn-primary btn-sm">
-                            <i class="bi bi-upload"></i>
-                        </label>
-                        <input type="file" name="avatar" id="upload" class="d-none">
-                        <a href="#" class="btn btn-danger btn-sm" id="removeAvatar" title="Remove my profile image">
-                            <i class="bi bi-trash"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="text-danger mt-1" id="error-avatar"></div>
-            </div>
-            <div class="col-lg-8">
-                <div class="profile-preview">
-                    <ul>
-                        <li>
-                            Name :
-                            <span id="previewName">
-                                {{ $user->name }}
-                            </span>
-                        </li>
-                        <li>
-                            Phone :
-                            <span id="previewPhone">
-                                {{ $user->full_phone }}
-                            </span>
-                        </li>
-                        <li>
-                            Email :
-                            <span id="previewEmail">
-                                {{ $user->email }}
-                            </span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+       <div class="profile-view-cs">
+
+    <div class="profile-avatar-section">
+        <div class="profile-avatar-wrap">
+            <img id="avatarPreview"
+                 src="{{ $user->avatar_url }}"
+                 alt="{{ $user->name }}">
+
+            <label for="upload" class="profile-avatar-upload" title="Change profile image">
+                <i class="bi bi-camera-fill"></i>
+            </label>
         </div>
 
+        <input type="file"
+               name="avatar"
+               id="upload"
+               class="d-none"
+               accept="image/*">
+
+        <div class="profile-avatar-actions">
+            <label for="upload" class="profile-upload-btn">
+                <i class="bi bi-upload"></i>
+                Change Photo
+            </label>
+
+            <a href="#"
+               class="profile-remove-btn"
+               id="removeAvatar"
+               title="Remove my profile image">
+                <i class="bi bi-trash3"></i>
+            </a>
+        </div>
+
+        <div class="text-danger mt-2" id="error-avatar"></div>
+    </div>
+
+
+    <div class="profile-info-section">
+
+        <div class="profile-info-heading">
+            <div>
+                <span class="profile-info-label">ACCOUNT PROFILE</span>
+                <h4>Personal Information</h4>
+            </div>
+
+            <span class="profile-status">
+                <i class="bi bi-check-circle-fill"></i>
+                Active
+            </span>
+        </div>
+
+
+        <div class="profile-preview-cs">
+
+            <div class="profile-detail">
+                <div class="profile-detail-icon">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+
+                <div>
+                    <small>Name</small>
+                    <strong id="previewName">
+                        {{ $user->name }}
+                    </strong>
+                </div>
+            </div>
+
+
+            <div class="profile-detail">
+                <div class="profile-detail-icon">
+                    <i class="bi bi-telephone-fill"></i>
+                </div>
+
+                <div>
+                    <small>Phone</small>
+                    <strong id="previewPhone">
+                        {{ $user->full_phone }}
+                    </strong>
+                </div>
+            </div>
+
+
+            <div class="profile-detail w-100">
+                <div class="profile-detail-icon">
+                    <i class="bi bi-envelope-fill"></i>
+                </div>
+
+                <div>
+                    <small>Email Address</small>
+                    <strong id="previewEmail">
+                        {{ $user->email }}
+                    </strong>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
         <div class="row">
             <div class="col-lg-4 o-f-inp mb-2">
                 <label class="col-form-label">
@@ -74,7 +131,7 @@
                 </label>
                 <div class="input-group">
                     <select name="country_code" id="country_code" class="form-select shadow-none flex-grow-1"
-                        style="max-width: 112px;">
+                        style=" max-width: 66px;  padding: 0; padding-left: 5px;">
                         @foreach ($countryCodes as $code => $label)
                             <option value="{{ $code }}" @selected($selectedCountryCode === $code)>
                                 {{ $label }}

@@ -38,8 +38,10 @@
         <span class="text-danger error-text is_active_error"></span>
     </div>
 
-    <div class="col-lg-12 mt-3 text-center">
-        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
-        <button type="submit" class="btn btn-primary">{{ isset($record) ? 'Update' : 'Add' }}</button>
+    <div class="col-lg-12 mt-3 modal-btns-last">
+        <button type="button" class="modal-btn-1" data-bs-dismiss="modal">
+            Close
+        </button>
+        <button type="submit" class="modal-btn-2">{{ isset($record) ? 'Update' : 'Add' }}</button>
     </div>
 </form>

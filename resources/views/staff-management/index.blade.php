@@ -59,13 +59,13 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-4 mb-3">
+                            <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
                                     <label for="dateOfJoiningFilter">Date of Joining</label>
                                     <input type="date" id="dateOfJoiningFilter" class="form-control shadow-none">
                                 </div>
                             </div>
-                            <div class="col-lg-4 mb-3">
+                            <div class="col-lg-3 mb-3">
                                 <div class="o-f-inp">
                                     <label for="statusFilter">Status</label>
                                     <select id="statusFilter" class="form-select shadow-none">
@@ -75,8 +75,8 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-12">
-                                <div class="filter-btns-top">
+                            <div class="col-lg-3">
+                                <div class="filter-btns-top pt-4 justify-content-start">
                                     <a href="#!" class="reset-btn" id="resetFilters">Reset</a>
                                     <button type="button" class="search-btn" id="searchFilters">Search</button>
                                 </div>
@@ -90,12 +90,12 @@
             <div class="main-table-container">
                 <div class="row">
                     <div class="col-lg-12 ms-auto">
-                        <div class="btn-flex">
-                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
+                        <div class="btns-group-container">
+                            <a class="filter-btnss" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
                             @can('staff-management.create')
-                                <a href="{{ route('bulk-import.form', 'staff') }}" class="add-btn">Import Staff</a>
-                                <a href="{{ route('staff-management.create') }}" class="add-btn">Add New Staff</a>
+                                <a href="{{ route('bulk-import.form', 'staff') }}" class="imp-btn">Import Staff</a>
+                                <a href="{{ route('staff-management.create') }}" class="add-btn m-0">Add New Staff</a>
                             @endcan
                         </div>
                     </div>
@@ -105,7 +105,7 @@
                         <div class="mt-3 table-container">
                             <div class="row justify-content-end">
                                 <div class="col-lg-8">
-                                    <div class="table-search">
+                                    <div class="table-search btns-group-container">
                                         <label for="searchFilter" class="nowrap">Search (Name / Code / Ref Code)</label>
                                         <input type="text" id="searchFilter" class="form-control shadow-none">
                                         @can('staff-management.view')
@@ -125,7 +125,7 @@
                                             <th class="text-center nowrap">Staff Name</th>
                                             <th class="text-center nowrap">Role</th>
                                             <th class="text-center">Designation</th>
-                                            <th class="text-center">DOJ</th>
+                                            <th class="text-center" style="min-width:130px;">DOJ</th>
                                             <th class="text-center">Status</th>
                                             <th class="text-center">Actions</th>
                                         </tr>

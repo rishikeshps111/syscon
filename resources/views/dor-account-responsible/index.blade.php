@@ -29,9 +29,7 @@
                 <div class="col-lg-2 d-flex align-items-end">
                     <button type="button" id="resetFilters" class="btn btn-secondary mb-1">Reset</button>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-lg-5 ms-auto justify-content-end d-flex">
+                 <div class="col-lg-5 ms-auto btns-group-container">
                     @can('dor-account-responsibles.create')
                         <button type="button" class="add-btn form-btn">Add Account Responsible</button>
                     @endcan
@@ -40,8 +38,12 @@
                     @endcan
                 </div>
             </div>
+            <div class="row">
+               
+            </div>
             <div class="table-container mt-3">
-                <table id="table" class="table align-middle mb-0 table tble-cstm mt-3" style="width:100%;">
+                <div class="table-over-cs">
+                    <table id="table" class="table align-middle mb-0 table tble-cstm mt-3" style="width:100%;">
                     <thead>
                         <tr>
                             <th class="text-center"><input type="checkbox" id="checkAll"></th>
@@ -54,6 +56,7 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                </div>
             </div>
         </div>
     </section>

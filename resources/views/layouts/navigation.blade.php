@@ -4,7 +4,7 @@
         <div class="sidebar-cont">
             <div class="app-logo">
                 <a href="{{ route('dashboard') }}" class="logo d-flex align-items-center">
-                    <img src="{{ asset('assets/img/logo.png') }}" alt="">
+                    <img src="{{ asset('assets/img/sys-logo.png') }}" alt="">
                     <!-- <span class="d-none d-lg-block">LOGO</span> -->
                 </a>
             </div>

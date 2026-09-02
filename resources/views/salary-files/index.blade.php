@@ -55,9 +55,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-12 mt-2 d-flex gap-2 justify-content-end">
-                        <button type="button" id="resetSalaryFiles" class="btn btn-secondary">Reset</button>
-                        <button type="submit" class="btn btn-primary" data-loading-text="Getting Files...">Get
+                    <div class="col-lg-12 mt-2 modal-btns-last">
+                        <button type="button" id="resetSalaryFiles" class="modal-btn-1">Reset</button>
+                        <button type="submit" class="modal-btn-2" data-loading-text="Getting Files...">Get
                             Files</button>
                     </div>
                 </div>
@@ -199,6 +199,301 @@
                 cursor: not-allowed;
                 opacity: 0.65;
             }
+            
+            .document-card {
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+
+    height: 100% !important;
+    min-height: 245px !important;
+
+    padding: 18px !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+
+    overflow: hidden !important;
+
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.05) !important;
+
+    transition: all 0.25s ease !important;
+}
+
+
+/* Top accent */
+.document-card::before {
+    content: "" !important;
+
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+
+    height: 3px !important;
+
+    background: #2563eb !important;
+
+    opacity: 0 !important;
+
+    transition: opacity 0.25s ease !important;
+}
+
+
+/* Decorative circle */
+.document-card::after {
+    content: "" !important;
+
+    position: absolute !important;
+
+    width: 100px !important;
+    height: 100px !important;
+
+    top: -45px !important;
+    right: -35px !important;
+
+    background: #eff6ff !important;
+
+    border-radius: 50% !important;
+
+    pointer-events: none !important;
+}
+
+
+/* Hover */
+.document-card:hover {
+    transform: translateY(-4px) !important;
+
+    border-color: #cbd5e1 !important;
+
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.10) !important;
+}
+
+.document-card:hover::before {
+    opacity: 1 !important;
+}
+
+
+/* =========================================
+   Document Icon
+   ========================================= */
+
+.document-card .document-icon {
+    position: relative !important;
+    z-index: 2 !important;
+
+    width: 48px !important;
+    height: 48px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin-bottom: 13px !important;
+
+    background: #fef2f2 !important;
+
+    border: 1px solid #fee2e2 !important;
+    border-radius: 10px !important;
+
+    font-size: 22px !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+/* PDF icon */
+.document-card .document-icon[style*="#dc2626"] {
+    color: #dc2626 !important;
+}
+
+.document-card:hover .document-icon {
+    transform: scale(1.05) !important;
+}
+
+
+/* =========================================
+   Document Name
+   ========================================= */
+
+.document-card .document-name {
+    position: relative !important;
+    z-index: 2 !important;
+
+    margin-bottom: 8px !important;
+
+    color: #1e293b !important;
+
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    line-height: 1.45 !important;
+
+    word-break: break-word !important;
+}
+
+
+/* =========================================
+   Folder
+   ========================================= */
+
+.document-card .document-folder {
+    position: relative !important;
+    z-index: 2 !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    margin-bottom: 10px !important;
+
+    color: #64748b !important;
+
+    font-size: 11px !important;
+    font-weight: 500 !important;
+}
+
+.document-card .document-folder::before {
+    content: "\f07b" !important;
+
+    margin-right: 6px !important;
+
+    color: #f59e0b !important;
+
+    font-family: "Font Awesome 6 Free" !important;
+    font-size: 11px !important;
+    font-weight: 900 !important;
+}
+
+
+/* =========================================
+   Meta Information
+   ========================================= */
+
+.document-card .document-meta-text {
+    position: relative !important;
+    z-index: 2 !important;
+
+    margin-bottom: 5px !important;
+
+    color: #64748b !important;
+
+    font-size: 11px !important;
+    font-weight: 500 !important;
+
+    line-height: 1.5 !important;
+}
+
+
+/* Approved text */
+.document-card .document-meta-text:last-of-type {
+    color: #15803d !important;
+}
+
+
+/* =========================================
+   Footer
+   ========================================= */
+
+.document-card .document-card-footer {
+    position: relative !important;
+    z-index: 3 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 10px !important;
+
+    margin-top: auto !important;
+    padding-top: 14px !important;
+
+    border-top: 1px solid #f1f5f9 !important;
+}
+
+
+/* =========================================
+   Count Badge
+   ========================================= */
+
+.document-card .document-card-footer .badge {
+    min-width: 28px !important;
+    height: 26px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    padding: 0 8px !important;
+
+    color: #475569 !important;
+    background: #f1f5f9 !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 7px !important;
+
+    font-size: 11px !important;
+    font-weight: 700 !important;
+}
+
+
+/* =========================================
+   Download Buttons
+   ========================================= */
+
+.document-card .document-download {
+    width: 34px !important;
+    height: 34px !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    color: #dc2626 !important;
+    background: #fef2f2 !important;
+
+    border: 1px solid #fee2e2 !important;
+    border-radius: 8px !important;
+
+    text-decoration: none !important;
+
+    font-size: 14px !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+/* PDF Hover */
+.document-card .document-download:hover {
+    color: #ffffff !important;
+    background: #dc2626 !important;
+    border-color: #dc2626 !important;
+
+    transform: translateY(-2px) !important;
+
+    box-shadow: 0 5px 12px rgba(220, 38, 38, 0.18) !important;
+}
+
+
+/* =========================================
+   Excel Button
+   ========================================= */
+
+.document-card .document-download.document-download-excel {
+    color: #16a34a !important;
+    background: #f0fdf4 !important;
+
+    border-color: #dcfce7 !important;
+}
+
+
+.document-card .document-download.document-download-excel:hover {
+    color: #ffffff !important;
+    background: #16a34a !important;
+    border-color: #16a34a !important;
+
+    box-shadow: 0 5px 12px rgba(22, 163, 74, 0.18) !important;
+}
         </style>
     @endsection
 </x-app-layout>

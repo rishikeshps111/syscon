@@ -75,8 +75,8 @@
 
     <div class="col-lg-6 o-f-inp mb-2">
         <input type="hidden" name="is_mandatory" value="0">
-        <div class="form-check mt-2">
-            <label for="is_mandatory" class="flex-check">
+        <div class="form-check mt-2 ps-0 ">
+            <label for="is_mandatory" class="flex-check pt-1">
                 <input type="checkbox" id="is_mandatory" name="is_mandatory" value="1" {{ old('is_mandatory', $record->is_mandatory ?? 0) == 1 ? 'checked' : '' }}>
                 Is Mandatory ?
             </label>
@@ -86,8 +86,8 @@
 
     <div class="col-lg-6 o-f-inp mb-2">
         <input type="hidden" name="is_expiry_required" value="0">
-        <div class="form-check mt-2">
-            <label for="is_expiry_required" class="flex-check">
+        <div class="form-check mt-2 ps-0 ">
+            <label for="is_expiry_required" class="flex-check pt-1">
                 <input type="checkbox" id="is_expiry_required" name="is_expiry_required" value="1" {{ old('is_expiry_required', $record->is_expiry_required ?? 0) == 1 ? 'checked' : '' }}>
                 Expiry Required ?
             </label>
@@ -101,10 +101,10 @@
         <span class="text-danger error-text description_error"></span>
     </div>
 
-    <div class="col-lg-12 mt-3 text-center">
-        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+    <div class="col-lg-12 mt-3 modal-btns-last">
+        <button type="button" class="modal-btn-1" data-bs-dismiss="modal">
             Close
         </button>
-        <button type="submit" class="btn btn-primary">{{ isset($record) ? 'Update' : 'Add' }}</button>
+        <button type="submit" class="modal-btn-2">{{ isset($record) ? 'Update' : 'Add' }}</button>
     </div>
 </form>

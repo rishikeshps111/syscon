@@ -45,19 +45,21 @@
                         @endphp
 
                         @foreach ($details as $label => $value)
-                            <div class="col-lg-4 o-f-inp mb-3">
+                            <div class="col-lg-3 o-f-inp mb-3">
                                 <label>{{ $label }}</label>
-                                <div class="form-control shadow-none bg-light">{{ $value }}</div>
+                                <div class="value-leave-dt">{{ $value }}</div>
                             </div>
                         @endforeach
 
-                        <div class="col-lg-6 o-f-inp mb-3">
+                        <div class="row">
+                            <div class="col-lg-6 o-f-inp mb-3">
                             <label>Reason</label>
-                            <div class="form-control shadow-none bg-light min-h-box">{{ $record->reason ?: '-' }}</div>
+                            <div class="value-leave-dt min-h-box">{{ $record->reason ?: '-' }}</div>
                         </div>
                         <div class="col-lg-6 o-f-inp mb-3">
                             <label>Remarks</label>
-                            <div class="form-control shadow-none bg-light min-h-box">{{ $record->remarks ?: '-' }}</div>
+                            <div class="value-leave-dt min-h-box">{{ $record->remarks ?: '-' }}</div>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -102,9 +104,9 @@
                 </div>
             </div>
 
-            <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                <div class="btn-flex">
-                    <a href="{{ route('leaves.index') }}" class="reset-btn">Back</a>
+            <div class="col-lg-12 ">
+                <div class=" btns-group-container">
+                    <a href="{{ route('leaves.index') }}" class="bk-btn">Back</a>
                 </div>
             </div>
         </div>

@@ -222,11 +222,11 @@
             </div>
         </div>
 
-        <div class="col-lg-12 d-flex justify-content-center align-items-center">
-            <div class="btn-flex">
-                <a href="{{ route('rosters.index') }}" class="reset-btn">Back</a>
+        <div class="col-lg-12 ">
+            <div class="modal-btns-last">
+                <a href="{{ route('rosters.index') }}" class="modal-btn-1">Back</a>
                 <button type="submit"
-                    class="submit-btn roster-submit-btn">{{ isset($record) ? 'Update' : 'Submit' }}</button>
+                    class="modal-btn-2 roster-submit-btn">{{ isset($record) ? 'Update' : 'Submit' }}</button>
             </div>
         </div>
     </div>

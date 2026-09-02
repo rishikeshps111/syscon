@@ -18,7 +18,7 @@
             <div class="col-lg-12 mb-3">
                 <div class="main-table-container">
                     <div class="row">
-                        <div class="col-lg-3 ms-auto justify-content-end d-flex">
+                        <div class="col-lg-3 btns-group-container">
                             {{-- @can('prefixes.create')
                                 <button type="button" id="addNewPrefix" class="add-btn form-btn">Add Prefix</button>
                             @endcan --}}
@@ -30,7 +30,8 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <div class=" mt-3 table-container">
-                                <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
+                                <div class="table-over-cs">
+                                    <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
                                     style="width:100%;">
                                     <thead>
                                         <tr>
@@ -46,6 +47,7 @@
                                     </thead>
                                     <tbody></tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>

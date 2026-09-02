@@ -16,10 +16,10 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <div class="main-table-container">
+                <div class="main-table-container report-bn">
                     <form id="dorReportFilterForm" action="{{ route('reports.dor.index') }}" method="GET">
                         <input type="hidden" name="generate" value="1">
-                        <div class="row align-items-end">
+                        <div class="row ">
                             <div class="col-lg-2 col-md-4 mb-3">
                                 <div class="o-f-inp">
                                     <label for="date_from">From Date</label>
@@ -89,7 +89,7 @@
                                 </div>
                             </div>
                             <div class="col-lg-6 col-md-8 mb-3">
-                                <div class="o-f-inp">
+                                <div class="o-f-inp col-box-cs">
                                     <label>DOR Columns</label>
                                     <div id="selectedDorColumnsInputs"></div>
                                     <div class="dor-column-picker">
@@ -97,7 +97,7 @@
                                             <strong id="selectedDorColumnsCount">{{ count($selectedColumns) ?: count($dorColumns) }}</strong>
                                             <span>columns selected</span>
                                         </div>
-                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                        <button type="button" class="" data-bs-toggle="modal"
                                             data-bs-target="#dorColumnModal">
                                             Choose Columns
                                         </button>
@@ -105,16 +105,16 @@
                                     <div id="selectedDorColumnsPreview" class="dor-column-preview"></div>
                                 </div>
                             </div>
-                            <div class="col-lg-12 mb-3">
-                                <div class="filter-btns-top justify-content-end">
+                            <div class="col-lg-6 mb-3">
+                                <div class="btns-group-container">
                                     <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
-                                    <button type="submit" class="btn btn-primary" data-loading-text="Generating...">Generate Report</button>
+                                    <button type="submit" class="exp-btn m-0" data-loading-text="Generating...">Generate Report</button>
                                 </div>
                             </div>
                         </div>
                     </form>
 
-                    <div class="text-muted small">Select filters if needed, then generate. Leave filters empty to show all DOR records.</div>
+                    <div class=" small danger-text">Select filters if needed, then generate. Leave filters empty to show all DOR records.</div>
                 </div>
             </div>
         </div>
@@ -122,15 +122,15 @@
         <div class="modal fade" id="dorReportModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header between-cs-modal">
                         <h5 class="modal-title">Generated DOR Report</h5>
-                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
+                        <div class="report-excel">
                             <a href="#" id="downloadDorReportExcel" class="btn btn-success disabled" aria-disabled="true"
                                 data-loading-text="Downloading...">
                                 Download Excel
                             </a>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="dorReportModalBody">
                         <div class="text-center py-5 text-muted">Generate a report to view details.</div>
@@ -142,15 +142,15 @@
         <div class="modal fade" id="dorColumnModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header between-cs-modal">
                         <h5 class="modal-title">Choose DOR Columns</h5>
-                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
-                            <button type="button" id="checkAllDorColumns" class="btn btn-sm btn-primary">Check All</button>
-                            <button type="button" id="uncheckAllDorColumns" class="btn btn-sm btn-secondary">Uncheck All</button>
+                        <div class="check-btns-modal">
+                            <button type="button" id="checkAllDorColumns" class="btnCheck1">Check All</button>
+                            <button type="button" id="uncheckAllDorColumns" class="btnCheck2">Uncheck All</button>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body check-modl">
                         <div class="dor-column-grid">
                             @foreach($dorColumns as $value => $label)
                                 <label class="dor-column-option">
@@ -162,8 +162,8 @@
                             @endforeach
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Apply Columns</button>
+                    <div class="modal-btns-last p-3">
+                        <button type="button" class="modal-btn-2" data-bs-dismiss="modal">Apply Columns</button>
                     </div>
                 </div>
             </div>

@@ -10,6 +10,14 @@
         .fw-semibold {
             color: red !important;
         }
+        input::file-selector-button {
+    background-color: #025187 !important;
+    height:41px;
+    color:#fff !important;
+}
+
+}
+
     </style>
     <div class="page-title">
         <h3>DOR</h3>
@@ -146,14 +154,14 @@
             </div>
 
             <div class="col-lg-12 mt-3">
-                <div class="btn-flex" style="justify-content: center;">
-                    <a href="{{ route('trips.sheet', $record->id) }}" class="add-btn bg-filter">Back</a>
+                <div class="modal-btns-last" >
+                    <a href="{{ route('trips.sheet', $record->id) }}" class="modal-btn-1">Back</a>
                     @if($dor)
                         <a href="{{ route('trips.sheet.entries.dor.preview', [$record->id, $entry->id]) }}"
-                            class="add-btn">Preview</a>
+                            class="modal-btn-2 m-0">Preview</a>
                     @endif
                     @unless($dorReadOnly)
-                        <button type="submit" class="add-btn js-loading-submit"
+                        <button type="submit" class="modal-btn-2 m-0 js-loading-submit"
                             data-loading-text="<i class='fa-solid fa-spinner fa-spin me-1'></i> Saving">
                             {{ $dor ? 'Update DOR' : 'Create DOR' }}
                         </button>

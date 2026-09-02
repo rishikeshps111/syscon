@@ -408,7 +408,7 @@
         <style>
             .chat-fullscreen-btn {
                 align-items: center;
-                background: #128c7e;
+                background: #0d6efd;
                 border: 0;
                 border-radius: 6px;
                 color: #fff;
@@ -422,14 +422,15 @@
             }
 
             .chat-shell {
-                background: #f3f6f4;
-                border: 1px solid #dfe6e2;
-                border-radius: 8px;
+                background: #fff;
+                /*border: 1px solid #dfe6e2;*/
+                border-radius: 15px;
                 display: grid;
                 grid-template-columns: minmax(280px, 34%) 1fr;
                 height: calc(100vh - 190px);
                 min-height: 560px;
                 overflow: hidden;
+                box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
             }
 
             .chat-shell:fullscreen,
@@ -532,8 +533,9 @@
             }
 
             .chat-contact-name {
-                color: #1f2d2a;
-                font-weight: 700;
+                    color: #1f2d2a;
+    font-weight: 600;
+    text-transform: capitalize;
             }
 
             .chat-contact-preview,
@@ -689,7 +691,7 @@
             }
 
             .chat-send-btn {
-                background: #128c7e;
+                background: #0d6efd;
                 color: #fff;
             }
 

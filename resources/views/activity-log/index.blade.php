@@ -15,7 +15,7 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <div class="main-table-container">
+                <div class="main-table-container report-bn">
                     <div class="row align-items-end g-3 mb-3">
                         <div class="col-lg-3 o-f-inp">
                             <label for="fromDateFilter">From Date</label>
@@ -26,15 +26,16 @@
                             <input type="date" id="toDateFilter" class="form-control shadow-none">
                         </div>
                         <div class="col-lg-6">
-                            <div class="d-flex gap-2 justify-content-lg-end">
+                            <div class="btns-group-container" style="justify-content:flex-start !important;">
                                 <button type="button" id="searchFilters" class="btn btn-primary d-none">Search</button>
-                                <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
-                                <button type="button" id="exportActivityLogs" class="btn btn-success">Export Data</button>
+                                <button type="button" id="resetFilters" class="fil-btn">Reset</button>
+                                <button type="button" id="exportActivityLogs" class="exp-btn m-0">Export Data</button>
                             </div>
                         </div>
                     </div>
                     <div class="table-container">
-                        <table id="activityLogsTable" class="table align-middle mb-0 table tble-cstm mt-3"
+                        <div class="table-over">
+                            <table id="activityLogsTable" class="table align-middle mb-0 table tble-cstm mt-3"
                             style="width:100%;">
                             <thead>
                                 <tr>
@@ -48,6 +49,7 @@
                             </thead>
                             <tbody></tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -69,11 +69,11 @@
             <div class="main-table-container">
                 <div class="row">
                     <div class="col-lg-12 ms-auto">
-                        <div class="btn-flex">
-                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
+                        <div class="btns-group-container">
+                            <a class="filter-btnss" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
                             @can('trips.create')
-                                <a href="{{ route('trips.create') }}" class="add-btn">Create Trip</a>
+                                <a href="{{ route('trips.create') }}" class="add-btn m-0">Create Trip</a>
                             @endcan
                         </div>
                     </div>
@@ -83,7 +83,7 @@
                         <div class="mt-3 table-container">
                             <div class="row justify-content-end">
                                 <div class="col-lg-7">
-                                    <div class="table-search">
+                                    <div class="table-search btns-group-container" style="margin-bottom:-20px;">
                                         <label for="searchFilter" class="nowrap">Search</label>
                                         <input type="text" id="searchFilter" class="form-control shadow-none"
                                             placeholder="Trip No / Trip">

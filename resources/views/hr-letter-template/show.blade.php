@@ -14,16 +14,18 @@
             </nav>
         </div>
 
-        <div class="mb-3">
-            <a class="btn btn-secondary" href="{{ route('hr-letter-templates.index') }}">Back</a>
+       
+
+        <div class="main-table-containers">
+             <div class="btns-print-group">
+            <a class="back-show" href="{{ route('hr-letter-templates.index') }}">Back</a>
             @can('hr-letter-templates.edit')
-                <a class="btn btn-primary" href="{{ route('hr-letter-templates.edit', $template) }}">Edit Template</a>
+                <a class="edit-temp" href="{{ route('hr-letter-templates.edit', $template) }}">Edit Template</a>
             @endcan
         </div>
-
-        <div class="main-table-container">
-            <div class="mx-auto bg-white p-5 border" style="max-width:850px;min-height:1000px">
+            <div class="letter-tem-doc">
                 @include('hr-letter.partials.document', ['letter' => $template])
+                
             </div>
         </div>
     </section>

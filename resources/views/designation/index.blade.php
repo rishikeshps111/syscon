@@ -58,9 +58,9 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-lg-4 ms-auto justify-content-end d-flex">
+                        <div class="col-lg-6 ms-auto btns-group-container margin-0-btn">
                             @can('designations.create')
-                                <a href="{{ route('bulk-import.form', 'designations') }}" class="add-btn me-1">Import Designations</a>
+                                <a href="{{ route('bulk-import.form', 'designations') }}" class="imp-btn me-1">Import Designations</a>
                                 <button type="button" id="addNewDesignation" class="add-btn form-btn">Add Designation</button>
                             @endcan
                             @can('designations.view')
@@ -71,7 +71,8 @@
                     <div class="row">
                         <div class="col-lg-12">
                             <div class=" mt-3 table-container">
-                                <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
+                                <div class="table-over-cs">
+                                    <table id="table" class="table align-middle mb-0 table tble-cstm mt-3"
                                     style="width:100%;">
                                     <thead>
                                         <tr>
@@ -90,6 +91,7 @@
                                     </thead>
                                     <tbody></tbody>
                                 </table>
+                                </div>
                             </div>
                         </div>
                     </div>

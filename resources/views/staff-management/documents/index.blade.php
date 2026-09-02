@@ -18,29 +18,52 @@
             <h5 class="title-w-sec mb-3">Basic Details</h5>
             <div class="row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="staff-detail-card">
-                        <span>Staff Code</span>
-                        <strong>{{ $staff->code }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="staff-detail-card">
-                        <span>Staff Name</span>
-                        <strong>{{ $staff->name }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="staff-detail-card">
-                        <span>Designation</span>
-                        <strong>{{ $staff->staffProfile?->designation?->name ?? '-' }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="staff-detail-card">
-                        <span>Phone</span>
-                        <strong>{{ $staff->full_phone ?: '-' }}</strong>
-                    </div>
-                </div>
+    <div class="staff-detail-card staff-widget-code">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-hashtag"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Staff Code</span>
+            <strong>{{ $staff->code }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="staff-detail-card staff-widget-name">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Staff Name</span>
+            <strong>{{ $staff->name }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="staff-detail-card staff-widget-designation">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Designation</span>
+            <strong>{{ $staff->staffProfile?->designation?->name ?? '-' }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="staff-detail-card staff-widget-phone">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-phone"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Phone</span>
+            <strong>{{ $staff->full_phone ?: '-' }}</strong>
+        </div>
+    </div>
+</div>
             </div>
         </div>
 
@@ -75,7 +98,7 @@
                                         <input type="date" name="expiry_date" id="expiryDate" class="form-control shadow-none"
                                             value="{{ old('expiry_date') }}">
                                     </div>
-                                    <div class="col-lg-6 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp file-input mb-3">
                                         <label for="documentFile">Document File <span class="text-danger">*</span></label>
                                         <input type="file" name="document_file" id="documentFile" class="form-control shadow-none">
                                         <a id="currentDocumentPreview" class="small d-none" href="#" target="_blank">Preview current file</a>
@@ -86,10 +109,10 @@
                                             Is Verified
                                         </label>
                                     </div>
-                                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                        <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn">Submit</button>
+                                    <div class="col-lg-12 ">
+                                        <div class="modal-btns-last">
+                                            <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="modal-btn-2">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -101,12 +124,12 @@
         @endcan
 
         <div class="main-table-container">
-            <div class="row mb-3">
-                <div class="col-lg-12 d-flex justify-content-end align-items-end">
-                    <div class="btn-flex">
-                        <a href="{{ route('staff-management.index') }}" class="add-btn bg-filter">Back</a>
+            <div class="row ">
+                <div class="col-lg-12">
+                    <div class="btns-group-container">
+                        <a href="{{ route('staff-management.index') }}" class="bk-btn">Back</a>
                         @can('staff-management.edit')
-                            <a class="add-btn add-document-link" data-bs-toggle="modal" href="#addDocumentModal" role="button">
+                            <a class="add-btn m-0 add-document-link" data-bs-toggle="modal" href="#addDocumentModal" role="button">
                                 Add Document
                             </a>
                         @endcan
@@ -137,9 +160,9 @@
                 <div class="modal-body pb-0">
                     <iframe id="documentPreviewFrame" src="" width="100%" height="600px"></iframe>
                 </div>
-                <div class="lock-modal-footer">
-                    <button type="button" data-bs-dismiss="modal">Close</button>
-                    <a href="#!" id="documentDownloadLink">Download</a>
+                <div class="p-3 modal-btns-last">
+                    <button type="button" data-bs-dismiss="modal" class="modal-btn-1">Close</button>
+                    <a href="#!" id="documentDownloadLink" class="modal-btn-2">Download</a>
                 </div>
             </div>
         </div>

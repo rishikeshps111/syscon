@@ -7,7 +7,7 @@
         <div class="main-table-container">
             <form id="generateLetterForm" method="POST" action="{{ route('hr-letters.store', $user) }}">@csrf
                 <div class="row">
-                    <div class="col-md-6 mb-3"><label>Template <span class="text-danger">*</span></label><select
+                    <div class="col-md-12 mb-3"><label>Template <span class="text-danger">*</span></label><select
                             id="template_id" class="form-select select2" name="template_id" required>
                             <option value="">--- Select ---</option>@foreach($templates as $template)<option
                                 value="{{ $template->id }}" data-entity="{{ $template->entity_type }}">
@@ -26,10 +26,9 @@
                                     value="{{ old('response_due_date') }}"></div>
                         </div>
                     </div>
-                    <div class="col-12 d-flex justify-content-center align-items-center gap-3 mt-4">
-                        <div class="btn-flex">
-                            <a class="reset-btn" href="{{ url()->previous() }}">Cancel</a> <button type="submit"
-                                style="width: 180px;" class="submit-btn js-loading-submit"
+                    <div class="col-12 ">
+                        <div class="modal-btns-last">
+                            <a class="modal-btn-1" href="{{ url()->previous() }}">Cancel</a> <button type="submit" class="modal-btn-2 js-loading-submit"
                                 data-loading-text="Generating...">Generate and
                                 Preview</button>
                         </div>

@@ -100,9 +100,9 @@
                                 @enderror
                             </div>
 
-                            <div class="col-lg-12 mt-3 text-center">
-                                <a href="{{ route('salary-components.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                                <button type="submit" class="btn btn-primary" data-loading-text="Loading...">
+                            <div class="col-lg-12 mt-3 modal-btns-last">
+                                <a href="{{ route('salary-components.index') }}" class="modal-btn-1">Cancel</a>
+                                <button type="submit" class="modal-btn-2" data-loading-text="Loading...">
                                     {{ isset($record) ? 'Update' : 'Submit' }}
                                 </button>
                             </div>

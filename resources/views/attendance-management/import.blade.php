@@ -19,7 +19,7 @@
                 <div class="main-table-container h-100">
                     <form class="js-loading-form" method="POST" action="{{ route('attendance-management.import') }}" enctype="multipart/form-data">
                         @csrf
-                        <div class="o-f-inp mb-3">
+                        <div class="o-f-inp file-input mb-3">
                             <label for="csvFile">CSV File <span class="text-danger">*</span></label>
                             <input type="file" id="csvFile" name="csv_file" class="form-control shadow-none" accept=".csv,text/csv">
                             @error('csv_file')
@@ -37,9 +37,9 @@
                             </div>
                         @endif
 
-                        <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('attendance-management.index') }}" class="btn btn-secondary">Back</a>
-                            <button type="submit" class="btn btn-primary js-loading-submit">Import</button>
+                        <div class="modal-btns-last">
+                            <a href="{{ route('attendance-management.index') }}" class="modal-btn-1">Back</a>
+                            <button type="submit" class="modal-btn-2 js-loading-submit">Import</button>
                         </div>
                     </form>
                 </div>
@@ -47,9 +47,9 @@
 
             <div class="col-lg-7 mb-3">
                 <div class="main-table-container h-100">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 btns-group-container" style="justify-content:space-between !important;">
                         <h5 class="mb-0">CSV Instructions</h5>
-                        <a href="{{ route('attendance-management.sample-csv') }}" class="btn btn-outline-primary">Download Sample CSV</a>
+                        <a href="{{ route('attendance-management.sample-csv') }}" class="exp-btn">Download Sample CSV</a>
                     </div>
 
                     <p class="mb-2">Create a CSV file with this exact header row:</p>
@@ -109,7 +109,7 @@
                         </table>
                     </div>
 
-                    <p class="mb-0">
+                    <p class="mb-0" style="font-size:13px; color:red; margin-top:5px;">
                         Import updates existing attendance for the same date and user, and creates missing records.
                         The file is checked completely before any row is saved.
                     </p>

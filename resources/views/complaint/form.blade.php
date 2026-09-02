@@ -171,11 +171,11 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                        <div class="btn-flex">
+                    <div class="col-lg-12 ">
+                        <div class="modal-btns-last">
                             <a href="{{ route('complaints.index', ['reported_by_role' => old('reported_by_role', $record->reported_by_role ?? 'supervisor')]) }}"
-                                class="btn btn-secondary">Cancel</a>
-                            <button type="submit" class="submit-btn js-loading-submit"
+                                class="modal-btn-1">Cancel</a>
+                            <button type="submit" class="modal-btn-2 js-loading-submit"
                                 data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
                         </div>
                     </div>

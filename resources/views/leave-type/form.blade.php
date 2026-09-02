@@ -173,9 +173,9 @@
                             @error('remarks') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="col-lg-12 mt-3 text-center">
-                        <a href="{{ route('leave-types.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary js-loading-submit"
+                    <div class="col-lg-12 mt-3 modal-btns-last">
+                        <a href="{{ route('leave-types.index') }}" class="modal-btn-1">Cancel</a>
+                        <button type="submit" class="modal-btn-2 js-loading-submit"
                             data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Add' }}</button>
                     </div>
                 </div>

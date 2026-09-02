@@ -1,6 +1,20 @@
 @section('title')
     Leave Management
 @endsection
+<style>
+   @media screen and (max-width:991px){
+       div.dataTables_wrapper{
+             padding-top:20px !important;
+       }
+       div.btn-flex {
+           padding:0 !important;
+       }
+       div button.fil-btn{
+           padding:7px 15px !important;
+       }
+   }
+   
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -17,23 +31,51 @@
         <div class="row">
             <div class="col-lg-12 mb-3">
                 <div class="main-table-container">
-                    <ul class="nav nav-tabs nav-tabs-bordered justify-content-start" id="leaveTabs" role="tablist">
-                        <li class="nav-item ps-0 ms-0" role="presentation">
-                            <button class="nav-link ms-0 active mb-0" data-table-type="all" data-bs-toggle="tab"
-                                data-bs-target="#lv0" type="button">All</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link mb-0" data-table-type="general" data-bs-toggle="tab"
-                                data-bs-target="#lv1" type="button">General Leave System</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link mb-0" data-table-type="driver" data-bs-toggle="tab"
-                                data-bs-target="#lv2" type="button">Shift-Based Leave System</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link mb-0" data-table-type="consolidated" data-bs-toggle="tab"
-                                data-bs-target="#lv3" type="button">Consolidated Leave Report</button>
-                        </li>
+                   <ul class="nav nav-tabs-custom pb-3" id="leaveTabs" role="tablist">
+    <li class="nav-item ps-0 ms-0" role="presentation">
+        <button class="nav-link ms-0 active mb-0"
+            data-table-type="all"
+            data-bs-toggle="tab"
+            data-bs-target="#lv0"
+            type="button">
+            <i class="fa-solid fa-layer-group"></i>
+            All
+        </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <button class="nav-link mb-0"
+            data-table-type="general"
+            data-bs-toggle="tab"
+            data-bs-target="#lv1"
+            type="button">
+            <i class="fa-solid fa-calendar-days"></i>
+            General Leave System
+        </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <button class="nav-link mb-0"
+            data-table-type="driver"
+            data-bs-toggle="tab"
+            data-bs-target="#lv2"
+            type="button">
+            <i class="fa-solid fa-clock"></i>
+            Shift-Based Leave System
+        </button>
+    </li>
+
+    <li class="nav-item" role="presentation">
+        <button class="nav-link mb-0"
+            data-table-type="consolidated"
+            data-bs-toggle="tab"
+            data-bs-target="#lv3"
+            type="button">
+            <i class="fa-solid fa-chart-column"></i>
+            Consolidated Leave Report
+        </button>
+    </li>
+</ul>
                     </ul>
 
                     <div class="tab-content pt-2">
@@ -82,9 +124,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Submit</button>
+                <div class="modal-footer modal-btns-last">
+                    <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="modal-btn-2">Submit</button>
                 </div>
             </form>
         </div>

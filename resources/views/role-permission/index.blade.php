@@ -20,7 +20,8 @@
                 <div class="main-table-container">
 
                     <div class="table-container">
-                        <table id="rolePermissionTable" class="table align-middle mb-0 table tble-cstm mt-3"
+                        <div class="table-over-cs">
+                            <table id="rolePermissionTable" class="table align-middle mb-0 table tble-cstm mt-3"
                             style="width:100%;">
                             <thead>
                                 <tr>
@@ -35,15 +36,17 @@
                                         <td class="text-center">{{ $loop->iteration }}</td>
                                         <td class="text-center">{{ $role->name }}</td>
                                         <td class="text-center">
-                                            @can('role-permissions.edit')
+                                           <div class="action-btns">
+                                                @can('role-permissions.edit')
                                                 <a href="{{ route('role-permissions.edit', $role->id) }}"
-                                                    class="btn btn-warning btn-sm" style="color: white !important;"
+                                                    class="btn-cstm btn-nowrap"
                                                     title="Assign Permission">
                                                     Assign Permission
                                                 </a>
                                             @else
                                                 <span class="text-muted">No Access</span>
                                             @endcan
+                                           </div>
                                         </td>
                                     </tr>
                                 @empty
@@ -53,6 +56,7 @@
                                 @endforelse
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 </div>
             </div>

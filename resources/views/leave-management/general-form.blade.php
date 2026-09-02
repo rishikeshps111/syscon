@@ -113,10 +113,10 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                        <div class="btn-flex">
-                            <a href="{{ route('leaves.index') }}" class="reset-btn">Cancel</a>
-                            <button type="submit" class="submit-btn js-loading-submit" data-loading-text="Saving...">Submit</button>
+                    <div class="col-lg-12 ">
+                        <div class="modal-btns-last">
+                            <a href="{{ route('leaves.index') }}" class="modal-btn-1">Cancel</a>
+                            <button type="submit" class="modal-btn-2 js-loading-submit" data-loading-text="Saving...">Submit</button>
                         </div>
                     </div>
                 </div>

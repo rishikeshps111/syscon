@@ -1,6 +1,14 @@
 @section('title')
     {{ isset($record) ? 'Edit Holiday' : 'Add Holiday' }}
 @endsection
+<style>
+    .shift-box-xs .row .select2-container--default .select2-selection--multiple{
+        background-color:#fff !important;
+            border-radius: 5px !important;
+                border-color: #22222275 !important;
+
+    }
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -50,7 +58,10 @@
                                     value="{{ old('holiday_date', isset($record) ? $record->holiday_date->format('Y-m-d') : '') }}">
                                 @error('holiday_date') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
-                            <div class="col-lg-12 mb-0 mt-3">
+                              <div class="col-lg-12 ">
+                                   <div class="shift-box-xs">
+                                     <div class="row">
+                                           <div class="col-lg-12 mb-0 mt-3">
                                 <h5 class="title-w-sec">Type &amp; Category</h5>
                             </div>
 
@@ -101,7 +112,16 @@
                                 </select>
                                 @error('branch_location_id') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
+                                     </div>
+                                   </div>
+                                  
+                              </div>
+                            
+                            
                             <div class="col-lg-12 mb-0 mt-3">
+                                 <div class="shift-box-xs">
+                                    <div class="row">
+                                         <div class="col-lg-12 mb-0 mt-3">
                                 <h5 class="title-w-sec">Applicability</h5>
                             </div>
                             <div class="col-lg-6 o-f-inp mb-3">
@@ -139,8 +159,10 @@
                                 </select>
                                 @error('designation_ids') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
-                            <hr>
-                            <div class="col-lg-6 o-f-inp mb-3">
+                                    </div>
+                                 </div>
+                            </div>
+                            <div class="col-lg-4 o-f-inp mb-3">
                                 <label for="holiday_duration">Holiday Duration<span class="text-danger">*</span></label>
                                 <select name="holiday_duration" id="holiday_duration"
                                     class="form-select shadow-none @error('holiday_duration') is-invalid @enderror">
@@ -151,7 +173,7 @@
                                 </select>
                                 @error('holiday_duration') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
-                            <div class="col-lg-6 o-f-inp mb-3">
+                            <div class="col-lg-4 o-f-inp mb-3">
                                 <label for="is_recurring_yearly">Is Recurring Yearly<span
                                         class="text-danger">*</span></label>
                                 <select name="is_recurring_yearly" id="is_recurring_yearly"
@@ -162,7 +184,7 @@
                                 </select>
                                 @error('is_recurring_yearly') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
-                            <div class="col-lg-6 o-f-inp mb-3">
+                            <div class="col-lg-4 o-f-inp mb-3">
                                 <label for="is_active">Status<span class="text-danger">*</span></label>
                                 <select name="is_active" id="is_active"
                                     class="form-select shadow-none @error('is_active') is-invalid @enderror">
@@ -172,7 +194,6 @@
                                 </select>
                                 @error('is_active') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
-                            <div class="col-lg-6 o-f-inp mb-3"></div>
                             <div class="col-lg-6 o-f-inp mb-3">
                                 <label for="description">Description</label>
                                 <textarea name="description" id="description"
@@ -186,10 +207,10 @@
                                 @error('remarks') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                <div class="btn-flex">
-                                    <a href="{{ route('holidays.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                                    <button type="submit" class="submit-btn js-loading-submit"
+                            <div class="col-lg-12 ">
+                                <div class="modal-btns-last">
+                                    <a href="{{ route('holidays.index') }}" class="modal-btn-1">Cancel</a>
+                                    <button type="submit" class="modal-btn-2 js-loading-submit"
                                         data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
                                 </div>
                             </div>

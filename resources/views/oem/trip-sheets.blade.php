@@ -1,6 +1,11 @@
 @section('title')
     OEM Trip Sheets
 @endsection
+<style>
+    tr td:nth-child(2){
+        white-space:nowrap;
+    }
+</style>
 <x-app-layout>
     <div class="page-title">
         <h3>OEM Trip Sheets</h3>
@@ -19,18 +24,21 @@
                 <div class="col-lg-12 mb-3">
                     <div class="btn-flex justify-content-between">
                         <h5 class="title-w-sec mb-0">{{ $record->oem_name ?: 'OEM' }} - Trip Sheets</h5>
-                        <a href="{{ route('oems.index') }}" class="btn btn-secondary">Back</a>
+                        <a href="{{ route('oems.index') }}" class="btn-back-cs">
+    <i class="fa-solid fa-arrow-left"></i>
+    <span>Back</span>
+</a>
                     </div>
                 </div>
-                <div class="col-lg-3 o-f-inp mb-3">
+                <div class="col-xl-3 o-f-inp mb-3">
                     <label for="tripSheetDateFrom">Date From</label>
                     <input type="date" id="tripSheetDateFrom" class="form-control shadow-none">
                 </div>
-                <div class="col-lg-3 o-f-inp mb-3">
+                <div class="col-xl-3 o-f-inp mb-3">
                     <label for="tripSheetDateTo">Date To</label>
                     <input type="date" id="tripSheetDateTo" class="form-control shadow-none">
                 </div>
-                <div class="col-lg-3 o-f-inp mb-3">
+                <div class="col-xl-3 o-f-inp mb-3">
                     <label for="tripSheetVehicle">Vehicle</label>
                     <select id="tripSheetVehicle" class="form-select shadow-none">
                         <option value="">All Vehicles</option>
@@ -39,11 +47,11 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-lg-3 mb-3">
-                    <div class="btn-flex justify-content-start">
-                        <button type="button" id="filterTripSheets" class="add-btn border-0">Filter</button>
+                <div class="col-xl-3 mb-3">
+                    <div class="btns-group-container">
+                        <button type="button" id="filterTripSheets" class="fil-btn border-0">Filter</button>
                         <button type="button" id="resetTripSheets" class="reset-btn border-0">Reset</button>
-                        <a href="{{ route('oems.trip-sheets.export', $record->id) }}" id="exportTripSheets" class="add-btn">Export</a>
+                        <a href="{{ route('oems.trip-sheets.export', $record->id) }}" id="exportTripSheets" class="exp-btn">Export</a>
                     </div>
                 </div>
             </div>

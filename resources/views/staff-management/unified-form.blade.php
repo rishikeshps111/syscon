@@ -41,7 +41,7 @@
                     </div>
                 @endif
 
-                <ul class="nav nav-tabs nav-tabs-bordered justify-content-start" role="tablist">
+                <ul class="nav nav-tabs-custom" role="tablist">
                     @foreach (['Basic Information', 'Personal Details', 'Employment Details', 'Location Details', 'Bank Details', 'Salary Structure'] as $index => $tab)
                         <li class="nav-item {{ $index === 0 ? 'ps-0 ms-0' : '' }}" role="presentation">
                             <button type="button" class="nav-link {{ $index === 0 ? 'active ms-0' : '' }}"
@@ -157,7 +157,7 @@
                             </div> --}}
                             <input type="hidden" name="is_active"
                                 value="{{ old('is_active', $record ? (int) $record->is_active : 0) }}">
-                            <div class="col-lg-4 o-f-inp mb-3"><label for="avatar">Image</label>
+                            <div class="col-lg-4 o-f-inp file-input mb-3"><label for="avatar">Image</label>
                                 <div class="d-flex align-items-center gap-3"><img id="employeeAvatarPreview"
                                         src="{{ $avatarUrl }}" width="72" height="72"
                                         class="rounded object-fit-cover border" alt="Employee image preview"><input
@@ -282,11 +282,11 @@
                     </div>
                 </div>
 
-                <div class="btn-flex mt-3">
-                    <a href="{{ route('staff-management.index') }}" class="btn btn-secondary">Cancel</a>
-                    <button type="button" class="btn btn-secondary" id="wizardPrev">Previous</button>
-                    <button type="button" class="submit-btn" id="wizardNext">Next</button>
-                    <button type="submit" class="submit-btn js-loading-submit d-none" id="wizardSubmit"
+                <div class="btn-flex-cs mt-3">
+                    <a href="{{ route('staff-management.index') }}" class="btn-cancel-cs">Cancel</a>
+                    <button type="button" class="btn-prev-cs" id="wizardPrev">Previous</button>
+                    <button type="button" class="btn-next-cs" id="wizardNext">Next</button>
+                    <button type="submit" class="btn-submit-cs js-loading-submit d-none" id="wizardSubmit"
                         data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
                 </div>
             </form>

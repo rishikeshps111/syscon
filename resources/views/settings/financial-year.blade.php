@@ -23,7 +23,7 @@
                 <div class="col-lg-12 mb-3">
                     <div class="main-table-container">
                         <div class="row">
-                            <div class="col-lg-12 mb-0">
+                            <div class="col-lg-12 mb-2">
                                 <h5 class="title-w-sec">Financial Year Period</h5>
                             </div>
 
@@ -83,10 +83,10 @@
                                 @error('financial_year_to_month') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                <div class="btn-flex">
+                            <div class="col-lg-12">
+                                <div class="modal-btns-last">
                                     @can('settings.edit')
-                                        <button type="submit" class="submit-btn js-loading-submit"
+                                        <button type="submit" class="modal-btn-2 js-loading-submit"
                                             data-loading-text="Loading...">Update</button>
                                     @endcan
                                 </div>

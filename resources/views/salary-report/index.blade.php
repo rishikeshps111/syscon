@@ -1,7 +1,166 @@
 @section('title')
     Salary Report
 @endsection
+<style>
+    #salaryReportModalBody {
+    position: relative !important;
 
+    padding: 22px !important;
+
+    background: #ffffff !important;
+}
+
+
+/* =========================================
+   Report Header
+   ========================================= */
+
+#salaryReportModalBody > .d-flex {
+    position: relative !important;
+
+    padding: 16px 18px !important;
+
+    margin-bottom: 16px !important;
+
+    background: linear-gradient(
+        135deg,
+        #f8fafc 0%,
+        #ffffff 100%
+    ) !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 11px !important;
+
+    overflow: hidden !important;
+}
+
+
+/* Blue accent */
+#salaryReportModalBody > .d-flex::before {
+    content: "" !important;
+
+    position: absolute !important;
+
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+
+    width: 4px !important;
+
+    background: #2563eb !important;
+}
+
+
+/* Decorative circle */
+#salaryReportModalBody > .d-flex::after {
+    content: "" !important;
+
+    position: absolute !important;
+
+    width: 80px !important;
+    height: 80px !important;
+
+    top: -35px !important;
+    right: -25px !important;
+
+    background: #eff6ff !important;
+
+    border-radius: 50% !important;
+
+    pointer-events: none !important;
+}
+
+
+/* =========================================
+   Report Title
+   ========================================= */
+
+#salaryReportModalBody h5 {
+    position: relative !important;
+    z-index: 2 !important;
+
+    margin: 0 0 5px !important;
+
+    color: #1e293b !important;
+
+    font-size: 17px !important;
+    font-weight: 700 !important;
+}
+
+
+/* =========================================
+   Report Information
+   ========================================= */
+
+#salaryReportModalBody .text-muted {
+    position: relative !important;
+    z-index: 2 !important;
+
+    color: #64748b !important;
+
+    font-size: 12px !important;
+    line-height: 1.8 !important;
+}
+
+
+#salaryReportModalBody .text-muted strong {
+    color: #475569 !important;
+
+    font-weight: 600 !important;
+}
+
+
+/* =========================================
+   Warning / Empty State
+   ========================================= */
+
+#salaryReportModalBody .alert.alert-warning {
+    position: relative !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    min-height: 65px !important;
+
+    margin: 0 !important;
+    padding: 14px 16px 14px 48px !important;
+
+    color: #92400e !important;
+
+    background: #fffbeb !important;
+
+    border: 1px solid #fde68a !important;
+    border-radius: 10px !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+
+    box-shadow: 0 3px 10px rgba(245, 158, 11, 0.06) !important;
+}
+
+
+/* Warning icon */
+#salaryReportModalBody .alert.alert-warning::before {
+    content: "\f071" !important;
+
+    position: absolute !important;
+    left: 17px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 22px !important;
+    height: 22px !important;
+
+    color: #d97706 !important;
+
+    font-family: "Font Awesome 6 Free" !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+}
+
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -60,9 +219,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-12 mt-2 d-flex gap-2 justify-content-end">
-                        <button type="button" id="resetReportFilters" class="btn btn-secondary">Reset</button>
-                        <button type="submit" class="btn btn-primary" data-loading-text="Generating...">Generate
+                    <div class="col-lg-12 mt-2 btns-group-container">
+                        <button type="button" id="resetReportFilters" class="fil-btn">Reset</button>
+                        <button type="submit" class="exp-btn m-0" data-loading-text="Generating...">Generate
                             Report</button>
                     </div>
                 </div>
@@ -73,9 +232,9 @@
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Generated Salary Report</h5>
-                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
-                            <a href="#" id="downloadReportExcel" class="btn btn-success disabled" aria-disabled="true"
+                        <h5 class="modal-title" style="white-space:nowrap;">Generated Salary Report</h5>
+                        <div class="modal-btns-last ms-auto me-3 w-100">
+                            <a href="#" id="downloadReportExcel" class="modal-btn-2 disabled" aria-disabled="true"
                                 data-loading-text="Downloading...">
                                 Download Excel
                             </a>

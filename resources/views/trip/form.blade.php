@@ -153,37 +153,187 @@
         <span class="text-danger error-text notes_error">@error('notes'){{ $message }}@enderror</span>
     </div>
 
-    <div class="col-lg-12 mt-3 text-center">
+    <div class="col-lg-12 mt-3 modal-btns-last">
         @if(!empty($pageForm))
-            <a href="{{ route('trips.index') }}" class="btn btn-secondary me-2">Back</a>
+            <a href="{{ route('trips.index') }}" class="modal-btn-1">Back</a>
         @else
-            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
         @endif
         <button type="submit"
-            class="btn btn-primary trip-submit-btn">{{ isset($record) ? 'Update' : 'Create' }}</button>
+            class="modal-btn-2 trip-submit-btn">{{ isset($record) ? 'Update' : 'Create' }}</button>
     </div>
 </form>
 
 <style>
     .route-stops-horizontal {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        overflow-x: auto;
-        padding: 10px 4px;
-    }
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
 
-    .route-stop-item {
-        min-width: max-content;
-        padding: 8px 12px;
-        border: 1px solid #d9dee8;
-        border-radius: 8px;
-        background: #fff;
-        text-align: center;
-    }
+    width: 100% !important;
 
-    .route-stop-arrow {
-        color: #6c757d;
-        flex: 0 0 auto;
-    }
+    /*padding: 16px !important;*/
+
+    /*background: #f8fafc !important;*/
+
+    /*border: 1px solid #e2e8f0 !important;*/
+    /*border-radius: 12px !important;*/
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    scrollbar-width: thin !important;
+}
+
+
+
+.route-stop-item {
+    position: relative !important;
+
+    flex: 0 0 auto !important;
+
+    min-width: 170px !important;
+
+    padding: 13px 16px !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.04) !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+/* Hover */
+
+.route-stop-item:hover {
+    transform: translateY(-2px) !important;
+
+    border-color: #cbd5e1 !important;
+
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+.route-stop-item .fw-semibold {
+    display: block !important;
+
+    margin-bottom: 4px !important;
+
+    color: #1e293b !important;
+
+    font-size: 13px !important;
+    font-weight: 700 !important;
+
+    line-height: 1.4 !important;
+
+    white-space: nowrap !important;
+}
+
+
+.route-stop-item small {
+    display: block !important;
+
+    color: #64748b !important;
+
+    font-size: 10px !important;
+    font-weight: 500 !important;
+
+    line-height: 1.3 !important;
+}
+
+
+
+.route-stop-arrow {
+    flex: 0 0 auto !important;
+
+    width: 32px !important;
+    height: 32px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    color: #64748b !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e2e8f0 !important;
+
+    border-radius: 50% !important;
+
+    font-size: 12px !important;
+
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04) !important;
+}
+
+
+
+/* First Stop */
+
+.route-stops-horizontal .route-stop-item:first-child {
+    background: #eff6ff !important;
+
+    border-color: #eff6ff !important;
+}
+
+.route-stops-horizontal .route-stop-item:first-child .fw-semibold {
+    color: #1d4ed8 !important;
+}
+
+.route-stops-horizontal .route-stop-item:first-child small {
+    color: #2563eb !important;
+}
+
+
+/* Last Stop */
+
+.route-stops-horizontal .route-stop-item:last-child {
+   background: #fae9ea !important;
+    border-color: #fae9ea !important;
+}
+
+.route-stops-horizontal .route-stop-item:last-child .fw-semibold {
+    color: #dc3545  !important;
+}
+
+.route-stops-horizontal .route-stop-item:last-child small {
+    color: #dc3545  !important;
+}
+
+
+
+.route-stop-item:not(:first-child):not(:last-child) {
+    background: #f8fafc !important;
+
+    border-color: #e2e8f0 !important;
+}
+
+
+
+
+.route-stops-horizontal + * {
+    margin-top: 0 !important;
+}
+
+
+
+.route-stops-horizontal::-webkit-scrollbar {
+    height: 5px !important;
+}
+
+.route-stops-horizontal::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+
+    border-radius: 10px !important;
+}
+
+.route-stops-horizontal::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+
+    border-radius: 10px !important;
+}
+
 </style>

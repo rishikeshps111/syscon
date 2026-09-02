@@ -36,16 +36,17 @@
                         @foreach($depots as $depot)<option value="{{ $depot->id }}">{{ $depot->name }}</option>@endforeach
                     </select>
                 </div>
-                <div class="col-lg-3 o-f-inp mb-2">
-                    <label for="roleFilter">Role</label>
+                <div class="col-lg-3 o-f-inp mb-2 center-gap ps-0">
+                    <div class="w-100">
+                        <label for="roleFilter">Role</label>
                     <select id="roleFilter" class="form-select shadow-none">
                         <option value="">--- Select ---</option>
                         @foreach($roles as $role)<option value="{{ $role->id }}">{{ $role->name }}</option>@endforeach
                     </select>
+                    </div>
+                     <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
                 </div>
-                <div class="col-lg-12">
-                    <button type="button" id="resetFilters" class="btn btn-secondary">Reset</button>
-                </div>
+               
             </div>
 
             <div class="table-over">

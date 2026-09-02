@@ -18,24 +18,24 @@
             <h5 class="title-w-sec mb-3">Vehicle Details</h5>
             <div class="row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card"><span>Vehicle Code</span><strong>{{ $vehicle->vehicle_code ?: '-' }}</strong></div>
+                    <div class="vehicle-detail-card-2"><span>Vehicle Code</span><strong>{{ $vehicle->vehicle_code ?: '-' }}</strong></div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card"><span>Vehicle No</span><strong>{{ $vehicle->vehicle_no ?: '-' }}</strong></div>
+                    <div class="vehicle-detail-card-2"><span>Vehicle No</span><strong>{{ $vehicle->vehicle_no ?: '-' }}</strong></div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card"><span>OEM</span><strong>{{ $vehicle->oem?->oem_name ?? '-' }}</strong></div>
+                    <div class="vehicle-detail-card-2"><span>OEM</span><strong>{{ $vehicle->oem?->oem_name ?? '-' }}</strong></div>
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="vehicle-detail-card"><span>Depot</span><strong>{{ $vehicle->depot?->name ?? '-' }}</strong></div>
+                    <div class="vehicle-detail-card-2"><span>Depot</span><strong>{{ $vehicle->depot?->name ?? '-' }}</strong></div>
                 </div>
             </div>
         </div>
 
         <div class="main-table-container">
             <div class="row mb-3">
-                <div class="col-lg-12 d-flex justify-content-end">
-                    <a href="{{ route('vehicles.index') }}" class="add-btn bg-filter">Back</a>
+                <div class="col-lg-12 btns-group-container" style="margin-bottom:-20px;">
+                    <a href="{{ route('vehicles.index') }}" class="bk-btn">Back</a>
                 </div>
             </div>
             <div class="table-over">

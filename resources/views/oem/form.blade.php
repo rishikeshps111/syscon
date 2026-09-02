@@ -1,6 +1,24 @@
 @section('title')
     {{ isset($record) ? 'Edit OEM' : 'Add OEM' }}
 @endsection
+
+
+<style>
+   .contact-row .select2-container{
+       width:70px !important;
+   }
+   .contact-row  .select2-container--default .select2-selection--single .select2-selection__rendered{
+       padding-left:0 !important;
+   }
+  .select2-container--open .select2-dropdown{
+       min-width:300px !important;
+       width:300px !important;
+   }
+   .select2-container--open .select2-dropdown--below{
+        min-width:300px !important;
+        width:300px !important;
+   }
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -23,20 +41,49 @@
             <div class="row">
                 <div class="col-xl-12">
                     <div class="main-table-container">
-                        <ul class="nav nav-tabs nav-tabs-bordered justify-content-start" id="oemWizardTabs">
-                            <li class="nav-item ps-0 ms-0">
-                                <button class="nav-link ms-0 active" type="button" data-bs-toggle="tab" data-bs-target="#oemtb1">Basic Information</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#oemtb2">Contact Details</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#oemtb3">Address</button>
-                            </li>
-                            <li class="nav-item">
-                                <button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#oemtb4">Business Details</button>
-                            </li>
-                        </ul>
+                        <ul class="nav nav-tabs nav-tabs-custom" id="oemWizardTabs">
+
+    <li class="nav-item">
+        <button class="nav-link active"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#oemtb1">
+            <i class="fa-solid fa-id-card"></i>
+            Basic Information
+        </button>
+    </li>
+
+    <li class="nav-item">
+        <button class="nav-link"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#oemtb2">
+            <i class="fa-solid fa-user"></i>
+            Contact Details
+        </button>
+    </li>
+
+    <li class="nav-item">
+        <button class="nav-link"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#oemtb3">
+            <i class="fa-solid fa-location-dot"></i>
+            Address
+        </button>
+    </li>
+
+    <li class="nav-item">
+        <button class="nav-link"
+                type="button"
+                data-bs-toggle="tab"
+                data-bs-target="#oemtb4">
+            <i class="fa-solid fa-building"></i>
+            Business Details
+        </button>
+    </li>
+
+</ul>
 
                         @php
                             $contacts = old('contacts', isset($record) ? $record->contacts->map(fn ($contact) => $contact->only([
@@ -216,7 +263,7 @@
                                 @error('contacts')<div class="text-danger mt-2">{{ $message }}</div>@enderror
                             </div>
 
-                            <div class="tab-pane fade" id="oemtb3">
+                            <div class="tab-pane fade o-f-inp" id="oemtb3">
                                 <div id="addressRows">
                                     @foreach ($addresses as $index => $address)
                                         <div class="oem-repeat-card address-row" data-index="{{ $index }}">
@@ -326,12 +373,24 @@
                         </div>
 
                         <div class="d-flex justify-content-center mt-3">
-                            <div class="btn-flex">
-                                <a href="{{ route('oems.index') }}" class="btn btn-secondary">Cancel</a>
-                                <button type="button" id="wizardPrev" class="btn btn-secondary d-none">Previous</button>
-                                <button type="button" id="wizardNext" class="submit-btn">Next</button>
-                                <button type="submit" id="wizardSubmit" class="submit-btn js-loading-submit d-none" data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
-                            </div>
+                            <div class="btn-flex-cs">
+    <a href="{{ route('oems.index') }}" class="btn-cancel-cs">Cancel</a>
+
+    <button type="button" id="wizardPrev" class="btn-prev-cs d-none">
+        Previous
+    </button>
+
+    <button type="button" id="wizardNext" class="btn-next-cs">
+        Next
+    </button>
+
+    <button type="submit"
+            id="wizardSubmit"
+            class="btn-submit-cs js-loading-submit d-none"
+            data-loading-text="Loading...">
+        {{ isset($record) ? 'Update' : 'Submit' }}
+    </button>
+</div>
                         </div>
                     </div>
                 </div>

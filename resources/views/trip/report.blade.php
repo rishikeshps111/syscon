@@ -18,7 +18,7 @@
                 <div class="main-table-container">
                     <form id="tripReportForm" action="{{ route('trips.report.download') }}" method="GET">
                         <div class="row align-items-end">
-                            <div class="col-lg-3 mb-3">
+                            <div class="col-lg-4 mb-3">
                                 <div class="o-f-inp">
                                     <label for="date_from">From Date</label>
                                     <input type="date" id="date_from" name="date_from" class="form-control shadow-none"
@@ -28,7 +28,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-lg-3 mb-3">
+                            <div class="col-lg-4 mb-3">
                                 <div class="o-f-inp">
                                     <label for="date_to">To Date</label>
                                     <input type="date" id="date_to" name="date_to" class="form-control shadow-none"
@@ -38,7 +38,7 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-lg-3 mb-3">
+                            <div class="col-lg-4 mb-3">
                                 <div class="o-f-inp">
                                     <label for="depot_id">Depot</label>
                                     <select id="depot_id" name="depot_id" class="form-select shadow-none select2">
@@ -54,10 +54,10 @@
                                     @enderror
                                 </div>
                             </div>
-                            <div class="col-lg-3 mb-3">
-                                <div class="filter-btns-top justify-content-start">
-                                    <button type="button" class="reset-btn border-0" id="resetTripReport">Reset</button>
-                                    <button type="submit" class="search-btn" style="font-size: 11px;">Download
+                            <div class="col-lg-12 mb-3">
+                                <div class="btns-group-container">
+                                    <button type="button" class="fil-btn" id="resetTripReport">Reset</button>
+                                    <button type="submit" class="exp-btn m-0" >Download
                                         Report</button>
                                 </div>
                             </div>

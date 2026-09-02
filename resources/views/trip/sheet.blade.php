@@ -110,20 +110,18 @@
         </div>
 
         <div class="main-table-container">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 column-rvse">
                 <h5 class="mb-0">Trip Sheet Entries</h5>
-                <div class="btn-flex">
-                    <a href="{{ route('trips.sheet.import.form', $record->id) }}" class="btn btn-outline-primary">
-                        <i class="fa-solid fa-file-import me-1"></i> Import Trip Sheet
+                <div class="btns-group-container">
+                    <a href="{{ route('trips.sheet.import.form', $record->id) }}" class="imp-btn"> Import Trip Sheet
                     </a>
                     {{-- <a href="{{ route('trips.sheet.entries.create', $record->id) }}" class="btn btn-primary"
                         title="Add Entry">
                         <i class="fa-solid fa-plus me-1"></i> Add Entry
                     </a> --}}
                     <a href="{{ route('trips.sheet.view', ['trip' => $record->id, 'export' => 'csv']) }}"
-                        class="add-btn">Export</a>
-                    <a href="{{ route('trips.index') }}" class="btn btn-secondary" title="Back">
-                        <i class="fa-solid fa-arrow-left me-1"></i> Back
+                        class="exp-btn">Export</a>
+                    <a href="{{ route('trips.index') }}" class="bk-btn" title="Back"> Back
                     </a>
                 </div>
             </div>
@@ -167,7 +165,7 @@
                     </select>
                 </div>
                 <div class="col-md-4 col-lg-2 d-flex gap-2">
-                    <button type="button" id="resetSheetEntryFilters" class="btn btn-outline-secondary mb-1">
+                    <button type="button" id="resetSheetEntryFilters" class="fil-btn mb-1">
                         <i class="fa-solid fa-rotate-left me-1"></i> Reset
                     </button>
                 </div>
@@ -225,27 +223,176 @@
     </section>
 
     <style>
-        .route-stops-horizontal {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            overflow-x: auto;
-            padding: 10px 4px;
-        }
+         .route-stops-horizontal {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
 
-        .route-stop-item {
-            min-width: max-content;
-            padding: 8px 12px;
-            border: 1px solid #d9dee8;
-            border-radius: 8px;
-            background: #fff;
-            text-align: center;
-        }
+    width: 100% !important;
 
-        .route-stop-arrow {
-            color: #6c757d;
-            flex: 0 0 auto;
-        }
+    /*padding: 16px !important;*/
+
+    /*background: #f8fafc !important;*/
+
+    /*border: 1px solid #e2e8f0 !important;*/
+    /*border-radius: 12px !important;*/
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    scrollbar-width: thin !important;
+}
+
+
+
+.route-stop-item {
+    position: relative !important;
+
+    flex: 0 0 auto !important;
+
+    min-width: 170px !important;
+
+    padding: 13px 16px !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+
+    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.04) !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+/* Hover */
+
+.route-stop-item:hover {
+    transform: translateY(-2px) !important;
+
+    border-color: #cbd5e1 !important;
+
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08) !important;
+}
+
+.route-stop-item .fw-semibold {
+    display: block !important;
+
+    margin-bottom: 4px !important;
+
+    color: #1e293b !important;
+
+    font-size: 13px !important;
+    font-weight: 700 !important;
+
+    line-height: 1.4 !important;
+
+    white-space: nowrap !important;
+}
+
+
+.route-stop-item small {
+    display: block !important;
+
+    color: #64748b !important;
+
+    font-size: 10px !important;
+    font-weight: 500 !important;
+
+    line-height: 1.3 !important;
+}
+
+
+
+.route-stop-arrow {
+    flex: 0 0 auto !important;
+
+    width: 32px !important;
+    height: 32px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    color: #64748b !important;
+
+    background: #ffffff !important;
+
+    border: 1px solid #e2e8f0 !important;
+
+    border-radius: 50% !important;
+
+    font-size: 12px !important;
+
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04) !important;
+}
+
+
+
+/* First Stop */
+
+.route-stops-horizontal .route-stop-item:first-child {
+    background: #eff6ff !important;
+
+    border-color: #eff6ff !important;
+}
+
+.route-stops-horizontal .route-stop-item:first-child .fw-semibold {
+    color: #1d4ed8 !important;
+}
+
+.route-stops-horizontal .route-stop-item:first-child small {
+    color: #2563eb !important;
+}
+
+
+/* Last Stop */
+
+.route-stops-horizontal .route-stop-item:last-child {
+   background: #fae9ea !important;
+    border-color: #fae9ea !important;
+}
+
+.route-stops-horizontal .route-stop-item:last-child .fw-semibold {
+    color: #dc3545  !important;
+}
+
+.route-stops-horizontal .route-stop-item:last-child small {
+    color: #dc3545  !important;
+}
+
+
+
+.route-stop-item:not(:first-child):not(:last-child) {
+    background: #f8fafc !important;
+
+    border-color: #e2e8f0 !important;
+}
+
+
+
+
+.route-stops-horizontal + * {
+    margin-top: 0 !important;
+}
+
+
+
+.route-stops-horizontal::-webkit-scrollbar {
+    height: 5px !important;
+}
+
+.route-stops-horizontal::-webkit-scrollbar-track {
+    background: #f1f5f9 !important;
+
+    border-radius: 10px !important;
+}
+
+.route-stops-horizontal::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+
+    border-radius: 10px !important;
+}
 
         .assignment-filter-group {
             align-items: center;
@@ -268,7 +415,7 @@
         .assignment-filter-option {
             align-items: center;
             background: #fff;
-            border: 2px solid #cbd5e1;
+            border:1px solid #cbd5e1;
             border-radius: 8px;
             color: #344054;
             cursor: pointer;
@@ -286,10 +433,10 @@
         }
 
         .assignment-filter-option:has(.assignment-filter:checked) {
-            background: #eaf2ff;
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, .12);
-            color: #0b5ed7;
+               background: #ddf5e6;
+    border-color: #16a34a;
+    /* box-shadow: 0 0 0 3px rgba(13, 110, 253, .12); */
+    color: #16a34a;
         }
 
         .assignment-filter-option .form-check-input {

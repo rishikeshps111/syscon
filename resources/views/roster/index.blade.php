@@ -24,8 +24,8 @@
                     <input type="date" id="dateToFilter" class="form-control shadow-none">
                 </div>
                 <div class="col-lg-3 mb-3">
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-primary" id="generateRoster">Generate Roaster</button>
+                    <div class="btns-group-container" style="justify-content:flex-start !important;">
+                        <button type="button" class="add-btn m-0" id="generateRoster">Generate Roaster</button>
                     </div>
                 </div>
             </div>

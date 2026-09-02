@@ -74,8 +74,8 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-lg-12">
-                                <div class="filter-btns-top">
+                            <div class="col-lg-3">
+                                <div class="filter-btns-top pt-4 justify-content-start">
                                     <a href="#!" class="reset-btn" id="resetFilters">Reset</a>
                                     <button type="button" class="search-btn" id="searchFilters">Search</button>
                                 </div>
@@ -90,11 +90,11 @@
             <div class="main-table-container">
                     <div class="row">
                         <div class="col-lg-12 ms-auto">
-                            <div class="btn-flex">
-                            <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
+                            <div class="btns-group-container">
+                            <a class="filter-btnss" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="true" aria-controls="filterCollapse">Filters</a>
                             @can('routes.create')
-                                <a href="{{ route('routes.create') }}" class="add-btn">Add Route</a>
+                                <a href="{{ route('routes.create') }}" class="add-btn m-0">Add Route</a>
                             @endcan
                             </div>
                         </div>
@@ -104,7 +104,7 @@
                             <div class="mt-3 table-container">
                                 <div class="row justify-content-end">
                                     <div class="col-lg-8">
-                                        <div class="table-search">
+                                        <div class="table-search btns-group-container">
                                             <label for="searchFilter" class="nowrap">Search</label>
                                             <input type="text" id="searchFilter" class="form-control shadow-none"
                                                 placeholder="Route code / Route name">
@@ -162,9 +162,9 @@
                         <span class="text-danger error-text status_error"></span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
+                <div class="modal-btns-last p-3">
+                    <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="modal-btn-2">Update</button>
                 </div>
             </form>
         </div>

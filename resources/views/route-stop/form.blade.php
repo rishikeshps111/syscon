@@ -8,7 +8,7 @@
 
     <input type="hidden" name="id" value="{{ $record->id ?? '' }}">
 
-    <div class="col-lg-6 o-f-inp mb-2">
+    <div class="col-lg-12 o-f-inp mb-2">
         <label for="location_id" class="form-label m-0">
             Place Name <span class="text-danger">*</span>
         </label>
@@ -23,10 +23,10 @@
         <span class="text-danger error-text location_id_error"></span>
     </div>
 
-    <div class="col-lg-12 mt-3 text-center">
-        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">
+    <div class="col-lg-12 mt-3 modal-btns-last">
+        <button type="button" class="modal-btn-1" data-bs-dismiss="modal">
             Close
         </button>
-        <button type="submit" class="btn btn-primary">{{ isset($record) ? 'Update' : 'Add' }}</button>
+        <button type="submit" class="modal-btn-2">{{ isset($record) ? 'Update' : 'Add' }}</button>
     </div>
 </form>

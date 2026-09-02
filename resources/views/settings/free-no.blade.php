@@ -20,14 +20,14 @@
             @method('PUT')
 
             <div class="row">
-                <div class="col-lg-12 mb-3">
+                <div class="col-lg-5 mb-3">
                     <div class="main-table-container">
                         <div class="row">
                             <div class="col-lg-12 mb-0">
                                 <h5 class="title-w-sec">Toll Free No</h5>
                             </div>
 
-                            <div class="col-lg-4 o-f-inp mb-3">
+                            <div class="col-lg-12 o-f-inp mb-3">
                                 <label for="free_no">Phone Number <span class="text-danger">*</span></label>
                                 <input type="text" name="free_no" id="free_no" maxlength="10" inputmode="numeric"
                                     pattern="[0-9]{10}"
@@ -36,10 +36,10 @@
                                 @error('free_no') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
 
-                            <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                <div class="btn-flex">
+                            <div class="col-lg-12 ">
+                                <div class="modal-btns-last">
                                     @can('settings.edit')
-                                        <button type="submit" class="submit-btn js-loading-submit"
+                                        <button type="submit" class="modal-btn-2 js-loading-submit"
                                             data-loading-text="Loading...">Update</button>
                                     @endcan
                                 </div>

@@ -41,10 +41,10 @@
                             </div>
                         </div>
                         <div class="col-lg-6 d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
-                            <button type="button" id="resetAttendanceFilters" class="reset-btn">Reset</button>
+                            <button type="button" id="resetAttendanceFilters" class="fil-btn">Reset</button>
                             @can('attendance-management.create')
-                                <div class="d-flex flex-wrap gap-2">
-                                    <a href="{{ route('attendance-management.import.form') }}" class="btn btn-primary">Import CSV</a>
+                                <div class="btns-group-container">
+                                    <a href="{{ route('attendance-management.import.form') }}" class="imp-btn">Import CSV</a>
                                     <a href="{{ route('attendance-management.create') }}" class="add-btn">Add</a>
                                 </div>
                             @endcan

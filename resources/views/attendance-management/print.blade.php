@@ -18,14 +18,14 @@
         <div class="main-table-container mb-3">
             <div class="d-flex justify-content-between gap-2">
                 <h6 class="mb-0">{{ $monthName }} {{ $year }}</h6>
-                <div>
-                    <a class="btn btn-primary exp-btn"
+                <div class=" btns-group-container">
+                    <a class=" exp-btn"
                         href="{{ route('attendance-management.export', ['year' => $year, 'month' => $month] + request()->only(['role', 'user_id', 'status'])) }}">Export
                         Excel</a>
-                    <a class="btn btn-danger exp-btn"
+                    <a class=" imp-btn"
                         href="{{ route('attendance-management.pdf', ['year' => $year, 'month' => $month] + request()->only(['role', 'user_id', 'status'])) }}">Download
                         PDF</a>
-                    <a class="btn btn-secondary" href="{{ route('attendance-management.index') }}">Back</a>
+                    <a class="bk-btn" href="{{ route('attendance-management.index') }}">Back</a>
                 </div>
             </div>
             <form method="GET" id="printFilterForm">
@@ -67,7 +67,7 @@
                     <div class="col-lg-3 d-flex align-items-end gap-2 mb-3">
                         <button type="submit" class="search-btn filter-btn">Filter</button>
                         <a href="{{ route('attendance-management.print', ['year' => $year, 'month' => $month]) }}"
-                            class="reset-btn">Reset</a>
+                            class="fil-btn">Reset</a>
                     </div>
                 </div>
             </form>

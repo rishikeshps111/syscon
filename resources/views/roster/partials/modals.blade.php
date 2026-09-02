@@ -24,11 +24,11 @@
                     </table>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-btns-last p-3">
                 @can('rosters.view')
-                    <button type="button" class="btn btn-success" id="exportGeneratedRoster">Export</button>
+                    <button type="button" class="modal-btn-2" id="exportGeneratedRoster">Export</button>
                 @endcan
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -51,9 +51,9 @@
                     @endforeach
                 </select>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary modal-submit-btn">Update</button>
+            <div class="modal-btns-last p-3">
+                <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="modal-btn-2 modal-submit-btn">Update</button>
             </div>
         </form>
     </div>
@@ -76,9 +76,9 @@
                     @endforeach
                 </select>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary modal-submit-btn">Save</button>
+            <div class="modal-btns-last p-3">
+                <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="modal-btn-2 modal-submit-btn">Save</button>
             </div>
         </form>
     </div>
@@ -118,9 +118,9 @@
                     @endforeach
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary modal-submit-btn">Reassign</button>
+            <div class="modal-btns-last p-3">
+                <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="modal-btn-2 modal-submit-btn">Reassign</button>
             </div>
         </form>
     </div>
@@ -162,9 +162,9 @@
                     @endforeach
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" class="btn btn-primary modal-submit-btn">Reassign</button>
+            <div class="modal-btns-last p-3">
+                <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                <button type="submit" class="modal-btn-2 modal-submit-btn">Reassign</button>
             </div>
         </form>
     </div>

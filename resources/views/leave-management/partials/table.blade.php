@@ -1,4 +1,4 @@
-<div class="row mb-3">
+<div class="row ">
     @if($type === 'all')
         <div class="col-lg-3 mb-3">
             <div class="o-f-inp">
@@ -57,17 +57,17 @@
             </select>
         </div>
     </div>
-    <div class="col-lg-9 d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+    <div class="col-lg-3 d-flex justify-content-start align-items-end flex-wrap gap-2 mb-3">
         <div class="filter-btns-top">
-            <button type="button" class="reset-btn reset-leave-filters" data-type="{{ $type }}">Reset</button>
+            <button type="button" class="fil-btn reset-leave-filters" data-type="{{ $type }}">Reset</button>
         </div>
         @if($type !== 'all')
-            <div class="btn-flex">
+            <div class="btn-flex btns-group-container " style="margin-left:0 !important;">
                 @can('leaves.create')
                     @if($type === 'driver')
-                        <a href="{{ route('leaves.driver.create') }}" class="add-btn">Add</a>
+                        <a href="{{ route('leaves.driver.create') }}" class="add-btn m-0">Add</a>
                     @else
-                        <a href="{{ route('leaves.general.create') }}" class="add-btn">Add</a>
+                        <a href="{{ route('leaves.general.create') }}" class="add-btn m-0">Add</a>
                     @endif
                 @endcan
             </div>
@@ -77,12 +77,12 @@
 
 <div class="row">
     <div class="col-lg-12">
-        <div class="mt-3 table-container">
+        <div class=" table-container">
             <div class="row justify-content-end">
                 <div class="col-lg-4">
-                    <div class="table-search justify-content-end">
+                    <div class="table-search justify-content-end btns-group-container">
                         @can('leaves.view')
-                            <button type="button" class="exp-btn export-leaves" data-type="{{ $type }}">Export Data</button>
+                            <button type="button" class="exp-btn export-leaves" data-type="{{ $type }}" style="margin-bottom:-20px;">Export Data</button>
                         @endcan
                     </div>
                 </div>

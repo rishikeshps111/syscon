@@ -49,8 +49,10 @@
                                 </select>
                                 @error('shift_name') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
-
-                            <div class="col-lg-12 mb-0 mt-3">
+                           <div class="col-lg-12">
+                                <div class="shift-box-xs">
+                                <div class="row">
+                                    <div class="col-lg-12 mb-0 mt-3">
                                 <h5 class="title-w-sec">Timing</h5>
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
@@ -71,8 +73,16 @@
                                     id="break_duration_minutes" name="break_duration_minutes" value="{{ old('break_duration_minutes', $record->break_duration_minutes ?? '') }}">
                                 @error('break_duration_minutes') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
+                                </div>
+                            </div>
+                           </div>
 
-                            <div class="col-lg-12 mb-0 mt-3">
+                            
+                            
+                            <div class="col-lg-12">
+                                <div class="shift-box-xs">
+                                <div class="row">
+                                    <div class="col-lg-12 mb-0 mt-3">
                                 <h5 class="title-w-sec">Work Rules</h5>
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
@@ -93,8 +103,16 @@
                                     id="minimum_working_hours" name="minimum_working_hours" value="{{ old('minimum_working_hours', $record->minimum_working_hours ?? '') }}">
                                 @error('minimum_working_hours') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
+                                </div>
+                            </div>
+                            </div>
 
-                            <div class="col-lg-12 mb-0 mt-3">
+                            
+                            
+                            <div class="col-lg-12">
+                                <div class="shift-box-xs">
+                                <div class="row">
+                                    <div class="col-lg-12 mb-0 mt-3">
                                 <h5 class="title-w-sec">Attendance Rules</h5>
                             </div>
                             <div class="col-lg-4 o-f-inp mb-3">
@@ -118,8 +136,16 @@
                                     Check-out Flexibility
                                 </label>
                             </div>
+                                </div>
+                            </div>
+                            </div>
 
-                            <div class="col-lg-12 mb-0 mt-3">
+                            
+                            
+                            <div class="col-lg-12">
+                                <div class="shift-box-xs">
+                                <div class="row">
+                                    <div class="col-lg-12 mb-0 mt-3">
                                 <h5 class="title-w-sec">Overtime Settings &amp; Status</h5>
                             </div>
                             <div class="col-lg-6 o-f-inp mb-3">
@@ -142,11 +168,16 @@
                                 </select>
                                 @error('is_active') <span class="text-danger">{{ $message }}</span> @enderror
                             </div>
+                                </div>
+                            </div>
+                            </div>
 
-                            <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                <div class="btn-flex">
-                                    <a href="{{ route('shift-settings.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                                    <button type="submit" class="submit-btn js-loading-submit"
+                            
+
+                            <div class="col-lg-12 ">
+                                <div class=" modal-btns-last">
+                                    <a href="{{ route('shift-settings.index') }}" class="modal-btn-1">Cancel</a>
+                                    <button type="submit" class="modal-btn-2 js-loading-submit"
                                         data-loading-text="Loading...">{{ isset($record) ? 'Update' : 'Submit' }}</button>
                                 </div>
                             </div>

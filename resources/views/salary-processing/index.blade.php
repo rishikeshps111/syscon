@@ -18,7 +18,13 @@
         <div class="row">
             <div class="col-lg-12 mb-3">
                 <div class="main-table-container">
-                    <div class="row mb-4">
+                    <div class="row ">
+                         <div class="col-lg-12 btns-group-container">
+                            @can('salary-processing.create')
+                                <a href="{{ route('salary-processing.create') }}"
+                                    class="add-btn form-btn text-decoration-none">Add</a>
+                            @endcan
+                        </div>
                         <div class="col-lg-3 o-f-inp mb-2">
                             <label for="yearFilter">Year</label>
                             <select id="yearFilter" class="form-select shadow-none">
@@ -46,28 +52,21 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-3 o-f-inp mb-2">
-                            <label for="roleFilter">Role</label>
+                        <div class="col-lg-3 ps-0 o-f-inp mb-2 center-gap">
+                           <div class='w-100'>
+                                <label for="roleFilter">Role</label>
                             <select id="roleFilter" class="form-select shadow-none">
                                 <option value="">--- Select ---</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->id }}">{{ $role->name }}</option>
                                 @endforeach
                             </select>
+                           </div>
+                             <button type="button" id="resetFilters" class="btn btn-secondary mb-1">Reset</button>
                         </div>
-                        <div class="col-lg-12 d-flex align-items-end mb-2">
-                            <button type="button" id="resetFilters" class="btn btn-secondary mb-1">Reset</button>
-                        </div>
+                      
                     </div>
 
-                    <div class="row">
-                        <div class="col-lg-4 ms-auto justify-content-end d-flex">
-                            @can('salary-processing.create')
-                                <a href="{{ route('salary-processing.create') }}"
-                                    class="add-btn form-btn text-decoration-none">Add</a>
-                            @endcan
-                        </div>
-                    </div>
 
                     <div class="row">
                         <div class="col-lg-12">

@@ -7,7 +7,7 @@
         </div>
         <div class="main-table-container">
             <div class="row mb-3">
-                <div class="col-lg-12 d-flex justify-content-end">
+                <div class="col-lg-12 btns-group-container">
                     @can('salary-templates.create')
                         <a href="{{ route('salary-templates.create') }}" class="add-btn form-btn text-decoration-none">Add Salary Template</a>
                     @endcan

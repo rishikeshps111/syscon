@@ -1,6 +1,352 @@
 @section('title')
     {{ $record ? 'Manage Salary Processing' : 'Add Salary Processing' }}
 @endsection
+<style>
+    #userDetailsContent {
+    padding: 22px !important;
+
+    background: #ffffff !important;
+}
+
+
+/* =========================================
+   Avatar Section
+   ========================================= */
+
+#userDetailsContent .user-details-avatar-wrap {
+    position: relative !important;
+
+    width: 82px !important;
+    height: 82px !important;
+
+    margin: 0 auto 24px !important;
+    padding: 4px !important;
+
+    background: #eff6ff !important;
+
+    border: 1px solid #dbeafe !important;
+    border-radius: 50% !important;
+
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.10) !important;
+}
+
+
+/* Decorative ring */
+#userDetailsContent .user-details-avatar-wrap::before {
+    content: "" !important;
+
+    position: absolute !important;
+    inset: -5px !important;
+
+    border: 1px solid #bfdbfe !important;
+    border-radius: 50% !important;
+
+    opacity: 0.7 !important;
+}
+
+
+/* Avatar */
+#userDetailsContent .user-details-avatar {
+    position: relative !important;
+    z-index: 1 !important;
+
+    display: block !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    object-fit: cover !important;
+
+    border-radius: 50% !important;
+
+    background: #f8fafc !important;
+}
+
+
+/* =========================================
+   Details Grid
+   ========================================= */
+
+#userDetailsContent .row {
+    margin-left: -6px !important;
+    margin-right: -6px !important;
+        gap: 5px;
+}
+
+
+/* Detail Item */
+#userDetailsContent .row > div {
+    position: relative !important;
+
+    padding: 13px 14px !important;
+    margin-bottom: 12px !important;
+
+    border: 1px solid #e8edf3 !important;
+    border-radius: 9px !important;
+
+    background: #f8fafc !important;
+
+    transition: all 0.2s ease !important;
+    width:49%;
+}
+
+
+#userDetailsContent .row > div:hover {
+    background: #ffffff !important;
+
+    border-color: #bfdbfe !important;
+
+    transform: translateY(-1px) !important;
+
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+}
+
+
+/* =========================================
+   Labels
+   ========================================= */
+
+#userDetailsContent .row > div small {
+    display: block !important;
+
+    margin-bottom: 5px !important;
+
+    color: #64748b !important;
+
+    font-size: 10px !important;
+    font-weight: 600 !important;
+
+    text-transform: uppercase !important;
+    letter-spacing: 0.45px !important;
+}
+
+
+/* =========================================
+   Values
+   ========================================= */
+
+#userDetailsContent .row > div strong {
+    display: block !important;
+
+    color: #1e293b !important;
+
+    font-size: 13px !important;
+    font-weight: 600 !important;
+
+    line-height: 1.4 !important;
+
+    word-break: break-word !important;
+}
+
+
+
+#userDetailsContent .row > div strong:empty {
+    color: #94a3b8 !important;
+}
+
+#salarySplitModal .modal-content {
+    border: 0 !important;
+    border-radius: 14px !important;
+
+    overflow: hidden !important;
+
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+}
+
+
+/* Modal Body */
+#salarySplitModal .modal-body {
+    padding: 20px !important;
+    background: #ffffff !important;
+}
+
+
+/* =========================================
+   Salary Table
+   ========================================= */
+
+#salarySplitModal #salarySplitContent {
+    width: 100% !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+
+    overflow: hidden !important;
+}
+
+
+#salarySplitModal #salarySplitContent .table {
+    margin-bottom: 0 !important;
+
+    color: #334155 !important;
+
+    vertical-align: middle !important;
+}
+
+
+/* =========================================
+   Table Header
+   ========================================= */
+
+#salarySplitModal #salarySplitContent thead {
+    background: #f8fafc !important;
+}
+
+
+#salarySplitModal #salarySplitContent thead th {
+    padding: 12px 14px !important;
+
+    color: #64748b !important;
+
+    background: #f8fafc !important;
+
+    border-bottom: 1px solid #e2e8f0 !important;
+
+    font-size: 10px !important;
+    font-weight: 700 !important;
+
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+
+/* =========================================
+   Table Rows
+   ========================================= */
+
+#salarySplitModal #salarySplitContent tbody tr {
+    background: #ffffff !important;
+
+    transition: all 0.2s ease !important;
+}
+
+
+#salarySplitModal #salarySplitContent tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+
+#salarySplitModal #salarySplitContent tbody td {
+    padding: 12px 14px !important;
+
+    color: #334155 !important;
+
+    border-bottom: 1px solid #f1f5f9 !important;
+
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+
+
+/* Remove last border */
+#salarySplitModal #salarySplitContent tbody tr:last-child td {
+    border-bottom: 0 !important;
+}
+
+
+/* =========================================
+   Salary Component Name
+   ========================================= */
+
+#salarySplitModal #salarySplitContent tbody td:nth-child(2) {
+    color: #1e293b !important;
+
+    font-weight: 600 !important;
+}
+
+
+/* =========================================
+   Amount
+   ========================================= */
+
+#salarySplitModal #salarySplitContent tbody td.text-end {
+    color: #166534 !important;
+
+    font-size: 13px !important;
+    font-weight: 700 !important;
+
+    white-space: nowrap !important;
+}
+
+
+/* =========================================
+   Checkbox
+   ========================================= */
+
+#salarySplitModal .salary-component-toggle {
+    width: 17px !important;
+    height: 17px !important;
+
+    margin: 0 !important;
+
+    cursor: pointer !important;
+
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+
+    box-shadow: none !important;
+}
+
+
+#salarySplitModal .salary-component-toggle:checked {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+}
+
+
+#salarySplitModal .salary-component-toggle:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+
+/* =========================================
+   Include Column
+   ========================================= */
+
+#salarySplitModal #salarySplitContent th:first-child,
+#salarySplitModal #salarySplitContent td:first-child {
+    width: 75px !important;
+
+    text-align: center !important;
+}
+
+
+/* =========================================
+   Selected Row
+   ========================================= */
+
+#salarySplitModal #salarySplitContent tbody tr:has(
+    .salary-component-toggle:checked
+) {
+    background: #f8fbff !important;
+}
+
+
+
+
+/* =========================================
+   Unchecked Row
+   ========================================= */
+
+#salarySplitModal #salarySplitContent tbody tr:has(
+    .salary-component-toggle:not(:checked)
+) {
+    opacity: 0.55 !important;
+    background: #f8fafc !important;
+}
+
+
+#salarySplitModal #salarySplitContent tbody tr:has(
+    .salary-component-toggle:not(:checked)
+) td:nth-child(2),
+#salarySplitModal #salarySplitContent tbody tr:has(
+    .salary-component-toggle:not(:checked)
+) td.text-end {
+    text-decoration: line-through !important;
+    color: #94a3b8 !important;
+}
+
+</style>
 <x-app-layout>
     @php
         $selectedYear = old('year', $filters['year'] ?? date('Y'));
@@ -126,9 +472,9 @@
                     </div>
                 </div>
 
-                <div class="col-lg-12 mt-3 text-center">
-                    <a href="{{ route('salary-processing.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                    <button type="submit" class="btn btn-primary mx-auto" data-loading-text="Loading...">Submit</button>
+                <div class="col-lg-12 mt-3 modal-btns-last">
+                    <a href="{{ route('salary-processing.index') }}" class="modal-btn-1">Cancel</a>
+                    <button type="submit" class="modal-btn-2" data-loading-text="Loading...">Submit</button>
                 </div>
             </div>
         </form>
@@ -143,9 +489,9 @@
                     <div class="modal-body">
                         <div id="salarySplitContent"></div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="saveSalarySplit">Save</button>
+                    <div class="modal-btns-last p-3">
+                        <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="modal-btn-2" id="saveSalarySplit">Save</button>
                     </div>
                 </div>
             </div>

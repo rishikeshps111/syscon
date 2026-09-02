@@ -6,11 +6,14 @@
         <div class="login-screen-top-img">
             <h2>{{ $heading ?? 'Login' }}</h2>
         </div>
-        <div class="container container-max-cs">
+        <div class="main-index-box ">
+            <div class="welcome-shapes shape-1"></div>
+    <div class="welcome-shapes shape-2"></div>
+    <div class="welcome-shapes shape-3"></div>
             <div class="row justify-content-center">
 
-                <div class="col-lg-6">
-                    <div class="login-field-box login-box-latest login-mtop">
+                <div class="col-lg-8">
+                    <div class="login-field-box login-box-latest ">
                         <img src="{{ asset('assets/img/logo.png') }}" alt="">
                         <form class="row g-3 lg-form" method="POST" action="{{ route('login') }}">
                             @csrf
@@ -50,7 +53,7 @@
                             </div>
                             <!-- Remember -->
                             <div class="col-12 my-4">
-                                <div class="form-check">
+                                <div class="form-check" style="display:flex; gap:10px;">
                                     <input class="form-check-input shadow-none" type="checkbox" name="remember"
                                         id="rememberMe">
                                     <label class="form-check-label" for="rememberMe">

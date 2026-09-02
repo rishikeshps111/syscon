@@ -43,7 +43,7 @@
                                 @csrf
                                 <input type="hidden" name="_method" id="assignmentMethod" value="POST">
                                 <div class="row">
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="depotId">Depot <span class="text-danger">*</span></label>
                                         <select id="depotId" name="depot_id" class="form-select shadow-none">
                                             <option value="">--- Select ---</option>
@@ -54,7 +54,7 @@
                                         <span class="text-danger error-text depot_id_error"></span>
                                     </div>
                                     @if($requiresReportingManager)
-                                        <div class="col-lg-4 o-f-inp mb-3">
+                                        <div class="col-lg-6 o-f-inp mb-3">
                                             <label for="reportingTo">Reporting To <span class="text-danger">*</span></label>
                                             <select id="reportingTo" name="reporting_to" class="form-select shadow-none">
                                                 <option value="">--- Select ---</option>
@@ -62,21 +62,21 @@
                                             <span class="text-danger error-text reporting_to_error"></span>
                                         </div>
                                     @endif
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="fromDate">From Date <span class="text-danger">*</span></label>
                                         <input type="date" id="fromDate" name="from_date" class="form-control shadow-none">
                                         <span class="text-danger error-text from_date_error"></span>
                                     </div>
-                                    <div class="col-lg-4 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp mb-3">
                                         <label for="toDate">To Date <span class="text-danger">*</span></label>
                                         <input type="date" id="toDate" name="to_date" class="form-control shadow-none">
                                         <span class="text-danger error-text to_date_error"></span>
                                     </div>
-                                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                        <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary"
+                                    <div class="col-lg-12 ">
+                                        <div class="modal-btns-last">
+                                            <button type="button" class="modal-btn-1"
                                                 data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn"
+                                            <button type="submit" class="modal-btn-2"
                                                 id="assignmentSubmitBtn">Submit</button>
                                         </div>
                                     </div>
@@ -89,12 +89,12 @@
         @endif
 
         <div class="main-table-container">
-            <div class="row mb-3">
+            <div class="row ">
                 <div class="col-lg-12 d-flex justify-content-end align-items-end">
-                    <div class="btn-flex">
-                        <a href="{{ route('staff-management.index') }}" class="add-btn bg-filter">Back</a>
+                    <div class="btns-group-container">
+                        <a href="{{ route('staff-management.index') }}" class="bk-btn">Back</a>
                         @if($canEdit)
-                            <a class="add-btn" data-bs-toggle="modal" href="#depotAssignmentModal" role="button">
+                            <a class="add-btn m-0" data-bs-toggle="modal" href="#depotAssignmentModal" role="button">
                                 Add Assignment
                             </a>
                         @endif

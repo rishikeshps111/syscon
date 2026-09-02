@@ -1,6 +1,16 @@
 @section('title')
     {{ isset($record) ? 'Edit Route' : 'Add Route' }}
 @endsection
+<style>
+.title-w-sec{
+     font-size: 17px !important;
+    font-weight: 600 !important;
+    color: #025187 !important;
+    padding-left: 10px !important;
+    border-left: 5px solid #025187 !important;
+}
+       
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -137,10 +147,10 @@
                         </div>
                     </div>
 
-                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                        <div class="btn-flex">
-                            <a href="{{ route('routes.index') }}" class="reset-btn">Cancel</a>
-                            <button type="submit" class="submit-btn js-loading-submit" data-loading-text="Saving...">
+                    <div class="col-lg-12 ">
+                        <div class="modal-btns-last">
+                            <a href="{{ route('routes.index') }}" class="modal-btn-1">Cancel</a>
+                            <button type="submit" class="modal-btn-2 js-loading-submit" data-loading-text="Saving...">
                                 {{ isset($record) ? 'Update' : 'Submit' }}
                             </button>
                         </div>

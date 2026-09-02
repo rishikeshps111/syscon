@@ -14,12 +14,12 @@
     <section class="section dashboard">
         <div class="row">
             @forelse($cards as $card)
-                <div class="col-lg-4 mb-3">
-                    <a href="{{ route($card['route'], $card['route_params'] ?? []) }}" class="card-dashboard-widget {{ $card['class'] }} d-flex text-decoration-none">
-                        <div class="card-dashboard-widget-icon">
+                <div class="col-lg-3 mb-3">
+                    <a href="{{ route($card['route'], $card['route_params'] ?? []) }}" class="card-dashboard-sec {{ $card['class'] }} d-flex text-decoration-none">
+                        <div class="card-dashboard-widget-icon-sec">
                             <i class="{{ $card['icon'] }}"></i>
                         </div>
-                        <div class="card-dashboard-widget-info">
+                        <div class="card-dashboard-widget-info-sec">
                             <h3>{{ number_format($card['value']) }}</h3>
                             <p>{{ $card['label'] }}</p>
                         </div>

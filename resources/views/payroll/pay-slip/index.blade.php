@@ -19,7 +19,7 @@
         <div class="main-table-container">
             <form id="paySlipForm" method="GET" action="{{ route('salary-slips.preview') }}">
                 <div class="row align-items-end">
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-3">
+                    <div class="col-lg-4 col-md-4 o-f-inp mb-3">
                         <label for="year">Year <span class="text-danger">*</span></label>
                         <select name="year" id="year" class="form-select shadow-none pay-slip-filter" required>
                             @foreach ($years as $year)
@@ -28,7 +28,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-3">
+                    <div class="col-lg-4 col-md-4 o-f-inp mb-3">
                         <label for="month">Month <span class="text-danger">*</span></label>
                         <select name="month" id="month" class="form-select shadow-none pay-slip-filter" required>
                             <option value="">--- Select ---</option>
@@ -37,7 +37,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-4 o-f-inp mb-3">
+                    <div class="col-lg-4 col-md-4 o-f-inp mb-3">
                         <label for="depot_id">Depo <span class="text-danger">*</span></label>
                         <select name="depot_id" id="depot_id" class="form-select shadow-none pay-slip-filter" required>
                             <option value="">--- Select ---</option>
@@ -46,7 +46,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-4 o-f-inp mb-3">
+                    <div class="col-lg-4 col-md-4 o-f-inp mb-3">
                         <label for="role_id">Role <span class="text-danger">*</span></label>
                         <select name="role_id" id="role_id" class="form-select shadow-none pay-slip-filter" required>
                             <option value="">--- Select ---</option>
@@ -55,15 +55,15 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 col-md-8 o-f-inp mb-3">
+                    <div class="col-lg-4 col-md-8 o-f-inp mb-3">
                         <label for="user_id">User <span class="text-danger">*</span></label>
                         <select name="user_id" id="user_id" class="form-select shadow-none" required disabled>
                             <option value="">Select filters first</option>
                         </select>
                     </div>
-                    <div class="col-lg-12 d-flex gap-2 justify-content-end">
-                        <button type="button" id="resetPaySlip" class="btn btn-secondary">Reset</button>
-                        <button type="submit" id="generatePaySlip" class="btn btn-primary"
+                    <div class="col-lg-4 btns-group-container mb-3" style="justify-content:flex-start !important;">
+                        <button type="button" id="resetPaySlip" class="fil-btn">Reset</button>
+                        <button type="submit" id="generatePaySlip" class="exp-btn m-0"
                             data-loading-text="Generating...">
                             Generate Pay Slip
                         </button>
@@ -75,15 +75,15 @@
         <div class="modal fade" id="paySlipModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header between-cs-modal">
                         <h5 class="modal-title">Generated Pay Slip</h5>
-                        <div class="d-flex flex-wrap gap-2 ms-auto me-3">
-                            <a href="#" id="downloadPaySlipPdf" class="btn btn-success disabled" aria-disabled="true"
+                        <div class="report-excel">
+                            <a href="#" id="downloadPaySlipPdf" class="disabled" aria-disabled="true"
                                 data-loading-text="Downloading...">
                                 Download PDF
                             </a>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close m-0" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="paySlipModalBody">
                         <div class="text-center py-5 text-muted">Generate a pay slip to view details.</div>

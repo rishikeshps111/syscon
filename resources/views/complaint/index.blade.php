@@ -14,16 +14,25 @@
         </div>
 
         <div class="main-table-container">
-            <ul class="nav nav-tabs nav-tabs-bordered justify-content-start">
-                <li class="nav-item ps-0 ms-0">
-                    <a href="{{ route('complaints.index', ['reported_by_role' => 'supervisor']) }}"
-                        class="nav-link ms-0 mb-0 {{ $activeRole === 'supervisor' ? 'active' : '' }}">Supervisor</a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('complaints.index', ['reported_by_role' => 'controller']) }}"
-                        class="nav-link mb-0 {{ $activeRole === 'controller' ? 'active' : '' }}">Controller</a>
-                </li>
-            </ul>
+            <ul class="nav nav-tabs-custom">
+    <li class="nav-item ps-0 ms-0">
+        <a href="{{ route('complaints.index', ['reported_by_role' => 'supervisor']) }}"
+            class="nav-link ms-0 mb-0 {{ $activeRole === 'supervisor' ? 'active' : '' }}">
+
+            <i class="fa-solid fa-user-tie me-1"></i>
+            Supervisor
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a href="{{ route('complaints.index', ['reported_by_role' => 'controller']) }}"
+            class="nav-link mb-0 {{ $activeRole === 'controller' ? 'active' : '' }}">
+
+            <i class="fa-solid fa-user-gear me-1"></i>
+            Controller
+        </a>
+    </li>
+</ul>
 
             <div class="filters-complaint mt-3">
                 <div class="row">
@@ -83,7 +92,7 @@
                             <input type="date" id="dateToFilter" class="form-control shadow-none">
                         </div>
                     </div>
-                    <div class="col-lg-6 mb-3 d-flex align-items-end justify-content-end">
+                    <div class="col-lg-6 mb-3 d-flex align-items-end justify-content-start">
                         <button type="button" id="resetFilters" class="btn btn-secondary me-2">Reset</button>
                         <button type="button" id="searchFilters" class="search-btn">Search</button>
                     </div>
@@ -93,12 +102,12 @@
             <div class="mt-3 table-container">
                 <div class="row justify-content-end">
                     <div class="col-lg-8">
-                        <div class="table-search">
+                        <div class="table-search btns-group-container" style="margin-bottom:-20px">
                             <label for="searchFilter" class="nowrap">Search</label>
                             <input type="text" id="searchFilter" class="form-control shadow-none"
                                 placeholder="ID / Name">
                             @can('complaints.view')
-                                <button id="exportSelected" class="exp-btn me-2">Export Data</button>
+                                <button id="exportSelected" class="exp-btn ">Export Data</button>
                             @endcan
                             @can('complaints.create')
                                 <a href="{{ route('complaints.create') }}" class="add-btn mx-0">Add</a>
@@ -148,9 +157,9 @@
                         <span class="text-danger error-text status_error"></span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Update</button>
+                <div class="modal-btns-last p-3">
+                    <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="modal-btn-2">Update</button>
                 </div>
             </form>
         </div>
@@ -191,9 +200,9 @@
                         <span class="text-danger error-text action_date_error"></span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Assign</button>
+                <div class="modal-btns-last p-3">
+                    <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="modal-btn-2">Assign</button>
                 </div>
             </form>
         </div>

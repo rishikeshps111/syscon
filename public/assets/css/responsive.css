@@ -1,0 +1,304 @@
+@media screen and (max-width:1350px){
+    .profile-detail{
+        width:100%;
+    }
+}
+@media screen and (max-width:1200px){
+    #main{
+        margin-left:0;
+        padding-top: 80px;
+    }
+    .header{
+        width:100%;
+    }
+    .sidebar{
+        z-index:1000;
+    }
+}
+@media screen and (max-width:991px){
+        #main {
+            padding-top:40px;
+        }
+    .application-login-section{
+        flex-direction:column;
+    }
+    .login-screen-top-img,.main-index-box{
+        width:100%;
+    }
+    .application-login-section{
+        height:fit-content;
+    }
+    .login-screen-top-img,.main-index-box{
+        height:60vh;
+    }
+    .login-screen-top-img{
+        height:40vh;
+    }
+    .welcome-shapes{
+        display:none;
+    }
+    /*.main-index-box{*/
+    /*    overflow:unset;*/
+    /*}*/
+    /*.login-box-latest {*/
+    /*    margin-top:100px !important;*/
+    /*}*/
+    .nav-tabs-custom{
+        flex-wrap:nowrap;
+        overflow:auto;
+        padding-bottom:5px;
+    }
+    
+    .nav-tabs-custom::-webkit-scrollbar {
+  width: 3px;
+  height:3px;
+}
+
+/* Track */
+.nav-tabs-custom::-webkit-scrollbar-track {
+  background:#f7f7f7;
+  border-radius: 10px;
+}
+ 
+/* Handle */
+.nav-tabs-custom::-webkit-scrollbar-thumb {
+  background: #1c50a7; 
+  border-radius: 10px;
+}
+    .nav-tabs-custom .nav-link{
+        padding:5px 10px;
+    }
+    #resetFilters, .fil-btn{
+        margin-top:15px;
+    }
+    #filterCollapse #resetFilters,#filterCollapse .fil-btn,#filterTripSheets{
+        margin-top:0;
+    }
+    .btns-group-container{
+               justify-content: flex-start !important;
+        flex-wrap: wrap;
+        padding-top: 5px;
+    }
+    .reset-btn, .fil-btn, .btns-group-container .add-btn, .btns-group-container .bk-btn, .btns-group-container .filter-btnss, .btns-group-container .exp-btn, .btns-group-container .imp-btn, .btns-group-container .holiday-btn{
+            height: fit-content !important;
+            padding: 10px 15px !important;
+                width: fit-content;
+                margin:0;
+    }
+    #resetFilters{
+         height: fit-content !important;
+            padding: 10px 15px !important;
+                width: fit-content;
+    }
+     .reset-btn{
+         padding:8px 15px !important;
+         font-size:13px !important;
+         border-radius: 9px !important;
+     }
+    .page-title{
+        flex-direction:column;
+        padding:0;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+    .form-check{
+        padding-left:0;
+    }
+    .table-search.btns-group-container{
+        padding-bottom:5px;
+        margin-bottom:0 !important;
+    }
+    .list-program-dt ul li{
+        width:100%;
+    }
+    .footer{
+        position:static;
+    }
+    .center-gap{
+              flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding-left:13px !important;
+    }
+    .holiday-calendar-card{
+        overflow:auto;
+        padding:0;
+    }
+    .preview-widget-info ul{
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+   
+.preview-widget-info li {
+   
+    display: flex;
+    flex-direction: column;
+    padding-left: 0;
+    gap: 10px;
+}
+.preview-widget-info li span:not(.status-green):not(.status-red){
+    width:fit-content;
+    margin-left:0;
+}
+.preview-widget-info li span{
+    width:fit-content;
+}
+.btns-group-container{
+    padding-bottom:8px;
+}
+.student-preview-profile img{
+    width:200px;
+}
+div button.fil-btn{
+    padding:7px 15px !important;
+}
+.route-header{
+    flex-direction:column-reverse;
+}
+.route-card{
+    padding:10px;
+}
+.dor-card{
+    grid-column:unset
+}
+.report-bn #resetFilters{
+    margin-top:0 !important;
+            padding: 7px 15px !important;
+}
+.chat-list-panel{
+    height:300px !important;
+}
+.chat-room-head{
+        background: #c2dafd;
+}
+
+}
+@media screen and (max-width:768px){
+    .profile-view-cs{
+            grid-template-columns:  1fr;
+            padding:0;
+            border:0;
+    }
+    .profile-info-section{
+        padding:10px 0;
+    }
+    #table_wrapper .row:first-child{
+        display:flex;
+    }
+    #table_wrapper .row:first-child .col-sm-12{
+       width:50%;
+    }
+    #table_wrapper .row:last-child{
+        display:flex;
+    }
+    #table_wrapper .row:last-child .col-sm-12{
+       width:50%;
+    }
+    div.dataTables_wrapper div.dataTables_length, div.dataTables_wrapper div.dataTables_filter, div.dataTables_wrapper div.dataTables_info, div.dataTables_wrapper div.dataTables_paginate{
+        text-align:left !important;
+    }
+    div.dataTables_wrapper div.dataTables_filter{
+        text-align:right !important;
+    }
+    .driver-id-card-popup .swal2-html-container{
+        max-width: 100%;
+    width: 100%;
+    margin: 0 !important;
+    }
+    .leave-balance-row{
+        flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    }
+    .leave-balance-metrics{
+        grid-template-columns: repeat(1, minmax(100%, 1fr)) !important;
+    }
+    .leave-balance-metrics{
+        width:100%;
+    }
+     .column-rvse{
+         flex-direction: column-reverse !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    }
+}
+@media screen and (max-width:567px){
+    .login-screen-top-img h2{
+        font-size:30px;
+    }
+    .main-index-box{
+        padding:30px 5px;
+    }
+    .login-screen-top-img p{
+        font-size:14px;
+    }
+    .login-field-box img{
+        width:140px;
+    }
+    .digital-time-container{
+        display:none;
+    }
+    
+     #table_wrapper .row:first-child{
+        display:flex;
+        flex-direction:column;
+    }
+    #table_wrapper .row:first-child .col-sm-12{
+       width:100%;
+    }
+    #table_wrapper .row:last-child{
+        display:flex;
+        flex-direction:column;
+    }
+    #table_wrapper .row:last-child .col-sm-12{
+       width:100%;
+    }
+    div.dataTables_wrapper div.dataTables_filter {
+        text-align: left !important;
+        margin-top: 7px;
+    }
+    div.dataTables_wrapper div.dataTables_paginate ul.pagination{
+        justify-content:flex-start !important;
+    }
+     .table-search.btns-group-container{
+       flex-direction:column;
+       justify-content:flex-start !important;
+       align-items:flex-start !important;
+    }
+    .table-search.btns-group-container input{
+        width:100%;
+    }
+    .list-program-dt ul li{
+        flex-direction:column;
+        justify-content:flex-start;
+        align-items:flex-start;
+        padding-left: 0;
+        gap: 5px;
+    }
+    .v-preview span{
+        position: absolute;
+    top: 6px;
+    right: 10px;
+    }
+    .v-preview{
+        padding:10px;
+        padding-top:50px;
+    }
+    .holiday-calendar-header{
+        flex-direction:column;
+         justify-content:flex-start;
+        align-items:flex-start;
+        gap:10px
+        
+    }
+    .letter-tem-doc{
+        padding:25px;
+    }
+   .modal-btns-last{
+        flex-wrap:wrap;
+    }
+   .p-3-sm-0{
+       padding:0 !important;
+   }
+       
+    
+}

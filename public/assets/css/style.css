@@ -384,7 +384,7 @@ h6 {
   font-family: "Roboto", sans-serif;
   color: #222;
   border: 1px solid #222;
-  border-radius: 30px;
+  border-radius: 5px;
   margin: 0 5px;
   margin-bottom: 20px;
   font-size: 14px;
@@ -393,15 +393,15 @@ h6 {
 
 .nav-tabs-bordered .nav-link:hover,
 .nav-tabs-bordered .nav-link:focus {
-  background-color: #18a0b8  ;
+  background-color: #212529  ;
   color: #fff;
 
 }
 
 .nav-tabs-bordered .nav-link.active {
-  background-color: #18a0b8  ;
+  background-color: #416180  ;
   color: #fff;
-  border-bottom: 2px solid #18a0b8  ;
+  border-bottom: 2px solid #416180  ;
 }
 
 /*--------------------------------------------------------------
@@ -784,9 +784,9 @@ h6 {
     font-weight: 400;
     color: #fff;
     transition: 0.3;
-    background: #ffffff38;
+    background: #ffffff94;
     padding: 10px 10px;
-    border-radius: 15px;
+    border-radius: 7px;
     height: 45px;
     /*border-bottom: 1px solid #5b5b5b57;*/
 }
@@ -1481,28 +1481,67 @@ color: #e4a935;
   padding: 15px;
   background-color: #fff;
 } */
+/*.tble-cstm tr th {*/
+/* background-color: #035065;*/
+/*    color: #fff;*/
+/*  border: 1px solid #a1bde566;*/
+/*  font-size: 13px;*/
+/*  padding: 15px 10px;*/
+/*  text-transform: capitalize;*/
+/*  text-align: center;*/
+/*  font-weight: 600;*/
+
+/*}*/
+
+/*.tble-cstm tr td {*/
+/*  color: #222 !important;*/
+/*  border: 0;*/
+/*  border: 1px solid #dadada;*/
+/*  text-align: center;*/
+/*  padding: 10px 12px !important;*/
+/*  font-size: 14px;*/
+/*    font-weight: 400;*/
+/*}*/
+.tble-cstm {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Header styling */
 .tble-cstm tr th {
- background-color: #035065;
-    color: #fff;
-  border: 1px solid #a1bde566;
+  background-color: #c7daed; /* Light blue-gray background */
+  color: #334155; /* Dark gray text */
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
   font-size: 13px;
-  padding: 15px 10px;
-  text-transform: capitalize;
-  text-align: center;
   font-weight: 600;
-
+  padding: 18px 12px;
+  text-transform: none; /* Keeps original case */
+  text-align: left; /* Aligns with modern design standards */
+  white-space: nowrap;
 }
 
+/* Body cell styling */
 .tble-cstm tr td {
-  color: #222 !important;
-  border: 0;
-  border: 1px solid #dadada;
-  text-align: center;
-  padding: 10px 12px !important;
+  color: #2e3948  !important;
+  border: none;
+  border: 1px solid #e9e8e8; /* Soft horizontal divider */
+  text-align: left;
+  padding: 14px 12px !important;
   font-size: 14px;
-    font-weight: 400;
+  font-weight: 400;
+  vertical-align: middle;
 }
 
+/* Remove border on the last row */
+.tble-cstm tr:last-child td {
+  border-bottom: none;
+}
+
+/* Optional hover effect */
+.tble-cstm tbody tr:hover {
+  background-color: #f8fafc;
+}
 .tble-cstm tr td a {
   color: #ccc !important;
   text-decoration: none;
@@ -1583,9 +1622,10 @@ color: #e4a935;
     background-color: #efefef;
      background-color: #fff;
     color: #222 !important;
-    border-radius: 11px;
+    border-radius: 5px;
 
 }
+
 .o-f-inp select option{
   color: #000;
 }
@@ -1596,7 +1636,7 @@ color: #e4a935;
     background-color: #efefef;
      background-color: #fff;
     color: #222 !important;
-    border-radius: 11px;
+    border-radius: 5px;
 
 }
 .o-f-inp textarea{
@@ -1606,7 +1646,7 @@ color: #e4a935;
     background-color: #efefef;
     background-color: #fff;
     color: #222 !important;
-    border-radius: 11px;
+    border-radius: 5px;
 }
 .o-f-inp textarea:focus,.o-f-inp input:focus{
   background-color: #fff;
@@ -2177,8 +2217,8 @@ ul#sidebarNavInner{
     color: #fff;
     font-weight: 700;
     text-align: center;
-    background-color: #fff;
-    border-radius: 20px;
+    /*background-color: #fff;*/
+    border-radius: 10px;
 }
 
 
@@ -2213,7 +2253,7 @@ ul#sidebarNavInner{
     background-repeat: no-repeat;
     background-size: cover;
     background-attachment:fixed !important;
-    background-color: #ecebeb;
+    background-color: #fafafa;
      
 }
 .header-blur{
@@ -2226,7 +2266,7 @@ top:12px; */
 .sidebar-blur{
     /* background: rgb(21 111 156); */
     background: rgb(21 111 156);
-      background:#044858;
+      background:#16263D;
 backdrop-filter: blur(7px);
 -webkit-backdrop-filter: blur(7px);
 /* border-radius:10px; */
@@ -2368,3 +2408,14 @@ height:100%;
 .flatpickr-current-month .flatpickr-monthDropdown-months{
   font-size: 13px !important;
 }
+
+.select2-container--default .select2-selection--single{
+    border-color: #22222275 !important;
+}
+.select2-container .select2-selection--single .select2-selection__rendered{
+    font-size:13px;
+}
+
+
+
+
