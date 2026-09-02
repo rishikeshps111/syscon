@@ -11,12 +11,14 @@
             color: red !important;
         }
         input::file-selector-button {
-    background-color: #025187 !important;
-    height:41px;
-    color:#fff !important;
-}
-
-}
+            background-color: #025187 !important;
+            height: 41px;
+            color: #fff !important;
+        }
+        .dor-delay-highlight {
+            border: 2px solid #dc3545 !important;
+            box-shadow: 0 0 0 0.15rem rgba(220, 53, 69, 0.15);
+        }
 
     </style>
     <div class="page-title">
@@ -61,6 +63,7 @@
                                         $value = old($name, $field['value'] ?? '');
                                         $disabled = $dorReadOnly || (bool) ($field['disabled'] ?? false);
                                         $type = $field['type'] ?? 'text';
+                                        $fieldClass = !empty($field['highlight'] ?? false) ? 'dor-delay-highlight' : '';
                                     @endphp
                                     <tr>
                                         <td class="text-muted">{{ $loop->iteration }}</td>
@@ -119,7 +122,7 @@
                                                     @disabled($disabled)>{{ $value }}</textarea>
                                             @else
                                                 <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}"
-                                                    class="form-control" value="{{ $value }}" step="any" @disabled($disabled)>
+                                                    class="form-control {{ $fieldClass }}" value="{{ $value }}" step="any" @disabled($disabled)>
                                             @endif
 
                                             @error($name)

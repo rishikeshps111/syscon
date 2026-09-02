@@ -1446,7 +1446,7 @@ class TripController extends Controller implements HasMiddleware
             'schedule_end_time' => $this->formatSheetTime($entry->arrival_time) ?: null,
             'actual_start_time' => $this->formatSheetTime($entry->actual_start_time) ?: null,
             'actual_end_time' => $this->formatSheetTime($entry->actual_reach_time) ?: null,
-            'start_punc' => $this->sheetStartDelay($entry->departure_time, $entry->actual_start_time),
+            'start_punc' => $this->dorStartPunch($entry->departure_time, $entry->actual_start_time),
             'route_completion_time' => $this->formatSheetTime($entry->actual_reach_time ?: $entry->arrival_time) ?: null,
             'schedule_km' => $scheduleKm,
             'route_km_loss' => $routeKmLoss,
@@ -1582,6 +1582,7 @@ class TripController extends Controller implements HasMiddleware
             'penalty' => $saved?->penalty,
             'model_9m_12m' => $saved?->model_9m_12m,
         ]);
+        $startPunchDelayMinutes = $this->sheetStartDelayMinutes($entry->departure_time, $entry->actual_start_time);
 
         return [
             ['label' => 'Depot Name', 'name' => 'depot_name', 'type' => 'text', 'disabled' => true, 'value' => $values['depot_name']],
@@ -1595,7 +1596,7 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Schedule End Time', 'name' => 'schedule_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_end_time']],
             ['label' => 'Actual Start Time', 'name' => 'actual_start_time', 'type' => 'time', 'disabled' => true, 'value' => $values['actual_start_time']],
             ['label' => 'Actual End Time', 'name' => 'actual_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['actual_end_time']],
-            ['label' => 'Start Punc.', 'name' => 'start_punc', 'type' => 'text', 'disabled' => true, 'value' => $values['start_punc']],
+            ['label' => 'Start Punc.', 'name' => 'start_punc', 'type' => 'text', 'disabled' => true, 'highlight' => $startPunchDelayMinutes > 0, 'value' => $values['start_punc']],
             ['label' => 'Route Completion Time', 'name' => 'route_completion_time', 'type' => 'time', 'disabled' => true, 'value' => $values['route_completion_time']],
             ['label' => 'Schedule Km', 'name' => 'schedule_km', 'type' => 'number', 'disabled' => true, 'value' => $values['schedule_km']],
             ['label' => 'Route Km Loss', 'name' => 'route_km_loss', 'type' => 'number', 'value' => $values['route_km_loss']],
@@ -1845,19 +1846,46 @@ class TripController extends Controller implements HasMiddleware
 
     private function sheetStartDelay(?string $startTime, ?string $actualStartTime): string
     {
-        if (! $startTime || ! $actualStartTime) {
+        $minutes = $this->sheetStartDelayMinutes($startTime, $actualStartTime);
+
+        if ($minutes === null) {
             return '-';
         }
-
-        $scheduled = Carbon::createFromFormat('H:i', $this->formatSheetTime($startTime));
-        $actual = Carbon::createFromFormat('H:i', $this->formatSheetTime($actualStartTime));
-        $minutes = (int) round($scheduled->diffInMinutes($actual, false));
 
         $label = abs($minutes) === 1 ? 'min' : 'mins';
 
         return $minutes >= 0
             ? "{$minutes} {$label}"
             : abs($minutes) . " {$label} early";
+    }
+
+    private function sheetStartDelayMinutes(?string $startTime, ?string $actualStartTime): ?int
+    {
+        if (! $startTime || ! $actualStartTime) {
+            return null;
+        }
+
+        $scheduled = Carbon::createFromFormat('H:i', $this->formatSheetTime($startTime));
+        $actual = Carbon::createFromFormat('H:i', $this->formatSheetTime($actualStartTime));
+
+        return (int) round($scheduled->diffInMinutes($actual, false));
+    }
+
+    private function dorStartPunch(?string $startTime, ?string $actualStartTime): string
+    {
+        $minutes = $this->sheetStartDelayMinutes($startTime, $actualStartTime);
+
+        if ($minutes === null) {
+            return '-';
+        }
+
+        if ($minutes > 0) {
+            return "{$minutes} Min Delay";
+        }
+
+        return $minutes < 0
+            ? abs($minutes) . ' Min early'
+            : '0 Min';
     }
 
     private function sheetViewDorButtons(Trip $trip, TripSheetEntry $entry): string

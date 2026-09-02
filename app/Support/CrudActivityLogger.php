@@ -16,6 +16,7 @@ use App\Models\District;
 use App\Models\DocumentType;
 use App\Models\DriverDocument;
 use App\Models\DriverProfile;
+use App\Models\DriverChangeReason;
 use App\Models\GeneralSetting;
 use App\Models\Holiday;
 use App\Models\HousekeepingProfile;
@@ -72,6 +73,7 @@ class CrudActivityLogger
         ServiceType::class => 'Service Type',
         VehicleClassification::class => 'Vehicle Classification',
         TripNature::class => 'Trip Nature',
+        DriverChangeReason::class => 'Reason for Driver Change',
         DocumentType::class => 'Document Type',
         ComplaintCategory::class => 'Complaint Category',
         Depot::class => 'Depot',

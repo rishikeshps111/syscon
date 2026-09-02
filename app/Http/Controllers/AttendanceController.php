@@ -158,6 +158,7 @@ class AttendanceController extends Controller implements HasMiddleware
                         'user_type' => $row['user_type'],
                         'status' => $row['status'],
                         'half_day_period' => $row['status'] === 'half_day' ? $row['half_day_period'] : null,
+                        'duty_type' => $row['user_type'] === 'Driver' && $row['status'] === 'present' ? $row['duty_type'] : null,
                         'shift' => in_array($row['user_type'], ['Driver', 'Housekeeping'], true) ? $row['shift'] : null,
                         'leave_id' => in_array($row['status'], ['absent', 'half_day'], true) ? $row['leave_id'] : null,
                         'remarks' => $row['remarks'],
@@ -188,6 +189,7 @@ class AttendanceController extends Controller implements HasMiddleware
                 'present',
                 '',
                 '',
+                $sampleUser && $sampleUser->hasRole('Driver') ? 'D' : '',
                 '',
                 'Sample present attendance',
             ]);
@@ -199,6 +201,7 @@ class AttendanceController extends Controller implements HasMiddleware
                 'half_day',
                 'morning',
                 $sampleUser && $sampleUser->hasRole('Driver') ? 'Morning' : '',
+                '',
                 '',
                 'Sample half day attendance',
             ]);
@@ -245,6 +248,7 @@ class AttendanceController extends Controller implements HasMiddleware
                 Attendance::STATUSES[$record->status] ?? $record->status,
                 $record->half_day_period ? (Attendance::HALF_DAY_PERIODS[$record->half_day_period] ?? $record->half_day_period) : '-',
                 $record->shift ?: '-',
+                $record->duty_type ?: '-',
                 $record->leave ? ($record->leave->code ?: '#' . $record->leave->id) : '-',
                 $record->remarks ?: '-',
             ]);
@@ -306,6 +310,7 @@ class AttendanceController extends Controller implements HasMiddleware
             'attendance.*.status' => ['required', Rule::in(array_keys(Attendance::STATUSES))],
             'attendance.*.half_day_period' => ['nullable', Rule::in(array_keys(Attendance::HALF_DAY_PERIODS))],
             'attendance.*.shift' => ['nullable', Rule::in(array_keys(Attendance::SHIFTS))],
+            'attendance.*.duty_type' => ['nullable', Rule::in(array_keys(Attendance::DUTY_TYPES))],
             'attendance.*.leave_id' => ['nullable', 'integer', 'exists:leaves,id'],
             'attendance.*.remarks' => ['nullable', 'string'],
         ]);
@@ -335,6 +340,12 @@ class AttendanceController extends Controller implements HasMiddleware
                     ]);
                 }
 
+                if ($validated['user_type'] === 'Driver' && $status === 'present' && empty($row['duty_type'])) {
+                    throw ValidationException::withMessages([
+                        $fieldPrefix . '.duty_type' => 'Please select a duty type for a present driver.',
+                    ]);
+                }
+
                 if (! empty($row['leave_id']) && ! $this->leaveBelongsToDate((int) $row['leave_id'], (int) $row['user_id'], $date)) {
                     throw ValidationException::withMessages([
                         $fieldPrefix . '.leave_id' => 'Please select a valid leave application for this user and date.',
@@ -352,6 +363,7 @@ class AttendanceController extends Controller implements HasMiddleware
                         'user_type' => $validated['user_type'],
                         'status' => $status,
                         'half_day_period' => $status === 'half_day' ? ($row['half_day_period'] ?? null) : null,
+                        'duty_type' => $validated['user_type'] === 'Driver' && $status === 'present' ? ($row['duty_type'] ?? null) : null,
                         'shift' => $isShiftBased ? ($row['shift'] ?? null) : null,
                         'leave_id' => in_array($status, ['absent', 'half_day'], true) ? ($row['leave_id'] ?? null) : null,
                         'remarks' => $row['remarks'] ?? null,
@@ -404,6 +416,7 @@ class AttendanceController extends Controller implements HasMiddleware
             'statuses' => Attendance::STATUSES,
             'shifts' => Attendance::SHIFTS,
             'halfDayPeriods' => Attendance::HALF_DAY_PERIODS,
+            'dutyTypes' => Attendance::DUTY_TYPES,
         ];
     }
 
@@ -466,6 +479,7 @@ class AttendanceController extends Controller implements HasMiddleware
             'status',
             'half_day_period',
             'shift',
+            'duty_type',
             'leave_code',
             'remarks',
         ];
@@ -548,6 +562,7 @@ class AttendanceController extends Controller implements HasMiddleware
             $status = $data['status'] ?? '';
             $halfDayPeriod = $data['half_day_period'] ?? null;
             $shift = $data['shift'] ?? null;
+            $dutyType = $data['duty_type'] ?? null;
             $remarks = $data['remarks'] ?? null;
 
             if (! $date) {
@@ -578,6 +593,10 @@ class AttendanceController extends Controller implements HasMiddleware
                 $errors[] = "Row {$line}: shift is required for Driver and Housekeeping attendance and must be Morning, Evening, or Night.";
             }
 
+            if ($userType === 'Driver' && $status === 'present' && ! array_key_exists((string) $dutyType, Attendance::DUTY_TYPES)) {
+                $errors[] = "Row {$line}: duty_type is required for present Driver attendance and must be D, DD, or DDD.";
+            }
+
             $leaveId = $this->csvLeaveId($data['leave_code'] ?? null);
 
             if ($data['leave_code'] ?? null) {
@@ -605,6 +624,7 @@ class AttendanceController extends Controller implements HasMiddleware
                 'status' => $status,
                 'half_day_period' => $status === 'half_day' ? $halfDayPeriod : null,
                 'shift' => $userType === 'Driver' ? $shift : null,
+                'duty_type' => $userType === 'Driver' && $status === 'present' ? $dutyType : null,
                 'leave_id' => $leaveId,
                 'remarks' => $remarks ?: null,
             ];

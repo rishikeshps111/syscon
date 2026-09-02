@@ -90,6 +90,14 @@ class PermissionSeeder extends Seeder
                 'dor-kilometer-loss-reasons.delete',
                 'dor-kilometer-loss-reasons.view',
             ],
+            'Reason for Driver Change' => [
+                'driver-change-reasons.create',
+                'driver-change-reasons.edit',
+                'driver-change-reasons.delete',
+                'driver-change-reasons.view',
+                'driver-change-reasons.export',
+                'driver-change-reasons.status',
+            ],
             'Depot' => [
                 'depots.create',
                 'depots.edit',

@@ -44,7 +44,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*', 'driver-change-reasons.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -160,6 +160,15 @@
                                         class="{{ request()->routeIs('dor-kilometer-loss-reasons.*') ? 'sub-active' : '' }}">
                                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                         <span> DOR KM Loss Reasons </span>
+                                    </a>
+                                </li>
+                            @endcan
+                             @can('driver-change-reasons.view')
+                                <li>
+                                    <a href="{{ route('driver-change-reasons.index') }}"
+                                        class="{{ request()->routeIs('driver-change-reasons.*') ? 'sub-active' : '' }}">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                        <span>Reason for Driver Change</span>
                                     </a>
                                 </li>
                             @endcan
@@ -460,7 +469,7 @@
                         </a>
                     </li>
                 @endcan
-                @can('trips.view')
+                @canany(['trips.view', 'driver-change-reasons.view'])
                     <li class="nav-item">
                         <a class="nav-link {{ request()->routeIs('trips.*','completed.trips.*','report.trips.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarTripManagement" data-bs-toggle="collapse" href="#">
@@ -469,7 +478,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarTripManagement"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('trips.*','completed.trips.*','report.trips.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('trips.*','completed.trips.*','report.trips.*', 'driver-change-reasons.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             <li>
                                 <a href="{{ route('trips.index') }}"

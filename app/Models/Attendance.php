@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'user_id',
     'status',
     'half_day_period',
+    'duty_type',
     'shift',
     'leave_id',
     'remarks',
@@ -31,6 +32,7 @@ class Attendance extends Model
         'present' => 'Present',
         'absent' => 'Absent',
         'half_day' => 'Half Day',
+        'week_off' => 'Week Off',
     ];
 
     public const SHIFTS = [
@@ -50,6 +52,12 @@ class Attendance extends Model
     public const HALF_DAY_PERIODS = [
         'morning' => 'Morning',
         'afternoon' => 'Afternoon',
+    ];
+
+    public const DUTY_TYPES = [
+        'D' => 'D',
+        'DD' => 'DD',
+        'DDD' => 'DDD',
     ];
 
     protected function casts(): array

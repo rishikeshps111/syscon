@@ -87,6 +87,7 @@
                             <th class="text-center">Status</th>
                             <th class="text-center">Half Day</th>
                             <th class="text-center">Shift</th>
+                            <th class="text-center">Duty Type</th>
                             <th class="text-center">Leave Application</th>
                             <th class="text-center">Remarks</th>
                         </tr>
@@ -105,6 +106,7 @@
                                     {{ $record->half_day_period ? ($halfDayPeriods[$record->half_day_period] ?? $record->half_day_period) : '-' }}
                                 </td>
                                 <td class="text-center">{{ $record->shift ?: '-' }}</td>
+                                <td class="text-center">{{ $record->duty_type ?: '-' }}</td>
                                 <td>
                                     @if($record->leave)
                                         {{ $record->leave->code ?: '#' . $record->leave->id }} -
@@ -117,7 +119,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center">No attendance records found.</td>
+                                <td colspan="10" class="text-center">No attendance records found.</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -96,6 +96,11 @@
                                     <td>Allowed: {{ implode(', ', array_keys($shifts)) }}. Required for Driver and Housekeeping attendance.</td>
                                 </tr>
                                 <tr>
+                                    <td>duty_type</td>
+                                    <td>For present Driver</td>
+                                    <td>Allowed: {{ implode(', ', array_keys($dutyTypes)) }}. Leave blank for non-drivers or other statuses.</td>
+                                </tr>
+                                <tr>
                                     <td>leave_code</td>
                                     <td>No</td>
                                     <td>Use only for absent or half_day rows. Leave must be Pending or Approved for the same user/date.</td>

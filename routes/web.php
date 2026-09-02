@@ -22,6 +22,7 @@ use App\Http\Controllers\DorReportController;
 use App\Http\Controllers\TripEntryReportController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
+use App\Http\Controllers\DriverChangeReasonController;
 use App\Http\Controllers\FinancialYearSettingController;
 use App\Http\Controllers\GeneratePaySlipController;
 use App\Http\Controllers\HolidayController;
@@ -124,6 +125,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/trip-natures/status', [TripNatureController::class, 'status'])->name('trip-natures.status');
     Route::post('/trip-natures/export', [TripNatureController::class, 'export'])->name('trip-natures.export');
     Route::resource('trip-natures', TripNatureController::class)->except(['edit', 'show']);
+
+    Route::post('/driver-change-reasons/status', [DriverChangeReasonController::class, 'status'])->name('driver-change-reasons.status');
+    Route::post('/driver-change-reasons/export', [DriverChangeReasonController::class, 'export'])->name('driver-change-reasons.export');
+    Route::resource('driver-change-reasons', DriverChangeReasonController::class)->except(['edit', 'show']);
 
     Route::post('/document-types/status', [DocumentTypeController::class, 'status'])->name('document-types.status');
     Route::post('/document-types/export', [DocumentTypeController::class, 'export'])

@@ -22,6 +22,7 @@ class AttendanceExport implements FromCollection, WithHeadings
                 'Status' => Attendance::STATUSES[$attendance->status] ?? $attendance->status,
                 'Half Day' => $attendance->half_day_period ? (Attendance::HALF_DAY_PERIODS[$attendance->half_day_period] ?? $attendance->half_day_period) : null,
                 'Shift' => $attendance->shift,
+                'Duty Type' => $attendance->duty_type,
                 'Leave Application' => $attendance->leave
                     ? trim(($attendance->leave->code ?: '#' . $attendance->leave->id) . ' - ' . ($attendance->leave->leave_for === 'driver' ? $attendance->leave->driver_leave_type : $attendance->leave->leaveType?->leave_name))
                     : null,
@@ -41,6 +42,7 @@ class AttendanceExport implements FromCollection, WithHeadings
             'Status',
             'Half Day',
             'Shift',
+            'Duty Type',
             'Leave Application',
             'Remarks',
         ];

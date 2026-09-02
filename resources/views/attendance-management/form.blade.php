@@ -103,6 +103,9 @@
                                     @if(in_array($role, ['Driver', 'Housekeeping'], true))
                                         <th class="text-center">Shift <span class="text-danger">*</span></th>
                                     @endif
+                                    @if($role === 'Driver')
+                                        <th class="text-center duty-type-column">Duty Type <span class="text-danger">*</span></th>
+                                    @endif
                                     <th class="text-center">Leave Application</th>
                                     <th class="text-center">Remarks</th>
                                 </tr>
@@ -144,6 +147,16 @@
                                                 </select>
                                             </td>
                                         @endif
+                                        @if($role === 'Driver')
+                                            <td class="duty-type-column">
+                                                <select name="attendance[{{ $user->id }}][duty_type]" class="form-select shadow-none duty-type">
+                                                    <option value="">---Select---</option>
+                                                    @foreach($dutyTypes as $value => $label)
+                                                        <option value="{{ $value }}" {{ old("attendance.{$user->id}.duty_type", $attendance?->duty_type) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                        @endif
                                         <td>
                                             <select name="attendance[{{ $user->id }}][leave_id]" class="form-select shadow-none attendance-leave">
                                                 <option value="">---Select---</option>
@@ -161,7 +174,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ in_array($role, ['Driver', 'Housekeeping'], true) ? 6 : 5 }}" class="text-center">No users found.</td>
+                                        <td colspan="{{ ($role === 'Driver' ? 7 : (in_array($role, ['Driver', 'Housekeeping'], true) ? 6 : 5)) }}" class="text-center">No users found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -275,11 +288,15 @@
                         var status = row.find('.attendance-status').val();
                         var leave = row.find('.attendance-leave');
                         var halfDayPeriod = row.find('.half-day-period');
+                        var dutyType = row.find('.duty-type');
                         var needsLeave = status === 'absent' || status === 'half_day';
                         var needsHalfDayPeriod = status === 'half_day';
+                        var needsDutyType = dutyType.length && status === 'present';
 
                         leave.prop('disabled', !needsLeave);
                         halfDayPeriod.prop('disabled', !needsHalfDayPeriod);
+                        dutyType.prop('disabled', !needsDutyType);
+                        row.find('.duty-type-column').toggle(!!needsDutyType);
 
                         if (!needsLeave) {
                             leave.val('');
@@ -287,6 +304,9 @@
 
                         if (!needsHalfDayPeriod) {
                             halfDayPeriod.val('');
+                        }
+                        if (!needsDutyType) {
+                            dutyType.val('');
                         }
                     });
                 }
