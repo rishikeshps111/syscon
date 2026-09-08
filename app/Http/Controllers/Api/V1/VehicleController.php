@@ -65,11 +65,7 @@ class VehicleController extends Controller
             ])
             ->whereRelation('sheet.trip', 'depot_id', $depotId)
             ->whereHas('sheet', fn(Builder $sheetQuery) => $sheetQuery->whereDate('date', $today))
-            ->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
-            });
+            ->forVehicleCode($vehicleCode);
     }
 
     private function userDepotId(Request $request): ?int

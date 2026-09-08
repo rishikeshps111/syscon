@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\DriverProfile;
 use App\Models\Roster;
+use App\Models\TripSheetEntry;
 use App\Models\User;
 use App\Models\UserDeviceToken;
 use Illuminate\Support\Collection;
@@ -12,6 +13,49 @@ use Throwable;
 class RosterReassignmentNotifier
 {
     public function __construct(private FirebaseMessaging $firebase) {}
+
+    public function sendTripVehicleChange(Roster $roster, TripSheetEntry $entry, ?int $oldVehicleId): array
+    {
+        $roster->load(['driverProfile.user.deviceTokens', 'vehicle']);
+        $sent = 0;
+        $failed = 0;
+        $trip = $entry->code ?: (string) $entry->id;
+        $date = $roster->duty_date->format('d M Y');
+        $payload = ['type' => 'trip_vehicle_change', 'trip_sheet_entry_id' => $entry->id, 'old_vehicle_id' => $oldVehicleId];
+        $body = "Vehicle for trip {$trip} on {$date} changed to {$roster->vehicle->vehicle_no}.";
+        foreach ($this->operationsUsers((int) $roster->depot_id) as $user) {
+            $this->sendToUser($user, 'Trip Vehicle Changed', $body, 'operations', $roster, $sent, $failed, $payload);
+        }
+        if ($roster->driverProfile?->user) {
+            $this->sendToUser($roster->driverProfile->user, 'Trip Vehicle Changed', $body, 'driver', $roster, $sent, $failed, $payload);
+        }
+
+        return compact('sent', 'failed');
+    }
+
+    public function sendTripDriverChange(Roster $roster, TripSheetEntry $entry, ?int $oldDriverId): array
+    {
+        $roster->load(['driverProfile.user.deviceTokens', 'vehicle']);
+        $oldDriver = $oldDriverId ? DriverProfile::with('user.deviceTokens')->find($oldDriverId) : null;
+        $sent = 0;
+        $failed = 0;
+        $trip = $entry->code ?: (string) $entry->id;
+        $date = $roster->duty_date->format('d M Y');
+        $payload = ['type' => 'trip_driver_change', 'trip_sheet_entry_id' => $entry->id];
+        foreach ($this->operationsUsers((int) $roster->depot_id) as $user) {
+            $this->sendToUser($user, 'Trip Driver Changed',
+                "Driver for trip {$trip} on {$date} changed to {$roster->driverProfile->user->name}.",
+                'operations', $roster, $sent, $failed, $payload);
+        }
+        $this->sendToUser($roster->driverProfile->user, 'Trip Assignment Updated',
+            "You are assigned to trip {$trip} on {$date}.", 'driver', $roster, $sent, $failed, $payload);
+        if ($oldDriver?->user) {
+            $this->sendToUser($oldDriver->user, 'Trip Assignment Changed',
+                "You are no longer assigned to trip {$trip} on {$date}.", 'driver', $roster, $sent, $failed, $payload);
+        }
+
+        return compact('sent', 'failed');
+    }
 
     public function send(
         Roster $roster,
@@ -92,6 +136,7 @@ class RosterReassignmentNotifier
         Roster $roster,
         int &$sent,
         int &$failed,
+        array $payload = [],
     ): void {
         $tokens = $user->deviceTokens->where('app_type', $appType);
 
@@ -102,7 +147,7 @@ class RosterReassignmentNotifier
 
         foreach ($tokens as $device) {
             try {
-                $response = $this->firebase->send($device->token, $title, $body, [
+                $response = $this->firebase->send($device->token, $title, $body, $payload + [
                     'type' => 'roster_reassignment',
                     'roster_id' => $roster->id,
                     'roster_code' => $roster->code,

@@ -32,7 +32,7 @@
             refreshAvailability();
         });
 
-        $('#shift_start_time, #shift_end_time').on('change', refreshAvailability);
+        $('#shift_start_time, #shift_end_time, #depot_id, #shift_type').on('change', refreshAvailability);
 
         $(document).on('click', '.choose-trip-entry', function () {
             applyTrip($(this).data());
@@ -150,6 +150,8 @@
 
     function availabilityPayload() {
         return {
+            depot_id: $('#depot_id').val(),
+            shift_type: $('#shift_type').val(),
             duty_date: $('#duty_date').val(),
             shift_start_time: $('#shift_start_time').val(),
             shift_end_time: $('#shift_end_time').val()
@@ -157,8 +159,8 @@
     }
 
     function applyAvailability(driverIds, vehicleIds) {
-        applySelectAvailability('#driver_profile_id', driverIds, ' - Already Associated in this Time Slot');
-        applySelectAvailability('#vehicle_id', vehicleIds, ' - Already Associated in this Time Slot');
+        applySelectAvailability('#driver_profile_id', driverIds, ' - Unavailable for this Depot or Shift');
+        applySelectAvailability('#vehicle_id', vehicleIds, ' - Unavailable for this Depot or Shift');
     }
 
     function applySelectAvailability(selector, unavailableIds, suffix) {

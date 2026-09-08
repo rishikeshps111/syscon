@@ -49,6 +49,7 @@ class Roster extends Model
         'in_progress' => 'In Progress',
         'completed' => 'Completed',
         'missed' => 'Missed',
+        'cancelled' => 'Cancelled',
     ];
 
     public const ATTENDANCE_STATUSES = [

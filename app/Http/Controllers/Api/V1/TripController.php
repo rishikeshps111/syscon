@@ -158,11 +158,7 @@ class TripController extends Controller
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
 
         if ($vehicleCode !== '') {
-            $query->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
-            });
+            $query->forVehicleCode($vehicleCode);
         }
 
         $records = $this->applyTodayTripOrder($query)->get();
@@ -278,11 +274,7 @@ class TripController extends Controller
         $vehicleCode = trim((string) ($request->input('vehicle_code') ?? $request->input('vehical_code') ?? ''));
 
         if ($vehicleCode !== '') {
-            $query->where(function (Builder $query) use ($vehicleCode): void {
-                $query->whereHas('vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('rosters.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode))
-                    ->orWhereHas('sheet.trip.assignments.vehicle', fn(Builder $vehicleQuery) => $vehicleQuery->where('vehicle_code', $vehicleCode));
-            });
+            $query->forVehicleCode($vehicleCode);
         }
 
         $totalCount = (clone $query)->count();
@@ -364,15 +356,23 @@ class TripController extends Controller
             ->whereKey($validated['trip_id'])
             ->firstOrFail();
 
-        if (! $this->driverBelongsToTrip($record, (int) $driver->driverProfile->id)) {
-            $this->invalidDriverQr();
-        }
+        $record = DB::transaction(function () use ($record, $driver, $request, $isDriverVerified) {
+            $record = TripSheetEntry::query()->lockForUpdate()->findOrFail($record->id);
+            if ($record->status === 'cancelled') {
+                throw ValidationException::withMessages(['trip_id' => 'A cancelled trip cannot be verified.']);
+            }
+            if (! $this->driverBelongsToTrip($record, (int) $driver->driverProfile->id)) {
+                $this->invalidDriverQr();
+            }
 
-        $record->forceFill([
-            'is_driver_verified' => $isDriverVerified,
-            'driver_verified_by' => $isDriverVerified ? (string) $request->user()->name : null,
-            'driver_verified_at' => $isDriverVerified ? now() : null,
-        ])->save();
+            $record->forceFill([
+                'is_driver_verified' => $isDriverVerified,
+                'driver_verified_by' => $isDriverVerified ? (string) $request->user()->name : null,
+                'driver_verified_at' => $isDriverVerified ? now() : null,
+            ])->save();
+
+            return $record;
+        });
 
         $record->load([
             'driverVerifiedBy',
@@ -513,6 +513,7 @@ class TripController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $record, $validated, $stage): void {
+            TripSheet::query()->lockForUpdate()->findOrFail($record->trip_sheet_id);
             $record = TripSheetEntry::query()->lockForUpdate()->findOrFail($record->id);
             $record->load(['sheet.trip.route', 'sheet.trip.depot', 'sheet.trip.fromDepot', 'sheet.trip.toDepot']);
 
@@ -664,23 +665,7 @@ class TripController extends Controller
 
     private function syncSheetVerificationStatus(TripSheet $sheet): void
     {
-        $statuses = $sheet->entries()->pluck('status');
-
-        $status = match (true) {
-            $statuses->isNotEmpty() && $statuses->every(
-                fn(string $status): bool => $status === 'verification_completed'
-            ) => 'verification_completed',
-            $statuses->isNotEmpty() && $statuses->every(
-                fn(string $status): bool => in_array(
-                    $status,
-                    ['initial_verification_completed', 'verification_completed'],
-                    true
-                )
-            ) => 'initial_verification_completed',
-            default => 'pending',
-        };
-
-        $sheet->update(['status' => $status]);
+        app(\App\Services\TripSheetStatus::class)->sync($sheet);
     }
 
     private function userDepotId(Request $request): ?int
@@ -778,12 +763,12 @@ class TripController extends Controller
 
     private function driverBelongsToTrip(TripSheetEntry $record, int $driverProfileId): bool
     {
-        if ((int) $record->driver_profile_id === $driverProfileId) {
-            return true;
+        if ($record->driver_profile_id) {
+            return (int) $record->driver_profile_id === $driverProfileId;
         }
 
-        if ($record->rosters?->contains(fn($roster) => (int) $roster->driver_profile_id === $driverProfileId)) {
-            return true;
+        if ($record->rosters->isNotEmpty()) {
+            return $record->rosters->contains(fn($roster) => (int) $roster->driver_profile_id === $driverProfileId);
         }
 
         $tripDate = $record->sheet?->date;

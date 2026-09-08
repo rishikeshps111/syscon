@@ -4,6 +4,9 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GeneralSettingController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\TripController;
+use App\Http\Controllers\Api\V1\TripDriverController;
+use App\Http\Controllers\Api\V1\TripVehicleController;
+use App\Http\Controllers\Api\V1\TripCancellationController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use App\Http\Controllers\Api\V1\VehicleImageReadController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +29,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         });
 
         Route::prefix('trips')->name('trips.')->group(function () {
+            Route::get('/{tripSheetEntry}/available-drivers', [TripDriverController::class, 'available'])->name('available-drivers');
+            Route::patch('/{tripSheetEntry}/driver', [TripDriverController::class, 'update'])->name('driver.update');
+            Route::get('/{tripSheetEntry}/available-vehicles', [TripVehicleController::class, 'available'])->name('available-vehicles');
+            Route::patch('/{tripSheetEntry}/vehicle', [TripVehicleController::class, 'update'])->name('vehicle.update');
+            Route::patch('/{tripSheetEntry}/cancel', [TripCancellationController::class, 'cancel'])->name('cancel');
             Route::get('/today', [TripController::class, 'today'])->name('today');
             Route::get('/controllers', [TripController::class, 'controllers'])->name('controllers');
             Route::post('/verify-driver', [TripController::class, 'verifyDriver'])->name('verify-driver');

@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'code',
     'status',
+    'cancellation_reason',
+    'cancelled_by',
+    'cancelled_at',
     'trip_sheet_id',
     'side',
     'departure_time',
@@ -62,6 +65,8 @@ class TripSheetEntry extends Model
     protected function casts(): array
     {
         return [
+            'cancelled_by' => 'integer',
+            'cancelled_at' => 'datetime',
             'energy_status' => 'boolean',
             'accident_status' => 'boolean',
             'vehicle_breakdown' => 'boolean',
@@ -85,6 +90,22 @@ class TripSheetEntry extends Model
     public function sheet(): BelongsTo
     {
         return $this->belongsTo(TripSheet::class, 'trip_sheet_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (TripSheetEntry $entry): void {
+            if ($entry->getOriginal('status') === 'cancelled' && $entry->isDirty([
+                'status', 'driver_profile_id', 'vehicle_id', 'is_driver_verified', 'is_vehicle_verified',
+                'is_initial_verified', 'is_final_verified', 'actual_start_time', 'actual_reach_time',
+                'driver_verified_by', 'driver_verified_at', 'vehicle_verified_by', 'vehicle_verified_at',
+                'initial_verification_by', 'initial_verification_at', 'final_verification_by', 'final_verification_at',
+            ])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'trip_id' => 'A cancelled trip cannot be reopened, verified or reassigned.',
+                ]);
+            }
+        });
     }
 
     public function driverProfile(): BelongsTo
@@ -136,6 +157,28 @@ class TripSheetEntry extends Model
     public function driverVerifiedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'driver_verified_by');
+    }
+
+    public function scopeForVehicleCode(Builder $query, string $vehicleCode): Builder
+    {
+        // An explicit replacement wins over roster and recurring assignment defaults.
+        return $query->where(function (Builder $query) use ($vehicleCode): void {
+            $matches = fn (Builder $vehicle) => $vehicle->where('vehicle_code', $vehicleCode);
+            $query->whereHas('vehicle', $matches)
+                ->orWhere(function (Builder $fallback) use ($matches): void {
+                    $fallback->whereNull('vehicle_id')->where(function (Builder $query) use ($matches): void {
+                        $query->whereHas('rosters.vehicle', $matches)
+                            ->orWhere(function (Builder $query) use ($matches): void {
+                                $query->whereDoesntHave('rosters', fn (Builder $roster) => $roster->whereNotNull('vehicle_id'))
+                                    ->whereHas('sheet', fn (Builder $sheet) => $sheet->whereHas('trip.assignments',
+                                        fn (Builder $assignment) => $assignment
+                                            ->whereColumn('from_date', '<=', 'trip_sheets.date')
+                                            ->whereColumn('to_date', '>=', 'trip_sheets.date')
+                                            ->whereHas('vehicle', $matches)));
+                            });
+                    });
+                });
+        });
     }
 
 }

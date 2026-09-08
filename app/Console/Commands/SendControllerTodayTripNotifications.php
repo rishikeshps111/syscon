@@ -44,6 +44,7 @@ class SendControllerTodayTripNotifications extends Command
                     }
 
                     $tripCount = TripSheetEntry::query()
+                        ->where('status', '!=', 'cancelled')
                         ->whereHas('sheet', fn ($query) => $query->whereDate('date', $date))
                         ->forDepot((int) $profile->depot_id)
                         ->count();

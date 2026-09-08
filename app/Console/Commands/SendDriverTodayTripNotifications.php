@@ -26,15 +26,21 @@ class SendDriverTodayTripNotifications extends Command
         DriverProfile::query()
             ->with(['user.deviceTokens' => fn ($query) => $query->where('app_type', 'driver')])
             ->whereHas('user', fn($query) => $query->where('is_active', true))
-            ->whereHas('rosters.tripSheetEntries.sheet', fn($query) => $query->whereDate('date', $date))
+            ->whereHas('rosters.tripSheetEntries', fn($query) => $query->where('status', '!=', 'cancelled')
+                ->whereHas('sheet', fn($sheet) => $sheet->whereDate('date', $date)))
             ->orderBy('id')
             ->chunkById(100, function ($drivers) use ($firebase, $date, &$sentDrivers, &$failedDrivers): void {
                 foreach ($drivers as $driver) {
                     $tripCount = TripSheetEntry::query()
+                        ->where('status', '!=', 'cancelled')
                         ->whereHas('sheet', fn($query) => $query->whereDate('date', $date))
                         ->whereHas('rosters', fn($query) => $query->where('driver_profile_id', $driver->id))
                         ->distinct()
                         ->count('trip_sheet_entries.id');
+
+                    if ($tripCount === 0) {
+                        continue;
+                    }
 
                     $log = DriverTripNotificationLog::firstOrCreate(
                         ['driver_profile_id' => $driver->id, 'trip_date' => $date],
