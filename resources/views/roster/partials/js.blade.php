@@ -59,15 +59,43 @@
         });
 
         $(document).on('click', '.reassign-driver-btn', function () {
-            $('#reassignDriverForm').data('url', $(this).data('url'));
-            $('#reassignDriverForm').data('availability-url', $(this).data('availability-url'));
-            $('#modalDriver').val($(this).data('driver'));
-            markSelectedCard('#driverCardList', $(this).data('driver'));
-            refreshReassignAvailability('#driverCardList', 'driver', $(this).data('availability-url'));
+            openDriverReassign($(this));
+        });
+
+        $(document).on('click', '.consecutive-driver-warning', function () {
+            var button = $(this);
+            var details = button.data('details') || [];
+            var body = $('#consecutiveDriverDetails').empty();
+
+            details.forEach(function (detail) {
+                var row = $('<tr>');
+                [detail.date, detail.code, detail.trip, detail.shift, detail.reporting, detail.vehicle].forEach(function (value) {
+                    $('<td>').text(value || '-').appendTo(row);
+                });
+                body.append(row);
+            });
+
+            $('#consecutiveDriverMessage').text((button.find('span').text() || 'This driver') + ' is assigned trips on consecutive days:');
+            $('#changeConsecutiveDriver').data('source', button);
+            $('#consecutiveDriverModal').modal('show');
+        });
+
+        $('#changeConsecutiveDriver').on('click', function () {
+            var source = $(this).data('source');
+            $('#consecutiveDriverModal').modal('hide');
+            openDriverReassign(source);
+        });
+
+        function openDriverReassign(button) {
+            $('#reassignDriverForm').data('url', button.data('url'));
+            $('#reassignDriverForm').data('availability-url', button.data('availability-url'));
+            $('#modalDriver').val(button.data('driver'));
+            markSelectedCard('#driverCardList', button.data('driver'));
+            refreshReassignAvailability('#driverCardList', 'driver', button.data('availability-url'));
             $('#driverCardSearch').val('');
             filterCards('#driverCardList', '');
             $('#reassignDriverModal').modal('show');
-        });
+        }
 
         $(document).on('click', '.reassign-vehicle-btn', function () {
             $('#reassignVehicleForm').data('url', $(this).data('url'));

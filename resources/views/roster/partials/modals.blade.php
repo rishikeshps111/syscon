@@ -34,6 +34,34 @@
     </div>
 </div>
 
+<div class="modal fade" id="consecutiveDriverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">3-Day Consecutive Driver Assignment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3" id="consecutiveDriverMessage">This driver is assigned trips on consecutive days:</p>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 table tble-cstm">
+                        <thead><tr>
+                            <th>Date</th><th>Roster</th><th>Trip</th><th>Shift</th><th>Reporting</th><th>Vehicle</th>
+                        </tr></thead>
+                        <tbody id="consecutiveDriverDetails"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-btns-last p-3">
+                @can('rosters.edit')
+                    <button type="button" class="modal-btn-2" id="changeConsecutiveDriver">Change Driver</button>
+                @endcan
+                <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form id="statusForm" class="modal-content">
@@ -207,5 +235,26 @@
         background: #f8f9fa;
         cursor: not-allowed;
         opacity: .65;
+    }
+
+    .consecutive-driver-warning {
+        animation: consecutive-driver-blink 1.1s ease-in-out infinite;
+        background: #fff1f2;
+        border: 1px solid #dc3545;
+        border-radius: 5px;
+        color: #b42318;
+        cursor: pointer;
+        display: inline-flex;
+        flex-direction: column;
+        padding: 5px 8px;
+    }
+
+    .consecutive-driver-warning small {
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    @keyframes consecutive-driver-blink {
+        50% { opacity: .45; }
     }
 </style>

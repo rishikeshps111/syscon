@@ -46,20 +46,40 @@ class RosterController extends Controller implements HasMiddleware
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            return DataTables::of($this->filteredQuery())
+            $query = $this->filteredQuery();
+            $consecutiveAssignments = $this->consecutiveDriverAssignments((clone $query)->get());
+
+            return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
                 ->addColumn('date', fn($row) => $row->duty_date?->format('d M Y') ?: '-')
                 ->addColumn('depot_name', fn($row) => $row->depot?->name ?: '-')
                 ->addColumn('shift_type_label', fn($row) => Roster::SHIFT_TYPES[$row->shift_type] ?? '-')
-                ->addColumn('driver_name', fn($row) => $row->driverProfile?->user?->name ?: '-')
+                ->addColumn('driver_name', function ($row) use ($consecutiveAssignments) {
+                    $driverName = $row->driverProfile?->user?->name ?: '-';
+                    $warning = $consecutiveAssignments[$row->id] ?? null;
+
+                    if (! $warning) {
+                        return e($driverName);
+                    }
+
+                    return '<button type="button" class="consecutive-driver-warning"'
+                        . ' data-roster-id="' . $row->id . '"'
+                        . ' data-driver="' . e((string) $row->driver_profile_id) . '"'
+                        . ' data-url="' . e(route('rosters.reassign-driver', $row->id)) . '"'
+                        . ' data-availability-url="' . e(route('rosters.availability.roster', $row->id)) . '"'
+                        . ' data-details="' . e(json_encode($warning['details'])) . '">'
+                        . '<span>' . e($driverName) . '</span>'
+                        . '<small>3-Day Consecutive Assignment</small>'
+                        . '</button>';
+                })
                 ->addColumn('vehicle_no', fn($row) => $row->vehicle?->vehicle_no ?: '-')
                 ->addColumn('trip_code', fn($row) => $row->primaryTripSheetEntry()?->sheet?->code ?: '-')
                 ->addColumn('reporting_time_label', fn($row) => $this->time($row->reporting_time) ?: '-')
                 ->addColumn('status', fn($row) => $this->statusBadge($row->status))
                 ->addColumn('attendance_status', fn($row) => $this->attendanceBadge($row->attendance_status))
                 ->addColumn('action', fn($row) => view('roster.partials.action', compact('row'))->render())
-                ->rawColumns(['checkbox', 'status', 'attendance_status', 'action'])
+                ->rawColumns(['checkbox', 'driver_name', 'status', 'attendance_status', 'action'])
                 ->make(true);
         }
 
@@ -347,6 +367,57 @@ class RosterController extends Controller implements HasMiddleware
         }
 
         return $query->latest('id');
+    }
+
+    private function consecutiveDriverAssignments($rosters): array
+    {
+        $warnings = [];
+
+        foreach ($rosters->filter(fn ($roster) => $roster->driver_profile_id && $roster->duty_date)->groupBy('driver_profile_id') as $driverRosters) {
+            $byDate = $driverRosters->groupBy(fn ($roster) => $roster->duty_date->toDateString())->sortKeys(SORT_STRING);
+            $streak = collect();
+            $previousDate = null;
+
+            foreach ($byDate as $date => $dateRosters) {
+                $expectedNextDate = $previousDate
+                    ? Carbon::parse($previousDate)->addDay()->toDateString()
+                    : null;
+
+                if ($expectedNextDate !== null && $date !== $expectedNextDate) {
+                    $this->addConsecutiveDriverWarning($warnings, $streak);
+                    $streak = collect();
+                }
+
+                $streak = $streak->merge($dateRosters);
+                $previousDate = $date;
+            }
+
+            $this->addConsecutiveDriverWarning($warnings, $streak);
+        }
+
+        return $warnings;
+    }
+
+    private function addConsecutiveDriverWarning(array &$warnings, $streak): void
+    {
+        $dayCount = $streak->map(fn ($roster) => $roster->duty_date->toDateString())->unique()->count();
+
+        if ($dayCount < 3) {
+            return;
+        }
+
+        $details = $streak->map(fn ($roster) => [
+            'date' => $roster->duty_date?->format('d M Y'),
+            'code' => $roster->code ?: '-',
+            'trip' => $roster->primaryTripSheetEntry()?->sheet?->code ?: '-',
+            'shift' => Roster::SHIFT_TYPES[$roster->shift_type] ?? '-',
+            'reporting' => $this->time($roster->reporting_time) ?: '-',
+            'vehicle' => $roster->vehicle?->vehicle_no ?: '-',
+        ])->values()->all();
+
+        foreach ($streak as $roster) {
+            $warnings[$roster->id] = ['details' => $details];
+        }
     }
 
     private function payload(array $data, int $entryId, ?Roster $currentRoster = null): array
