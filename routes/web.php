@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceConsolidateController;
 use App\Http\Controllers\BranchLocationController;
 use App\Http\Controllers\BulkImportController;
 use App\Http\Controllers\ChatController;
@@ -496,6 +497,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/leaves/general/create', [LeaveController::class, 'createGeneral'])->name('leaves.general.create');
     Route::get('/leaves/driver/create', [LeaveController::class, 'createDriver'])->name('leaves.driver.create');
     Route::resource('leaves', LeaveController::class)->except(['create'])->parameters(['leaves' => 'leave']);
+
+    Route::prefix('attendance-consolidate')->name('attendance-consolidate.')->controller(AttendanceConsolidateController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/import', 'importForm')->name('import.form');
+        Route::post('/preview', 'preview')->name('preview');
+        Route::post('/import', 'store')->name('import');
+        Route::get('/sample-csv', 'sample')->name('sample');
+        Route::get('/{import}/download', 'download')->whereNumber('import')->name('download');
+        Route::get('/{import}', 'show')->whereNumber('import')->name('show');
+    });
 
     Route::get('/attendance-management/users-by-role', [AttendanceController::class, 'usersByRole'])
         ->name('attendance-management.users-by-role');

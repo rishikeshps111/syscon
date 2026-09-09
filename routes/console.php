@@ -3,6 +3,18 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Storage;
+
+Artisan::command('attendance-consolidate:cleanup-previews', function () {
+    $disk = Storage::disk('local');
+    foreach ($disk->files('attendance-consolidate/pending') as $path) {
+        if ($disk->lastModified($path) < now()->subDay()->timestamp) {
+            $disk->delete($path);
+        }
+    }
+})->purpose('Remove expired attendance consolidate uploads');
+
+Schedule::command('attendance-consolidate:cleanup-previews')->daily()->withoutOverlapping();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
