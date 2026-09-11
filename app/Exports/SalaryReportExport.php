@@ -15,9 +15,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
 {
-    public function __construct(private array $report)
-    {
-    }
+    public function __construct(private array $report) {}
 
     public function array(): array
     {
@@ -25,26 +23,29 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
         $deductionNames = $this->componentNames('deduction');
         $identity = $this->identityHeadings();
         $earnings = [...$earningNames->all(), 'Incentive', 'Gross Earnings'];
+        $attendance = ['Present Days', 'Week Off Days', 'Absent Days', 'Total Days'];
         $deductions = [...$deductionNames->all(), 'Other Deduction', 'LOP', 'Total Deduction'];
         $payment = ['Net Salary Paid', 'Payment Method', 'Status', 'Approved By', 'Approved At', 'Remarks'];
         $rows = [
-            [$this->report['monthName'] . ' ' . $this->report['year'] . ' - ATTENDANCE AND WAGE REGISTER'],
+            [$this->report['monthName'].' '.$this->report['year'].' - ATTENDANCE AND WAGE REGISTER'],
             ['SYSCON FUNCTIONAL NETWORKS PRIVATE LIMITED'],
-            ['Depot: ' . ($this->report['depot']?->name ?? '-') . ' | Role: ' . $this->report['roleLabel']],
+            ['Depot: '.($this->report['depot']?->name ?? '-').' | Role: '.$this->report['roleLabel']],
             array_merge(
                 ['EMPLOYEE DETAILS'], array_fill(0, count($identity) - 1, ''),
                 [''],
                 ['EARNINGS'], array_fill(0, count($earnings) - 1, ''),
                 [''],
+                ['ATTENDANCE CONSOLIDATE'], array_fill(0, count($attendance) - 1, ''),
+                [''],
                 ['DEDUCTIONS'], array_fill(0, count($deductions) - 1, ''),
                 [''],
                 ['PAYMENT DETAILS'], array_fill(0, count($payment) - 1, ''),
             ),
-            array_merge($identity, [''], $earnings, [''], $deductions, [''], $payment),
+            array_merge($identity, [''], $earnings, [''], $attendance, [''], $deductions, [''], $payment),
         ];
 
         foreach ($this->items()->values() as $index => $item) {
-            $rows[] = $this->itemRow($item, $index, $earningNames, $deductionNames);
+            $rows[] = $this->itemRow($item, $index, $earningNames, $deductionNames, $this->attendanceRow($item));
         }
 
         return $rows;
@@ -54,9 +55,10 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
     {
         $identityCount = count($this->identityHeadings());
         $earningCount = $this->componentNames('earning')->count() + 2;
+        $attendanceCount = 4;
         $deductionCount = $this->componentNames('deduction')->count() + 3;
         $paymentCount = 6;
-        $lastColumn = Coordinate::stringFromColumnIndex($identityCount + 1 + $earningCount + 1 + $deductionCount + 1 + $paymentCount);
+        $lastColumn = Coordinate::stringFromColumnIndex($identityCount + 1 + $earningCount + 1 + $attendanceCount + 1 + $deductionCount + 1 + $paymentCount);
         $lastRow = $sheet->getHighestDataRow();
 
         $sheet->mergeCells("A1:{$lastColumn}1");
@@ -70,6 +72,7 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
         foreach ([
             [$identityCount, 1, '92D050'],
             [$earningCount, 1, 'BDD7EE'],
+            [$attendanceCount, 1, 'D9EAD3'],
             [$deductionCount, 1, 'FFE699'],
             [$paymentCount, 0, '92D050'],
         ] as [$length, $spacing, $color]) {
@@ -95,7 +98,7 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
         $sheet->getStyle("A4:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('B7B7B7');
         $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
 
-        foreach ([$identityCount + 1, $identityCount + $earningCount + 2, $identityCount + $earningCount + $deductionCount + 3] as $spacerColumn) {
+        foreach ([$identityCount + 1, $identityCount + $earningCount + 2, $identityCount + $earningCount + $attendanceCount + 3, $identityCount + $earningCount + $attendanceCount + $deductionCount + 4] as $spacerColumn) {
             $letter = Coordinate::stringFromColumnIndex($spacerColumn);
             $sheet->getColumnDimension($letter)->setAutoSize(false)->setWidth(3);
             $sheet->getStyle("{$letter}4:{$letter}{$lastRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFFF');
@@ -114,7 +117,7 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
         return ['Sl No', 'Employee Code', 'Name', "Father's Name", 'DOJ', 'DOB', 'Aadhaar', 'PAN', 'Location', 'UAN', 'ESIC / WC', 'Bank Account Number', 'IFSC', 'Role', 'Designation', 'Days in Month', 'Shifts Worked', 'Leave Taken', 'Unauthorized Leave'];
     }
 
-    private function itemRow(SalaryProcessingItem $item, int $index, Collection $earningNames, Collection $deductionNames): array
+    private function itemRow(SalaryProcessingItem $item, int $index, Collection $earningNames, Collection $deductionNames, mixed $attendance): array
     {
         $role = $item->salaryProcessing?->role?->name ?: '-';
         $profile = $this->profile($item, $role);
@@ -139,14 +142,19 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
             $profile?->ifsc_code ?: '-',
             $role,
             $role === 'Staff' ? ($item->user?->staffProfile?->designation?->name ?: '-') : $role,
-            31,
-            31,
+            (float) ($attendance?->total_days ?? 0),
+            (int) ($item->total_shifts_completed ?? 0),
             (float) ($item->total_leave_taken ?? 0),
             (float) ($item->unauthorized_leaves ?? 0),
         ], [''],
             $earningNames->map(fn ($name) => (float) ($earnings->get($name)['amount'] ?? 0))->all(), [
                 (float) $item->incentive,
                 (float) $item->basic_salary + (float) $item->incentive,
+            ], [''], [
+                (float) ($attendance?->present_days ?? 0),
+                (float) ($attendance?->week_off_days ?? 0),
+                (float) ($attendance?->absent_days ?? 0),
+                (float) ($attendance?->total_days ?? 0),
             ], [''], $deductionNames->map(fn ($name) => (float) ($deductions->get($name)['amount'] ?? 0))->all(), [
                 (float) $item->deduction,
                 (float) $item->lop,
@@ -182,5 +190,10 @@ class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
     private function items(): Collection
     {
         return $this->report['items'];
+    }
+
+    private function attendanceRow(SalaryProcessingItem $item): mixed
+    {
+        return ($this->report['attendanceRows'] ?? collect())->get($item->user?->code);
     }
 }

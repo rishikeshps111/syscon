@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\SalaryReportExport;
 use App\Mail\SalaryReportMail;
 use App\Models\Attendance;
+use App\Models\AttendanceConsolidateImport;
 use App\Models\Depot;
 use App\Models\SalaryProcessing;
 use App\Models\SalaryProcessingItem;
@@ -200,6 +201,14 @@ class SalaryReportController extends Controller implements HasMiddleware
             ->sortBy(fn (SalaryProcessingItem $item) => $item->user?->name ?? '')
             ->values();
 
+        $attendanceRows = (AttendanceConsolidateImport::query()
+            ->with('rows')
+            ->where('year', $filters['year'])
+            ->where('month', $filters['month'])
+            ->where('depot_id', $filters['depot_id'])
+            ->latest('id')
+            ->first()?->rows ?? collect())->keyBy('employee_ref_code');
+
         $componentNames = $items
             ->flatMap(fn(SalaryProcessingItem $item) => collect($item->salary_split ?: [])->map(
                 fn ($component) => ($component['name'] ?? 'Component') . ' (' . ucfirst($component['type'] ?? 'earning') . ')'
@@ -214,6 +223,7 @@ class SalaryReportController extends Controller implements HasMiddleware
             'processing' => $processing,
             'processings' => $processings,
             'items' => $items,
+            'attendanceRows' => $attendanceRows,
             'componentNames' => $componentNames,
             'monthName' => $filters['month'] ? Carbon::create(null, $filters['month'], 1)->format('F') : '-',
             'year' => $filters['year'],
