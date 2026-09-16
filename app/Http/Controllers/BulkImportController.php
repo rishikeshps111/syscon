@@ -57,12 +57,12 @@ class BulkImportController extends Controller
         $config = $this->config($module);
         $this->authorizeModule($config);
 
-        if ($module === 'staff') {
+        if ($module) {
             return response()->streamDownload(function () use ($config) {
                 $spreadsheet = new Spreadsheet;
                 $sheet = $spreadsheet->getActiveSheet();
-                $sheet->setTitle('Staff Import');
-                $sheet->fromArray($config['sample_headers'], null, 'A1');
+                $sheet->setTitle(ucfirst($module).' Import');
+                $sheet->fromArray($config['sample_headers'] ?? $config['headers'], null, 'A1');
                 $sheet->fromArray($config['sample'], null, 'A2');
                 $sheet->getStyle('A1:'.$sheet->getHighestColumn().'1')->getFont()->setBold(true);
                 foreach (range('A', $sheet->getHighestColumn()) as $column) {
@@ -70,17 +70,11 @@ class BulkImportController extends Controller
                 }
                 (new Xlsx($spreadsheet))->save('php://output');
                 $spreadsheet->disconnectWorksheets();
-            }, 'staff-import-sample.xlsx', [
+            }, $module.'-import-sample.xlsx', [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ]);
         }
 
-        return response()->streamDownload(function () use ($config) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $config['headers']);
-            fputcsv($handle, $config['sample']);
-            fclose($handle);
-        }, $module.'-import-sample.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function import(Request $request, string $module)
@@ -88,7 +82,7 @@ class BulkImportController extends Controller
         $config = $this->config($module);
         $this->authorizeModule($config);
         $request->validate([
-            'csv_file' => ['required', 'file', $module === 'staff' ? 'mimes:xlsx,xls,csv,txt' : 'mimes:csv,txt', 'max:5120'],
+            'csv_file' => ['required', 'file', 'mimes:xlsx,xls', 'extensions:xlsx,xls', 'max:5120'],
         ]);
 
         $file = $request->file('csv_file');

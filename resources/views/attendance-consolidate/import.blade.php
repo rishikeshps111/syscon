@@ -8,7 +8,7 @@
                     <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                     <li class="breadcrumb-item"><a href="{{ route('attendance-consolidate.index') }}">Attendance
                             Consolidate</a></li>
-                    <li class="breadcrumb-item active">Import CSV / Excel</li>
+                    <li class="breadcrumb-item active">Import Excel</li>
                 </ol>
             </nav>
         </div>
@@ -47,9 +47,9 @@
                             </select>
                         </div>
                         <div class="o-f-inp file-input mb-3">
-                            <label for="csv_file">CSV / Excel File <span class="text-danger">*</span></label>
+                            <label for="csv_file">Excel File <span class="text-danger">*</span></label>
                             <input type="file" name="csv_file" id="csv_file" class="form-control shadow-none"
-                                accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required>
+                                accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required>
                         </div>
                         @if($errors->any())
                             <div class="alert alert-danger">
@@ -59,7 +59,7 @@
                         </div>@endif
                         <div class="modal-btns-last">
                             <a href="{{ route('attendance-consolidate.index') }}" class="modal-btn-1">Back</a>
-                            <button type="submit" class="modal-btn-2 js-loading-submit">Import CSV / Excel</button>
+                            <button type="submit" class="modal-btn-2 js-loading-submit">Import Excel</button>
                         </div>
                         <p class="import-loading-message mt-3 mb-0" role="status" aria-live="polite" hidden>Importing
                             attendance. Please keep this page open…</p>
@@ -83,7 +83,7 @@
                                 style="font-size: 10px !important;">Download Sample
                                 Excel</button></div>
                     </form>
-                    <p class="mb-2">Use these six columns in CSV or Excel (headers on row 1, or row 2 below a title):</p>
+                    <p class="mb-2">Use these six columns in the Excel file (headers on row 1, or row 2 below a title):</p>
                     <code class="d-block mb-3">Emp Id,Name Of The Employee,P,W/O,A,Total</code>
                     <div class="table-over mb-3">
                         <table class="align-middle mb-0 table tble-cstm" style="width:100%">
@@ -129,9 +129,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <p>Fill the attendance columns in the Excel sample, then save as <strong>CSV UTF-8</strong> to
-                        import. Excel downloads preserve the reference sheet’s colors; CSV files do not support colors.
-                    </p>
+                    <p>Fill the attendance columns in the Excel sample and upload the workbook directly.</p>
                     <p class="mb-2">Maximum 2 MB and 10,000 employees per file. Each employee ID must be unique. Name or
                         depot differences require confirmation.</p>
                     <p class="mb-0" style="font-size:13px; color:red; margin-top:5px;">The whole file is validated

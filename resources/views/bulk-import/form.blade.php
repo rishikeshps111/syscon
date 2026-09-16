@@ -12,7 +12,7 @@
         </div>
         <div class="main-table-container">
             <div class="mb-4 import-desc-top">
-                <p>Upload {{ $module === 'staff' ? 'an Excel or CSV file' : 'a CSV' }} containing the fields listed below. Relationship columns use names, never database IDs. Names must exactly identify an existing record.</p>
+                <p>Upload an Excel file containing the fields listed below. Relationship columns use names, never database IDs. Names must exactly identify an existing record.</p>
                 <p class="mb-0"><strong>Dates:</strong> {{ in_array($module, ['staff', 'drivers'], true) ? 'dd-mm-yyyy' : 'YYYY-MM-DD' }} &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
             </div>
             @if ($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -33,13 +33,13 @@
                         @endif
                     </div>
                 @endif
-                <div class="o-f-inp file-input mb-3"><label for="csv_file">{{ $module === 'staff' ? 'Excel or CSV file' : 'CSV file' }}</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept="{{ $module === 'staff' ? '.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv' : '.csv,text/csv' }}" required></div>
+                <div class="o-f-inp file-input mb-3"><label for="csv_file">Excel file</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required></div>
                 <div class="d-flex gap-2"><button class="btn-imp-sb  js-loading-submit" type="submit" data-loading-text="Loading..."><span class="js-submit-label">Import</span></button><a class="btn-imp-cancel" href="{{ route($config['index_route']) }}">Cancel</a></div>
             </form>
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 btns-group-container" style="justify-content:space-between !important;">
-                    <h5 class="mb-0">{{ $module === 'staff' ? 'Import Instructions' : 'CSV Instructions' }}</h5>
-                    <a href="{{ route('bulk-import.sample', $module) }}" class="exp-btn">Download Sample {{ $module === 'staff' ? 'Excel' : 'CSV' }}</a>
+                    <h5 class="mb-0">Import Instructions</h5>
+                    <a href="{{ route('bulk-import.sample', $module) }}" class="exp-btn">Download Sample Excel</a>
                 </div>
               <div class="instrction-odr">
                     <p class="mb-2">Use these columns in this exact order:</p>

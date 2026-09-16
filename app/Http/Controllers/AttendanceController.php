@@ -15,6 +15,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -134,10 +137,10 @@ class AttendanceController extends Controller implements HasMiddleware
     public function import(Request $request)
     {
         $request->validate([
-            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+            'csv_file' => ['required', 'file', 'mimes:xlsx,xls', 'extensions:xlsx,xls', 'max:2048'],
         ]);
 
-        [$rows, $errors] = $this->readAttendanceCsv($request->file('csv_file')->getRealPath());
+        [$rows, $errors] = $this->readAttendanceSpreadsheet($request->file('csv_file')->getRealPath());
 
         if ($errors) {
             throw ValidationException::withMessages(['csv_file' => $errors]);
@@ -171,7 +174,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
         return redirect()
             ->route('attendance-management.index')
-            ->with('success', count($validatedRows) . ' attendance row(s) imported successfully.');
+            ->with('success', count($validatedRows).' attendance row(s) imported successfully.');
     }
 
     public function sampleCsv()
@@ -179,9 +182,11 @@ class AttendanceController extends Controller implements HasMiddleware
         $sampleUser = $this->attendanceUsers('Staff')->first() ?? $this->attendanceUsers()->first();
 
         return response()->streamDownload(function () use ($sampleUser) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, $this->csvHeaders());
-            fputcsv($handle, [
+            $spreadsheet = new Spreadsheet;
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Attendance Import');
+            $sheet->fromArray($this->csvHeaders(), null, 'A1');
+            $sheet->fromArray([
                 now()->format('d-m-Y'),
                 $sampleUser && $sampleUser->hasRole('Driver') ? 'Driver' : 'Staff',
                 $sampleUser?->code ?: '',
@@ -192,8 +197,8 @@ class AttendanceController extends Controller implements HasMiddleware
                 $sampleUser && $sampleUser->hasRole('Driver') ? 'D' : '',
                 '',
                 'Sample present attendance',
-            ]);
-            fputcsv($handle, [
+            ], null, 'A2');
+            $sheet->fromArray([
                 now()->format('d-m-Y'),
                 $sampleUser && $sampleUser->hasRole('Driver') ? 'Driver' : 'Staff',
                 $sampleUser?->code ?: '',
@@ -204,9 +209,14 @@ class AttendanceController extends Controller implements HasMiddleware
                 '',
                 '',
                 'Sample half day attendance',
-            ]);
-            fclose($handle);
-        }, 'attendance-import-sample.csv', ['Content-Type' => 'text/csv']);
+            ], null, 'A3');
+            $sheet->getStyle('A1:J1')->getFont()->setBold(true);
+            foreach (range('A', 'J') as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
+            (new Xlsx($spreadsheet))->save('php://output');
+            $spreadsheet->disconnectWorksheets();
+        }, 'attendance-import-sample.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     public function print(Request $request, int $year, int $month)
@@ -236,7 +246,7 @@ class AttendanceController extends Controller implements HasMiddleware
         $objects = [];
         $lines = [
             'Attendance Management',
-            Carbon::create($year, $month, 1)->format('F') . ' ' . $year,
+            Carbon::create($year, $month, 1)->format('F').' '.$year,
             '',
         ];
 
@@ -249,35 +259,35 @@ class AttendanceController extends Controller implements HasMiddleware
                 $record->half_day_period ? (Attendance::HALF_DAY_PERIODS[$record->half_day_period] ?? $record->half_day_period) : '-',
                 $record->shift ?: '-',
                 $record->duty_type ?: '-',
-                $record->leave ? ($record->leave->code ?: '#' . $record->leave->id) : '-',
+                $record->leave ? ($record->leave->code ?: '#'.$record->leave->id) : '-',
                 $record->remarks ?: '-',
             ]);
         }
 
         $stream = "BT\n/F1 10 Tf\n50 790 Td\n";
         foreach (array_slice($lines, 0, 45) as $index => $line) {
-            $stream .= ($index ? "0 -16 Td\n" : '') . '(' . $this->pdfEscape($line) . ") Tj\n";
+            $stream .= ($index ? "0 -16 Td\n" : '').'('.$this->pdfEscape($line).") Tj\n";
         }
-        $stream .= "ET";
+        $stream .= 'ET';
 
-        $objects[] = "<< /Type /Catalog /Pages 2 0 R >>";
-        $objects[] = "<< /Type /Pages /Kids [3 0 R] /Count 1 >>";
-        $objects[] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>";
-        $objects[] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
-        $objects[] = "<< /Length " . strlen($stream) . " >>\nstream\n{$stream}\nendstream";
+        $objects[] = '<< /Type /Catalog /Pages 2 0 R >>';
+        $objects[] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+        $objects[] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>';
+        $objects[] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+        $objects[] = '<< /Length '.strlen($stream)." >>\nstream\n{$stream}\nendstream";
 
         $offsets = [0];
         foreach ($objects as $number => $object) {
             $offsets[] = strlen($content);
-            $content .= ($number + 1) . " 0 obj\n{$object}\nendobj\n";
+            $content .= ($number + 1)." 0 obj\n{$object}\nendobj\n";
         }
 
         $xref = strlen($content);
-        $content .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+        $content .= "xref\n0 ".(count($objects) + 1)."\n0000000000 65535 f \n";
         foreach (array_slice($offsets, 1) as $offset) {
             $content .= sprintf("%010d 00000 n \n", $offset);
         }
-        $content .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
+        $content .= "trailer\n<< /Size ".(count($objects) + 1)." /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',
@@ -326,29 +336,29 @@ class AttendanceController extends Controller implements HasMiddleware
 
                 $isShiftBased = $users->get((int) $row['user_id'])->hasAnyRole(['Driver', 'Housekeeping']);
                 $status = $row['status'];
-                $fieldPrefix = 'attendance.' . $row['user_id'];
+                $fieldPrefix = 'attendance.'.$row['user_id'];
 
                 if ($status === 'half_day' && empty($row['half_day_period'])) {
                     throw ValidationException::withMessages([
-                        $fieldPrefix . '.half_day_period' => 'Please select morning or afternoon for half day attendance.',
+                        $fieldPrefix.'.half_day_period' => 'Please select morning or afternoon for half day attendance.',
                     ]);
                 }
 
                 if ($isShiftBased && empty($row['shift'])) {
                     throw ValidationException::withMessages([
-                        $fieldPrefix . '.shift' => 'Please select a shift for this employee.',
+                        $fieldPrefix.'.shift' => 'Please select a shift for this employee.',
                     ]);
                 }
 
                 if ($validated['user_type'] === 'Driver' && $status === 'present' && empty($row['duty_type'])) {
                     throw ValidationException::withMessages([
-                        $fieldPrefix . '.duty_type' => 'Please select a duty type for a present driver.',
+                        $fieldPrefix.'.duty_type' => 'Please select a duty type for a present driver.',
                     ]);
                 }
 
                 if (! empty($row['leave_id']) && ! $this->leaveBelongsToDate((int) $row['leave_id'], (int) $row['user_id'], $date)) {
                     throw ValidationException::withMessages([
-                        $fieldPrefix . '.leave_id' => 'Please select a valid leave application for this user and date.',
+                        $fieldPrefix.'.leave_id' => 'Please select a valid leave application for this user and date.',
                     ]);
                 }
 
@@ -497,6 +507,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
         if (! $header) {
             fclose($handle);
+
             return [[], ['CSV file is empty.']];
         }
 
@@ -505,11 +516,13 @@ class AttendanceController extends Controller implements HasMiddleware
 
         if ($missingHeaders) {
             fclose($handle);
-            return [[], ['Missing required column(s): ' . implode(', ', $missingHeaders) . '.']];
+
+            return [[], ['Missing required column(s): '.implode(', ', $missingHeaders).'.']];
         }
 
         if (! in_array('usercode', $header, true) && ! in_array('name', $header, true)) {
             fclose($handle);
+
             return [[], ['CSV must include either usercode or name column.']];
         }
 
@@ -526,6 +539,7 @@ class AttendanceController extends Controller implements HasMiddleware
 
             if (count($data) > count($header)) {
                 $errors[] = "Row {$line}: too many columns.";
+
                 continue;
             }
 
@@ -543,6 +557,35 @@ class AttendanceController extends Controller implements HasMiddleware
         }
 
         return [$rows, $errors];
+    }
+
+    private function readAttendanceSpreadsheet(string $path): array
+    {
+        try {
+            $reader = IOFactory::createReaderForFile($path);
+            $book = $reader->load($path);
+            $sheet = $book->getActiveSheet();
+            $header = array_map(fn ($value) => Str::of((string) $value)->trim()->lower()->replace(' ', '_')->toString(), $sheet->rangeToArray('A1:J1', null, true, false)[0]);
+            $missingHeaders = array_diff(['attendance_date', 'user_type', 'status'], $header);
+            if ($missingHeaders) {
+                return [[], ['Missing required column(s): '.implode(', ', $missingHeaders).'.']];
+            }
+            if (! in_array('usercode', $header, true) && ! in_array('name', $header, true)) {
+                return [[], ['Excel must include either usercode or name column.']];
+            }
+            $rows = [];
+            for ($line = 2; $line <= $sheet->getHighestDataRow(); $line++) {
+                $data = $sheet->rangeToArray("A{$line}:J{$line}", null, true, false)[0];
+                if (! array_filter($data, fn ($value) => $value !== null && $value !== '')) {
+                    continue;
+                }
+                $rows[] = ['line' => $line, 'data' => array_combine($header, array_pad($data, count($header), ''))];
+            }
+
+            return [$rows, $rows ? [] : ['Excel file does not contain any attendance rows.']];
+        } catch (\Throwable) {
+            return [[], ['Unable to read the uploaded Excel file.']];
+        }
     }
 
     private function validateCsvRows(array $rows): array
@@ -570,11 +613,11 @@ class AttendanceController extends Controller implements HasMiddleware
             }
 
             if (! array_key_exists($userType, Attendance::ROLES)) {
-                $errors[] = "Row {$line}: user_type must be one of " . implode(', ', array_keys(Attendance::ROLES)) . '.';
+                $errors[] = "Row {$line}: user_type must be one of ".implode(', ', array_keys(Attendance::ROLES)).'.';
             }
 
             if (! array_key_exists($status, Attendance::STATUSES)) {
-                $errors[] = "Row {$line}: status must be one of " . implode(', ', array_keys(Attendance::STATUSES)) . '.';
+                $errors[] = "Row {$line}: status must be one of ".implode(', ', array_keys(Attendance::STATUSES)).'.';
             }
 
             [$user, $userError] = $this->csvUser($data['usercode'] ?? null, $data['name'] ?? null);
@@ -608,7 +651,7 @@ class AttendanceController extends Controller implements HasMiddleware
             }
 
             if ($user && $date) {
-                $key = $date->toDateString() . ':' . $user->id;
+                $key = $date->toDateString().':'.$user->id;
 
                 if (isset($seen[$key])) {
                     $errors[] = "Row {$line}: duplicate attendance for this user/date; first seen on row {$seen[$key]}.";
@@ -745,7 +788,7 @@ class AttendanceController extends Controller implements HasMiddleware
             return '-';
         }
 
-        return trim(($user->code ? $user->code . ' - ' : '') . $user->name);
+        return trim(($user->code ? $user->code.' - ' : '').$user->name);
     }
 
     private function pdfEscape(string $value): string

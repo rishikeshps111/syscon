@@ -8,7 +8,7 @@
         });
         $(window).on('pageshow', function () {
             $('.js-loading-form').removeData('submitting').removeAttr('aria-busy');
-            $('.js-loading-submit').prop('disabled', false).text('Import CSV / Excel');
+            $('.js-loading-submit').prop('disabled', false).text('Import Excel');
             $('.import-loading-message').prop('hidden', true);
         });
     });

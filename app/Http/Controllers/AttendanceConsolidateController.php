@@ -66,7 +66,7 @@ class AttendanceConsolidateController extends Controller implements HasMiddlewar
             'year' => ['required', 'integer', 'between:1900,2100'],
             'month' => ['required', 'integer', 'between:1,12'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
-            'csv_file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'extensions:csv,xlsx,xls', 'max:2048'],
+            'csv_file' => ['required', 'file', 'mimes:xlsx,xls', 'extensions:xlsx,xls', 'max:2048'],
         ]);
         $file = $request->file('csv_file');
         $extension = strtolower($file->getClientOriginalExtension());

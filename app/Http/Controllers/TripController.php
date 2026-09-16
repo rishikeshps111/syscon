@@ -1340,6 +1340,7 @@ class TripController extends Controller implements HasMiddleware
     {
         $rules = [
             'duty' => ['nullable', 'string', 'max:255'],
+            'shift' => ['required', Rule::in(['Morning', 'Evening', 'Night'])],
             'schedule_km' => ['nullable', 'numeric', 'min:0'],
             'route_km_loss' => ['nullable', 'numeric', 'min:0'],
             'actual_route_km' => ['nullable', 'numeric', 'min:0'],
@@ -1440,7 +1441,7 @@ class TripController extends Controller implements HasMiddleware
             'bus_no' => $vehicle?->vehicle_no,
             'route_no' => $trip?->route?->route_code ?: $trip?->route?->code,
             'duty' => $trip?->trip_title,
-            'shift' => ucfirst((string) $entry->side),
+            'shift' => $data['shift'] ?? ucfirst((string) $entry->side),
             'driver_badge_no' => $driver?->badge_number ?: $driver?->user?->code,
             'schedule_start_time' => $this->formatSheetTime($entry->departure_time) ?: null,
             'schedule_end_time' => $this->formatSheetTime($entry->arrival_time) ?: null,
@@ -1590,7 +1591,7 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Bus No. (With full registration)', 'name' => 'bus_no', 'type' => 'text', 'disabled' => true, 'value' => $values['bus_no']],
             ['label' => 'Route No', 'name' => 'route_no', 'type' => 'text', 'disabled' => true, 'value' => $values['route_no']],
             ['label' => 'Duty', 'name' => 'duty', 'type' => 'text', 'disabled' => true, 'value' => $values['duty']],
-            ['label' => 'Shift', 'name' => 'shift', 'type' => 'text', 'value' => $values['shift']],
+            ['label' => 'Shift', 'name' => 'shift', 'type' => 'select', 'options' => ['Morning' => 'Morning', 'Evening' => 'Evening', 'Night' => 'Night'], 'value' => $values['shift']],
             ['label' => 'Driver ID/Badge No.', 'name' => 'driver_badge_no', 'type' => 'text', 'disabled' => true, 'value' => $values['driver_badge_no']],
             ['label' => 'Schedule Start Time', 'name' => 'schedule_start_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_start_time']],
             ['label' => 'Schedule End Time', 'name' => 'schedule_end_time', 'type' => 'time', 'disabled' => true, 'value' => $values['schedule_end_time']],
