@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use App\Models\BranchLocation;
 use App\Models\ControllerProfile;
+use App\Models\Department;
 use App\Models\Depot;
 use App\Models\Designation;
 use App\Models\District;
 use App\Models\DriverProfile;
 use App\Models\HousekeepingProfile;
+use App\Models\Level;
 use App\Models\Location;
 use App\Models\Oem;
 use App\Models\StaffProfile;
@@ -17,19 +18,23 @@ use App\Models\State;
 use App\Models\SupervisorProfile;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleClassification;
 use App\Support\SalaryComponents;
 use App\Support\UserCodeGenerator;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Spatie\Permission\PermissionRegistrar;
-use Spatie\Permission\Models\Role;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class BulkImportController extends Controller
 {
@@ -54,12 +59,12 @@ class BulkImportController extends Controller
 
         if ($module === 'staff') {
             return response()->streamDownload(function () use ($config) {
-                $spreadsheet = new Spreadsheet();
+                $spreadsheet = new Spreadsheet;
                 $sheet = $spreadsheet->getActiveSheet();
                 $sheet->setTitle('Staff Import');
                 $sheet->fromArray($config['sample_headers'], null, 'A1');
                 $sheet->fromArray($config['sample'], null, 'A2');
-                $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->getFont()->setBold(true);
+                $sheet->getStyle('A1:'.$sheet->getHighestColumn().'1')->getFont()->setBold(true);
                 foreach (range('A', $sheet->getHighestColumn()) as $column) {
                     $sheet->getColumnDimension($column)->setAutoSize(true);
                 }
@@ -75,7 +80,7 @@ class BulkImportController extends Controller
             fputcsv($handle, $config['headers']);
             fputcsv($handle, $config['sample']);
             fclose($handle);
-        }, $module . '-import-sample.csv', ['Content-Type' => 'text/csv']);
+        }, $module.'-import-sample.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function import(Request $request, string $module)
@@ -110,7 +115,7 @@ class BulkImportController extends Controller
         });
 
         return redirect()->route($config['index_route'])
-            ->with('success', count($validatedRows) . ' ' . Str::lower($config['label']) . ' record(s) imported successfully.');
+            ->with('success', count($validatedRows).' '.Str::lower($config['label']).' record(s) imported successfully.');
     }
 
     private function validateRows(string $module, array $rows, array $config): array
@@ -121,7 +126,7 @@ class BulkImportController extends Controller
         $seen = [];
 
         foreach ($rows as $row) {
-            $data = array_map(fn($value) => is_string($value) ? trim($value) : $value, $row['data']);
+            $data = array_map(fn ($value) => is_string($value) ? trim($value) : $value, $row['data']);
             $data = $this->resolveRelations($data, $module, $row['line'], $errors);
             foreach ($this->importDateFields($module) as $dateField) {
                 if (filled($data[$dateField] ?? null) && $this->parseImportDate($data[$dateField]) === null) {
@@ -165,11 +170,12 @@ class BulkImportController extends Controller
             $lookups += [
                 'oem' => [Oem::class, 'oem_name', 'oem_id'],
                 'branch' => [BranchLocation::class, 'name', 'branch_id'],
+                'vehicle_classification' => [VehicleClassification::class, 'title', 'vehicle_classification_id'],
             ];
         } elseif ($module === 'designations') {
             $lookups = [
-                'department' => [\App\Models\Department::class, 'name', 'department_id'],
-                'level' => [\App\Models\Level::class, 'name', 'level_id'],
+                'department' => [Department::class, 'name', 'department_id'],
+                'level' => [Level::class, 'name', 'level_id'],
                 'reporting_to' => [Role::class, 'name', 'reporting_to'],
             ];
         } elseif (in_array($module, ['drivers', 'housekeeping'], true)) {
@@ -186,15 +192,16 @@ class BulkImportController extends Controller
             $name = $data[$csvField] ?? '';
             if ($name === '') {
                 $data[$idField] = null;
+
                 continue;
             }
-            $query = $model::query()->whereRaw('LOWER(' . $column . ') = ?', [Str::lower($name)]);
+            $query = $model::query()->whereRaw('LOWER('.$column.') = ?', [Str::lower($name)]);
             if ($csvField === 'district' && ! empty($data['state_id'])) {
                 $query->where('state_id', $data['state_id']);
             }
             if ($csvField === 'location') {
-                $query->when(! empty($data['state_id']), fn($q) => $q->where('state_id', $data['state_id']))
-                    ->when(! empty($data['district_id']), fn($q) => $q->where('district_id', $data['district_id']));
+                $query->when(! empty($data['state_id']), fn ($q) => $q->where('state_id', $data['state_id']))
+                    ->when(! empty($data['district_id']), fn ($q) => $q->where('district_id', $data['district_id']));
             }
             if ($csvField === 'reporting_to' && $module === 'designations') {
                 $query->where('guard_name', 'web')
@@ -218,7 +225,7 @@ class BulkImportController extends Controller
 
             $lookup = $this->relationLookupCache[$cacheKey];
             if ($lookup['count'] !== 1) {
-                $errors[] = "Row {$line}: {$csvField} '{$name}' " . ($lookup['count'] === 0 ? 'was not found.' : 'is ambiguous.');
+                $errors[] = "Row {$line}: {$csvField} '{$name}' ".($lookup['count'] === 0 ? 'was not found.' : 'is ambiguous.');
                 $data[$idField] = null;
             } else {
                 $data[$idField] = $lookup['id'];
@@ -262,6 +269,7 @@ class BulkImportController extends Controller
                 $data[$field] = isset($data[$field]) ? Str::upper($data[$field]) : null;
             }
         }
+
         return $data;
     }
 
@@ -305,6 +313,7 @@ class BulkImportController extends Controller
     {
         if ($module === 'staff') {
             $this->createUnifiedEmployee($data);
+
             return;
         }
         $meta = [
@@ -337,7 +346,9 @@ class BulkImportController extends Controller
         if ($module === 'staff') {
             $roles = ['Staff'];
             $designation = Designation::with('role')->find($data['designation_id']);
-            if ($designation?->role) $roles[] = $designation->role->name;
+            if ($designation?->role) {
+                $roles[] = $designation->role->name;
+            }
             $user->syncRoles($roles);
         } else {
             $user->assignRole($meta['role']);
@@ -387,7 +398,9 @@ class BulkImportController extends Controller
             $user->staffProfile()->create($common + ['designation_id' => $data['designation_id'], 'category' => null]);
             $roles = ['Staff'];
             $designationRole = Designation::with('role')->find($data['designation_id'])?->role?->name;
-            if ($designationRole) $roles[] = $designationRole;
+            if ($designationRole) {
+                $roles[] = $designationRole;
+            }
             $user->syncRoles($roles);
         } elseif ($role === 'Housekeeping') {
             unset($common['date_of_joining'], $common['bank_account_number']);
@@ -420,7 +433,7 @@ class BulkImportController extends Controller
                     'nullable',
                     'integer',
                     Rule::exists('roles', 'id')->where(
-                        fn($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+                        fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
                     ),
                 ],
                 'name' => [
@@ -428,7 +441,7 @@ class BulkImportController extends Controller
                     'string',
                     'max:255',
                     'unique:designations,name',
-                    Rule::unique('roles', 'name')->where(fn($query) => $query->where('guard_name', 'web')),
+                    Rule::unique('roles', 'name')->where(fn ($query) => $query->where('guard_name', 'web')),
                 ],
                 'description' => ['nullable', 'string'],
                 'is_active' => ['required', 'boolean'],
@@ -444,6 +457,7 @@ class BulkImportController extends Controller
                 'vehicle_no' => ['required', 'max:20', 'unique:vehicles,vehicle_no'],
                 'vehicle_type' => ['required', Rule::in(array_keys(Vehicle::TYPES))],
                 'fuel_type' => ['required', Rule::in(array_keys(Vehicle::FUEL_TYPES))],
+                'vehicle_classification_id' => ['required', 'integer', 'exists:vehicle_classifications,id'],
                 'vehicle_category' => ['required', Rule::in(array_keys(Vehicle::CATEGORIES))],
                 'make' => ['required', 'max:255'],
                 'model' => ['required', 'max:255'],
@@ -572,35 +586,47 @@ class BulkImportController extends Controller
                 'category' => ['required', Rule::in(array_keys(StaffProfile::CATEGORIES))],
             ];
         }
+
         return $rules;
     }
 
     private function readCsv(string $path, array $expected): array
     {
         $handle = fopen($path, 'r');
-        if (! $handle) return [[], ['Unable to read the uploaded CSV file.']];
+        if (! $handle) {
+            return [[], ['Unable to read the uploaded CSV file.']];
+        }
         $header = fgetcsv($handle);
-        if (! $header) return [[], ['CSV file is empty.']];
-        $header = array_map(fn($value) => $this->normalizeHeader($value), $header);
+        if (! $header) {
+            return [[], ['CSV file is empty.']];
+        }
+        $header = array_map(fn ($value) => $this->normalizeHeader($value), $header);
         $missing = array_diff($expected, $header);
         if ($missing) {
             fclose($handle);
-            return [[], ['Missing column(s): ' . implode(', ', $missing) . '.']];
+
+            return [[], ['Missing column(s): '.implode(', ', $missing).'.']];
         }
         $rows = [];
         $errors = [];
         $line = 1;
         while (($values = fgetcsv($handle)) !== false) {
             $line++;
-            if (count(array_filter($values, fn($v) => trim((string) $v) !== '')) === 0) continue;
+            if (count(array_filter($values, fn ($v) => trim((string) $v) !== '')) === 0) {
+                continue;
+            }
             if (count($values) > count($header)) {
                 $errors[] = "Row {$line}: too many columns.";
+
                 continue;
             }
             $rows[] = ['line' => $line, 'data' => array_combine($header, array_pad($values, count($header), ''))];
         }
         fclose($handle);
-        if (! $rows && ! $errors) $errors[] = 'CSV file does not contain any data rows.';
+        if (! $rows && ! $errors) {
+            $errors[] = 'CSV file does not contain any data rows.';
+        }
+
         return [$rows, $errors];
     }
 
@@ -614,7 +640,7 @@ class BulkImportController extends Controller
             return [[], ['Unable to read the uploaded Excel file.']];
         }
 
-        $highestColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $highestColumn = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
         $header = [];
         for ($column = 1; $column <= $highestColumn; $column++) {
             $header[] = $this->normalizeHeader($sheet->getCell([$column, 1])->getValue());
@@ -622,7 +648,7 @@ class BulkImportController extends Controller
 
         $missing = array_diff($expected, $header);
         if ($missing) {
-            return [[], ['Missing column(s): ' . implode(', ', $missing) . '.']];
+            return [[], ['Missing column(s): '.implode(', ', $missing).'.']];
         }
 
         $rows = [];
@@ -631,7 +657,7 @@ class BulkImportController extends Controller
             for ($column = 1; $column <= $highestColumn; $column++) {
                 $values[] = $sheet->getCell([$column, $row])->getFormattedValue();
             }
-            if (count(array_filter($values, fn($value) => trim((string) $value) !== '')) === 0) {
+            if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) {
                 continue;
             }
             $rows[] = ['line' => $row, 'data' => array_combine($header, $values)];
@@ -690,7 +716,7 @@ class BulkImportController extends Controller
 
             try {
                 return Carbon::instance(
-                    \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($serial)
+                    Date::excelToDateTimeObject($serial)
                 );
             } catch (\Throwable) {
                 return null;
@@ -711,6 +737,7 @@ class BulkImportController extends Controller
     private function booleanValue(mixed $value): mixed
     {
         $value = Str::lower(trim((string) $value));
+
         return match ($value) {
             '1', 'yes', 'true', 'active', 'enabled' => 1,
             '0', 'no', 'false', 'inactive', 'disabled' => 0,
@@ -732,10 +759,10 @@ class BulkImportController extends Controller
                 'label' => 'Vehicles',
                 'permission' => 'vehicles.create',
                 'index_route' => 'vehicles.index',
-                'headers' => ['state', 'oem', 'depot', 'branch', 'vehicle_no', 'vehicle_type', 'fuel_type', 'vehicle_category', 'make', 'model', 'variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'chassis_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_enabled', 'gps_imei', 'status', 'remarks'],
-                'sample' => ['Maharashtra', 'Sample OEM', 'Central Depot', 'Main Branch', 'MH12AB1234', 'BUS', 'DIESEL', 'Passenger', 'Tata', 'Starbus', '', '40', '', '', '', 'ENG001', 'CHS001', '2026-01-01', '2031-01-01', '2027-01-01', '2027-01-01', '2027-01-01', '2027-01-01', 'no', '', 'Active', ''],
+                'headers' => ['state', 'oem', 'depot', 'branch', 'vehicle_classification', 'vehicle_no', 'vehicle_type', 'fuel_type', 'vehicle_category', 'make', 'model', 'variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'chassis_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_enabled', 'gps_imei', 'status', 'remarks'],
+                'sample' => ['Maharashtra', 'Sample OEM', 'Central Depot', 'Main Branch', 'Standard', 'MH12AB1234', 'BUS', 'DIESEL', 'Passenger', 'Tata', 'Starbus', '', '40', '', '', '', 'ENG001', 'CHS001', '2026-01-01', '2031-01-01', '2027-01-01', '2027-01-01', '2027-01-01', '2027-01-01', 'no', '', 'Active', ''],
                 'unique_csv' => ['vehicle_no', 'chassis_no'],
-                'database_fields' => ['state_id', 'oem_id', 'depot_id', 'branch_id', 'vehicle_no', 'vehicle_type', 'fuel_type', 'vehicle_category', 'make', 'model', 'variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'chassis_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_enabled', 'gps_imei', 'status', 'remarks'],
+                'database_fields' => ['state_id', 'oem_id', 'depot_id', 'branch_id', 'vehicle_classification_id', 'vehicle_no', 'vehicle_type', 'fuel_type', 'vehicle_category', 'make', 'model', 'variant', 'capacity_seating', 'capacity_load', 'battery_capacity', 'range_km', 'engine_no', 'chassis_no', 'registration_date', 'registration_valid_upto', 'fitness_expiry', 'permit_expiry', 'insurance_expiry', 'pollution_expiry', 'gps_enabled', 'gps_imei', 'status', 'remarks'],
             ],
             'drivers' => [
                 'label' => 'Drivers',
@@ -769,11 +796,11 @@ class BulkImportController extends Controller
             $headers = array_merge(array_slice($commonPerson, 0, 4), $extra, array_slice($commonPerson, 4));
             $sampleExtra = $key === 'staff' ? ['password123', 'Manager', '', 'skilled'] : ['123456'];
             $configs[$key] = [
-                'label' => $meta[0] . 's',
-                'permission' => Str::singular($key) . '-management.create',
-                'index_route' => Str::singular($key) . '-management.index',
+                'label' => $meta[0].'s',
+                'permission' => Str::singular($key).'-management.create',
+                'index_route' => Str::singular($key).'-management.index',
                 'headers' => $headers,
-                'sample' => array_merge(['Sample ' . $meta[0], $key . '@example.com', '+91', '9876543210'], $sampleExtra, ['Central Depot', 'full_time', 'yes', 'Father Name', '1990-01-01', '123456789012', 'ABCDE1234F', '2026-01-01', 'UAN001', 'ESIC001', 'India', 'Maharashtra', 'Pune', 'Pune', '1234567890', 'ABCD0001234']),
+                'sample' => array_merge(['Sample '.$meta[0], $key.'@example.com', '+91', '9876543210'], $sampleExtra, ['Central Depot', 'full_time', 'yes', 'Father Name', '1990-01-01', '123456789012', 'ABCDE1234F', '2026-01-01', 'UAN001', 'ESIC001', 'India', 'Maharashtra', 'Pune', 'Pune', '1234567890', 'ABCD0001234']),
                 'unique_csv' => ['email'],
                 'profile_fields' => $key === 'staff' ? array_merge($personProfile, ['designation_id', 'reporting_to', 'category']) : $personProfile,
             ];
@@ -866,7 +893,7 @@ class BulkImportController extends Controller
             default => [],
         };
         $configs[$module]['instructions'] = collect($configs[$module]['headers'])
-            ->map(fn(string $column, int $index) => [
+            ->map(fn (string $column, int $index) => [
                 'column' => $configs[$module]['sample_headers'][$index] ?? $column,
                 'required' => in_array($column, ['battery_capacity', 'range_km', 'gps_imei'], true)
                     ? 'Conditional'
@@ -940,6 +967,7 @@ class BulkImportController extends Controller
             'police_verification_status' => 'Use pending, verified, or rejected.',
             'verification_status' => 'Use pending, verified, or rejected.',
             'oem' => 'Exact existing OEM name. Do not use an ID.',
+            'vehicle_classification' => 'Exact existing vehicle classification title. Do not use the database ID.',
             'vehicle_no' => 'Unique vehicle registration number, maximum 20 characters. It is converted to uppercase.',
             'vehicle_type' => 'Use BUS, CAR, VAN, TRUCK, or AUTO.',
             'fuel_type' => 'Use ELECTRIC, DIESEL, PETROL, CNG, or HYBRID.',

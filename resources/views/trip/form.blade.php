@@ -114,7 +114,9 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-3">
-        <label for="total_trips" class="form-label m-0">Total Trips (ED) <span class="text-danger">*</span></label>
+        <label for="total_trips" class="form-label m-0">Total Trips (<span
+                id="tripNatureTitle">{{ $record->tripNature->title ?? '' }}</span>) <span
+                class="text-danger">*</span></label>
         <input type="number" min="1" step="1" class="form-control shadow-none" id="total_trips" name="total_trips"
             value="{{ old('total_trips', $record->total_trips ?? 1) }}">
         <span class="text-danger error-text total_trips_error">@error('total_trips'){{ $message }}@enderror</span>
@@ -159,181 +161,179 @@
         @else
             <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
         @endif
-        <button type="submit"
-            class="modal-btn-2 trip-submit-btn">{{ isset($record) ? 'Update' : 'Create' }}</button>
+        <button type="submit" class="modal-btn-2 trip-submit-btn">{{ isset($record) ? 'Update' : 'Create' }}</button>
     </div>
 </form>
 
 <style>
     .route-stops-horizontal {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
 
-    width: 100% !important;
+        width: 100% !important;
 
-    /*padding: 16px !important;*/
+        /*padding: 16px !important;*/
 
-    /*background: #f8fafc !important;*/
+        /*background: #f8fafc !important;*/
 
-    /*border: 1px solid #e2e8f0 !important;*/
-    /*border-radius: 12px !important;*/
+        /*border: 1px solid #e2e8f0 !important;*/
+        /*border-radius: 12px !important;*/
 
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
 
-    scrollbar-width: thin !important;
-}
+        scrollbar-width: thin !important;
+    }
 
 
 
-.route-stop-item {
-    position: relative !important;
+    .route-stop-item {
+        position: relative !important;
 
-    flex: 0 0 auto !important;
+        flex: 0 0 auto !important;
 
-    min-width: 170px !important;
+        min-width: 170px !important;
 
-    padding: 13px 16px !important;
+        padding: 13px 16px !important;
 
-    background: #ffffff !important;
+        background: #ffffff !important;
 
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
 
-    box-shadow: 0 2px 7px rgba(15, 23, 42, 0.04) !important;
+        box-shadow: 0 2px 7px rgba(15, 23, 42, 0.04) !important;
 
-    transition: all 0.2s ease !important;
-}
+        transition: all 0.2s ease !important;
+    }
 
 
-/* Hover */
+    /* Hover */
 
-.route-stop-item:hover {
-    transform: translateY(-2px) !important;
+    .route-stop-item:hover {
+        transform: translateY(-2px) !important;
 
-    border-color: #cbd5e1 !important;
+        border-color: #cbd5e1 !important;
 
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08) !important;
-}
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08) !important;
+    }
 
-.route-stop-item .fw-semibold {
-    display: block !important;
+    .route-stop-item .fw-semibold {
+        display: block !important;
 
-    margin-bottom: 4px !important;
+        margin-bottom: 4px !important;
 
-    color: #1e293b !important;
+        color: #1e293b !important;
 
-    font-size: 13px !important;
-    font-weight: 700 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
 
-    line-height: 1.4 !important;
+        line-height: 1.4 !important;
 
-    white-space: nowrap !important;
-}
+        white-space: nowrap !important;
+    }
 
 
-.route-stop-item small {
-    display: block !important;
+    .route-stop-item small {
+        display: block !important;
 
-    color: #64748b !important;
+        color: #64748b !important;
 
-    font-size: 10px !important;
-    font-weight: 500 !important;
+        font-size: 10px !important;
+        font-weight: 500 !important;
 
-    line-height: 1.3 !important;
-}
+        line-height: 1.3 !important;
+    }
 
 
 
-.route-stop-arrow {
-    flex: 0 0 auto !important;
+    .route-stop-arrow {
+        flex: 0 0 auto !important;
 
-    width: 32px !important;
-    height: 32px !important;
+        width: 32px !important;
+        height: 32px !important;
 
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
 
-    color: #64748b !important;
+        color: #64748b !important;
 
-    background: #ffffff !important;
+        background: #ffffff !important;
 
-    border: 1px solid #e2e8f0 !important;
+        border: 1px solid #e2e8f0 !important;
 
-    border-radius: 50% !important;
+        border-radius: 50% !important;
 
-    font-size: 12px !important;
+        font-size: 12px !important;
 
-    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04) !important;
-}
+        box-shadow: 0 2px 5px rgba(15, 23, 42, 0.04) !important;
+    }
 
 
 
-/* First Stop */
+    /* First Stop */
 
-.route-stops-horizontal .route-stop-item:first-child {
-    background: #eff6ff !important;
+    .route-stops-horizontal .route-stop-item:first-child {
+        background: #eff6ff !important;
 
-    border-color: #eff6ff !important;
-}
+        border-color: #eff6ff !important;
+    }
 
-.route-stops-horizontal .route-stop-item:first-child .fw-semibold {
-    color: #1d4ed8 !important;
-}
+    .route-stops-horizontal .route-stop-item:first-child .fw-semibold {
+        color: #1d4ed8 !important;
+    }
 
-.route-stops-horizontal .route-stop-item:first-child small {
-    color: #2563eb !important;
-}
+    .route-stops-horizontal .route-stop-item:first-child small {
+        color: #2563eb !important;
+    }
 
 
-/* Last Stop */
+    /* Last Stop */
 
-.route-stops-horizontal .route-stop-item:last-child {
-   background: #fae9ea !important;
-    border-color: #fae9ea !important;
-}
+    .route-stops-horizontal .route-stop-item:last-child {
+        background: #fae9ea !important;
+        border-color: #fae9ea !important;
+    }
 
-.route-stops-horizontal .route-stop-item:last-child .fw-semibold {
-    color: #dc3545  !important;
-}
+    .route-stops-horizontal .route-stop-item:last-child .fw-semibold {
+        color: #dc3545 !important;
+    }
 
-.route-stops-horizontal .route-stop-item:last-child small {
-    color: #dc3545  !important;
-}
+    .route-stops-horizontal .route-stop-item:last-child small {
+        color: #dc3545 !important;
+    }
 
 
 
-.route-stop-item:not(:first-child):not(:last-child) {
-    background: #f8fafc !important;
+    .route-stop-item:not(:first-child):not(:last-child) {
+        background: #f8fafc !important;
 
-    border-color: #e2e8f0 !important;
-}
+        border-color: #e2e8f0 !important;
+    }
 
 
 
 
-.route-stops-horizontal + * {
-    margin-top: 0 !important;
-}
+    .route-stops-horizontal+* {
+        margin-top: 0 !important;
+    }
 
 
 
-.route-stops-horizontal::-webkit-scrollbar {
-    height: 5px !important;
-}
+    .route-stops-horizontal::-webkit-scrollbar {
+        height: 5px !important;
+    }
 
-.route-stops-horizontal::-webkit-scrollbar-track {
-    background: #f1f5f9 !important;
+    .route-stops-horizontal::-webkit-scrollbar-track {
+        background: #f1f5f9 !important;
 
-    border-radius: 10px !important;
-}
+        border-radius: 10px !important;
+    }
 
-.route-stops-horizontal::-webkit-scrollbar-thumb {
-    background: #cbd5e1 !important;
+    .route-stops-horizontal::-webkit-scrollbar-thumb {
+        background: #cbd5e1 !important;
 
-    border-radius: 10px !important;
-}
-
+        border-radius: 10px !important;
+    }
 </style>

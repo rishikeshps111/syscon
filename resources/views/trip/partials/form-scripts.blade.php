@@ -13,6 +13,16 @@
             var loadingText = submitBtn.text().trim() === 'Update' ? 'Updating...' : 'Creating...';
             submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>' + loadingText);
         });
+
+        $('#trip_nature_id').on('change', function () {
+            let selectedText = $(this).find('option:selected').text();
+
+            if ($(this).val()) {
+                $('#tripNatureTitle').text(selectedText);
+            } else {
+                $('#tripNatureTitle').text('');
+            }
+        });
     });
 
     function refreshRouteDetails(applyDefaults) {
