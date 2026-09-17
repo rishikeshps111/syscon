@@ -249,8 +249,10 @@ class TripResource extends JsonResource
             'energy_absorption' => $dor->energy_absorption,
             'battery_size_kwh' => $dor->battery_size_kwh,
             'vp1' => $dor->vp1,
+            'vp1_image_url' => $this->storageUrl($dor->vp1_image),
             'vp2' => $dor->vp2,
             'dp' => $dor->dp,
+            'dp_image_url' => $this->storageUrl($dor->dp_image),
             'penalty' => $dor->penalty,
             'model_9m_12m' => $dor->model_9m_12m,
         ];

@@ -60,8 +60,10 @@ use Illuminate\Support\Facades\Storage;
     'energy_absorption',
     'battery_size_kwh',
     'vp1',
+    'vp1_image',
     'vp2',
     'dp',
+    'dp_image',
     'penalty',
     'model_9m_12m',
     'is_completed',
@@ -81,6 +83,8 @@ class TripSheetEntryDor extends Model
                 $dor->odometer_end_image_path,
                 $dor->route_start_soc_percent_image,
                 $dor->route_end_soc_percent_image,
+                $dor->vp1_image,
+                $dor->dp_image,
             ]));
         });
     }

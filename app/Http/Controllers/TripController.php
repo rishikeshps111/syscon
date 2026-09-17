@@ -1377,8 +1377,10 @@ class TripController extends Controller implements HasMiddleware
             'energy_absorption' => ['nullable', 'numeric', 'min:0'],
             'battery_size_kwh' => ['nullable', 'numeric', 'min:0'],
             'vp1' => ['nullable', 'numeric', 'min:0'],
+            'vp1_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'vp2' => ['nullable', 'numeric', 'min:0'],
             'dp' => ['nullable', 'numeric', 'min:0'],
+            'dp_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'penalty' => ['nullable', 'numeric', 'min:0'],
             'model_9m_12m' => ['nullable', 'string', 'max:255'],
         ];
@@ -1498,7 +1500,9 @@ class TripController extends Controller implements HasMiddleware
                 'odometer_start_image' => 'odometer_start_image_path',
                 'odometer_end_image' => 'odometer_end_image_path',
                 'route_start_soc_percent_image' => 'route_start_soc_percent_image',
-                'route_end_soc_percent_image' => 'route_end_soc_percent_image',
+            'route_end_soc_percent_image' => 'route_end_soc_percent_image',
+                'vp1_image' => 'vp1_image',
+                'dp_image' => 'dp_image',
             ] as $input => $column
         ) {
             if (! $request->hasFile($input)) {
@@ -1530,6 +1534,8 @@ class TripController extends Controller implements HasMiddleware
             'route_end_soc_percent_image' => $dor?->route_end_soc_percent_image
                 ? Storage::disk('public')->url($dor->route_end_soc_percent_image)
                 : null,
+            'vp1_image' => $dor?->vp1_image ? Storage::disk('public')->url($dor->vp1_image) : null,
+            'dp_image' => $dor?->dp_image ? Storage::disk('public')->url($dor->dp_image) : null,
         ];
     }
 
@@ -1633,8 +1639,10 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Energy Absorption', 'name' => 'energy_absorption', 'type' => 'number', 'manual_formula' => true, 'value' => $values['energy_absorption']],
             ['label' => 'Battery size In KWH', 'name' => 'battery_size_kwh', 'type' => 'number', 'value' => $saved?->battery_size_kwh],
             ['label' => 'VP1', 'name' => 'vp1', 'type' => 'number', 'manual_formula' => true, 'value' => $values['vp1']],
+            ['label' => 'Upload VP1 Image', 'name' => 'vp1_image', 'type' => 'file', 'image_url' => $this->dorImageUrls($saved)['vp1_image']],
             ['label' => 'VP2', 'name' => 'vp2', 'type' => 'number', 'manual_formula' => true, 'value' => $values['vp2']],
             ['label' => 'DP', 'name' => 'dp', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dp']],
+            ['label' => 'Upload DP Image', 'name' => 'dp_image', 'type' => 'file', 'image_url' => $this->dorImageUrls($saved)['dp_image']],
             ['label' => 'Penalty', 'name' => 'penalty', 'type' => 'number', 'value' => $saved?->penalty],
             ['label' => 'Model 9M/12M', 'name' => 'model_9m_12m', 'type' => 'select', 'options' => ['9 meter' => '9 meter', '12 meter' => '12 meter'], 'value' => $saved?->model_9m_12m],
         ];

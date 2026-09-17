@@ -444,6 +444,10 @@ class TripController extends Controller
                 'route_end_soc_percent_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
                 'start_punc' => ['nullable', 'string', 'max:255'],
                 'reason_for_kilometer_loss' => ['nullable', 'string'],
+                'vp1' => ['required', 'numeric', 'min:0'],
+                'vp1_image' => $imageRule,
+                'dp' => ['required', 'numeric', 'min:0'],
+                'dp_image' => $imageRule,
             ],
             default => throw ValidationException::withMessages([
                 'trip_id' => 'This trip sheet entry is not available for verification.',
@@ -510,6 +514,18 @@ class TripController extends Controller
             'start_punc.max' => 'Start punctuality must not exceed 255 characters.',
 
             'reason_for_kilometer_loss.string' => 'Reason for kilometer loss must be valid text.',
+            'vp1.required' => 'VP1 is required.',
+            'vp1.numeric' => 'VP1 must be a valid number.',
+            'vp1_image.required' => 'VP1 image is required.',
+            'vp1_image.image' => 'VP1 file must be an image.',
+            'vp1_image.mimes' => 'VP1 image must be a JPG, JPEG, PNG, or WEBP file.',
+            'vp1_image.max' => 'VP1 image must not be larger than 4 MB.',
+            'dp.required' => 'DP is required.',
+            'dp.numeric' => 'DP must be a valid number.',
+            'dp_image.required' => 'DP image is required.',
+            'dp_image.image' => 'DP file must be an image.',
+            'dp_image.mimes' => 'DP image must be a JPG, JPEG, PNG, or WEBP file.',
+            'dp_image.max' => 'DP image must not be larger than 4 MB.',
         ]);
 
         DB::transaction(function () use ($request, $record, $validated, $stage): void {
@@ -580,7 +596,7 @@ class TripController extends Controller
                     $dor,
                     $stage === 'pending'
                         ? ['odometer_start_image_path', 'route_start_soc_percent_image']
-                        : ['odometer_end_image_path', 'route_end_soc_percent_image']
+                        : ['odometer_end_image_path', 'route_end_soc_percent_image', 'vp1_image', 'dp_image']
                 );
 
             if ($dor) {
@@ -860,9 +876,9 @@ class TripController extends Controller
             'dcr_charged_soc' => $dcrChargedSoc,
             'energy_absorption' => $this->nullableFloat($dor?->energy_absorption),
             'battery_size_kwh' => $batterySizeKwh,
-            'vp1' => $this->nullableFloat($dor?->vp1),
+            'vp1' => $this->nullableFloat($data['vp1'] ?? $dor?->vp1),
             'vp2' => $this->nullableFloat($dor?->vp2),
-            'dp' => $this->nullableFloat($dor?->dp),
+            'dp' => $this->nullableFloat($data['dp'] ?? $dor?->dp),
             'penalty' => $this->nullableFloat($dor?->penalty),
             'model_9m_12m' => $dor?->model_9m_12m,
         ];
