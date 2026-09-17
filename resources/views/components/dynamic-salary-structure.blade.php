@@ -3,6 +3,9 @@
 @endphp
 
 <div class="row">
+    @if ($salaryComponents->isNotEmpty())
+        <div class="col-lg-12"><div class="alert alert-info">Salary values are taken from the assigned salary template and cannot be edited here.</div></div>
+    @endif
     @forelse ($salaryComponents as $salaryComponent)
         @php
             $fieldName = "salary_components[{$salaryComponent->id}]";
@@ -28,7 +31,8 @@
                 data-required="{{ $isRequired ? '1' : '0' }}"
                 data-template-defaults='@json($templateDefaults)'
                 data-has-explicit-value="{{ $hasExplicitValue ? '1' : '0' }}"
-                value="{{ $value }}"
+                value="{{ $salaryComponent->template_default_amount ?? $value }}"
+                readonly
                 @if ($isRequired) required @endif
                 >
             @error($oldKey)

@@ -12,10 +12,10 @@ use App\Models\DriverProfile;
 use App\Models\Location;
 use App\Models\State;
 use App\Models\User;
+use App\Support\EmployeeActivationGuard;
 use App\Support\SalaryComponents;
 use App\Support\SimpleQrCode;
 use App\Support\UserCodeGenerator;
-use App\Support\EmployeeActivationGuard;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Http\Request;
@@ -44,17 +44,17 @@ class DriverManagementController extends Controller implements HasMiddleware
         if (request()->ajax()) {
             return DataTables::of($this->filteredQuery())
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
-                ->addColumn('phone_number', fn($row) => $row->full_phone ?: '-')
-                ->addColumn('license_type', fn($row) => $row->driverProfile?->license_type_label ?: '-')
-                ->addColumn('license_expiry', fn($row) => $this->licenseExpiryBadge($row->driverProfile?->expiry_date))
-                ->addColumn('verification_status', fn($row) => $this->verificationBadge($row->driverProfile?->verification_status))
+                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-checkbox" value="'.$row->id.'">')
+                ->addColumn('phone_number', fn ($row) => $row->full_phone ?: '-')
+                ->addColumn('license_type', fn ($row) => $row->driverProfile?->license_type_label ?: '-')
+                ->addColumn('license_expiry', fn ($row) => $this->licenseExpiryBadge($row->driverProfile?->expiry_date))
+                ->addColumn('verification_status', fn ($row) => $this->verificationBadge($row->driverProfile?->verification_status))
                 ->addColumn('status', function ($row) {
                     return $row->is_active
                         ? '<span class="status-green">Active</span>'
                         : '<span class="status-red">Inactive</span>';
                 })
-                ->addColumn('action', fn($row) => view('driver-management.partials.action', compact('row'))->render())
+                ->addColumn('action', fn ($row) => view('driver-management.partials.action', compact('row'))->render())
                 ->rawColumns(['checkbox', 'license_expiry', 'verification_status', 'status', 'action'])
                 ->make(true);
         }
@@ -80,6 +80,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     public function store(StoreDriverManagementRequest $request)
     {
         $data = $request->validated();
+        $data['salary_components'] = SalaryComponents::templateAmountsForRole('Driver');
         $user = User::create([
             'code' => null,
             'ref_code' => $data['ref_code'] ?? null,
@@ -115,11 +116,11 @@ class DriverManagementController extends Controller implements HasMiddleware
 
         $record = $this->driverRecord($driver_management);
         $pdf = $this->buildDriverPdf($record);
-        $fileName = ($record->code ?: 'driver') . '-profile.pdf';
+        $fileName = ($record->code ?: 'driver').'-profile.pdf';
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
         ]);
     }
 
@@ -128,7 +129,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         abort_unless($driver_management->hasRole('Driver'), 404);
 
         $record = $this->driverRecord($driver_management);
-        $options = new Options();
+        $options = new Options;
         $options->set('isRemoteEnabled', false);
         $options->set('isHtml5ParserEnabled', true);
         $options->set('defaultFont', 'DejaVu Sans');
@@ -141,12 +142,12 @@ class DriverManagementController extends Controller implements HasMiddleware
         $dompdf->loadHtml($this->buildDriverIdCardView($record));
         $dompdf->render();
 
-        $fileName = ($record->code ?: 'driver') . '-id-card.pdf';
+        $fileName = ($record->code ?: 'driver').'-id-card.pdf';
         $disposition = request()->boolean('download') ? 'attachment' : 'inline';
 
         return response($dompdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => $disposition . '; filename="' . $fileName . '"',
+            'Content-Disposition' => $disposition.'; filename="'.$fileName.'"',
         ]);
     }
 
@@ -184,6 +185,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         abort_unless($driver_management->hasRole('Driver'), 404);
 
         $data = $request->validated();
+        $data['salary_components'] = SalaryComponents::templateAmountsForRole('Driver');
         $driver_management->update([
             'ref_code' => $data['ref_code'] ?? null,
             'name' => $data['name'],
@@ -248,7 +250,7 @@ class DriverManagementController extends Controller implements HasMiddleware
                     'success' => false,
                     'message' => 'This driver cannot be activated until all mandatory documents are uploaded and verified.',
                     'errors' => [
-                        'documents' => ['Missing mandatory documents: ' . $missingDocuments->pluck('name')->implode(', ') . '.'],
+                        'documents' => ['Missing mandatory documents: '.$missingDocuments->pluck('name')->implode(', ').'.'],
                     ],
                     'missing_documents' => $missingDocuments->pluck('name')->values(),
                 ], 422);
@@ -323,16 +325,16 @@ class DriverManagementController extends Controller implements HasMiddleware
         if (request()->filled('search_text')) {
             $search = request('search_text');
             $query->where(function ($subQuery) use ($search) {
-                $subQuery->where('users.code', 'like', '%' . $search . '%')
-                    ->orWhere('users.ref_code', 'like', '%' . $search . '%')
-                    ->orWhere('users.name', 'like', '%' . $search . '%')
-                    ->orWhere('users.phone', 'like', '%' . $search . '%');
+                $subQuery->where('users.code', 'like', '%'.$search.'%')
+                    ->orWhere('users.ref_code', 'like', '%'.$search.'%')
+                    ->orWhere('users.name', 'like', '%'.$search.'%')
+                    ->orWhere('users.phone', 'like', '%'.$search.'%');
             });
         }
 
         foreach (['state_id', 'employment_type', 'license_type', 'verification_status'] as $field) {
             if (request()->filled($field)) {
-                $query->whereHas('driverProfile', fn($profileQuery) => $profileQuery->where($field, request($field)));
+                $query->whereHas('driverProfile', fn ($profileQuery) => $profileQuery->where($field, request($field)));
             }
         }
 
@@ -341,17 +343,17 @@ class DriverManagementController extends Controller implements HasMiddleware
         }
 
         if (request('expiry_filter') === 'license_expiring') {
-            $query->whereHas('driverProfile', fn($profileQuery) => $profileQuery
+            $query->whereHas('driverProfile', fn ($profileQuery) => $profileQuery
                 ->whereDate('expiry_date', '>=', now()->toDateString())
                 ->whereDate('expiry_date', '<=', now()->addMonth()->toDateString()));
         }
 
         if (request('expiry_filter') === 'license_expired') {
-            $query->whereHas('driverProfile', fn($profileQuery) => $profileQuery->expiredLicense());
+            $query->whereHas('driverProfile', fn ($profileQuery) => $profileQuery->expiredLicense());
         }
 
         if (request('expiry_filter') === 'medical_expiring') {
-            $query->whereHas('driverProfile', fn($profileQuery) => $profileQuery
+            $query->whereHas('driverProfile', fn ($profileQuery) => $profileQuery
                 ->whereDate('medical_fitness_expiry', '>=', now()->toDateString())
                 ->whereDate('medical_fitness_expiry', '<=', now()->addMonth()->toDateString()));
         }
@@ -443,14 +445,14 @@ class DriverManagementController extends Controller implements HasMiddleware
         $label = $date->format('d-m-Y');
 
         if ($date->lt(now()->startOfDay())) {
-            return '<span class="driver-license-badge driver-license-expired">Expired License<br><small>' . $label . '</small></span>';
+            return '<span class="driver-license-badge driver-license-expired">Expired License<br><small>'.$label.'</small></span>';
         }
 
         if ($date->lte(now()->addMonth()->startOfDay())) {
-            return '<span class="driver-license-badge driver-license-warning">Expiring Soon<br><small>' . $label . '</small></span>';
+            return '<span class="driver-license-badge driver-license-warning">Expiring Soon<br><small>'.$label.'</small></span>';
         }
 
-        return '<span class="driver-license-badge driver-license-active">Active<br><small>' . $label . '</small></span>';
+        return '<span class="driver-license-badge driver-license-active">Active<br><small>'.$label.'</small></span>';
     }
 
     private function verificationBadge(?string $status): string
@@ -478,30 +480,30 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function buildDriverPdf(User $record): string
     {
         $profile = $record->driverProfile;
-        $date = fn($value) => $value ? $value->format('d-m-Y') : '-';
-        $money = fn($value) => filled($value) ? number_format((float) $value, 2) : '-';
-        $verification = fn($value) => DriverProfile::VERIFICATION_STATUSES[$value] ?? '-';
-        $alternatePhone = trim(($profile?->alternate_country_code ?? '') . ' ' . ($profile?->alternate_phone ?? '')) ?: '-';
-        $emergencyPhone = trim(($profile?->emergency_country_code ?? '') . ' ' . ($profile?->emergency_contact_no ?? '')) ?: '-';
+        $date = fn ($value) => $value ? $value->format('d-m-Y') : '-';
+        $money = fn ($value) => filled($value) ? number_format((float) $value, 2) : '-';
+        $verification = fn ($value) => DriverProfile::VERIFICATION_STATUSES[$value] ?? '-';
+        $alternatePhone = trim(($profile?->alternate_country_code ?? '').' '.($profile?->alternate_phone ?? '')) ?: '-';
+        $emergencyPhone = trim(($profile?->emergency_country_code ?? '').' '.($profile?->emergency_contact_no ?? '')) ?: '-';
 
         $content = '';
         $this->pdfFill($content, 0.96, 0.97, 0.99, 0, 0, 595, 842);
         $this->pdfText($content, 'SYSCON', 50, 795, 18, 'F2');
         $this->pdfText($content, 'Driver Profile', 50, 770, 22, 'F2');
-        $this->pdfText($content, 'Generated on ' . now()->format('d-m-Y'), 430, 795, 10);
+        $this->pdfText($content, 'Generated on '.now()->format('d-m-Y'), 430, 795, 10);
         $this->pdfStatus($content, $record->is_active ? 'Active' : 'Inactive', 465, 765, $record->is_active);
 
         $this->pdfCard($content, 40, 600, 515, 140);
         $this->pdfFill($content, 0.90, 0.94, 1.00, 58, 645, 82, 72);
         $this->pdfText($content, 'PHOTO', 82, 678, 11, 'F2');
         $this->pdfText($content, $record->name ?: '-', 160, 708, 18, 'F2');
-        $this->pdfText($content, 'Driver Code: ' . ($record->code ?: '-'), 160, 686, 11);
-        $this->pdfText($content, 'Email: ' . ($record->email ?: '-'), 160, 668, 10);
-        $this->pdfText($content, 'Phone: ' . ($record->full_phone ?: '-'), 160, 650, 10);
-        $this->pdfText($content, 'Alt Phone: ' . $alternatePhone, 160, 632, 10);
-        $this->pdfText($content, 'License: ' . ($profile?->license_type_label ?: '-'), 340, 686, 10);
-        $this->pdfText($content, 'Expiry: ' . $date($profile?->expiry_date), 340, 668, 10);
-        $this->pdfText($content, 'Verification: ' . $verification($profile?->verification_status), 340, 650, 10);
+        $this->pdfText($content, 'Driver Code: '.($record->code ?: '-'), 160, 686, 11);
+        $this->pdfText($content, 'Email: '.($record->email ?: '-'), 160, 668, 10);
+        $this->pdfText($content, 'Phone: '.($record->full_phone ?: '-'), 160, 650, 10);
+        $this->pdfText($content, 'Alt Phone: '.$alternatePhone, 160, 632, 10);
+        $this->pdfText($content, 'License: '.($profile?->license_type_label ?: '-'), 340, 686, 10);
+        $this->pdfText($content, 'Expiry: '.$date($profile?->expiry_date), 340, 668, 10);
+        $this->pdfText($content, 'Verification: '.$verification($profile?->verification_status), 340, 650, 10);
 
         $this->pdfSection($content, 'Identity Details', 40, 440, 250, [
             'Aadhaar Number' => $profile?->aadhaar_number ?: '-',
@@ -565,7 +567,7 @@ class DriverManagementController extends Controller implements HasMiddleware
 
             $this->pdfCard($documentContent, 40, $y - 55, 515, 55);
             $this->pdfText($documentContent, $document->documentType?->name ?: 'Document', 60, $y - 22, 12, 'F2');
-            $this->pdfText($documentContent, 'Expiry: ' . ($document->expiry_date?->format('d-m-Y') ?: '-'), 60, $y - 40, 10);
+            $this->pdfText($documentContent, 'Expiry: '.($document->expiry_date?->format('d-m-Y') ?: '-'), 60, $y - 40, 10);
             $this->pdfStatus($documentContent, $document->is_verified ? 'Verified' : 'Not Verified', 430, $y - 32, $document->is_verified);
             $y -= 70;
         }
@@ -578,10 +580,10 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function buildDriverIdCard(User $record): string
     {
         $profile = $record->driverProfile;
-        $date = fn($value) => $value ? $value->format('d-m-Y') : '-';
-        $escape = fn($value) => e(filled($value) ? $value : '-');
+        $date = fn ($value) => $value ? $value->format('d-m-Y') : '-';
+        $escape = fn ($value) => e(filled($value) ? $value : '-');
         $photo = $this->pdfImageData($record->avatar
-            ? storage_path('app/public/' . $record->avatar)
+            ? storage_path('app/public/'.$record->avatar)
             : public_path('assets/img/user.png'));
         $logo = $this->pdfImageData(public_path('assets/img/compny.png'));
         $office = $profile?->branchLocation?->name ?: ($profile?->depot?->name ?: 'Branch Office');
@@ -599,7 +601,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'This card is not transferable and must be surrendered immediately upon cessation of service.',
             'If found, return to Syscon Functional Networks Pvt Ltd.',
         ];
-        $instructionHtml = collect($instructions)->map(fn($item) => '<li>' . e($item) . '</li>')->implode('');
+        $instructionHtml = collect($instructions)->map(fn ($item) => '<li>'.e($item).'</li>')->implode('');
 
         return '<!doctype html><html><head><meta charset="UTF-8"><style>
             @page { margin: 0; size: 171.2mm 54mm; }
@@ -642,15 +644,15 @@ class DriverManagementController extends Controller implements HasMiddleware
             .company-address { font-size: 7pt; line-height: 1.25; }
             .company-phone { color: #1260a0; font-size: 8pt; font-weight: bold; }
         </style></head><body><div class="sheet">
-            <div class="panel front"><div class="blue-top"><img class="brand-logo" src="' . $logo . '"><div class="brand-name">SYSCON<small>FUNCTIONAL NETWORKS</small></div><div class="id-pill">EMPLOYEE ID CARD</div></div>
-                <div class="front-main"><img class="photo" src="' . $photo . '"><div class="driver-name">' . $escape($record->name) . '</div>
-                    <div class="detail"><span class="label">Staff ID</span>: <span class="value">' . $escape($record->code) . '</span></div>
-                    <div class="detail"><span class="label">Designation</span>: <span class="value">' . $escape($profile?->license_type_label ?: 'Driver') . '</span></div>
-                    <div class="detail"><span class="label">Contact No.</span>: <span class="value">' . $escape($record->full_phone) . '</span></div>
-                    <div class="detail"><span class="label">License No.</span>: <span class="value">' . $escape($profile?->license_number) . '</span></div>
+            <div class="panel front"><div class="blue-top"><img class="brand-logo" src="'.$logo.'"><div class="brand-name">SYSCON<small>FUNCTIONAL NETWORKS</small></div><div class="id-pill">EMPLOYEE ID CARD</div></div>
+                <div class="front-main"><img class="photo" src="'.$photo.'"><div class="driver-name">'.$escape($record->name).'</div>
+                    <div class="detail"><span class="label">Staff ID</span>: <span class="value">'.$escape($record->code).'</span></div>
+                    <div class="detail"><span class="label">Designation</span>: <span class="value">'.$escape($profile?->license_type_label ?: 'Driver').'</span></div>
+                    <div class="detail"><span class="label">Contact No.</span>: <span class="value">'.$escape($record->full_phone).'</span></div>
+                    <div class="detail"><span class="label">License No.</span>: <span class="value">'.$escape($profile?->license_number).'</span></div>
                 </div><div class="signature">Authorised Signature</div><div class="front-bottom"></div>
-            </div><div class="panel back"><div class="back-rule"></div><div class="instructions-title">INSTRUCTIONS</div><ul class="instructions">' . $instructionHtml . '</ul>
-                <div class="company"><img src="' . $logo . '"><div class="company-name">SYSCON FUNCTIONAL<br>NETWORKS PVT LTD</div><div class="company-office">' . $escape($office) . '</div><div class="company-address">' . $escape($address ?: 'Please contact the issuing office.') . '</div><div class="company-phone">Ph. No. ' . $escape($record->full_phone) . '</div></div>
+            </div><div class="panel back"><div class="back-rule"></div><div class="instructions-title">INSTRUCTIONS</div><ul class="instructions">'.$instructionHtml.'</ul>
+                <div class="company"><img src="'.$logo.'"><div class="company-name">SYSCON FUNCTIONAL<br>NETWORKS PVT LTD</div><div class="company-office">'.$escape($office).'</div><div class="company-address">'.$escape($address ?: 'Please contact the issuing office.').'</div><div class="company-phone">Ph. No. '.$escape($record->full_phone).'</div></div>
             </div>
         </div></body></html>';
     }
@@ -660,16 +662,16 @@ class DriverManagementController extends Controller implements HasMiddleware
         $profile = $record->driverProfile;
 
         $photo = $this->pdfImageData($record->avatar
-            ? storage_path('app/public/' . $record->avatar)
+            ? storage_path('app/public/'.$record->avatar)
             : public_path('assets/img/user.png'));
 
         $sysconLogo = $this->pdfImageData(public_path('assets/img/syscon-logo.png'));
         $tgsrtcLogo = $this->pdfImageData(public_path('assets/img/tgsrtc-logo.png'));
-        $jbmLogo    = $this->pdfImageData(public_path('assets/img/jbm-vertical.png')); // Pre-rotated vertical JBM image
-        $signature  = $this->pdfImageData(public_path('assets/img/signature.png'));
+        $jbmLogo = $this->pdfImageData(public_path('assets/img/jbm-vertical.png')); // Pre-rotated vertical JBM image
+        $signature = $this->pdfImageData(public_path('assets/img/signature.png'));
 
         $office = $profile?->branchLocation?->name ?: ($profile?->depot?->name ?: 'Branch Office');
-        $depot  = $profile?->depot?->name ?: 'WL-2 DEPOT';
+        $depot = $profile?->depot?->name ?: 'WL-2 DEPOT';
 
         $address = trim(collect([
             $profile?->address,
@@ -712,7 +714,7 @@ class DriverManagementController extends Controller implements HasMiddleware
 
         $photo = $this->pdfImageData(
             $record->avatar
-                ? storage_path('app/public/' . $record->avatar)
+                ? storage_path('app/public/'.$record->avatar)
                 : public_path('assets/img/user.png')
         );
 
@@ -765,7 +767,7 @@ class DriverManagementController extends Controller implements HasMiddleware
 
         $mime = mime_content_type($path) ?: 'image/png';
 
-        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($path));
+        return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path));
     }
 
     private function pdfDocument(array $contents): string
@@ -781,14 +783,14 @@ class DriverManagementController extends Controller implements HasMiddleware
         foreach ($contents as $index => $content) {
             $pageObject = 3 + ($index * 2);
             $contentObject = $pageObject + 1;
-            $pageObjectNumbers[] = $pageObject . ' 0 R';
-            $objects[$pageObject] = $pageObject . " 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 " . $fontObject . " 0 R /F2 " . $boldFontObject . " 0 R >> >> /Contents " . $contentObject . " 0 R >>\nendobj\n";
-            $objects[$contentObject] = $contentObject . " 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n" . $content . "endstream\nendobj\n";
+            $pageObjectNumbers[] = $pageObject.' 0 R';
+            $objects[$pageObject] = $pageObject." 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ".$fontObject.' 0 R /F2 '.$boldFontObject.' 0 R >> >> /Contents '.$contentObject." 0 R >>\nendobj\n";
+            $objects[$contentObject] = $contentObject." 0 obj\n<< /Length ".strlen($content)." >>\nstream\n".$content."endstream\nendobj\n";
         }
 
-        $objects[2] = "2 0 obj\n<< /Type /Pages /Kids [" . implode(' ', $pageObjectNumbers) . '] /Count ' . count($pageObjectNumbers) . " >>\nendobj\n";
-        $objects[$fontObject] = $fontObject . " 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-        $objects[$boldFontObject] = $boldFontObject . " 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+        $objects[2] = "2 0 obj\n<< /Type /Pages /Kids [".implode(' ', $pageObjectNumbers).'] /Count '.count($pageObjectNumbers)." >>\nendobj\n";
+        $objects[$fontObject] = $fontObject." 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+        $objects[$boldFontObject] = $boldFontObject." 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
         ksort($objects);
 
         $pdf = "%PDF-1.4\n";
@@ -802,15 +804,15 @@ class DriverManagementController extends Controller implements HasMiddleware
         ksort($offsets);
         $xref = strlen($pdf);
         $maxObject = max(array_keys($offsets));
-        $pdf .= "xref\n0 " . ($maxObject + 1) . "\n";
+        $pdf .= "xref\n0 ".($maxObject + 1)."\n";
         $pdf .= "0000000000 65535 f \n";
 
         for ($i = 1; $i <= $maxObject; $i++) {
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i] ?? 0);
         }
 
-        $pdf .= "trailer\n<< /Size " . ($maxObject + 1) . " /Root 1 0 R >>\n";
-        $pdf .= "startxref\n" . $xref . "\n%%EOF";
+        $pdf .= "trailer\n<< /Size ".($maxObject + 1)." /Root 1 0 R >>\n";
+        $pdf .= "startxref\n".$xref."\n%%EOF";
 
         return $pdf;
     }
@@ -822,7 +824,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         $lineY = $y + $height - 50;
 
         foreach ($items as $label => $value) {
-            $this->pdfText($content, $label . ':', $x + 14, $lineY, 9, 'F2');
+            $this->pdfText($content, $label.':', $x + 14, $lineY, 9, 'F2');
             $this->pdfText($content, (string) $value, $x + 150, $lineY, 9);
             $lineY -= 17;
         }
@@ -832,7 +834,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     {
         $this->pdfFill($content, 1, 1, 1, $x, $y, $width, $height);
         $content .= "0.84 0.86 0.90 RG\n";
-        $content .= $x . ' ' . $y . ' ' . $width . ' ' . $height . " re S\n";
+        $content .= $x.' '.$y.' '.$width.' '.$height." re S\n";
     }
 
     private function pdfFill(string &$content, float $r, float $g, float $b, int $x, int $y, int $width, int $height): void
@@ -843,7 +845,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function pdfText(string &$content, string $text, int $x, int $y, int $size = 10, string $font = 'F1'): void
     {
         $content .= "0.08 0.10 0.14 rg\n";
-        $content .= "BT\n/" . $font . ' ' . $size . " Tf\n" . $x . ' ' . $y . " Td\n(" . $this->escapePdfText(substr($text, 0, 78)) . ") Tj\nET\n";
+        $content .= "BT\n/".$font.' '.$size." Tf\n".$x.' '.$y." Td\n(".$this->escapePdfText(substr($text, 0, 78)).") Tj\nET\n";
     }
 
     private function pdfStatus(string &$content, string $text, int $x, int $y, bool $positive): void
@@ -856,7 +858,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             $content .= "0.78 0.16 0.16 rg\n";
         }
 
-        $content .= "BT\n/F2 10 Tf\n" . ($x + 14) . ' ' . ($y + 8) . " Td\n(" . $this->escapePdfText($text) . ") Tj\nET\n";
+        $content .= "BT\n/F2 10 Tf\n".($x + 14).' '.($y + 8)." Td\n(".$this->escapePdfText($text).") Tj\nET\n";
     }
 
     private function escapePdfText(string $text): string

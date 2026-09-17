@@ -10,6 +10,13 @@ use Illuminate\Support\Collection;
 
 class SalaryComponents
 {
+    public static function templateAmountsForRole(string $roleName, ?int $designationId = null): array
+    {
+        return self::forRole($roleName, $designationId)
+            ->mapWithKeys(fn ($component) => [$component->id => (float) $component->template_default_amount])
+            ->all();
+    }
+
     public static function forRole(string $roleName, ?int $designationId = null): Collection
     {
         $templates = SalaryTemplate::query()
@@ -50,7 +57,7 @@ class SalaryComponents
 
                 return $component;
             })
-            ->sortBy(fn ($component) => ($component->type === 'earning' ? '0' : '1') . $component->component_name)
+            ->sortBy(fn ($component) => ($component->type === 'earning' ? '0' : '1').$component->component_name)
             ->values();
     }
 

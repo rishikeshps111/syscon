@@ -5,25 +5,23 @@ namespace App\Http\Controllers;
 use App\Exports\StaffManagementExport;
 use App\Http\Requests\SaveUnifiedStaffRequest;
 use App\Models\BranchLocation;
-use App\Models\ControllerProfile;
-use App\Models\Designation;
 use App\Models\Depot;
+use App\Models\Designation;
 use App\Models\District;
-use App\Models\Location;
 use App\Models\HousekeepingProfile;
+use App\Models\Location;
 use App\Models\StaffProfile;
 use App\Models\State;
-use App\Models\SupervisorProfile;
 use App\Models\User;
-use App\Support\SalaryComponents;
-use App\Support\UserCodeGenerator;
-use App\Support\StaffReportingManagers;
 use App\Support\EmployeeActivationGuard;
+use App\Support\SalaryComponents;
+use App\Support\StaffReportingManagers;
+use App\Support\UserCodeGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -50,16 +48,16 @@ class StaffManagementController extends Controller implements HasMiddleware
         if (request()->ajax()) {
             return DataTables::of($this->filteredQuery())
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-checkbox" value="' . $row->id . '">')
-                ->addColumn('role', fn(User $row) => $this->employeeRole($row))
-                ->addColumn('designation', fn($row) => $row->staffProfile?->designation?->name ?? '-')
-                ->addColumn('date_of_joining', fn(User $row) => $this->employeeDateOfJoining($row)?->format('d M y') ?? '-')
+                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-checkbox" value="'.$row->id.'">')
+                ->addColumn('role', fn (User $row) => $this->employeeRole($row))
+                ->addColumn('designation', fn ($row) => $row->staffProfile?->designation?->name ?? '-')
+                ->addColumn('date_of_joining', fn (User $row) => $this->employeeDateOfJoining($row)?->format('d M y') ?? '-')
                 ->addColumn('status', function ($row) {
                     return $row->is_active
                         ? '<span class="status-green">Active</span>'
                         : '<span class="status-red">Inactive</span>';
                 })
-                ->addColumn('action', fn($row) => view('staff-management.partials.action', ['row' => $row, 'role' => $this->employeeRole($row)])->render())
+                ->addColumn('action', fn ($row) => view('staff-management.partials.action', ['row' => $row, 'role' => $this->employeeRole($row)])->render())
                 ->rawColumns(['checkbox', 'status', 'action'])
                 ->make(true);
         }
@@ -89,6 +87,9 @@ class StaffManagementController extends Controller implements HasMiddleware
     public function store(SaveUnifiedStaffRequest $request)
     {
         $data = $request->validated();
+        $data['salary_components'] = $data['role'] === 'Staff'
+            ? SalaryComponents::templateAmountsForRole('Staff', (int) ($data['designation_id'] ?? 0))
+            : ($data['salary_components'] ?? []);
         DB::transaction(function () use ($request, $data): void {
             $role = $data['role'];
             $credential = $role === 'Staff' ? ($data['password'] ?? null) : ($data['passcode'] ?? null);
@@ -127,11 +128,11 @@ class StaffManagementController extends Controller implements HasMiddleware
 
         $record = $this->staffRecord($staff_management);
         $pdf = $this->buildStaffPdf($record);
-        $fileName = ($record->code ?: 'staff') . '-profile.pdf';
+        $fileName = ($record->code ?: 'staff').'-profile.pdf';
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
         ]);
     }
 
@@ -156,6 +157,9 @@ class StaffManagementController extends Controller implements HasMiddleware
         $data = $request->validated();
         $previousRole = $this->employeeRole($staff_management);
         $role = $data['role'];
+        $data['salary_components'] = $role === 'Staff'
+            ? SalaryComponents::templateAmountsForRole('Staff', (int) ($data['designation_id'] ?? 0))
+            : ($data['salary_components'] ?? []);
         DB::transaction(function () use ($request, $data, $role, $previousRole, $staff_management): void {
             $credential = $role === 'Staff' ? ($data['password'] ?? null) : ($data['passcode'] ?? null);
             $staff_management->update([
@@ -224,7 +228,7 @@ class StaffManagementController extends Controller implements HasMiddleware
                     'success' => false,
                     'message' => 'This employee cannot be activated until all mandatory documents are uploaded and verified.',
                     'errors' => [
-                        'documents' => ['Missing mandatory documents: ' . $missingDocuments->pluck('name')->implode(', ') . '.'],
+                        'documents' => ['Missing mandatory documents: '.$missingDocuments->pluck('name')->implode(', ').'.'],
                     ],
                     'missing_documents' => $missingDocuments->pluck('name')->values(),
                 ], 422);
@@ -299,12 +303,12 @@ class StaffManagementController extends Controller implements HasMiddleware
                 : User::query()->whereRaw('1 = 0'),
             'Controller', 'Housekeeping' => User::role('Supervisor')
                 ->where('is_active', true)
-                ->whereHas('supervisorProfile', fn($profile) => $profile->where('depot_id', $data['depot_id'])),
+                ->whereHas('supervisorProfile', fn ($profile) => $profile->where('depot_id', $data['depot_id'])),
             'Supervisor' => User::query()->whereRaw('1 = 0'),
         };
 
         return response()->json(
-            $query->when($data['exclude_user_id'] ?? null, fn($users, $id) => $users->where('users.id', '<>', $id))
+            $query->when($data['exclude_user_id'] ?? null, fn ($users, $id) => $users->where('users.id', '<>', $id))
                 ->orderBy('users.name')
                 ->get(['users.id', 'users.code', 'users.name'])
         );
@@ -357,9 +361,9 @@ class StaffManagementController extends Controller implements HasMiddleware
         if (request()->filled('search_text')) {
             $search = request('search_text');
             $query->where(function ($subQuery) use ($search) {
-                $subQuery->where('users.code', 'like', '%' . $search . '%')
-                    ->orWhere('users.name', 'like', '%' . $search . '%')
-                    ->orWhere('users.ref_code', 'like', '%' . $search . '%');
+                $subQuery->where('users.code', 'like', '%'.$search.'%')
+                    ->orWhere('users.name', 'like', '%'.$search.'%')
+                    ->orWhere('users.ref_code', 'like', '%'.$search.'%');
             });
         }
 
@@ -367,29 +371,29 @@ class StaffManagementController extends Controller implements HasMiddleware
             $query->role(request('role'));
         }
         if (request()->filled('designation_id')) {
-            $query->whereHas('staffProfile', fn($profile) => $profile->where('designation_id', request('designation_id')));
+            $query->whereHas('staffProfile', fn ($profile) => $profile->where('designation_id', request('designation_id')));
         }
         if (request()->filled('depot_id')) {
-            $query->where(fn($employee) => $employee
-                ->whereHas('staffProfile', fn($profile) => $profile->where('depot_id', request('depot_id')))
-                ->orWhereHas('housekeepingProfile', fn($profile) => $profile->where('depot_id', request('depot_id')))
-                ->orWhereHas('controllerProfile', fn($profile) => $profile->where('depot_id', request('depot_id')))
-                ->orWhereHas('supervisorProfile', fn($profile) => $profile->where('depot_id', request('depot_id'))));
+            $query->where(fn ($employee) => $employee
+                ->whereHas('staffProfile', fn ($profile) => $profile->where('depot_id', request('depot_id')))
+                ->orWhereHas('housekeepingProfile', fn ($profile) => $profile->where('depot_id', request('depot_id')))
+                ->orWhereHas('controllerProfile', fn ($profile) => $profile->where('depot_id', request('depot_id')))
+                ->orWhereHas('supervisorProfile', fn ($profile) => $profile->where('depot_id', request('depot_id'))));
         }
         if (request()->filled('employment_type')) {
-            $query->where(fn($employee) => $employee
-                ->whereHas('staffProfile', fn($profile) => $profile->where('employment_type', request('employment_type')))
-                ->orWhereHas('housekeepingProfile', fn($profile) => $profile->where('employment_type', request('employment_type')))
-                ->orWhereHas('controllerProfile', fn($profile) => $profile->where('employment_type', request('employment_type')))
-                ->orWhereHas('supervisorProfile', fn($profile) => $profile->where('employment_type', request('employment_type'))));
+            $query->where(fn ($employee) => $employee
+                ->whereHas('staffProfile', fn ($profile) => $profile->where('employment_type', request('employment_type')))
+                ->orWhereHas('housekeepingProfile', fn ($profile) => $profile->where('employment_type', request('employment_type')))
+                ->orWhereHas('controllerProfile', fn ($profile) => $profile->where('employment_type', request('employment_type')))
+                ->orWhereHas('supervisorProfile', fn ($profile) => $profile->where('employment_type', request('employment_type'))));
         }
 
         if (request()->filled('date_of_joining')) {
-            $query->where(fn($employee) => $employee
-                ->whereHas('staffProfile', fn($profile) => $profile->whereDate('date_of_joining', request('date_of_joining')))
-                ->orWhereHas('housekeepingProfile', fn($profile) => $profile->whereDate('joining_date', request('date_of_joining')))
-                ->orWhereHas('controllerProfile', fn($profile) => $profile->whereDate('date_of_joining', request('date_of_joining')))
-                ->orWhereHas('supervisorProfile', fn($profile) => $profile->whereDate('date_of_joining', request('date_of_joining'))));
+            $query->where(fn ($employee) => $employee
+                ->whereHas('staffProfile', fn ($profile) => $profile->whereDate('date_of_joining', request('date_of_joining')))
+                ->orWhereHas('housekeepingProfile', fn ($profile) => $profile->whereDate('joining_date', request('date_of_joining')))
+                ->orWhereHas('controllerProfile', fn ($profile) => $profile->whereDate('date_of_joining', request('date_of_joining')))
+                ->orWhereHas('supervisorProfile', fn ($profile) => $profile->whereDate('date_of_joining', request('date_of_joining'))));
         }
 
         if (request()->filled('status') && in_array(request('status'), ['0', '1'], true)) {
@@ -496,6 +500,7 @@ class StaffManagementController extends Controller implements HasMiddleware
                 'designation_id' => $data['designation_id'],
                 'category' => $data['category'] ?? null,
             ]);
+
             return;
         }
 
@@ -517,6 +522,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             $housekeeping['account_number'] = $data['bank_account_number'];
             $housekeeping['salary'] = $salary['salary'];
             $user->housekeepingProfile()->updateOrCreate(['user_id' => $user->id], $housekeeping);
+
             return;
         }
 
@@ -538,7 +544,7 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     private function employeeRole(User $user): string
     {
-        return collect(self::ROLES)->first(fn(string $role) => $user->hasRole($role)) ?: 'Staff';
+        return collect(self::ROLES)->first(fn (string $role) => $user->hasRole($role)) ?: 'Staff';
     }
 
     private function employeeProfile(User $user): mixed
@@ -554,6 +560,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function employeeDateOfJoining(User $user): mixed
     {
         $profile = $this->employeeProfile($user);
+
         return $this->employeeRole($user) === 'Housekeeping' ? $profile?->joining_date : $profile?->date_of_joining;
     }
 
@@ -563,6 +570,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         if ($record instanceof User) {
             return $this->employeeRole($record);
         }
+
         return in_array(request('role'), self::ROLES, true) ? request('role') : 'Staff';
     }
 
@@ -624,20 +632,20 @@ class StaffManagementController extends Controller implements HasMiddleware
         $this->pdfFill($content, 0.96, 0.97, 0.99, 0, 0, 595, 842);
         $this->pdfText($content, 'SYSCON', 50, 795, 18, 'F2');
         $this->pdfText($content, 'Staff Profile', 50, 770, 22, 'F2');
-        $this->pdfText($content, 'Generated on ' . now()->format('d-m-Y'), 430, 795, 10);
+        $this->pdfText($content, 'Generated on '.now()->format('d-m-Y'), 430, 795, 10);
         $this->pdfStatus($content, $record->is_active ? 'Active' : 'Inactive', 465, 765, $record->is_active);
 
         $this->pdfCard($content, 40, 600, 515, 140);
         $this->pdfFill($content, 0.90, 0.94, 1.00, 58, 645, 82, 72);
         $this->pdfText($content, 'PHOTO', 82, 678, 11, 'F2');
         $this->pdfText($content, $record->name ?: '-', 160, 708, 18, 'F2');
-        $this->pdfText($content, 'Staff Code: ' . ($record->code ?: '-'), 160, 686, 11);
-        $this->pdfText($content, 'Email: ' . ($record->email ?: '-'), 160, 668, 10);
-        $this->pdfText($content, 'Phone: ' . ($record->full_phone ?: '-'), 160, 650, 10);
-        $this->pdfText($content, 'Role: ' . ($record->roles->pluck('name')->implode(', ') ?: 'Staff'), 160, 632, 10);
-        $this->pdfText($content, 'Designation: ' . ($profile?->designation?->name ?: '-'), 340, 686, 10);
-        $this->pdfText($content, 'DOJ: ' . ($profile?->date_of_joining?->format('d-m-Y') ?: '-'), 340, 668, 10);
-        $this->pdfText($content, 'Category: ' . ($profile?->category_label ?: '-'), 340, 650, 10);
+        $this->pdfText($content, 'Staff Code: '.($record->code ?: '-'), 160, 686, 11);
+        $this->pdfText($content, 'Email: '.($record->email ?: '-'), 160, 668, 10);
+        $this->pdfText($content, 'Phone: '.($record->full_phone ?: '-'), 160, 650, 10);
+        $this->pdfText($content, 'Role: '.($record->roles->pluck('name')->implode(', ') ?: 'Staff'), 160, 632, 10);
+        $this->pdfText($content, 'Designation: '.($profile?->designation?->name ?: '-'), 340, 686, 10);
+        $this->pdfText($content, 'DOJ: '.($profile?->date_of_joining?->format('d-m-Y') ?: '-'), 340, 668, 10);
+        $this->pdfText($content, 'Category: '.($profile?->category_label ?: '-'), 340, 650, 10);
 
         $this->pdfSection($content, 'Personal Details', 40, 470, 250, [
             "Father's Name" => $profile?->father_name ?: '-',
@@ -666,7 +674,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             'IFSC Code' => $profile?->ifsc_code ?: '-',
         ]);
 
-        $money = fn($value) => filled($value) ? number_format((float) $value, 2) : '-';
+        $money = fn ($value) => filled($value) ? number_format((float) $value, 2) : '-';
         $this->pdfSection($content, 'Salary Structure', 40, 105, 515, [
             'Basic' => $money($profile?->basic),
             'VDA' => $money($profile?->vda),
@@ -701,7 +709,7 @@ class StaffManagementController extends Controller implements HasMiddleware
 
             $this->pdfCard($documentContent, 40, $y - 55, 515, 55);
             $this->pdfText($documentContent, $document->documentType?->name ?: 'Document', 60, $y - 22, 12, 'F2');
-            $this->pdfText($documentContent, 'Expiry: ' . ($document->expiry_date?->format('d-m-Y') ?: '-'), 60, $y - 40, 10);
+            $this->pdfText($documentContent, 'Expiry: '.($document->expiry_date?->format('d-m-Y') ?: '-'), 60, $y - 40, 10);
             $this->pdfStatus($documentContent, $document->is_verified ? 'Verified' : 'Not Verified', 430, $y - 32, $document->is_verified);
             $y -= 70;
         }
@@ -724,14 +732,14 @@ class StaffManagementController extends Controller implements HasMiddleware
         foreach ($contents as $index => $content) {
             $pageObject = 3 + ($index * 2);
             $contentObject = $pageObject + 1;
-            $pageObjectNumbers[] = $pageObject . ' 0 R';
-            $objects[$pageObject] = $pageObject . " 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 " . $fontObject . " 0 R /F2 " . $boldFontObject . " 0 R >> >> /Contents " . $contentObject . " 0 R >>\nendobj\n";
-            $objects[$contentObject] = $contentObject . " 0 obj\n<< /Length " . strlen($content) . " >>\nstream\n" . $content . "endstream\nendobj\n";
+            $pageObjectNumbers[] = $pageObject.' 0 R';
+            $objects[$pageObject] = $pageObject." 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 ".$fontObject.' 0 R /F2 '.$boldFontObject.' 0 R >> >> /Contents '.$contentObject." 0 R >>\nendobj\n";
+            $objects[$contentObject] = $contentObject." 0 obj\n<< /Length ".strlen($content)." >>\nstream\n".$content."endstream\nendobj\n";
         }
 
-        $objects[2] = "2 0 obj\n<< /Type /Pages /Kids [" . implode(' ', $pageObjectNumbers) . '] /Count ' . count($pageObjectNumbers) . " >>\nendobj\n";
-        $objects[$fontObject] = $fontObject . " 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
-        $objects[$boldFontObject] = $boldFontObject . " 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
+        $objects[2] = "2 0 obj\n<< /Type /Pages /Kids [".implode(' ', $pageObjectNumbers).'] /Count '.count($pageObjectNumbers)." >>\nendobj\n";
+        $objects[$fontObject] = $fontObject." 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n";
+        $objects[$boldFontObject] = $boldFontObject." 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n";
         ksort($objects);
 
         $pdf = "%PDF-1.4\n";
@@ -745,15 +753,15 @@ class StaffManagementController extends Controller implements HasMiddleware
         ksort($offsets);
         $xref = strlen($pdf);
         $maxObject = max(array_keys($offsets));
-        $pdf .= "xref\n0 " . ($maxObject + 1) . "\n";
+        $pdf .= "xref\n0 ".($maxObject + 1)."\n";
         $pdf .= "0000000000 65535 f \n";
 
         for ($i = 1; $i <= $maxObject; $i++) {
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i] ?? 0);
         }
 
-        $pdf .= "trailer\n<< /Size " . ($maxObject + 1) . " /Root 1 0 R >>\n";
-        $pdf .= "startxref\n" . $xref . "\n%%EOF";
+        $pdf .= "trailer\n<< /Size ".($maxObject + 1)." /Root 1 0 R >>\n";
+        $pdf .= "startxref\n".$xref."\n%%EOF";
 
         return $pdf;
     }
@@ -765,7 +773,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $lineY = $y + $height - 50;
 
         foreach ($items as $label => $value) {
-            $this->pdfText($content, $label . ':', $x + 14, $lineY, 9, 'F2');
+            $this->pdfText($content, $label.':', $x + 14, $lineY, 9, 'F2');
             $this->pdfText($content, (string) $value, $x + 150, $lineY, 9);
             $lineY -= 17;
         }
@@ -775,7 +783,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     {
         $this->pdfFill($content, 1, 1, 1, $x, $y, $width, $height);
         $content .= "0.84 0.86 0.90 RG\n";
-        $content .= $x . ' ' . $y . ' ' . $width . ' ' . $height . " re S\n";
+        $content .= $x.' '.$y.' '.$width.' '.$height." re S\n";
     }
 
     private function pdfFill(string &$content, float $r, float $g, float $b, int $x, int $y, int $width, int $height): void
@@ -786,7 +794,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     private function pdfText(string &$content, string $text, int $x, int $y, int $size = 10, string $font = 'F1'): void
     {
         $content .= "0.08 0.10 0.14 rg\n";
-        $content .= "BT\n/" . $font . ' ' . $size . " Tf\n" . $x . ' ' . $y . " Td\n(" . $this->escapePdfText(substr($text, 0, 78)) . ") Tj\nET\n";
+        $content .= "BT\n/".$font.' '.$size." Tf\n".$x.' '.$y." Td\n(".$this->escapePdfText(substr($text, 0, 78)).") Tj\nET\n";
     }
 
     private function pdfStatus(string &$content, string $text, int $x, int $y, bool $positive): void
@@ -799,7 +807,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             $content .= "0.78 0.16 0.16 rg\n";
         }
 
-        $content .= "BT\n/F2 10 Tf\n" . ($x + 14) . ' ' . ($y + 8) . " Td\n(" . $this->escapePdfText($text) . ") Tj\nET\n";
+        $content .= "BT\n/F2 10 Tf\n".($x + 14).' '.($y + 8)." Td\n(".$this->escapePdfText($text).") Tj\nET\n";
     }
 
     private function escapePdfText(string $text): string
