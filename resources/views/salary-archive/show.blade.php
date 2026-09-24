@@ -15,12 +15,13 @@
         </div>
 
         <div class="main-table-container">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+            <div class="bet-gap-cs mb-4">
                 <div>
                     <h5 class="title-w-sec mb-1">Approved Salary Processing</h5>
-                    <span class="status-green">Approved</span>
+                    <span class="status-green mt-2">Approved</span>
                 </div>
-                <a href="{{ route('salary-archives.index') }}" class="btn btn-secondary">Back</a>
+                <div class="btns-group-container"><a href="{{ route('salary-archives.index') }}" class="bk-btn">Back</a></div>
+                
             </div>
 
             @include('salary-archive.partials.details')

@@ -19,11 +19,9 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class TripReportExport implements FromCollection, WithHeadings, WithEvents, WithTitle, WithColumnFormatting
+class TripReportExport implements FromCollection, WithColumnFormatting, WithEvents, WithHeadings, WithTitle
 {
-    public function __construct(private $query)
-    {
-    }
+    public function __construct(private $query) {}
 
     public function collection(): Collection
     {
@@ -122,7 +120,7 @@ class TripReportExport implements FromCollection, WithHeadings, WithEvents, With
                 $sheet->getStyle($range)->getBorders()->getAllBorders()
                     ->setBorderStyle(Border::BORDER_THIN)
                     ->getColor()->setARGB('FF000000');
-                $sheet->getStyle('A1:' . $highestColumn . '1')->getFont()->setName('Calibri')->setBold(true);
+                $sheet->getStyle('A1:'.$highestColumn.'1')->getFont()->setName('Calibri')->setBold(true);
 
                 foreach ($this->headerStyleMap() as $column => $style) {
                     $cell = "{$column}1";
@@ -161,7 +159,7 @@ class TripReportExport implements FromCollection, WithHeadings, WithEvents, With
             $this->cell($dor?->bus_no ?: $vehicle?->vehicle_no),
             $this->cell($dor?->route_no ?: $route?->route_code),
             $this->cell($dor?->duty ?: $trip?->trip_title),
-            $this->cell($dor?->shift ?: Str::title((string) $entry->side)),
+            $this->cell($dor?->shift ? Str::title((string) $entry->side) : 'Morning'),
             $this->cell($dor?->driver_badge_no ?: $driver?->badge_number ?: $driver?->user?->code),
             $this->cell($dor?->schedule_start_time ?: $this->time($entry->departure_time)),
             $this->cell($dor?->schedule_end_time ?: $this->time($entry->arrival_time)),
@@ -170,17 +168,17 @@ class TripReportExport implements FromCollection, WithHeadings, WithEvents, With
             $this->cell($dor?->start_punc ?: $this->startDelay($entry->departure_time, $entry->actual_start_time)),
             $this->cell($dor?->route_completion_time ?: $this->time($entry->actual_reach_time ?: $entry->arrival_time)),
             $this->cell($dor?->schedule_km ?: $trip?->schedule_km ?: $route?->distance),
-            $this->cell($dor?->route_km_loss),
-            $this->cell($dor?->actual_route_km),
+            $this->cell($dor?->route_km_loss ? $dor->route_km_loss : $trip?->schedule_km - $dor?->odometer_diff_km),
+            $this->cell($dor?->actual_route_km ? $entry->actual_route_km : $dor?->odometer_diff_km),
             $this->cell($dor?->schedule_trip ?: 1),
-            $this->cell($dor?->actual_trip),
-            $this->cell($dor?->miss_trip),
+            $this->cell($dor?->actual_trip ?: $entry->total_trips ?: 1),
+            $this->cell($dor?->miss_trip ?? max(0, ($dor?->schedule_trip ?: 1) - ($dor?->actual_trip ?: $entry->total_trips ?: 1))),
             $this->cell($dor?->odometer_start_reading),
             $this->cell($dor?->odometer_end_reading),
             $this->cell($dor?->odometer_diff_km),
             $this->cell($dor?->difference),
-            $this->cell($dor?->account_responsible),
-            $this->cell($dor?->reason_for_kilometer_loss),
+            $this->cell($dor?->account_responsible ?? 'N/A'),
+            $this->cell($dor?->reason_for_kilometer_loss ?? 'N/A'),
             $this->cell($dor?->after_sales_reason),
             $this->cell($dor?->penalty_infraction),
             $this->cell($dor?->remarks ?: $entry->notes),
@@ -262,8 +260,8 @@ class TripReportExport implements FromCollection, WithHeadings, WithEvents, With
         }
 
         try {
-            $start = Carbon::createFromFormat('H:i:s', strlen($startTime) === 5 ? $startTime . ':00' : $startTime);
-            $actual = Carbon::createFromFormat('H:i:s', strlen($actualStartTime) === 5 ? $actualStartTime . ':00' : $actualStartTime);
+            $start = Carbon::createFromFormat('H:i:s', strlen($startTime) === 5 ? $startTime.':00' : $startTime);
+            $actual = Carbon::createFromFormat('H:i:s', strlen($actualStartTime) === 5 ? $actualStartTime.':00' : $actualStartTime);
         } catch (\Throwable) {
             return '';
         }

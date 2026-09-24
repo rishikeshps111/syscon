@@ -11,9 +11,9 @@
         'Approved At' => $processing->approved_at?->format('d-m-Y h:i A') ?? '-',
     ] as $label => $value)
         <div class="col-lg-3 col-md-6 mb-3">
-            <div class="border rounded p-3 h-100">
-                <small class="text-muted d-block mb-1">{{ $label }}</small>
-                <strong>{{ $value }}</strong>
+            <div class="widget-salary-archive">
+                <p >{{ $label }}</p>
+                <h6>{{ $value }}</h6>
             </div>
         </div>
     @endforeach
@@ -24,7 +24,7 @@
 @endif
 
 <div class="table-responsive">
-    <table class="table table-bordered align-middle">
+    <table class="table table-bordered align-middle tble-cstm">
         <thead>
             <tr>
                 <th>Employee</th>

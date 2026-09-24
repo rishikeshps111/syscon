@@ -54,7 +54,7 @@
     display: block;
 
     width: 250px;
-    height: 250px;
+    height: 170px;
 
     max-width: 100%;
 

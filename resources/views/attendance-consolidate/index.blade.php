@@ -16,7 +16,7 @@
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
             <div class="row mb-3">
-                <div class="col-md-3"><label for="yearFilter">Year</label><select id="yearFilter"
+                <div class="col-xl-2"><label for="yearFilter">Year</label><select id="yearFilter"
                         class="form-select consolidate-filter">
                         <option value="">All years</option>
                         @foreach ($years as $year)
@@ -24,7 +24,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3"><label for="monthFilter">Month</label><select id="monthFilter"
+                <div class="col-xl-2"><label for="monthFilter">Month</label><select id="monthFilter"
                         class="form-select consolidate-filter">
                         <option value="">All months</option>
                         @foreach ($months as $value => $label)
@@ -32,7 +32,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3"><label for="depotFilter">Depot</label><select id="depotFilter"
+                <div class="col-xl-3"><label for="depotFilter">Depot</label><select id="depotFilter"
                         class="form-select consolidate-filter">
                         <option value="">All depots</option>
                         @foreach ($depots as $depot)
@@ -40,9 +40,10 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3 d-flex gap-2 align-items-end">
-                    <button id="resetFilters" class="fil-btn" type="button">Reset</button>
-                    <div class="btns-group-container">
+                <div class="col-xl-5 d-flex gap-2 align-items-end">
+                   
+                    <div class="btns-group-container" style="    justify-content: flex-start !important; width: 100%;">
+                         <button id="resetFilters" class="fil-btn" type="button">Reset</button>
                         @can('attendance-management.create')
                             <a class="imp-btn" href="{{ route('attendance-consolidate.import.form') }}">Import CSV /
                                 Excel</a>

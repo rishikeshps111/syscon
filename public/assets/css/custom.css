@@ -252,7 +252,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
+    padding: 10px 0;
     padding-right: 20px;
 
 }
@@ -717,14 +717,40 @@
 .main-table-container {
     background-color: #ffffff;
     padding: 15px;
-    border-radius: 10px;
+    border-radius: 20px;
     box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
-    /* box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px; */
-    /* background: rgba(255, 255, 255, 0.771); */
+     box-shadow: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px; 
+     background: rgba(255, 255, 255, 0.771); 
     backdrop-filter: blur(7px);
     -webkit-backdrop-filter: blur(7px);
 }
-
+.main-table-container {
+       position: relative !important;
+    width: 100% !important;
+    padding: 24px !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 251, 255, 0.98) 100%) !important;
+    border: 1px solid #e7edf5 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 8px 25px rgba(1, 42, 107, 0.06), 0 1px 4px rgba(0, 0, 0, 0.10) !important;
+    backdrop-filter: blur(7px) !important;
+    -webkit-backdrop-filter: blur(7px) !important;
+    overflow: hidden !important;
+    isolation: isolate !important;
+    transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease !important;
+}
+.main-table-container::after {
+    content: "" !important;
+    position: absolute !important;
+    width: 190px !important;
+    height: 190px !important;
+    top: -105px !important;
+    right: -65px !important;
+    border-radius: 50% !important;
+    background: rgba(1, 42, 107, 0.035) !important;
+    border: 1px solid rgba(1, 42, 107, 0.045) !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+}
 .main-table-container-top-btns-box {
     display: flex;
     justify-content: flex-end;
@@ -8887,7 +8913,7 @@ button.tgle-cs-btns i{
     text-align: center;
 }
 .desc-program-dt{
-    background-color: #f7f7f7;
+    background-color: #eef4f7;
     border: 1px solid #ccc;
     border-radius: 10px;
     padding: 10px;
@@ -9593,7 +9619,7 @@ ul.p-dt-ul{
 /* SYSCON */
 
 .main-index-box{
-    width:50%;
+    width:100%;
 }
 .login-screen-top-img {
     min-width: 50%;
@@ -10254,7 +10280,7 @@ td.nomin{
 }
 
 .oem-dt-box{
-    background-color: #f7f7f7;
+    background-color: #eef4f7;
     padding: 12px;
     border-radius: 10px;
     margin: 10px 0;
@@ -11132,7 +11158,7 @@ td.nomin{
 /* Subtitle */
 
 .main-index-box p {
-    max-width: 390px;
+    /*max-width: 390px;*/
     margin: 0 auto 30px;
 
     color: #71807e;
@@ -12338,7 +12364,7 @@ div.dataTables_wrapper div.dataTables_filter input,div.dataTables_wrapper div.da
 
 .oem-repeat-card{
         padding: 14px;
-    background-color: #f7f7f7;
+    background-color: #eef4f7;
 }
 
 
@@ -12862,19 +12888,19 @@ div.dataTables_wrapper div.dataTables_filter input,div.dataTables_wrapper div.da
     margin-bottom: 15px;
 }
 
-.shift-box-xs .title-w-sec::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+/*.shift-box-xs .title-w-sec::before {*/
+/*    content: "";*/
+/*    position: absolute;*/
+/*    left: 0;*/
+/*    top: 50%;*/
+/*    transform: translateY(-50%);*/
 
-    width: 4px;
-    height: 18px;
+/*    width: 4px;*/
+/*    height: 18px;*/
 
-    background: #16a34a;
-    border-radius: 4px;
-}
+/*    background: #16a34a;*/
+/*    border-radius: 4px;*/
+/*}*/
 
 .role-accordion {
     margin-top: 10px;
@@ -15392,3 +15418,2705 @@ div.dataTables_wrapper div.dataTables_paginate ul.pagination{
 .headertogle form{
     margin:0 !important;
 }
+
+
+
+.digital-time-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 6px 12px 6px 6px;
+
+    background: #eef4f7;
+    border-radius: 10px;
+
+    font-family: "Poppins", sans-serif;
+}
+
+/* Clock icon box */
+.clock-icon {
+   width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2563eb21;
+    border-radius: 8px;
+    color: #102d6c;
+    font-size: 15px;
+}
+
+/* Text area */
+.clock-content {
+    display: flex;
+    justify-content: center;
+    gap:8px
+}
+
+/* Date */
+.display-date {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    margin:0;
+    color: #8a8a8a;
+}
+
+#day {
+    color: #656464;
+}
+
+#daynum {
+    color: #656464;
+}
+
+#month,
+#year {
+    color: #656464;
+}
+
+/* Time */
+.display-time {
+    margin-top: 0;
+
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding:0;
+    color: #000;
+    letter-spacing: 0.5px;
+}
+
+
+
+
+
+
+/* -----------------------------------------
+   Common button styling
+   ----------------------------------------- */
+
+.header-section-right .chat-nav-bell,
+.header-section-right .headertogle {
+    width: 44px !important;
+    height: 40px !important;
+    min-width: 44px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 10px !important;
+
+    position: relative !important;
+
+    text-decoration: none !important;
+
+    border: 1px solid transparent !important;
+
+    transition:
+        background 0.25s ease,
+        color 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease !important;
+}
+
+
+/* =========================================
+   CHAT BUTTON
+   ========================================= */
+
+.header-section-right .chat-nav-bell {
+       color: #df7f0e  !important;
+        background: linear-gradient(135deg, #df7f0e47 0%, #ffc10738 100%) !important;
+}
+
+.header-section-right .chat-nav-bell:hover {
+    color: #ffffff !important;
+
+    background:#df7f0e !important;
+
+   
+
+    transform: translateY(-2px) !important;
+}
+.header-section-right .chat-nav-bell i{
+     color: #df7f0e  !important;
+}
+.header-section-right .chat-nav-bell:hover i{
+     color: #fff  !important;
+}
+
+/* =========================================
+   SIDEBAR TOGGLE
+   ========================================= */
+
+.header-section-right .headertogle:first-of-type {
+   color: #18a316 !important;
+    background: linear-gradient(135deg, #18a3161f 0%, #18a3162e 100%) !important;
+    /* border-color: #cbd5e1 !important; */
+
+    cursor: pointer !important;
+}
+
+.header-section-right .headertogle:first-of-type:hover {
+    color: #ffffff !important;
+
+    background:#18a316 !important;
+
+    border-color: #475569 !important;
+
+    transform: translateY(-2px) !important;
+}
+
+
+/* =========================================
+   LOGOUT BUTTON
+   ========================================= */
+
+.header-section-right .headertogle:last-of-type {
+    color: #dc2626 !important;
+
+    background: linear-gradient(
+        135deg,
+        #fff5f5 0%,
+        #fee2e2 100%
+    ) !important;
+
+   
+}
+
+.header-section-right .headertogle:last-of-type:hover {
+    color: #ffffff !important;
+
+    background: linear-gradient(
+        135deg,
+        #ef4444 0%,
+        #dc2626 100%
+    ) !important;
+
+  
+
+    transform: translateY(-2px) !important;
+}
+
+
+/* =========================================
+   ICONS
+   ========================================= */
+
+.header-section-right .chat-nav-bell i,
+.header-section-right .headertogle i {
+    font-size: 17px !important;
+    line-height: 1 !important;
+    transition: transform 0.25s ease !important;
+}
+
+.header-section-right .chat-nav-bell:hover i,
+.header-section-right .headertogle:hover i {
+    transform: scale(1.08) !important;
+}
+
+
+/* =========================================
+   LOGOUT FORM
+   ========================================= */
+
+.header-section-right .headertogle form {
+    width: 100% !important;
+    height: 100% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.header-section-right .headertogle button {
+    width: 100% !important;
+    height: 100% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: none !important;
+    outline: none !important;
+
+    background: transparent !important;
+    color: inherit !important;
+
+    cursor: pointer !important;
+
+    border-radius: 10px !important;
+}
+
+
+/* =========================================
+   CHAT UNREAD BADGE
+   ========================================= */
+
+.header-section-right .chat-nav-badge {
+    position: absolute !important;
+
+    top: -7px !important;
+    right: -7px !important;
+
+    min-width: 19px !important;
+    height: 19px !important;
+
+    padding: 0 5px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 6px !important;
+
+    background: linear-gradient(
+        135deg,
+        #ef4444,
+        #b91c1c
+    ) !important;
+
+    color: #ffffff !important;
+
+    border: 2px solid #ffffff !important;
+
+    font-size: 10px !important;
+    font-weight: 700 !important;
+
+    line-height: 1 !important;
+
+    box-shadow:
+        0 3px 8px rgba(185, 28, 28, 0.30) !important;
+}
+
+.header-section-right .chat-nav-badge.d-none {
+    display: none !important;
+}
+
+
+/* =========================================
+   ACTIVE / CLICK EFFECT
+   ========================================= */
+
+.header-section-right .chat-nav-bell:active,
+.header-section-right .headertogle:active {
+    transform: translateY(0) scale(0.97) !important;
+}
+
+
+
+
+
+
+
+
+.sidebar-blur {
+    position: relative;
+    isolation: isolate;
+
+    height: 100%;
+
+    background:
+        radial-gradient(
+            circle at 90% 5%,
+            rgba(59, 130, 246, 0.20) 0,
+            transparent 28%
+        ),
+        radial-gradient(
+            circle at 0% 80%,
+            rgba(34, 211, 238, 0.12) 0,
+            transparent 25%
+        ),
+        radial-gradient(
+            circle at 85% 60%,
+            rgba(139, 92, 246, 0.08) 0,
+            transparent 22%
+        ),
+        linear-gradient(
+            145deg,
+            #12386d 0%,
+            #0f3162 45%,
+            #09264d 100%
+        );
+
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+
+/* =========================================
+   LARGE DECORATIVE SHAPE
+   ========================================= */
+
+.sidebar-blur::before {
+    content: "";
+    position: absolute;
+
+    width: 260px;
+    height: 260px;
+
+    top: -110px;
+    right: -100px;
+
+    border-radius: 42% 58% 65% 35%;
+
+    background: linear-gradient(
+        135deg,
+        rgba(96, 165, 250, 0.18),
+        rgba(37, 99, 235, 0.03)
+    );
+
+    filter: blur(8px);
+
+    transform: rotate(25deg);
+
+    pointer-events: none;
+    z-index: -1;
+}
+
+
+/* =========================================
+   BOTTOM DECORATIVE SHAPE
+   ========================================= */
+
+.sidebar-blur::after {
+    content: "";
+    position: absolute;
+
+    width: 220px;
+    height: 220px;
+
+    bottom: -90px;
+    left: -100px;
+
+    border-radius: 65% 35% 40% 60%;
+
+    background: linear-gradient(
+        135deg,
+        rgba(34, 211, 238, 0.13),
+        rgba(59, 130, 246, 0.02)
+    );
+
+    filter: blur(10px);
+
+    transform: rotate(-20deg);
+
+    pointer-events: none;
+    z-index: -1;
+}
+
+
+
+.dataTables_wrapper .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+
+    margin: 16px 0 4px;
+    padding: 0;
+
+    list-style: none;
+}
+
+
+/* =========================================
+   PAGINATION ITEM
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-item {
+    margin: 0;
+}
+
+
+/* =========================================
+   PAGINATION LINK
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-link {
+    min-width: 38px;
+    height: 36px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 12px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #475569;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    box-shadow:
+        0 2px 6px rgba(15, 49, 98, 0.06);
+
+    transition:
+        all 0.2s ease;
+
+    cursor: pointer;
+}
+
+
+/* =========================================
+   HOVER
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-link:hover {
+    color: #2563eb;
+
+    background: #eff6ff;
+
+    border-color: #bfdbfe;
+
+    box-shadow:
+        0 4px 10px rgba(37, 99, 235, 0.10);
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================
+   ACTIVE PAGE
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-item.active .page-link {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb 0%,
+            #1d4ed8 100%
+        );
+
+    border-color: #2563eb;
+
+    box-shadow:
+        0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+
+/* =========================================
+   ACTIVE HOVER
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-item.active .page-link:hover {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #1d4ed8 0%,
+            #1e40af 100%
+        );
+
+    border-color: #1d4ed8;
+}
+
+
+/* =========================================
+   DISABLED PREVIOUS / NEXT
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-item.disabled .page-link {
+    color: #94a3b8;
+
+    background: #f8fafc;
+
+    border-color: #e8edf3;
+
+    box-shadow: none;
+
+    cursor: not-allowed;
+
+    opacity: 0.75;
+}
+
+
+/* =========================================
+   PREVIOUS / NEXT
+   ========================================= */
+
+.dataTables_wrapper .pagination .previous .page-link,
+.dataTables_wrapper .pagination .next .page-link {
+    min-width: 68px;
+
+    font-size: 12px;
+}
+
+
+/* =========================================
+   CLICK EFFECT
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-link:active {
+    transform: scale(0.96);
+}
+
+
+/* =========================================
+   REMOVE BOOTSTRAP DEFAULT BORDERS
+   ========================================= */
+
+.dataTables_wrapper .pagination .page-item:first-child .page-link,
+.dataTables_wrapper .pagination .page-item:last-child .page-link {
+    border-radius: 8px;
+}
+
+
+
+.role-accordions {
+    width: 100%;
+}
+
+
+/* =========================================
+   MAIN ACCORDION ITEM
+   ========================================= */
+
+.role-accordions .accordion-item {
+    position: relative;
+
+    margin-bottom: 12px !important;
+
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+
+    background: #ffffff;
+
+    overflow: hidden;
+
+    
+
+    transition:
+        box-shadow 0.25s ease,
+        border-color 0.25s ease,
+        transform 0.25s ease;
+}
+
+
+
+
+/* =========================================
+   ACCORDION HEADER
+   ========================================= */
+
+.role-accordions .accordion-header {
+    margin: 0;
+}
+
+
+/* =========================================
+   MAIN ACCORDION BUTTON
+   ========================================= */
+
+.role-accordions .accordion-button {
+    position: relative;
+
+    min-height: 58px;
+
+    padding: 15px 50px 15px 20px;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #f8fbff 0%,
+            #edf4fb 100%
+        );
+
+    color: #1e3a5f;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    letter-spacing: 0.1px;
+
+    box-shadow: none !important;
+
+    transition:
+        background 0.25s ease,
+        color 0.25s ease;
+}
+
+
+/* Small blue accent */
+.role-accordions .accordion-button::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 16px;
+
+    width: 4px;
+    height: 26px;
+
+    border-radius: 0 5px 5px 0;
+
+    background: #2563eb;
+
+    opacity: 0.75;
+
+    transition:
+        height 0.25s ease,
+        opacity 0.25s ease;
+}
+
+
+/* Hover */
+.role-accordions .accordion-button:hover {
+    background:
+        linear-gradient(
+            135deg,
+            #f1f7ff 0%,
+            #e7f0fb 100%
+        );
+
+    color: #174a88;
+}
+
+
+/* =========================================
+   OPEN ACCORDION
+   ========================================= */
+
+.role-accordions .accordion-button:not(.collapsed) {
+    color: #fff;
+
+    background: linear-gradient(135deg, #082647 0%, #1c3e64 100%);
+
+    box-shadow: none !important;
+}
+
+
+.role-accordions .accordion-button:not(.collapsed)::before {
+    height: 32px;
+    opacity: 1;
+}
+
+
+/* Remove Bootstrap focus */
+.role-accordions .accordion-button:focus {
+    border-color: transparent !important;
+
+    box-shadow: none !important;
+}
+
+
+/* =========================================
+   ACCORDION ARROW
+   ========================================= */
+
+.role-accordions .accordion-button::after {
+    width: 12px;
+    height: 12px;
+
+    margin-right: 5px;
+
+    background-size: 12px;
+
+    opacity: 0.55;
+
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease;
+}
+
+
+.role-accordions .accordion-button:not(.collapsed)::after {
+    opacity: 0.9;
+}
+
+
+/* =========================================
+   ACCORDION BODY
+   ========================================= */
+
+.role-accordions .accordion-collapse {
+    border-top: 1px solid #e7edf4;
+}
+
+
+.role-accordions .accordion-body {
+    padding: 18px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #ffffff 0%,
+            #fbfdff 100%
+        );
+}
+
+
+/* =========================================
+   PERMISSION GROUP
+   ========================================= */
+
+.role-accordions .permission-group {
+    position: relative;
+
+    margin-bottom: 14px !important;
+
+    padding: 15px !important;
+
+    border: 1px solid #e3eaf2 !important;
+
+    border-radius: 10px !important;
+
+    background: #eef4f7;
+
+  
+
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease;
+}
+
+
+.role-accordions .permission-group:hover {
+    border-color: #c9d9eb !important;
+
+    background: #fbfdff;
+
+    box-shadow:
+        0 5px 15px rgba(15, 49, 98, 0.07);
+}
+
+
+/* =========================================
+   GROUP TITLE
+   ========================================= */
+
+.role-accordions .permission-group strong {
+    display: inline-flex;
+    align-items: center;
+
+    color: #263b53;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    letter-spacing: 0.1px;
+}
+
+
+/* Small indicator before group title */
+.role-accordions .permission-group strong::before {
+    content: "";
+
+    width: 7px;
+    height: 7px;
+
+    margin-right: 8px;
+
+    border-radius: 3px;
+
+    background: #3b82f6;
+
+    box-shadow:
+        0 0 0 3px rgba(59, 130, 246, 0.10);
+}
+
+
+/* =========================================
+   SELECT ALL
+   ========================================= */
+
+.role-accordions .permission-group > div:first-child label {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 6px 10px;
+
+    border: 1px solid #dbe7f4;
+
+    border-radius: 7px;
+
+    background: #f5f9fe;
+
+    color: #47617c;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        all 0.2s ease;
+}
+
+
+.role-accordions .permission-group > div:first-child label:hover {
+    color: #2563eb;
+
+    background: #eff6ff;
+
+    border-color: #bfdbfe;
+}
+
+
+/* =========================================
+   CHECKBOXES
+   ========================================= */
+
+.role-accordions input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+
+    margin: 0 7px 0 0;
+
+    vertical-align: middle;
+
+    accent-color: #2563eb;
+
+    cursor: pointer;
+}
+
+
+/* =========================================
+   PERMISSION LABEL
+   ========================================= */
+
+.role-accordions .permission-group .row label {
+    display: flex;
+    align-items: center;
+
+    min-height: 36px;
+
+    padding: 7px 10px;
+
+    border: 1px solid transparent;
+
+    border-radius: 7px;
+
+    color: #526273;
+
+    font-size: 12.5px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.role-accordions .permission-group .row label:hover {
+    color: #1d4ed8;
+
+    background: #f4f8fd;
+
+    border-color: #e1ebf6;
+}
+
+
+/* =========================================
+   CHECKED PERMISSION
+   ========================================= */
+
+.role-accordions .permission-group .row label:has(
+    input[type="checkbox"]:checked
+) {
+    color: #1d4ed8;
+
+    background: #eff6ff;
+
+    border-color: #d6e7fb;
+
+    font-weight: 600;
+}
+
+
+/* =========================================
+   SELECT ALL CHECKED
+   ========================================= */
+
+.role-accordions .permission-group > div:first-child label:has(
+    input[type="checkbox"]:checked
+) {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+
+    border-color: #2563eb;
+
+    box-shadow:
+        0 3px 8px rgba(37, 99, 235, 0.18);
+}
+
+
+/* =========================================
+   PERMISSION GRID
+   ========================================= */
+
+.role-accordions .permission-group .row {
+    margin-top: 4px;
+}
+
+
+/* =========================================
+   SMOOTH COLLAPSE
+   ========================================= */
+
+.role-accordions .accordion-collapse {
+    transition:
+        height 0.3s ease;
+}
+
+
+/* =========================================
+   LAST GROUP
+   ========================================= */
+
+.role-accordions .permission-group:last-child {
+    margin-bottom: 0 !important;
+}
+.gap-between{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+}
+.bet-gap-cs{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+}
+
+@media screen and (max-width:768px){
+    .page-title nav{
+        display:none;
+    }
+    .gap-between{
+               flex-direction: column-reverse;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+    .bet-gap-cs{
+               flex-direction: column-reverse;
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+}
+.fil-btn-unset:before{
+    content:unset !important;
+}
+
+
+.widget-salary-archive {
+    position: relative;
+
+    height: 100%;
+
+    padding: 17px 18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffffff 0%,
+            #f8fbff 100%
+        );
+
+    border: 1px solid #e3eaf2;
+
+    border-radius: 11px;
+
+  
+
+    overflow: hidden;
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+}
+
+
+/* =========================================
+   DECORATIVE BACKGROUND
+   ========================================= */
+
+.widget-salary-archive::after {
+    content: "";
+
+    position: absolute;
+
+    width: 90px;
+    height: 90px;
+
+    right: -35px;
+    bottom: -45px;
+
+    border-radius: 50%;
+
+    background: rgba(37, 99, 235, 0.045);
+
+    pointer-events: none;
+}
+
+
+
+/* =========================================
+   LABEL
+   ========================================= */
+
+.widget-salary-archive p {
+    position: relative;
+    z-index: 1;
+
+    margin: 0 0 7px;
+
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.65px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================
+   VALUE
+   ========================================= */
+
+.widget-salary-archive h6 {
+    position: relative;
+    z-index: 1;
+
+    margin: 0;
+
+    color: #1e3a5f;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    line-height: 1.5;
+
+    word-break: break-word;
+}
+
+
+
+
+
+.welcome-content-cs {
+    width: min(920px, 92%);
+    margin: 0 auto;
+
+    text-align: center;
+}
+
+
+/* =========================================
+   LOGO
+   ========================================= */
+
+.logo-wrap-cs {
+    margin-bottom: 22px;
+}
+
+.logo-wrap-cs img {
+    max-width: 190px;
+    height: auto;
+
+    /*filter:*/
+    /*    drop-shadow(0 8px 18px rgba(15, 49, 98, 0.12));*/
+    border:1px solid #ccc;
+    border-radius:10px;
+
+    transition: transform 0.3s ease;
+}
+
+.logo-wrap-cs img:hover {
+    transform: translateY(-3px);
+}
+
+
+/* =========================================
+   WELCOME TITLE
+   ========================================= */
+
+.welcome-title-cs {
+    margin-bottom: 30px;
+}
+
+.welcome-title-cs span {
+    display: inline-block;
+
+    margin-bottom: 7px;
+
+    color: #2563eb;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 1.8px;
+
+    text-transform: uppercase;
+}
+
+.welcome-title-cs h1 {
+    margin: 0 0 7px;
+
+    color: #172b4d;
+
+    font-size: 28px;
+    font-weight: 700;
+
+    letter-spacing: -0.5px;
+}
+
+.welcome-title-cs p {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+}
+
+
+/* =========================================
+   ACCESS CARDS WRAPPER
+   ========================================= */
+
+.main-index-box-btns-cs {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 20px;
+
+    width: 100%;
+}
+
+
+/* =========================================
+   COMMON ACCESS CARD
+   ========================================= */
+
+.main-index-box-btns-cs .login-btn {
+    position: relative;
+
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+
+    padding: 28px 26px;
+
+    overflow: hidden;
+
+    border-radius: 18px;
+
+    text-decoration: none;
+
+    text-align: left;
+
+    border: 1px solid transparent;
+
+    box-shadow:
+        0 10px 30px rgba(15, 49, 98, 0.10);
+
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease,
+        border-color 0.3s ease;
+}
+
+
+/* =========================================
+   ADMIN CARD
+   ========================================= */
+
+.main-index-box-btns-cs .admin-login-btn {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #174a88 0%,
+            #0f3162 55%,
+            #09264d 100%
+        );
+
+    border-color: rgba(96, 165, 250, 0.25);
+
+    box-shadow:
+        0 12px 30px rgba(15, 49, 98, 0.22);
+}
+
+
+/* =========================================
+   STAFF CARD
+   ========================================= */
+
+.main-index-box-btns-cs .staff-btn {
+    color: #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #087f8c 0%,
+            #056b76 55%,
+            #034f59 100%
+        );
+
+    border-color: rgba(45, 212, 191, 0.25);
+
+    box-shadow:
+        0 12px 30px rgba(5, 107, 118, 0.20);
+}
+
+
+/* =========================================
+   CARD HOVER
+   ========================================= */
+
+.main-index-box-btns-cs .login-btn:hover {
+    color: #ffffff;
+
+    transform: translateY(-5px);
+
+    text-decoration: none;
+}
+
+.main-index-box-btns-cs .admin-login-btn:hover {
+    box-shadow:
+        0 18px 40px rgba(15, 49, 98, 0.30);
+}
+
+.main-index-box-btns-cs .staff-btn:hover {
+    box-shadow:
+        0 18px 40px rgba(5, 107, 118, 0.28);
+}
+
+
+/* =========================================
+   ICON BOX
+   ========================================= */
+
+.main-index-box-btns-cs .btn-icon {
+    position: relative;
+    z-index: 2;
+
+    width: 62px;
+    height: 62px;
+
+    min-width: 62px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-right: 18px;
+
+    border-radius: 15px;
+
+    background: rgba(255, 255, 255, 0.13);
+
+    border: 1px solid rgba(255, 255, 255, 0.15);
+
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.12),
+        0 8px 20px rgba(0, 0, 0, 0.10);
+
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+
+    transition:
+        transform 0.3s ease,
+        background 0.3s ease;
+}
+
+.main-index-box-btns-cs .btn-icon i {
+    font-size: 25px;
+    color: #ffffff;
+}
+
+.main-index-box-btns-cs .login-btn:hover .btn-icon {
+    transform: scale(1.08) rotate(-3deg);
+
+    background: rgba(255, 255, 255, 0.20);
+}
+
+
+/* =========================================
+   CONTENT
+   ========================================= */
+
+.main-index-box-btns-cs .login-content {
+    position: relative;
+    z-index: 2;
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1;
+}
+
+.main-index-box-btns-cs .login-content small {
+    margin-bottom: 5px;
+
+    color: rgba(255, 255, 255, 0.68);
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 1.2px;
+
+    text-transform: uppercase;
+}
+
+.main-index-box-btns-cs .login-content strong {
+    color: #ffffff;
+
+    font-size: 17px;
+    font-weight: 700;
+
+    line-height: 1.3;
+}
+
+.main-index-box-btns-cs .login-content em {
+    margin-top: 5px;
+
+    color: rgba(255, 255, 255, 0.68);
+
+    font-size: 11px;
+
+    font-style: normal;
+}
+
+
+/* =========================================
+   ARROW
+   ========================================= */
+
+.main-index-box-btns-cs .arrow {
+    position: relative;
+    z-index: 2;
+
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-left: 12px;
+
+    border-radius: 10px;
+
+    color: #ffffff;
+
+    background: rgba(255, 255, 255, 0.10);
+
+    border: 1px solid rgba(255, 255, 255, 0.10);
+
+    transition:
+        transform 0.3s ease,
+        background 0.3s ease;
+}
+
+.main-index-box-btns-cs .login-btn:hover .arrow {
+    transform: translateX(4px);
+
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.main-index-box-btns-cs .arrow i {
+    font-size: 13px;
+}
+
+
+/* =========================================
+   DECORATIVE SHAPES
+   ========================================= */
+
+.main-index-box-btns-cs .access-shape {
+    position: absolute;
+
+    pointer-events: none;
+
+    border-radius: 50%;
+}
+
+
+/* Large shape */
+.main-index-box-btns-cs .shape-one {
+    width: 210px;
+    height: 210px;
+
+    right: -90px;
+    bottom: -125px;
+
+    background: rgba(255, 255, 255, 0.07);
+
+    filter: blur(1px);
+
+    transition:
+        transform 0.5s ease;
+}
+
+
+/* Small shape */
+.main-index-box-btns-cs .shape-two {
+    width: 90px;
+    height: 90px;
+
+    top: -35px;
+    right: 85px;
+
+    background: rgba(255, 255, 255, 0.06);
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    transition:
+        transform 0.5s ease;
+}
+
+
+/* Animate shapes on hover */
+.main-index-box-btns-cs .login-btn:hover .shape-one {
+    transform: scale(1.15) rotate(15deg);
+}
+
+.main-index-box-btns-cs .login-btn:hover .shape-two {
+    transform: translate(-10px, 8px) scale(1.1);
+}
+
+
+/* =========================================
+   ADMIN EXTRA GLOW
+   ========================================= */
+
+.main-index-box-btns-cs .admin-login-btn::after {
+    content: "";
+
+    position: absolute;
+
+    width: 120px;
+    height: 120px;
+
+    top: -70px;
+    left: -50px;
+
+    border-radius: 50%;
+
+    background: rgba(96, 165, 250, 0.13);
+
+    filter: blur(15px);
+}
+
+
+/* =========================================
+   STAFF EXTRA GLOW
+   ========================================= */
+
+.main-index-box-btns-cs .staff-btn::after {
+    content: "";
+
+    position: absolute;
+
+    width: 120px;
+    height: 120px;
+
+    top: -70px;
+    left: -50px;
+
+    border-radius: 50%;
+
+    background: rgba(45, 212, 191, 0.13);
+
+    filter: blur(15px);
+}
+
+
+
+
+
+
+.syscon-entry-shell {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 55px 20px;
+    overflow: hidden;
+    /*background:*/
+    /*    radial-gradient(circle at 10% 15%, rgba(37, 99, 235, 0.10), transparent 28%),*/
+    /*    radial-gradient(circle at 90% 85%, rgba(14, 165, 233, 0.10), transparent 30%),*/
+    /*    linear-gradient(135deg, #f7faff 0%, #eef5fc 48%, #f8fbff 100%);*/
+}
+
+
+/* Background Grid */
+
+.syscon-entry-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(37, 99, 235, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, 0.035) 1px, transparent 1px);
+    background-size: 45px 45px;
+}
+
+
+/* Decorative Orbs */
+
+.syscon-entry-orb {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(2px);
+}
+
+.syscon-entry-orb-one {
+    width: 320px;
+    height: 320px;
+    top: -170px;
+    left: -120px;
+    background: rgba(37, 99, 235, 0.10);
+}
+
+.syscon-entry-orb-two {
+    width: 390px;
+    height: 390px;
+    right: -180px;
+    bottom: -210px;
+    background: rgba(8, 145, 178, 0.10);
+}
+
+
+/* Main Container */
+
+.syscon-entry-container {
+    position: relative;
+    z-index: 2;
+    width: min(1050px, 100%);
+}
+
+
+/* =========================================
+   HEADER
+========================================= */
+
+.syscon-entry-heading {
+    position: relative;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+
+.syscon-entry-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    padding: 7px 13px;
+    border: 1px solid rgba(37, 99, 235, 0.13);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.75);
+    color: #2563eb;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    box-shadow: 0 5px 18px rgba(15, 49, 98, 0.05);
+}
+
+
+.syscon-entry-eyebrow i {
+    font-size: 6px;
+    color: #22c55e;
+}
+
+
+.syscon-entry-heading h1 {
+    margin: 0;
+    color: #142d50;
+    font-size: clamp(30px, 4vw, 42px);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -1.3px;
+}
+
+
+.syscon-entry-heading h1 strong {
+    color: #1755a5;
+    font-weight: 700;
+}
+
+
+.syscon-entry-heading p {
+    margin: 10px 0 0;
+    color: #6b7d94;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+
+/* =========================================
+   DIGITAL CLOCK
+========================================= */
+
+.syscon-entry-clock-box {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 13px;
+    min-width: 150px;
+    text-align: left;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.78);
+    /*box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;*/
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    min-width:185px;
+}
+
+
+.syscon-entry-clock-icon {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 9px;
+    color: #2563eb;
+    background: #edf4ff;
+}
+
+
+.syscon-entry-clock-icon i {
+    font-size: 15px;
+}
+
+
+.syscon-entry-clock-box div {
+    display: flex;
+    flex-direction: column;
+}
+
+
+.syscon-entry-clock-box strong {
+    color: #17375f;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+
+.syscon-entry-clock-box small {
+    margin-top: 2px;
+    color: #8291a5;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+
+/* =========================================
+   MAIN CARD
+========================================= */
+
+.syscon-entry-card {
+    position: relative;
+    padding: 25px 42px 25px;
+    overflow: hidden;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.88);
+   box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+
+.syscon-entry-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    border-radius: 0 0 10px 10px;
+    background: linear-gradient(90deg, #2563eb, #0ea5e9, #14b8a6);
+}
+
+
+.syscon-entry-card-glow {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    top: -190px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    /*background: rgba(37, 99, 235, 0.08);*/
+    filter: blur(30px);
+    pointer-events: none;
+}
+
+
+/* =========================================
+   LOGO
+========================================= */
+
+.syscon-entry-brand {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+
+.syscon-entry-logo-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 190px;
+    min-height: 72px;
+    padding: 10px 22px;
+    border: 1px solid #e4ebf4;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow:
+        0 10px 28px rgba(15, 49, 98, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+
+.syscon-entry-logo-frame img {
+    display: block;
+    max-width: 155px;
+    max-height: 52px;
+    width: auto;
+    height: auto;
+}
+
+
+.syscon-entry-brand > span {
+    display: block;
+    margin-top: 10px;
+    color: #8a98aa;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+}
+
+
+/* =========================================
+   LOGIN WIDGETS
+========================================= */
+
+.syscon-entry-options {
+    position: relative;
+    z-index: 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+
+.syscon-access-widget {
+    position: relative;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    padding: 27px;
+    overflow: hidden;
+    border-radius: 18px;
+    text-decoration: none;
+    transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+
+.syscon-access-widget:hover {
+    color: #ffffff;
+    text-decoration: none;
+    transform: translateY(-6px);
+}
+
+
+/* Admin */
+
+.syscon-admin-widget {
+    color: #ffffff;
+    background:
+        linear-gradient(135deg, #1d5ca8 0%, #123d78 52%, #0b2d59 100%);
+    box-shadow: 0 15px 35px rgba(15, 49, 98, 0.22);
+}
+
+
+.syscon-admin-widget:hover {
+    box-shadow: 0 22px 45px rgba(15, 49, 98, 0.30);
+}
+
+
+/* Staff */
+
+.syscon-staff-widget {
+    color: #ffffff;
+    background:
+        linear-gradient(135deg, #078995 0%, #05717c 52%, #045761 100%);
+    box-shadow: 0 15px 35px rgba(5, 107, 118, 0.20);
+}
+
+
+.syscon-staff-widget:hover {
+    box-shadow: 0 22px 45px rgba(5, 107, 118, 0.28);
+}
+
+
+/* Widget Icon */
+
+.syscon-widget-icon {
+    position: relative;
+    z-index: 3;
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.17);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow:
+        inset 0 1px rgba(255, 255, 255, 0.15),
+        0 8px 22px rgba(0, 0, 0, 0.10);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.3s ease;
+}
+
+
+.syscon-widget-icon i {
+    color: #ffffff;
+    font-size: 25px;
+}
+
+
+.syscon-access-widget:hover .syscon-widget-icon {
+    transform: scale(1.08) rotate(-4deg);
+}
+
+
+/* Widget Content */
+
+.syscon-widget-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+
+.syscon-widget-content small {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+
+.syscon-widget-content small i {
+    font-size: 9px;
+}
+
+
+.syscon-widget-content strong {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+
+.syscon-widget-content em {
+    margin-top: 6px;
+    color: rgba(255, 255, 255, 0.67);
+    font-size: 11px;
+    font-style: normal;
+    line-height: 1.5;
+}
+
+
+/* Arrow */
+
+.syscon-widget-arrow {
+    position: relative;
+    z-index: 3;
+    width: 39px;
+    height: 39px;
+    min-width: 39px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.10);
+    transition:
+        transform 0.3s ease,
+        background 0.3s ease;
+}
+
+
+.syscon-widget-arrow i {
+    color: #ffffff;
+    font-size: 13px;
+}
+
+
+.syscon-access-widget:hover .syscon-widget-arrow {
+    transform: translateX(5px);
+    background: rgba(255, 255, 255, 0.19);
+}
+
+
+/* =========================================
+   WIDGET SHAPES
+========================================= */
+
+.syscon-widget-shape {
+    position: absolute;
+    pointer-events: none;
+}
+
+
+.syscon-admin-shape-one {
+    width: 230px;
+    height: 230px;
+    right: -120px;
+    bottom: -140px;
+    border-radius: 50%;
+    background: rgba(96, 165, 250, 0.13);
+    transition: transform 0.5s ease;
+}
+
+
+.syscon-admin-shape-two {
+    width: 90px;
+    height: 90px;
+    top: -35px;
+    right: 90px;
+    border: 1px solid rgba(147, 197, 253, 0.15);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    transform: rotate(25deg);
+    transition: transform 0.5s ease;
+}
+
+
+.syscon-staff-shape-one {
+    width: 230px;
+    height: 230px;
+    right: -120px;
+    bottom: -140px;
+    border-radius: 50%;
+    background: rgba(45, 212, 191, 0.13);
+    transition: transform 0.5s ease;
+}
+
+
+.syscon-staff-shape-two {
+    width: 90px;
+    height: 90px;
+    top: -35px;
+    right: 90px;
+    border: 1px solid rgba(94, 234, 212, 0.15);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    transform: rotate(25deg);
+    transition: transform 0.5s ease;
+}
+
+
+.syscon-access-widget:hover .syscon-admin-shape-one,
+.syscon-access-widget:hover .syscon-staff-shape-one {
+    transform: scale(1.15);
+}
+
+
+.syscon-access-widget:hover .syscon-admin-shape-two,
+.syscon-access-widget:hover .syscon-staff-shape-two {
+    transform: rotate(40deg) translate(-8px, 8px);
+}
+
+
+/* =========================================
+   ROUTE TRACK
+========================================= */
+
+.syscon-route-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 30px auto 20px;
+    width: min(420px, 80%);
+}
+
+
+.syscon-route-line {
+    height: 1px;
+    flex: 1;
+    background: repeating-linear-gradient(
+        90deg,
+        #d3dce8 0,
+        #d3dce8 6px,
+        transparent 6px,
+        transparent 11px
+    );
+}
+
+
+.syscon-route-stop {
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: #94a3b8;
+    background: #f1f5f9;
+}
+
+
+.syscon-route-stop i {
+    font-size: 9px;
+}
+
+
+.syscon-route-bus {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 4px solid #ffffff;
+    border-radius: 12px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #2563eb, #0ea5e9);
+    box-shadow: 0 7px 18px rgba(37, 99, 235, 0.22);
+}
+
+
+.syscon-route-bus i {
+    font-size: 16px;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.syscon-entry-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 13px;
+    color: #94a0b0;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+
+.syscon-entry-footer span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+.syscon-entry-footer i {
+    color: #3b82f6;
+    font-size: 10px;
+}
+
+
+.syscon-footer-divider {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #cbd5e1;
+}
+
+
+
+@media (max-width: 991px) {
+
+    .syscon-entry-clock-box {
+        position: relative;
+        top: auto;
+        right: auto;
+        width: fit-content;
+        margin: 0 auto 18px;
+    }
+
+    .syscon-entry-heading {
+        margin-bottom: 25px;
+    }
+
+    .syscon-entry-card {
+        padding: 32px 25px 22px;
+    }
+
+}
+
+
+@media (max-width: 767px) {
+
+    .syscon-entry-shell {
+        padding: 35px 15px;
+    }
+
+    .syscon-entry-heading h1 {
+        font-size: 29px;
+    }
+
+    .syscon-entry-heading p {
+        font-size: 12px;
+    }
+
+    .syscon-desktop-break {
+        display: none;
+    }
+
+    .syscon-entry-card {
+        padding: 27px 17px 20px;
+        border-radius: 20px;
+    }
+
+    .syscon-entry-logo-frame {
+        min-width: 165px;
+        min-height: 65px;
+    }
+
+    .syscon-entry-logo-frame img {
+        max-width: 135px;
+        max-height: 45px;
+    }
+
+    .syscon-entry-options {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .syscon-access-widget {
+        min-height: 155px;
+        padding: 21px 18px;
+    }
+
+    .syscon-widget-icon {
+        width: 55px;
+        height: 55px;
+        min-width: 55px;
+        margin-right: 13px;
+    }
+
+    .syscon-widget-icon i {
+        font-size: 21px;
+    }
+
+    .syscon-widget-content strong {
+        font-size: 16px;
+    }
+
+    .syscon-widget-content em {
+        font-size: 10px;
+    }
+
+    .syscon-widget-arrow {
+        width: 35px;
+        height: 35px;
+        min-width: 35px;
+    }
+
+    .syscon-route-track {
+        width: 90%;
+        margin-top: 24px;
+    }
+
+    .syscon-entry-footer {
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .syscon-footer-divider {
+        display: none;
+    }
+
+}
+
+
+@media (max-width: 420px) {
+
+    .syscon-entry-shell {
+        padding: 25px 10px;
+    }
+
+    .syscon-entry-heading h1 {
+        font-size: 26px;
+    }
+
+    .syscon-entry-card {
+        padding: 24px 13px 18px;
+    }
+
+    .syscon-access-widget {
+        min-height: 145px;
+        padding: 18px 15px;
+    }
+
+    .syscon-widget-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+    }
+
+    .syscon-widget-icon i {
+        font-size: 19px;
+    }
+
+    .syscon-widget-content strong {
+        font-size: 14px;
+    }
+
+    .syscon-widget-content em {
+        font-size: 9px;
+    }
+
+    .syscon-widget-arrow {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        margin-left: 7px;
+    }
+
+}
+
+
+.lat-login-box {
+    position: relative;
+    width: min(460px, 100%);
+    margin: 0 auto;
+    padding: 38px 36px;
+    overflow: hidden;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 22px;
+    background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.98),
+        rgba(247, 250, 255, 0.96)
+    );
+   box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+}
+
+/* Top accent */
+.lat-login-box::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(
+        90deg,
+        #174a88,
+        #2563eb,
+        #0ea5e9
+    );
+}
+
+/* Decorative background shape */
+.lat-login-box::after {
+    content: "";
+    position: absolute;
+    width: 190px;
+    height: 190px;
+    top: -120px;
+    right: -90px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.08);
+    pointer-events: none;
+}
+
+
+/* =========================================
+   LOGO
+========================================= */
+
+.lat-login-box > img {
+    position: relative;
+    z-index: 2;
+    display: block;
+    width: auto;
+    width: 170px;
+    border: 1px solid #ccc;
+    margin: 0 auto 30px;
+    border-radius: 16px;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.lat-login-box .lg-form {
+    position: relative;
+    z-index: 2;
+}
+
+
+.lat-login-box .form-login {
+    position: relative;
+}
+
+
+/* =========================================
+   INPUTS
+========================================= */
+
+.lat-login-box .form-control {
+    width: 100%;
+    height: 52px;
+    padding: 0 16px;
+    border: 1px solid #dce4ef;
+    border-radius: 11px;
+    outline: none;
+    color: #263b58;
+    background: #ffffff;
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 3px 12px rgba(15, 49, 98, 0.035);
+    transition:
+        border-color 0.25s ease,
+        box-shadow 0.25s ease,
+        background 0.25s ease,
+        transform 0.25s ease;
+}
+
+
+.lat-login-box .form-control::placeholder {
+    color: #9aa8b9;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+
+.lat-login-box .form-control:hover {
+    border-color: #c5d3e4;
+    background: #fcfdff;
+}
+
+
+.lat-login-box .form-control:focus {
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow:
+        0 0 0 3px rgba(37, 99, 235, 0.09),
+        0 8px 20px rgba(15, 49, 98, 0.06);
+    transform: translateY(-1px);
+}
+
+
+/* =========================================
+   PASSWORD INPUT
+========================================= */
+
+.lat-login-box #yourPassword {
+    letter-spacing: 0.3px;
+}
+
+
+/* =========================================
+   REMEMBER ME
+========================================= */
+
+.lat-login-box .form-check {
+    align-items: center;
+    margin-top: 2px;
+}
+
+
+.lat-login-box .form-check-input {
+    width: 17px;
+    height: 17px;
+    margin-top: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #ffffff;
+    box-shadow: none;
+}
+
+
+.lat-login-box .form-check-input:checked {
+    border-color: #2563eb;
+    background-color: #2563eb;
+}
+
+
+.lat-login-box .form-check-input:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+
+.lat-login-box .form-check-label {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+
+/* =========================================
+   LOGIN BUTTON
+========================================= */
+
+.lat-login-box .lat-login-btn {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid #174a88;
+    border-radius: 11px;
+    color: #ffffff;
+   background: linear-gradient(135deg, #0b399e 0%, #053a7c 55%, #162a47 100%);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow:
+        0 10px 24px rgba(23, 74, 136, 0.22),
+        inset 0 1px rgba(255, 255, 255, 0.15);
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        filter 0.25s ease;
+}
+
+
+.lat-login-box .lat-login-btn::before {
+    content: "";
+    position: absolute;
+    width: 80px;
+    height: 100px;
+    top: -35px;
+    left: -20px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    transition: transform 0.4s ease;
+}
+
+
+.lat-login-box .lat-login-btn::after {
+    content: "";
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    right: -50px;
+    bottom: -65px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    transition: transform 0.4s ease;
+}
+
+
+.lat-login-box .lat-login-btn:hover {
+    color: #ffffff;
+    border-color: #2563eb;
+    transform: translateY(-2px);
+    filter: brightness(1.04);
+    box-shadow:
+        0 15px 30px rgba(23, 74, 136, 0.28),
+        inset 0 1px rgba(255, 255, 255, 0.18);
+}
+
+
+.lat-login-box .lat-login-btn:hover::before {
+    transform: translateX(15px) scale(1.2);
+}
+
+
+.lat-login-box .lat-login-btn:hover::after {
+    transform: translate(-10px, -10px) scale(1.15);
+}
+
+
+.lat-login-box .lat-login-btn:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================
+   VALIDATION
+========================================= */
+
+.lat-login-box .text-danger {
+    display: block;
+    padding-left: 3px;
+    color: #dc3545;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+
+/* =========================================
+   SESSION ALERT
+========================================= */
+
+.lat-login-box .alert {
+    position: relative;
+    margin-bottom: 8px;
+    padding: 11px 14px;
+    border: 1px solid #bbf7d0;
+    border-radius: 9px;
+    color: #166534;
+    background: #f0fdf4;
+    font-size: 12px;
+    box-shadow: none;
+}
+
+
+/* =========================================
+   FORM SPACING
+========================================= */
+
+.lat-login-box .lg-form .col-12 {
+    position: relative;
+}
+
+
+.lat-login-box .lg-form > .col-12:not(:last-child) {
+    margin-bottom: 2px;
+}
+
+
+/* =========================================
+   OPTIONAL INPUT ICON STYLE
+   Works if icons are added later
+========================================= */
+
+.lat-login-box .form-login.has-icon {
+    position: relative;
+}
+
+
+.lat-login-box .form-login.has-icon .form-control {
+    padding-left: 45px;
+}
+
+
+.lat-login-box .form-login.has-icon > i {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    z-index: 3;
+    color: #8da0b7;
+    font-size: 14px;
+    transform: translateY(-50%);
+}
+
+.lat-login-box  h2{
+    font-size:20px;
+    font-weight:600;
+    text-align:center;
+    margin-bottom:10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

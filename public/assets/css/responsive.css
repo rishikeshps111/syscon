@@ -14,6 +14,10 @@
     .sidebar{
         z-index:1000;
     }
+     .footer{
+        position:static;
+        padding-top:20px;
+    }
 }
 @media screen and (max-width:991px){
         #main {
@@ -111,9 +115,7 @@
     .list-program-dt ul li{
         width:100%;
     }
-    .footer{
-        position:static;
-    }
+   
     .center-gap{
               flex-direction: column;
         justify-content: flex-start;
@@ -220,6 +222,15 @@ div button.fil-btn{
     justify-content: flex-start !important;
     align-items: flex-start !important;
     }
+    table tr td input,table tr td select,table tr td textarea{
+        min-width:110px;
+    }
+    .v-preview-widget ul li{
+        flex-direction:column;
+        justify-content:Flex-start;
+        align-items:flex-start;
+                width: 100%;
+    }
 }
 @media screen and (max-width:567px){
     .login-screen-top-img h2{
@@ -299,6 +310,44 @@ div button.fil-btn{
    .p-3-sm-0{
        padding:0 !important;
    }
+   .modal-header{
+           display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    align-items: baseline;
+   }
+   .col-box-middle{
+           flex-direction: column;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+   }
        
     
 }
+
+
+@media screen and (max-width:400px){
+    .btn-flex-cs .btn-cancel-cs, .btn-flex-cs .btn-prev-cs, .btn-flex-cs .btn-next-cs, .btn-flex-cs .btn-submit-cs{
+               min-width: unset;
+        height: unset;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    .btn-flex-cs{
+        gap:5px
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

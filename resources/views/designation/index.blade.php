@@ -57,6 +57,7 @@
                             </button>
                         </div>
                     </div>
+                    <hr>
                     <div class="row">
                         <div class="col-lg-6 ms-auto btns-group-container margin-0-btn">
                             @can('designations.create')

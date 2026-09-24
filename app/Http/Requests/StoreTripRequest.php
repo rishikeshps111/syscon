@@ -20,6 +20,7 @@ class StoreTripRequest extends FormRequest
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'vehicle_classification_id' => ['required', 'integer', 'exists:vehicle_classifications,id'],
             'trip_nature_id' => ['required', 'integer', 'exists:trip_natures,id'],
+            'service_code_id' => ['required', 'integer', 'exists:service_codes,id'],
             'rounds_per_trip' => ['required', 'integer', 'min:1'],
             'schedule_km' => ['required', 'numeric', 'min:0'],
             'total_trips' => ['required', 'integer', 'min:1'],

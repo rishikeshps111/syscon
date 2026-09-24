@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionSeeder extends Seeder
 {
@@ -16,7 +17,7 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Example permissions (you can adjust later)
         $permissions = [
@@ -65,6 +66,12 @@ class PermissionSeeder extends Seeder
                 'trip-natures.view',
                 'trip-natures.export',
                 'trip-natures.status',
+            ],
+            'service-codes' => [
+                'service-codes.create',
+                'service-codes.edit',
+                'service-codes.delete',
+                'service-codes.view',
             ],
             'Document Type' => [
                 'document-types.create',

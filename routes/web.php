@@ -70,6 +70,7 @@ use App\Http\Controllers\UserLogController;
 use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleClassificationController;
 use App\Http\Controllers\TripNatureController;
+use App\Http\Controllers\ServiceCodeController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleDocumentController;
 use App\Http\Controllers\VehicleFuelLogController;
@@ -126,6 +127,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/trip-natures/status', [TripNatureController::class, 'status'])->name('trip-natures.status');
     Route::post('/trip-natures/export', [TripNatureController::class, 'export'])->name('trip-natures.export');
     Route::resource('trip-natures', TripNatureController::class)->except(['edit', 'show']);
+    Route::post('/service-codes/status', [ServiceCodeController::class, 'status'])->name('service-codes.status');
+    Route::resource('service-codes', ServiceCodeController::class)->except(['edit', 'show']);
 
     Route::post('/driver-change-reasons/status', [DriverChangeReasonController::class, 'status'])->name('driver-change-reasons.status');
     Route::post('/driver-change-reasons/export', [DriverChangeReasonController::class, 'export'])->name('driver-change-reasons.export');

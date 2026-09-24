@@ -25,10 +25,10 @@
                 <div class="main-table-container mt-3 bg-white">
                     <div class="row">
                         <div class="col-lg-12 mb-3">
-                            <div class="btn-flex justify-content-end">
-                                <a href="{{ route('staff-management.index') }}" class="btn btn-secondary">Back</a>
+                            <div class="btn-group-print-cs">
+                                <a href="{{ route('staff-management.index') }}" class="btn-back-print-cs"><i class="fa-solid fa-arrow-left"></i>Back</a>
                                 <a href="{{ route('supervisor-management.download-pdf', $record->id) }}"
-                                    class="btn btn-primary">Download PDF</a>
+                                    class="btn-download-print-cs"><i class="fa-solid fa-file-pdf"></i>Download PDF</a>
                             </div>
                         </div>
 

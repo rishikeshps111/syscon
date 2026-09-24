@@ -31,7 +31,7 @@
                             <div class="alert alert-danger">{{ $message }}</div>
                         @enderror
 
-                        <div class="accordion role-accordion" id="permissionAccordion">
+                        <div class="accordion role-accordions" id="permissionAccordion">
                             @foreach($permissionTree as $section)
                                 @php $sectionId = 'section_' . $loop->index; @endphp
                                 <div class="accordion-item mb-2">
@@ -60,7 +60,7 @@
                                                                 $inputId = $groupId . '_' . $permission->id;
                                                                 $action = str($permission->name)->afterLast('.')->headline();
                                                             @endphp
-                                                            <div class="col-lg-3 col-md-4 col-sm-6 mb-2">
+                                                            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                                                                 <label for="{{ $inputId }}" class="mb-0">
                                                                     <input type="checkbox" id="{{ $inputId }}" name="permissions[]"
                                                                         value="{{ $permission->id }}" class="permission-check"

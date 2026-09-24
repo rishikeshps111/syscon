@@ -144,7 +144,7 @@
                 box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 1px;
                 padding: 18px;
             }
 
@@ -326,8 +326,8 @@
 
     color: #1e293b !important;
 
-    font-size: 14px !important;
-    font-weight: 700 !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
     line-height: 1.45 !important;
 
     word-break: break-word !important;
@@ -349,8 +349,8 @@
 
     color: #64748b !important;
 
-    font-size: 11px !important;
-    font-weight: 500 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
 }
 
 .document-card .document-folder::before {
@@ -378,8 +378,8 @@
 
     color: #64748b !important;
 
-    font-size: 11px !important;
-    font-weight: 500 !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
 
     line-height: 1.5 !important;
 }

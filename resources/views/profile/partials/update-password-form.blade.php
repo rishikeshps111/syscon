@@ -47,8 +47,8 @@
             </div>
         </div>
 
-        <div class="text-center d_flex">
-            <button type="submit" class="add-btn">Change Password</button>
+        <div class="modal-btns-last">
+            <button type="submit" class="modal-btn-2">Change Password</button>
         </div>
 
     </form>

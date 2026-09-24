@@ -17,18 +17,18 @@
     <section class="section dashboard">
         <div class="dor-wrap">
             <div class="btn-group-print-cs">
-    <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}" class="btn-back-print-cs">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span>Back</span>
-    </a>
+                <a href="{{ route('trips.sheet.entries.dor', [$record->id, $entry->id]) }}" class="btn-back-print-cs">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back</span>
+                </a>
 
-    <a href="#!" class="btn-download-print-cs" onclick="window.print(); return false;">
-        <i class="fa-solid fa-file-pdf"></i>
-        <span>Print</span>
-    </a>
-</div>
-            
-          
+                <a href="#!" class="btn-download-print-cs" onclick="window.print(); return false;">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Print</span>
+                </a>
+            </div>
+
+
 
             @if($dor->is_completed)
                 <div class="alert alert-success">DOR marked as complete.</div>
@@ -43,6 +43,8 @@
                                 'odometer_end_image' => 'Odometer End Image',
                                 'route_start_soc_percent_image' => 'Route Start SOC Image',
                                 'route_end_soc_percent_image' => 'Route End SOC Image',
+                                'dp_image' => 'DP Image',
+                                'vp1_image' => 'VP1 Image',
                             ] as $imageName => $imageLabel)
                             @if(!empty($odometerImages[$imageName]))
                                 <div class="dor-card">

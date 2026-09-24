@@ -152,8 +152,8 @@
                 <div class="text-danger mt-1" id="error-email"></div>
             </div>
         </div>
-        <div class="text-center d_flex">
-            <button type="submit" class="add-btn">
+        <div class="modal-btns-last">
+            <button type="submit" class="modal-btn-2">
                 Save Changes
             </button>
         </div>

@@ -36,7 +36,7 @@
                     'payment-types.view', 'payment-methods.view', 'lead-sources.view', 'lead-types.view',
                     'lead-statuses.view', 'action-plans.view', 'relations.view'])
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*') ? '' : 'collapsed' }}"
+                        <a class="nav-link {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*','service-codes.*') ? '' : 'collapsed' }}"
                             data-bs-target="#sidebarNav0" data-bs-toggle="collapse" href="#">
 
                             <i class="fa-solid fa-align-center"></i>
@@ -44,7 +44,7 @@
                             <i class="bi bi-chevron-down ms-auto"></i>
                         </a>
                         <ul id="sidebarNav0"
-                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*', 'driver-change-reasons.*') ? 'show' : '' }}"
+                            class="nav-content collapse sub-menu {{ request()->routeIs('prefixes.*', 'states.*', 'districts.*', 'locations.*', 'service-types.*', 'oem-types.*', 'vehicle-classifications.*', 'trip-natures.*', 'document-types.*', 'complaint-categories.*', 'dor-account-responsibles.*', 'dor-kilometer-loss-reasons.*', 'depots.*', 'driver-change-reasons.*','service-codes.*') ? 'show' : '' }}"
                             data-bs-parent="#sidebar-nav">
                             @can('prefixes.view')
                                 <li>
@@ -63,6 +63,9 @@
                                         <span> Trip Nature </span>
                                     </a>
                                 </li>
+                            @endcan
+                            @can('service-codes.view')
+                                <li><a href="{{ route('service-codes.index') }}" class="{{ request()->routeIs('service-codes.*') ? 'sub-active' : '' }}"><i class="fa-solid fa-arrow-up-right-from-square"></i><span> Service Codes </span></a></li>
                             @endcan
                             @can('states.view')
                                 <li>

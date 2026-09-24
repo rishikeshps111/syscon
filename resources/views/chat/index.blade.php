@@ -733,8 +733,8 @@
             @media (max-width: 991px) {
                 .chat-shell {
                     grid-template-columns: 1fr;
-                    height: calc(100vh - 160px);
-                    min-height: 520px;
+                    height: unset;
+                    min-height: unset;
                 }
 
                 .chat-list-panel {
@@ -745,6 +745,9 @@
 
                 #chatRoomContent {
                     height: 100%;
+                }
+                .chat-messages{
+                    min-height:300px;
                 }
             }
         </style>

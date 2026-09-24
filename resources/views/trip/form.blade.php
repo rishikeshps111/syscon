@@ -99,6 +99,16 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-3">
+        <label for="service_code_id" class="form-label m-0">Service Code <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none select2" id="service_code_id" name="service_code_id">
+            <option value="">--- Select ---</option>@foreach($serviceCodes as $serviceCode)
+            <option value="{{ $serviceCode->id }}" @selected((int) old('service_code_id', $record->service_code_id ?? 0) === $serviceCode->id)>{{ $serviceCode->title }}</option>@endforeach
+        </select>
+        <span
+            class="text-danger error-text service_code_id_error">@error('service_code_id'){{ $message }}@enderror</span>
+    </div>
+
+    <div class="col-lg-4 o-f-inp mb-3">
         <label for="rounds_per_trip" class="form-label m-0">Rounds per Trip <span class="text-danger">*</span></label>
         <input type="number" min="1" step="1" class="form-control shadow-none" id="rounds_per_trip"
             name="rounds_per_trip" value="{{ old('rounds_per_trip', $record->rounds_per_trip ?? 1) }}">
@@ -114,8 +124,8 @@
     </div>
 
     <div class="col-lg-4 o-f-inp mb-3">
-        <label for="total_trips" class="form-label m-0">Total Trips (<span
-                id="tripNatureTitle">{{ $record->tripNature->title ?? '' }}</span>) <span
+        <label for="total_trips" class="form-label m-0">Total Trips <span class="d-none"
+                id="tripNatureTitle">{{ $record->tripNature->title ?? '' }}</span> <span
                 class="text-danger">*</span></label>
         <input type="number" min="1" step="1" class="form-control shadow-none" id="total_trips" name="total_trips"
             value="{{ old('total_trips', $record->total_trips ?? 1) }}">

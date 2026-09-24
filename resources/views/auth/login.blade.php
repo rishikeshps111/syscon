@@ -2,19 +2,17 @@
     {{ $title ?? 'Login' }}
 @endsection
 <x-guest-layout>
-    <section class="application-login-section">
-        <div class="login-screen-top-img">
-            <h2>{{ $heading ?? 'Login' }}</h2>
-        </div>
-        <div class="main-index-box ">
-            <div class="welcome-shapes shape-1"></div>
-    <div class="welcome-shapes shape-2"></div>
-    <div class="welcome-shapes shape-3"></div>
-            <div class="row justify-content-center">
-
-                <div class="col-lg-8">
-                    <div class="login-field-box login-box-latest ">
+    <section class="syscon-entry-shell" style="background: #dbeafe2b;">
+          <!-- Decorative Background -->
+    <div class="syscon-entry-orb syscon-entry-orb-one"></div>
+    <div class="syscon-entry-orb syscon-entry-orb-two"></div>
+     <div class="syscon-entry-grid"></div>
+     <div class="container">
+         <div class="row justify-content-center">
+             <div class="col-lg-5">
+                  <div class="lat-login-box ">
                         <img src="{{ asset('assets/img/logo.png') }}" alt="">
+                        <h2>{{ $heading ?? 'Login' }}</h2>
                         <form class="row g-3 lg-form" method="POST" action="{{ route('login') }}">
                             @csrf
                             <input type="hidden" name="portal" value="{{ old('portal', $portal ?? 'general') }}">
@@ -63,14 +61,15 @@
                             </div>
                             <!-- Submit -->
                             <div class="col-12">
-                                <button type="submit" class="btn--form btn--form-login w-100">
+                                <button type="submit" class="lat-login-btn">
                                     {{ $submitLabel ?? 'Login' }}
                                 </button>
                             </div>
                         </form>
                     </div>
-                </div>
-            </div>
-        </div>
+             </div>
+         </div>
+     </div>
     </section>
+   
 </x-guest-layout>

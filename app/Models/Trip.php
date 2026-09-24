@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
     'route_id',
     'vehicle_classification_id',
     'trip_nature_id',
+    'service_code_id',
     'depot_id',
     'from_depot_id',
     'to_depot_id',
@@ -104,6 +105,8 @@ class Trip extends Model
     {
         return $this->belongsTo(TripNature::class);
     }
+
+    public function serviceCode(): BelongsTo { return $this->belongsTo(ServiceCode::class); }
 
     public function depot(): BelongsTo
     {

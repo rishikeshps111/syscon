@@ -161,6 +161,7 @@ class RolePermissionController extends Controller implements HasMiddleware
                     ['label' => 'Depot Management', 'permissions' => $this->crud('depots')],
                     ['label' => 'Vehicle Classification', 'permissions' => $this->crudWithActions('vehicle-classifications')],
                     ['label' => 'Trip Nature', 'permissions' => $this->crudWithActions('trip-natures')],
+                    ['label' => 'Service Codes', 'permissions' => $this->crud('service-codes')],
                     ['label' => 'Document Types', 'permissions' => $this->crud('document-types')],
                     ['label' => 'Complaint Categories', 'permissions' => $this->crud('complaint-categories')],
                     ['label' => 'DOR Account Responsible', 'permissions' => $this->crud('dor-account-responsibles')],

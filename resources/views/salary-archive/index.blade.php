@@ -1,4 +1,19 @@
 @section('title', 'Salary Archive')
+<style>
+    tr td:last-child i {
+   width: 30px;
+    height: 30px;
+    background-color: #d7fadc;
+    color: #17922a;
+    border-radius: 20%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 0;
+    font-size: 13px;
+    text-decoration: none;
+}
+</style>
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">

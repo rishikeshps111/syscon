@@ -18,41 +18,84 @@
             <h5 class="title-w-sec mb-3">Basic Details</h5>
             <div class="row">
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="housekeeping-detail-card">
-                        <span>Housekeeping Code</span>
-                        <strong>{{ $housekeeping->code }}</strong>
-                    </div>
+                     <div class="staff-detail-card staff-widget-code">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-hashtag"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Housekeeping Code</span>
+            <strong>{{ $housekeeping->code }}</strong>
+        </div>
+    </div>
+                    
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="housekeeping-detail-card">
-                        <span>Housekeeping Name</span>
-                        <strong>{{ $housekeeping->name }}</strong>
-                    </div>
+                    <div class="staff-detail-card staff-widget-name">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-user"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Housekeeping Name</span>
+            <strong>{{ $housekeeping->name }}</strong>
+        </div>
+    </div>
+                   
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="housekeeping-detail-card">
-                        <span>Employment Type</span>
-                        <strong>{{ $housekeeping->housekeepingProfile?->employment_type_label ?? '-' }}</strong>
-                    </div>
+                    <div class="staff-detail-card staff-widget-designation">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Employment Type</span>
+            <strong>{{ $housekeeping->housekeepingProfile?->employment_type_label ?? '-' }}</strong>
+        </div>
+    </div>
+                    
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="housekeeping-detail-card">
-                        <span>Phone</span>
-                        <strong>{{ $housekeeping->full_phone ?: '-' }}</strong>
-                    </div>
+                     <div class="staff-detail-card staff-widget-phone">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-phone"></i>
+        </div>
+        <div class="staff-detail-content">
+            <span>Phone</span>
+            <strong>{{ $housekeeping->full_phone ?: '-' }}</strong>
+        </div>
+    </div>
+                    
                 </div>
                 <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="housekeeping-detail-card">
-                        <span>Depot</span>
-                        <strong>{{ $housekeeping->housekeepingProfile?->depot?->name ?? '-' }}</strong>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-3">
-                    <div class="housekeeping-detail-card">
-                        <span>Branch</span>
-                        <strong>{{ $housekeeping->housekeepingProfile?->branchLocation?->name ?? '-' }}</strong>
-                    </div>
-                </div>
+    <div class="staff-detail-card staff-widget-designation">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-warehouse"></i>
+        </div>
+
+        <div class="staff-detail-content">
+            <span>Depot</span>
+            <strong>
+                {{ $housekeeping->housekeepingProfile?->depot?->name ?? '-' }}
+            </strong>
+        </div>
+    </div>
+</div>
+
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="staff-detail-card staff-widget-phone">
+        <div class="staff-detail-icon">
+            <i class="fa-solid fa-code-branch"></i>
+        </div>
+
+        <div class="staff-detail-content">
+            <span>Branch</span>
+            <strong>
+                {{ $housekeeping->housekeepingProfile?->branchLocation?->name ?? '-' }}
+            </strong>
+        </div>
+    </div>
+</div>
+               
             </div>
         </div>
 
@@ -87,7 +130,7 @@
                                         <input type="date" name="expiry_date" id="expiryDate" class="form-control shadow-none"
                                             value="{{ old('expiry_date') }}">
                                     </div>
-                                    <div class="col-lg-6 o-f-inp mb-3">
+                                    <div class="col-lg-6 o-f-inp file-input mb-3">
                                         <label for="documentFile">Document File <span class="text-danger">*</span></label>
                                         <input type="file" name="document_file" id="documentFile" class="form-control shadow-none" required>
                                     </div>
@@ -97,10 +140,10 @@
                                             Is Verified
                                         </label>
                                     </div>
-                                    <div class="col-lg-12 d-flex justify-content-center align-items-center">
-                                        <div class="btn-flex">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            <button type="submit" class="submit-btn">Submit</button>
+                                    <div class="col-lg-12 ">
+                                        <div class="modal-btns-last">
+                                            <button type="button" class="modal-btn-1" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="modal-btn-2">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -114,8 +157,8 @@
         <div class="main-table-container">
             <div class="row mb-3">
                 <div class="col-lg-12 d-flex justify-content-end align-items-end">
-                    <div class="btn-flex">
-                        <a href="{{ route('staff-management.index') }}" class="add-btn bg-filter">Back</a>
+                    <div class="btns-group-container">
+                        <a href="{{ route('staff-management.index') }}" class="bk-btn">Back</a>
                         @can('housekeeping-management.edit')
                             <a class="add-btn" data-bs-toggle="modal" href="#addDocumentModal" role="button">
                                 Add Document

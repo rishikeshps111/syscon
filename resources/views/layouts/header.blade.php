@@ -7,14 +7,21 @@
     <div class="header-top-cs">
         <div class="header-section-right" style="justify-content: flex-start;">
             <div class="digital-time-container">
-                <div class="display-date">
-                    <span id="day">day</span>,
-                    <span id="daynum">00</span>
-                    <span id="month">month</span>
-                    <span id="year">0000</span>
-                </div>
-                <div class="display-time"></div>
-            </div>
+    <div class="clock-icon">
+        <i class="fa-regular fa-clock"></i>
+    </div>
+
+    <div class="clock-content">
+        <div class="display-date">
+            <span id="day">day</span>,
+            <span id="daynum">00</span>
+            <span id="month">month</span>
+            <span id="year">0000</span>
+        </div>
+
+        <div class="display-time"></div>
+    </div>
+</div>
         </div>
         <div class="header-section-right">
             @if(auth()->check() && auth()->user()->hasAnyRole(['Super Admin', 'Staff']))
