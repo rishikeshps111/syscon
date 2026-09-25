@@ -24,7 +24,7 @@ class UpdateDesignationRequest extends FormRequest
             'reporting_to' => [
                 'nullable',
                 'integer',
-                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])),
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', array_values(\App\Models\Designation::ROLES))),
             ],
             'name' => [
                 'required',
@@ -35,6 +35,7 @@ class UpdateDesignationRequest extends FormRequest
                     ->where(fn ($query) => $query->where('guard_name', 'web'))
                     ->ignore($this->route('designation')?->role_id),
             ],
+            'role' => ['required', Rule::in(array_values(\App\Models\Designation::ROLES))],
             'description' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ];

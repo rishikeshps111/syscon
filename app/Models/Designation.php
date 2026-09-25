@@ -16,6 +16,14 @@ class Designation extends Model
 {
     use HasFactory;
 
+    public const ROLES = [
+        'Staff' => 'Staff',
+        'Driver' => 'Driver',
+        'Controller' => 'Controller',
+        'Supervisor' => 'Supervisor',
+        'Housekeeping' => 'Housekeeping',
+    ];
+
     protected function casts(): array
     {
         return [

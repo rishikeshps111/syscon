@@ -199,7 +199,7 @@ class BulkImportController extends Controller
             }
             if ($csvField === 'reporting_to' && $module === 'designations') {
                 $query->where('guard_name', 'web')
-                    ->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor']);
+                    ->whereIn('name', array_values(Designation::ROLES));
             }
             $cacheKey = implode('|', [
                 $model,
@@ -282,8 +282,8 @@ class BulkImportController extends Controller
 
     private function createDesignation(array $data): void
     {
-        $role = Role::create([
-            'name' => $data['name'],
+        $role = Role::firstOrCreate([
+            'name' => $data['role'],
             'guard_name' => 'web',
         ]);
 
@@ -427,9 +427,10 @@ class BulkImportController extends Controller
                     'nullable',
                     'integer',
                     Rule::exists('roles', 'id')->where(
-                        fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
+                        fn ($query) => $query->whereIn('name', array_values(Designation::ROLES))
                     ),
                 ],
+                'role' => ['required', Rule::in(array_keys(Designation::ROLES))],
                 'name' => [
                     'required',
                     'string',
@@ -780,8 +781,8 @@ class BulkImportController extends Controller
                 'label' => 'Designations',
                 'permission' => 'designations.create',
                 'index_route' => 'designations.index',
-                'headers' => ['name', 'department', 'level', 'reporting_to', 'is_active', 'description'],
-                'sample' => ['Assistant Manager', 'Operations', 'Level 2', 'Supervisor', 'yes', 'Assists the operations manager.'],
+                'headers' => ['name', 'role', 'department', 'level', 'reporting_to', 'is_active', 'description'],
+                'sample' => ['Assistant Manager', 'Staff', 'Operations', 'Level 2', 'Supervisor', 'yes', 'Assists the operations manager.'],
                 'unique_csv' => ['name'],
             ],
         ];
@@ -912,7 +913,7 @@ class BulkImportController extends Controller
                 ? 'Full phone number with country code, for example +91 9876543210. If omitted, +91 is used.'
                 : 'Primary phone number, maximum 30 characters.',
             'ref_code' => 'Optional external reference code.',
-            'role' => 'Use Staff, Housekeeping, Controller, or Supervisor.',
+            'role' => 'Use Staff, Driver, Controller, Supervisor, or Housekeeping.',
             'alternate_country_code' => 'Optional alternate telephone country code, for example +91.',
             'alternate_phone' => 'Optional alternate phone number, maximum 30 characters.',
             'passcode' => 'Exactly 6 digits. This becomes the initial login passcode.',

@@ -87,12 +87,13 @@ class DesignationController extends Controller implements HasMiddleware
         $departments = Department::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $levels = Level::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $roles = $this->reportingRoles();
+        $designationRoles = array_values(Designation::ROLES);
 
         if ($request->id) {
             $record = Designation::findOrFail($request->id);
 
             return response()->json([
-                'html' => view('designation.form', compact('record', 'departments', 'levels', 'roles'))->render(),
+                'html' => view('designation.form', compact('record', 'departments', 'levels', 'roles', 'designationRoles'))->render(),
                 'title' => 'Update Designation',
             ]);
         }
@@ -100,7 +101,7 @@ class DesignationController extends Controller implements HasMiddleware
         $generatedCode = generate_code('Designation Module', ((int) Designation::max('id')) + 1, 3, 'DSG');
 
         return response()->json([
-            'html' => view('designation.form', compact('generatedCode', 'departments', 'levels', 'roles'))->render(),
+            'html' => view('designation.form', compact('generatedCode', 'departments', 'levels', 'roles', 'designationRoles'))->render(),
             'title' => 'Add Designation',
         ]);
     }
@@ -109,8 +110,8 @@ class DesignationController extends Controller implements HasMiddleware
     {
         $designation = DB::transaction(function () use ($request) {
             $data = $request->validated();
-            $role = Role::create([
-                'name' => $data['name'],
+            $role = Role::firstOrCreate([
+                'name' => $data['role'],
                 'guard_name' => 'web',
             ]);
 
@@ -141,13 +142,19 @@ class DesignationController extends Controller implements HasMiddleware
             $role = $designation->role;
 
             if (! $role) {
-                $role = Role::create([
-                    'name' => $data['name'],
+                $role = Role::firstOrCreate([
+                    'name' => $data['role'],
                     'guard_name' => 'web',
                 ]);
                 $data['role_id'] = $role->id;
             } else {
-                $role->update(['name' => $data['name']]);
+                if ($role->name !== $data['role']) {
+                    $role = Role::firstOrCreate([
+                        'name' => $data['role'],
+                        'guard_name' => 'web',
+                    ]);
+                    $data['role_id'] = $role->id;
+                }
             }
 
             $designation->update($data);
@@ -218,8 +225,8 @@ class DesignationController extends Controller implements HasMiddleware
 
     private function reportingRoles()
     {
-        return Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])
-            ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 WHEN 'Supervisor' THEN 4 ELSE 5 END")
+        return Role::whereIn('name', array_values(Designation::ROLES))
+            ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 WHEN 'Supervisor' THEN 4 WHEN 'Housekeeping' THEN 5 ELSE 6 END")
             ->get(['id', 'name']);
     }
 }

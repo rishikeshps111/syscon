@@ -24,7 +24,7 @@ class StoreDesignationRequest extends FormRequest
             'reporting_to' => [
                 'nullable',
                 'integer',
-                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor'])),
+                Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', array_values(\App\Models\Designation::ROLES))),
             ],
             'name' => [
                 'required',
@@ -33,6 +33,7 @@ class StoreDesignationRequest extends FormRequest
                 'unique:designations,name',
                 Rule::unique('roles', 'name')->where(fn ($query) => $query->where('guard_name', 'web')),
             ],
+            'role' => ['required', Rule::in(array_values(\App\Models\Designation::ROLES))],
             'description' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ];
