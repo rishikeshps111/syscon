@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Models\Role;
 
-#[Fillable(['department_id', 'level_id', 'reporting_to', 'role_id', 'code', 'name', 'is_active', 'description'])]
+#[Fillable(['department_id', 'level_id', 'reporting_to', 'role_id', 'code', 'name', 'role_type', 'is_active', 'description'])]
 #[Table('designations')]
 class Designation extends Model
 {

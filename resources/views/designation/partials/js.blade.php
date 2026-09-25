@@ -25,6 +25,7 @@
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'code', name: 'code', className: 'text-center' },
                 { data: 'name', name: 'name', className: 'text-center' },
+                { data: 'role_type', name: 'role_type', className: 'text-center' },
                 { data: 'department_name', name: 'department.name', className: 'text-center' },
                 { data: 'level_name', name: 'level.name', className: 'text-center' },
                 { data: 'reporting_to_name', name: 'reportingRole.name', className: 'text-center' },

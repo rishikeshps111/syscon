@@ -83,6 +83,7 @@
                                             <th class="text-center">Sl No</th>
                                             <th class="text-center">Code</th>
                                             <th class="text-center">Designation</th>
+                                            <th class="text-center">Role Type</th>
                                             <th class="text-center">Department</th>
                                             <th class="text-center">Level</th>
                                             <th class="text-center">Reporting To</th>

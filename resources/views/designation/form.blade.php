@@ -8,6 +8,8 @@
 
     <input type="hidden" name="id" value="{{ $record->id ?? '' }}">
 
+
+
     <div class="col-lg-6 o-f-inp mb-2">
         <label for="code" class="form-label m-0">Code</label>
         <input type="text" class="form-control shadow-none" id="code"
@@ -24,14 +26,24 @@
     </div>
 
     <div class="col-lg-6 o-f-inp mb-2">
+        <label for="role_type" class="form-label m-0">Role Type <span class="text-danger">*</span></label>
+        <select class="form-select shadow-none" id="role_type" name="role_type" style="height: 45px;">
+            <option value="">--- Select ---</option>
+            @foreach (['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'] as $roleType)
+                <option value="{{ $roleType }}" {{ old('role_type', $record->role_type ?? 'Staff') === $roleType ? 'selected' : '' }}>{{ $roleType }}</option>
+            @endforeach
+        </select>
+        <span class="text-danger error-text role_type_error"></span>
+    </div>
+
+    <div class="col-lg-6 o-f-inp mb-2">
         <label for="department_id" class="form-label m-0">
             Department <span class="text-danger">*</span>
         </label>
         <select class="form-select shadow-none select2" id="department_id" name="department_id" style="height: 45px;">
             <option value="">--- Select ---</option>
             @foreach ($departments as $department)
-                <option value="{{ $department->id }}"
-                    {{ old('department_id', $record->department_id ?? '') == $department->id ? 'selected' : '' }}>
+                <option value="{{ $department->id }}" {{ old('department_id', $record->department_id ?? '') == $department->id ? 'selected' : '' }}>
                     {{ $department->name }}
                 </option>
             @endforeach
@@ -46,8 +58,7 @@
         <select class="form-select shadow-none select2" id="level_id" name="level_id" style="height: 45px;">
             <option value="">--- Select ---</option>
             @foreach ($levels as $level)
-                <option value="{{ $level->id }}"
-                    {{ old('level_id', $record->level_id ?? '') == $level->id ? 'selected' : '' }}>
+                <option value="{{ $level->id }}" {{ old('level_id', $record->level_id ?? '') == $level->id ? 'selected' : '' }}>
                     {{ $level->name }}
                 </option>
             @endforeach
@@ -62,8 +73,7 @@
         <select class="form-select shadow-none select2" id="reporting_to" name="reporting_to" style="height: 45px;">
             <option value="">--- Select ---</option>
             @foreach ($roles as $role)
-                <option value="{{ $role->id }}"
-                    {{ old('reporting_to', $record->reporting_to ?? '') == $role->id ? 'selected' : '' }}>
+                <option value="{{ $role->id }}" {{ old('reporting_to', $record->reporting_to ?? '') == $role->id ? 'selected' : '' }}>
                     {{ $role->name }}
                 </option>
             @endforeach
@@ -84,7 +94,8 @@
 
     <div class="col-lg-12 o-f-inp mb-2">
         <label for="description" class="form-label m-0">Description</label>
-        <textarea class="form-control shadow-none" id="description" name="description" rows="3">{{ old('description', $record->description ?? '') }}</textarea>
+        <textarea class="form-control shadow-none" id="description" name="description"
+            rows="3">{{ old('description', $record->description ?? '') }}</textarea>
         <span class="text-danger error-text description_error"></span>
     </div>
 

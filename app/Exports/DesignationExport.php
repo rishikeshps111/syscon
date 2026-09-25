@@ -22,6 +22,7 @@ class DesignationExport implements FromCollection, WithHeadings
             return [
                 'Code' => $designation->code,
                 'Designation' => $designation->name,
+                'Role Type' => $designation->role_type,
                 'Department' => $designation->department?->name ?? '',
                 'Level' => $designation->level?->name ?? '',
                 'Reporting To' => $designation->reportingRole?->name ?? '',
@@ -37,6 +38,7 @@ class DesignationExport implements FromCollection, WithHeadings
         return [
             'Code',
             'Designation',
+            'Role Type',
             'Department',
             'Level',
             'Reporting To',

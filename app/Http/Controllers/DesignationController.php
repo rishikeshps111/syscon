@@ -35,7 +35,7 @@ class DesignationController extends Controller implements HasMiddleware
     {
         if (request()->ajax()) {
             $query = Designation::with(['department', 'level', 'reportingRole', 'role'])
-                ->select(['id', 'department_id', 'level_id', 'reporting_to', 'role_id', 'code', 'name', 'is_active', 'created_at'])
+                ->select(['id', 'department_id', 'level_id', 'reporting_to', 'role_id', 'code', 'name', 'role_type', 'is_active', 'created_at'])
                 ->orderBy('created_at', 'desc');
 
             if (request()->filled('department_id')) {
@@ -193,7 +193,7 @@ class DesignationController extends Controller implements HasMiddleware
     {
         $ids = $request->input('ids', []);
         $query = Designation::with(['department', 'level', 'reportingRole'])
-            ->select('department_id', 'level_id', 'reporting_to', 'code', 'name', 'description', 'is_active', 'created_at');
+            ->select('department_id', 'level_id', 'reporting_to', 'code', 'name', 'role_type', 'description', 'is_active', 'created_at');
 
         if (! empty($ids)) {
             $query->whereIn('id', $ids);

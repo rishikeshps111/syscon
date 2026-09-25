@@ -34,6 +34,7 @@ class StoreDesignationRequest extends FormRequest
                 Rule::unique('roles', 'name')->where(fn ($query) => $query->where('guard_name', 'web')),
             ],
             'description' => ['nullable', 'string'],
+            'role_type' => ['required', Rule::in(['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])],
             'is_active' => ['required', 'boolean'],
         ];
     }

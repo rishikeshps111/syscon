@@ -36,6 +36,7 @@ class UpdateDesignationRequest extends FormRequest
                     ->ignore($this->route('designation')?->role_id),
             ],
             'description' => ['nullable', 'string'],
+            'role_type' => ['required', Rule::in(['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])],
             'is_active' => ['required', 'boolean'],
         ];
     }

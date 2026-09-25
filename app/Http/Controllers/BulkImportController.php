@@ -292,6 +292,7 @@ class BulkImportController extends Controller
             'level_id',
             'reporting_to',
             'name',
+            'role_type',
             'description',
             'is_active',
         ])->all() + ['role_id' => $role->id]);
@@ -437,6 +438,7 @@ class BulkImportController extends Controller
                     'unique:designations,name',
                     Rule::unique('roles', 'name')->where(fn ($query) => $query->where('guard_name', 'web')),
                 ],
+                'role_type' => ['required', Rule::in(['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])],
                 'description' => ['nullable', 'string'],
                 'is_active' => ['required', 'boolean'],
             ];
@@ -780,8 +782,8 @@ class BulkImportController extends Controller
                 'label' => 'Designations',
                 'permission' => 'designations.create',
                 'index_route' => 'designations.index',
-                'headers' => ['name', 'department', 'level', 'reporting_to', 'is_active', 'description'],
-                'sample' => ['Assistant Manager', 'Operations', 'Level 2', 'Supervisor', 'yes', 'Assists the operations manager.'],
+                'headers' => ['name', 'role_type', 'department', 'level', 'reporting_to', 'is_active', 'description'],
+                'sample' => ['Assistant Manager', 'Staff', 'Operations', 'Level 2', 'Supervisor', 'yes', 'Assists the operations manager.'],
                 'unique_csv' => ['name'],
             ],
         ];
@@ -940,6 +942,7 @@ class BulkImportController extends Controller
             'reporting_to' => $module === 'staff'
                 ? 'Optional. Use the exact existing staff name. Do not use an ID; the name must identify one staff member.'
                 : 'Optional. Use the exact existing role name: Staff, Driver, Controller, or Supervisor. Do not use an ID.',
+            'role_type' => 'Use Staff, Driver, Controller, Supervisor, or Housekeeping.',
             'description' => 'Optional description of the designation and its responsibilities.',
             'employment_type' => in_array($module, ['drivers', 'housekeeping'], true) ? 'Use permanent or contract.' : 'Use full_time, part_time, or contract.',
             'category' => 'Use skilled, unskilled, or managerial.',
