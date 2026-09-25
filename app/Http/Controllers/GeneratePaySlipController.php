@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Attendance;
 use App\Models\Depot;
 use App\Models\SalaryProcessing;
 use App\Models\SalaryProcessingItem;
@@ -12,7 +11,6 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Models\Role;
 
 class GeneratePaySlipController extends Controller implements HasMiddleware
 {
@@ -31,7 +29,6 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
                 'year' => (int) date('Y'),
                 'month' => null,
                 'depot_id' => null,
-                'role_id' => null,
                 'user_id' => null,
             ],
         ]);
@@ -40,20 +37,25 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
     public function users(Request $request)
     {
         $filters = $this->validatedUserFilters($request);
-        $role = Role::find($filters['role_id']);
+        $processing = SalaryProcessing::query()
+            ->where('year', $filters['year'])
+            ->where('month', $filters['month'])
+            ->where('depot_id', $filters['depot_id'])
+            ->whereRaw('LOWER(status) = ?', ['approved'])
+            ->with(['items.user'])
+            ->first();
 
-        if (! $role) {
-            return response()->json([]);
-        }
+        $users = $processing?->items
+            ->filter(fn ($item) => $item->user)
+            ->sortBy(fn ($item) => $item->user->name)
+            ->map(fn ($item) => [
+                'id' => (int) $item->user->id,
+                'text' => trim(($item->user->code ? $item->user->code . ' - ' : '') . $item->user->name),
+            ])
+            ->values()
+            ->all() ?? [];
 
-        return response()->json(
-            $this->usersForRoleAndDepot($role->name, $filters['depot_id'])
-                ->map(fn (User $user) => [
-                    'id' => $user->id,
-                    'text' => trim(($user->code ? $user->code . ' - ' : '') . $user->name),
-                ])
-                ->values()
-        );
+        return response()->json($users);
     }
 
     private function usersForRoleAndDepot(string $roleName, int $depotId)
@@ -109,7 +111,6 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
             'year' => ['required', 'integer', 'between:2000,2100'],
             'month' => ['required', 'integer', 'between:1,12'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
         ];
 
         if ($includeUser) {
@@ -122,7 +123,6 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
             'year' => (int) $validated['year'],
             'month' => (int) $validated['month'],
             'depot_id' => (int) $validated['depot_id'],
-            'role_id' => (int) $validated['role_id'],
             'user_id' => isset($validated['user_id']) ? (int) $validated['user_id'] : null,
         ];
     }
@@ -130,13 +130,15 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
     private function validatedUserFilters(Request $request): array
     {
         $validated = $request->validate([
+            'year' => ['required', 'integer', 'between:2000,2100'],
+            'month' => ['required', 'integer', 'between:1,12'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
         ]);
 
         return [
+            'year' => (int) $validated['year'],
+            'month' => (int) $validated['month'],
             'depot_id' => (int) $validated['depot_id'],
-            'role_id' => (int) $validated['role_id'],
         ];
     }
 
@@ -146,7 +148,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
             ->where('year', $filters['year'])
             ->where('month', $filters['month'])
             ->where('depot_id', $filters['depot_id'])
-            ->where('role_id', $filters['role_id'])
+            ->whereRaw('LOWER(status) = ?', ['approved'])
             ->first();
     }
 
@@ -169,7 +171,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
         abort_if(! $item, 404, 'Selected user does not have a salary processing record.');
 
-        $processing->load(['depot', 'role', 'approver']);
+        $processing->load(['depot', 'approver']);
 
         return [$processing, $item];
     }
@@ -182,7 +184,6 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
                 $month => Carbon::create(null, $month, 1)->format('F'),
             ])->all(),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'roles' => Role::whereIn('name', array_keys(Attendance::ROLES))->orderBy('name')->get(['id', 'name']),
         ];
     }
 
@@ -193,6 +194,12 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
         $month = Carbon::create(null, $processing->month, 1)->format('F');
         $status = $processing->status ?: 'Pending';
+        $totalDays = (float) ($item->total_attendance_days ?? $item->total_working_days ?? 0);
+        $presentDays = (float) ($item->present_days ?? 0);
+        $weekOffDays = (float) ($item->week_off_days ?? 0);
+        $absentDays = (float) ($item->absent_days ?? 0);
+        $lopDays = (float) ($item->unauthorized_leaves ?? 0);
+        $workedDays = (float) ($item->actual_worked_days ?? max($presentDays - $lopDays, 0));
         $stream = '';
 
         $stream .= $this->pdfFillRect(0, 0, 595, 842, [246, 248, 251]);
@@ -207,8 +214,8 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfText($item->user?->code ?: 'No code', 52, 662, 9, 'F1', [107, 114, 128]);
 
         $stream .= $this->pdfCard(216, 642, 160, 74);
-        $stream .= $this->pdfLabelValue('Working Days', (string) $item->total_working_days, 232, 690);
-        $stream .= $this->pdfText($item->total_shifts_completed . ' shifts completed', 232, 662, 9, 'F1', [107, 114, 128]);
+        $stream .= $this->pdfLabelValue('Worked Days', $this->money($workedDays), 232, 690);
+        $stream .= $this->pdfText($month . ' ' . $processing->year, 232, 662, 9, 'F1', [107, 114, 128]);
 
         $stream .= $this->pdfFillRect(396, 642, 163, 74, [17, 24, 39]);
         $stream .= $this->pdfText('NET SALARY', 412, 690, 9, 'F2', [203, 213, 225]);
@@ -222,16 +229,19 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfPair('Depo', $processing->depot?->name ?? '-', 166, 510);
 
         $stream .= $this->pdfCard(307, 488, 252, 128);
-        $stream .= $this->pdfSectionTitle('Attendance', 323, 590);
-        $stream .= $this->pdfPair('Working Days', (string) $item->total_working_days, 323, 562);
-        $stream .= $this->pdfPair('Leave Taken', (string) $item->total_leave_taken, 437, 562);
-        $stream .= $this->pdfPair('Unauthorized Leaves', (string) $item->unauthorized_leaves, 323, 536);
-        $stream .= $this->pdfPair('Shifts Completed', (string) $item->total_shifts_completed, 437, 536);
+        $stream .= $this->pdfSectionTitle('Consolidated Attendance', 323, 590);
+        $stream .= $this->pdfPair('Total Days', $this->money($totalDays), 323, 562);
+        $stream .= $this->pdfPair('Present', $this->money($presentDays), 437, 562);
+        $stream .= $this->pdfPair('Week-off', $this->money($weekOffDays), 323, 536);
+        $stream .= $this->pdfPair('Absent', $this->money($absentDays), 437, 536);
+        $stream .= $this->pdfPair('Worked', $this->money($workedDays), 323, 510);
+        $stream .= $this->pdfPair('LOP Days', $this->money($lopDays), 437, 510);
 
         $stream .= $this->pdfCard(36, 234, 318, 230);
-        $stream .= $this->pdfSectionTitle('Salary Components', 52, 438);
+        $stream .= $this->pdfSectionTitle('Salary Template Components', 52, 438);
         $stream .= $this->pdfFillRect(52, 408, 286, 24, [248, 250, 252]);
         $stream .= $this->pdfText('Component', 64, 416, 9, 'F2', [75, 85, 99]);
+        $stream .= $this->pdfText('Type', 218, 416, 9, 'F2', [75, 85, 99]);
         $stream .= $this->pdfText('Amount', 280, 416, 9, 'F2', [75, 85, 99]);
 
         $rowY = 386;
@@ -242,8 +252,9 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         } else {
             foreach ($visibleComponents as $component) {
                 $stream .= $this->pdfLine(52, $rowY + 15, 338, $rowY + 15, [237, 241, 247]);
-                $type = ($component['type'] ?? 'earning') === 'deduction' ? 'D' : 'E';
-                $stream .= $this->pdfText('[' . $type . '] ' . ($component['name'] ?? 'Component'), 64, $rowY, 10, 'F1', [17, 24, 39]);
+                $type = ucfirst($component['type'] ?? 'earning');
+                $stream .= $this->pdfText($component['name'] ?? 'Component', 64, $rowY, 9, 'F1', [17, 24, 39]);
+                $stream .= $this->pdfText($type, 218, $rowY, 8, 'F1', [75, 85, 99]);
                 $stream .= $this->pdfText($this->money($component['amount'] ?? 0), 280, $rowY, 10, 'F2', [17, 24, 39]);
                 $rowY -= 22;
             }
@@ -256,9 +267,9 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfCard(375, 234, 184, 230);
         $stream .= $this->pdfSectionTitle('Salary Summary', 391, 438);
         $stream .= $this->pdfAmountRow('Gross Salary', $this->money($item->basic_salary), 391, 404);
-        $stream .= $this->pdfAmountRow('Incentive', $this->money($item->incentive), 391, 374);
-        $stream .= $this->pdfAmountRow('Deduction', $this->money($item->deduction), 391, 344);
-        $stream .= $this->pdfAmountRow('LOP', $this->money($item->lop), 391, 314);
+        $stream .= $this->pdfAmountRow('Per-day Salary', $this->money($item->salary_day_rate), 391, 374);
+        $stream .= $this->pdfAmountRow('Template Deduction', $this->money($item->template_deduction), 391, 344);
+        $stream .= $this->pdfAmountRow('LOP Deduction', $this->money($item->lop_deduction ?? $item->lop), 391, 314);
         $stream .= $this->pdfFillRect(391, 254, 152, 44, [17, 24, 39]);
         $stream .= $this->pdfText('NET SALARY', 407, 280, 8, 'F2', [203, 213, 225]);
         $stream .= $this->pdfText($this->money($item->net_salary), 407, 262, 15, 'F2', [255, 255, 255]);
@@ -278,7 +289,8 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
     private function bankDetails(SalaryProcessing $processing, SalaryProcessingItem $item): array
     {
-        $profile = match ($processing->role?->name) {
+        $roleName = $item->user?->roles?->first(fn ($role) => in_array($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true))?->name;
+        $profile = match ($roleName) {
             'Driver' => $item->user?->driverProfile,
             'Housekeeping' => $item->user?->housekeepingProfile,
             'Controller' => $item->user?->controllerProfile,
@@ -287,7 +299,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         };
 
         return [
-            'account_number' => (string) (in_array($processing->role?->name, ['Driver', 'Housekeeping'], true)
+            'account_number' => (string) (in_array($roleName, ['Driver', 'Housekeeping'], true)
                 ? ($profile?->account_number ?: '-')
                 : ($profile?->bank_account_number ?: '-')),
             'ifsc_code' => (string) ($profile?->ifsc_code ?: '-'),

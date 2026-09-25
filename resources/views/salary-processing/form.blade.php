@@ -352,8 +352,7 @@
         $selectedYear = old('year', $filters['year'] ?? date('Y'));
         $selectedMonth = old('month', $filters['month'] ?? date('n'));
         $selectedDepot = old('depot_id', $filters['depot_id'] ?? null);
-        $selectedRole = old('role_id', $filters['role_id'] ?? null);
-        $selectedRoleName = optional($roles->firstWhere('id', (int) $selectedRole))->name;
+        $attendanceImportId = old('attendance_consolidate_import_id', $filters['attendance_consolidate_import_id'] ?? null);
     @endphp
     <section class="section dashboard section-top-padding">
         <div class="page-title">
@@ -376,12 +375,13 @@
             @if ($record)
                 @method('PUT')
             @endif
+            <input type="hidden" name="attendance_consolidate_import_id" value="{{ $attendanceImportId }}">
 
             <div class="main-table-container mb-3">
                 <div class="row">
-                    <div class="col-lg-3 o-f-inp mb-2">
-                        <label for="year">Year <span class="text-danger">*</span></label>
-                        <select name="year" id="year" class="form-select shadow-none">
+                    <div class="col-lg-4 o-f-inp mb-2">
+                        <label for="salary_year">Year <span class="text-danger">*</span></label>
+                        <select name="year" id="salary_year" class="form-select shadow-none salary-filter">
                             @foreach ($years as $year)
                                 <option value="{{ $year }}" {{ (int) $selectedYear === (int) $year ? 'selected' : '' }}>
                                     {{ $year }}
@@ -389,9 +389,9 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-2">
-                        <label for="month">Month <span class="text-danger">*</span></label>
-                        <select name="month" id="month" class="form-select shadow-none">
+                    <div class="col-lg-4 o-f-inp mb-2">
+                        <label for="salary_month">Month <span class="text-danger">*</span></label>
+                        <select name="month" id="salary_month" class="form-select shadow-none salary-filter">
                             @foreach ($months as $value => $label)
                                 <option value="{{ $value }}" {{ (int) $selectedMonth === (int) $value ? 'selected' : '' }}>
                                     {{ $label }}
@@ -399,7 +399,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-2">
+                    <div class="col-lg-4 o-f-inp mb-2">
                         <label for="depot_id">Depo <span class="text-danger">*</span></label>
                         <select name="depot_id" id="depot_id" class="form-select shadow-none salary-filter">
                             <option value="">--- Select ---</option>
@@ -408,16 +408,6 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-3 o-f-inp mb-2">
-                        <label for="role_id">Role <span class="text-danger">*</span></label>
-                        <select name="role_id" id="role_id" class="form-select shadow-none salary-filter">
-                            <option value="">--- Select ---</option>
-                            @foreach ($roles as $role)
-                                <option value="{{ $role->id }}" data-role-name="{{ $role->name }}" {{ (int) $selectedRole === (int) $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
                 </div>
             </div>
 
@@ -428,23 +418,17 @@
                             <tr>
                                 <th class="text-center nowrap">SL No</th>
                                 <th class="text-center">Name</th>
-                                <th class="text-center">Total Leave Taken</th>
-                                <th
-                                    class="text-center driver-only {{ $selectedRoleName === 'Driver' ? '' : 'd-none' }}">
-                                    Total Shifts Completed</th>
-                                <th
-                                    class="text-center non-driver-only {{ $selectedRoleName === 'Driver' ? 'd-none' : '' }}">
-                                    Total Working Days</th>
+                                <th class="text-center">Total Days</th>
+                                <th class="text-center">Total Actual Days</th>
+                                <th class="text-center">Total Worked Days</th>
                                 <th class="text-center">LOP Days</th>
                                 <th class="text-center">Gross Salary</th>
                                 <th class="text-center">Deduction</th>
-                                <th class="text-center">Incentive</th>
-                                <th class="text-center">Unauthorized Leaves</th>
                                 <th class="text-center">Net Salary</th>
                             </tr>
                         </thead>
                         <tbody id="salaryRows">
-                            @include('salary-processing.partials.rows', ['rows' => $rows, 'isDriver' => $selectedRoleName === 'Driver'])
+                            @include('salary-processing.partials.rows', ['rows' => $rows])
                         </tbody>
                     </table>
                 </div>
@@ -496,6 +480,14 @@
                 </div>
             </div>
         </div>
+        <div class="modal fade" id="attendanceInfoModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content cnt-modal-cs">
+                    <div class="modal-header"><h5 class="modal-title">Attendance Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body" id="attendanceInfoContent"></div>
+                </div>
+            </div>
+        </div>
         <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content cnt-modal-cs">
@@ -515,15 +507,11 @@
                 var usersUrl = "{{ route('salary-processing.users') }}";
                 var csrf = "{{ csrf_token() }}";
 
-                function selectedRoleName() {
-                    return $('#role_id option:selected').data('role-name') || '';
-                }
-
                 function escapeHtml(value) {
                     return $('<div>').text(value == null ? '' : value).html();
                 }
 
-                function rowHtml(row, index, isDriver) {
+                function rowHtml(row, index) {
                     var split = JSON.stringify(row.salary_split || []).replace(/'/g, '&#039;');
                     var details = JSON.stringify(row.user_details || {}).replace(/'/g, '&#039;');
                     var selectedInputs = (row.salary_split || []).filter(function (item) {
@@ -533,37 +521,34 @@
                     }).join('');
                     return '<tr data-basic="' + row.basic_salary + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
                         '<td class="text-center">' + (index + 1) + '<input type="hidden" name="items[' + index + '][user_id]" value="' + row.user_id + '"></td>' +
-                        '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button></td>' +
-                        '<td class="text-center">' + row.total_leave_taken + '</td>' +
-                        '<td class="text-center driver-only ' + (isDriver ? '' : 'd-none') + '">' + (isDriver ? row.total_shifts_completed : '-') + '</td>' +
-                        '<td class="text-center non-driver-only ' + (isDriver ? 'd-none' : '') + '">' + row.total_working_days + '</td>' +
-                        '<td class="text-center lop"><span class="lop-days">' + Number(row.unpaid_leave_days || 0) + '</span></td>' +
+                        '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance=\'' + JSON.stringify({total_days: row.total_attendance_days, week_off_days: row.week_off_days, absent_days: row.absent_days, actual_working_days: row.present_days, actual_worked_days: row.actual_worked_days, lop_days: row.unpaid_leave_days, per_day_salary: row.salary_day_rate}).replace(/'/g, '&#039;') + '\'>[Attendance]</button></td>' +
+                        '<td class="text-center">' + row.total_attendance_days + '</td>' +
+                        '<td class="text-center">' + row.present_days + '</td>' +
+                        '<td class="text-center">' + row.actual_worked_days + '</td>' +
+                        '<td class="text-center lop"><span class="lop-days">' + Number(row.unpaid_leave_days || 0) + '</span><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
                         '<td class="text-center"><span class="gross-salary">' + Number(row.basic_salary).toFixed(2) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
-                        '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"></td>' +
-                        '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none salary-adjustment incentive-input" name="items[' + index + '][incentive]" value="' + Number(row.incentive || 0).toFixed(2) + '"></td>' +
-                        '<td class="text-center"><input type="number" step="0.01" min="0" class="form-control shadow-none unauthorized-leaves" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unauthorized_leaves || 0).toFixed(2) + '"></td>' +
+                        '<td class="text-center"><input type="number" step="0.01" class="form-control shadow-none deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '" readonly></td>' +
                         '<td class="text-center net-salary">' + Number(row.net_salary).toFixed(2) + '</td>' +
                         '</tr>';
                 }
 
                 function reloadUsers() {
-                    if (!$('#depot_id').val() || !$('#role_id').val()) {
-                        $('#salaryRows').html('<tr><td colspan="11" class="text-center text-muted">Select depo and role.</td></tr>');
+                    if (!$('#depot_id').val()) {
+                        $('#salaryRows').html('<tr><td colspan="9" class="text-center text-muted">Select a depot.</td></tr>');
                         return;
                     }
 
                     $.get(usersUrl, {
                         depot_id: $('#depot_id').val(),
-                        role_id: $('#role_id').val(),
-                        year: $('#year').val(),
-                        month: $('#month').val()
+                        year: $('#salary_year').val(),
+                        month: $('#salary_month').val()
                     }).done(function (rows) {
-                        var isDriver = selectedRoleName() === 'Driver';
-                        $('.driver-only').toggleClass('d-none', !isDriver);
-                        $('.non-driver-only').toggleClass('d-none', isDriver);
+                        if (rows.length && rows[0].attendance_import_id) {
+                            $('input[name="attendance_consolidate_import_id"]').val(rows[0].attendance_import_id);
+                        }
                         $('#salaryRows').html(rows.length ? rows.map(function (row, index) {
-                            return rowHtml(row, index, isDriver);
-                        }).join('') : '<tr><td colspan="11" class="text-center text-muted">No users found for selected depo and role.</td></tr>');
+                            return rowHtml(row, index);
+                        }).join('') : '<tr><td colspan="9" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
                     }).fail(function () {
                         showToast('error', 'Unable to load users.');
                     });
@@ -589,9 +574,7 @@
 
                 $(document).on('click', '.view-split', function () {
                     var button = $(this);
-                    var split = ($(this).data('split') || []).filter(function (item) {
-                        return String(item.type).toLowerCase() === 'earning';
-                    });
+                    var split = $(this).data('split') || [];
                     var html = split.length ? '<table class="table table-sm"><thead><tr><th>Include</th><th>Salary Component</th><th class="text-end">Amount</th></tr></thead><tbody>' +
                         split.map(function (item) {
                             return '<tr><td><input type="checkbox" class="form-check-input salary-component-toggle" value="' + item.id + '" data-amount="' + item.amount + '" data-name="' + $('<div>').text(item.name).html() + '" ' + (item.selected !== false ? 'checked' : '') + '></td><td>' + $('<div>').text(item.name).html() + '</td><td class="text-end">' + Number(item.amount).toFixed(2) + '</td></tr>';
@@ -619,14 +602,27 @@
                         button.after($('<input>', { type: 'hidden', class: 'selected-component-input', name: name, value: id }));
                     });
                     var selected = split.filter(function (item) { return item.selected; });
-                    var incentive = selected.filter(function (item) { return String(item.name).toLowerCase().indexOf('incent') !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
-                    var gross = selected.filter(function (item) { return String(item.name).toLowerCase().indexOf('incent') === -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var gross = selected.filter(function (item) { return String(item.type).toLowerCase() === 'earning'; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var templateDeduction = selected.filter(function (item) { return String(item.type).toLowerCase() === 'deduction'; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var lopDays = Number(row.find('.lop-days').text()) || 0;
+                    var totalDays = Number(row.data('working-days')) || 0;
+                    var lopDeduction = totalDays > 0 ? (gross / totalDays) * lopDays : 0;
                     row.data('basic', gross);
-                    row.data('incentive', incentive);
                     row.find('.gross-salary').text(gross.toFixed(2));
-                    row.find('.incentive-input').val(incentive.toFixed(2));
-                    recalculateRow(row);
+                    row.find('.deduction-input').val((templateDeduction + lopDeduction).toFixed(2));
+                    row.find('.net-salary').text((gross - templateDeduction - lopDeduction).toFixed(2));
                     $('#salarySplitModal').modal('hide');
+                });
+
+                $(document).on('click', '.view-attendance', function () {
+                    var data = $(this).data('attendance') || {};
+                    var labels = { total_days: 'Total Days', week_off_days: 'Week-off Days', absent_days: 'Absent Days', actual_working_days: 'Actual Working Days', actual_worked_days: 'Actual Worked Days', lop_days: 'LOP Days', per_day_salary: 'Per-day Salary' };
+                    var html = '<div class="attendance-summary">' + Object.keys(labels).map(function (key) {
+                        var value = key === 'per_day_salary' ? '₹' + Number(data[key] || 0).toFixed(2) : Number(data[key] || 0).toFixed(2);
+                        return '<div class="attendance-summary-item"><span class="attendance-summary-label">' + labels[key] + '</span><span class="attendance-summary-value">' + value + '</span></div>';
+                    }).join('') + '</div>';
+                    $('#attendanceInfoContent').html(html);
+                    $('#attendanceInfoModal').modal('show');
                 });
 
                 $(document).on('click', '.view-user-details', function () {
@@ -651,6 +647,11 @@
 
     @section('styles')
         <style>
+            .attendance-details-btn {
+                font-size: 10px;
+                line-height: 1;
+                white-space: nowrap;
+            }
             .salary-table-scroll {
                 overflow-x: auto;
                 width: 100%;
@@ -684,6 +685,16 @@
                 font-size: 11px;
                 margin: 2px auto 0;
             }
+
+            #attendanceInfoModal .modal-dialog { max-width: 430px; }
+            #attendanceInfoModal .modal-content { border: 0; border-radius: 14px; box-shadow: 0 12px 35px rgba(15, 23, 42, .2); }
+            #attendanceInfoModal .modal-header { padding: 18px 22px; border-bottom: 1px solid #eef1f5; }
+            #attendanceInfoModal .modal-title { font-size: 17px; font-weight: 600; }
+            #attendanceInfoModal .modal-body { padding: 18px 22px 22px; }
+            #attendanceInfoModal .attendance-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            #attendanceInfoModal .attendance-summary-item { padding: 12px 14px; border: 1px solid #edf0f4; border-radius: 9px; background: #fafbfc; }
+            #attendanceInfoModal .attendance-summary-label { display: block; color: #6b7280; font-size: 11px; margin-bottom: 4px; }
+            #attendanceInfoModal .attendance-summary-value { display: block; color: #1f2937; font-size: 15px; font-weight: 600; }
 
             .user-details-avatar-wrap {
                 align-items: center;

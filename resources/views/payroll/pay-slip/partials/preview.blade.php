@@ -1,10 +1,16 @@
 @php
-    $money = fn ($value) => number_format((float) $value, 2);
+    $money = fn($value) => number_format((float) $value, 2);
     $components = collect($item->salary_split ?: []);
     $earnings = $components->where('type', 'earning')->values();
     $deductions = $components->where('type', 'deduction')->values();
     $status = $processing->status ?: 'Pending';
     $statusClass = $status === 'Approved' ? 'success' : 'warning';
+    $totalDays = (float) ($item->total_attendance_days ?? $item->total_working_days ?? 0);
+    $presentDays = (float) ($item->present_days ?? 0);
+    $weekOffDays = (float) ($item->week_off_days ?? 0);
+    $absentDays = (float) ($item->absent_days ?? 0);
+    $lopDays = (float) ($item->unauthorized_leaves ?? 0);
+    $workedDays = (float) ($item->actual_worked_days ?? max($presentDays - $lopDays, 0));
 @endphp
 
 <div class="pay-slip-preview">
@@ -17,7 +23,7 @@
         <div class="pay-slip-header-meta">
             <span class="pay-slip-status pay-slip-status-{{ $statusClass }}">{{ $status }}</span>
             <strong>{{ $processing->depot?->name ?? '-' }}</strong>
-            <small>{{ $processing->role?->name ?? '-' }}</small>
+            <small>{{ $monthName }} payroll</small>
         </div>
     </div>
 
@@ -28,9 +34,9 @@
             <small>{{ $item->user?->code ?: 'No code' }}</small>
         </div>
         <div>
-            <span>Total Working Days</span>
-            <strong>{{ $item->total_working_days }}</strong>
-            <small>{{ $item->total_shifts_completed }} shifts completed</small>
+            <span>Actual Worked Days</span>
+            <strong>{{ number_format($workedDays, 2) }}</strong>
+            <small>{{ number_format($lopDays, 2) }} LOP days</small>
         </div>
         <div class="pay-slip-net">
             <span>Net Salary</span>
@@ -74,20 +80,32 @@
             <div class="pay-slip-panel-title">Attendance</div>
             <dl class="pay-slip-detail-list">
                 <div>
-                    <dt>Total Working Days</dt>
-                    <dd>{{ $item->total_working_days }}</dd>
+                    <dt>Total Days</dt>
+                    <dd>{{ number_format($totalDays, 2) }}</dd>
                 </div>
                 <div>
-                    <dt>Total Leave Taken</dt>
-                    <dd>{{ $item->total_leave_taken }}</dd>
+                    <dt>Present Days</dt>
+                    <dd>{{ number_format($presentDays, 2) }}</dd>
                 </div>
                 <div>
-                    <dt>Unauthorized Leaves</dt>
-                    <dd>{{ $item->unauthorized_leaves }}</dd>
+                    <dt>Week-off Days</dt>
+                    <dd>{{ number_format($weekOffDays, 2) }}</dd>
                 </div>
                 <div>
-                    <dt>Total Shifts Completed</dt>
-                    <dd>{{ $item->total_shifts_completed }}</dd>
+                    <dt>Absent Days</dt>
+                    <dd>{{ number_format($absentDays, 2) }}</dd>
+                </div>
+                <div>
+                    <dt>Actual Worked Days</dt>
+                    <dd>{{ number_format($workedDays, 2) }}</dd>
+                </div>
+                <div>
+                    <dt>LOP Days</dt>
+                    <dd>{{ number_format($lopDays, 2) }}</dd>
+                </div>
+                <div>
+                    <dt>Per-day Salary</dt>
+                    <dd>₹{{ $money($item->salary_day_rate) }}</dd>
                 </div>
             </dl>
         </div>
@@ -95,12 +113,13 @@
 
     <div class="pay-slip-grid pay-slip-grid-wide">
         <div class="pay-slip-panel">
-            <div class="pay-slip-panel-title">Earnings</div>
+            <div class="pay-slip-panel-title">Salary Template Components</div>
             <div class="table-responsive">
                 <table class="table pay-slip-table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Component</th>
+                            <th>Type</th>
                             <th class="text-end">Amount</th>
                         </tr>
                     </thead>
@@ -108,31 +127,17 @@
                         @forelse($earnings as $component)
                             <tr>
                                 <td>{{ $component['name'] ?? 'Component' }}</td>
+                                <td>{{ ucfirst($component['type'] ?? 'earning') }}</td>
                                 <td class="text-end">{{ $money($component['amount'] ?? 0) }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="2" class="text-center text-muted">No earning components found.</td>
+                                <td colspan="3" class="text-center text-muted">No salary template components found.</td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            @if($deductions->isNotEmpty())
-                <div class="pay-slip-panel-title mt-3">Deductions</div>
-                <div class="table-responsive">
-                    <table class="table pay-slip-table align-middle mb-0">
-                        <tbody>
-                            @foreach($deductions as $component)
-                                <tr>
-                                    <td>{{ $component['name'] ?? 'Component' }}</td>
-                                    <td class="text-end">{{ $money($component['amount'] ?? 0) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @endif
         </div>
 
         <div class="pay-slip-panel pay-slip-totals">
@@ -141,17 +146,14 @@
                 <span>Gross Salary</span>
                 <strong>{{ $money($item->basic_salary) }}</strong>
             </div>
-            <div class="pay-slip-total-row">
-                <span>Incentive</span>
-                <strong>{{ $money($item->incentive) }}</strong>
+            <div class="pay-slip-total-row"><span>Template
+                    Deductions</span><strong>{{ $money($item->template_deduction ?? $deductions->sum('amount')) }}</strong>
             </div>
+            <div class="pay-slip-total-row"><span>LOP
+                    Deduction</span><strong>{{ $money($item->lop_deduction ?? $item->lop) }}</strong></div>
             <div class="pay-slip-total-row">
-                <span>Deduction</span>
+                <span>Total Deduction</span>
                 <strong>{{ $money($item->deduction) }}</strong>
-            </div>
-            <div class="pay-slip-total-row">
-                <span>LOP</span>
-                <strong>{{ $money($item->lop) }}</strong>
             </div>
             <div class="pay-slip-total-row pay-slip-grand-total">
                 <span>Net Salary</span>

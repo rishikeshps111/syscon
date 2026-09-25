@@ -22,6 +22,7 @@ class SalaryProcessing extends Model
         'year',
         'month',
         'depot_id',
+        'attendance_consolidate_import_id',
         'role_id',
         'salary_date',
         'payment_method',
@@ -58,6 +59,11 @@ class SalaryProcessing extends Model
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    public function attendanceImport(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\AttendanceConsolidateImport::class, 'attendance_consolidate_import_id');
     }
 
     public function creator(): BelongsTo

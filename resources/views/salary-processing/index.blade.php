@@ -34,7 +34,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-3 o-f-inp mb-2">
+                        <div class="col-lg-4 o-f-inp mb-2">
                             <label for="monthFilter">Month</label>
                             <select id="monthFilter" class="form-select shadow-none">
                                 <option value="">--- Select ---</option>
@@ -43,7 +43,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-3 o-f-inp mb-2">
+                        <div class="col-lg-4 o-f-inp mb-2">
                             <label for="depotFilter">Depo</label>
                             <select id="depotFilter" class="form-select shadow-none">
                                 <option value="">--- Select ---</option>
@@ -52,16 +52,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-lg-3 ps-0 o-f-inp mb-2 center-gap">
-                           <div class='w-100'>
-                                <label for="roleFilter">Role</label>
-                            <select id="roleFilter" class="form-select shadow-none">
-                                <option value="">--- Select ---</option>
-                                @foreach ($roles as $role)
-                                    <option value="{{ $role->id }}">{{ $role->name }}</option>
-                                @endforeach
-                            </select>
-                           </div>
+                        <div class="col-lg-1 ps-0 o-f-inp mb-2 center-gap">
                              <button type="button" id="resetFilters" class="btn btn-secondary mb-1">Reset</button>
                         </div>
                       
@@ -80,7 +71,6 @@
                                             <th class="text-center">Month</th>
                                             <th class="text-center">Year</th>
                                             <th class="text-center">Depo</th>
-                                            <th class="text-center">Role</th>
                                             <th class="text-center">Payment Method</th>
                                             <th class="text-center">Created By</th>
                                             <th class="text-center">Date and Time</th>

@@ -20,8 +20,8 @@
             <form id="paySlipForm" method="GET" action="{{ route('salary-slips.preview') }}">
                 <div class="row align-items-end">
                     <div class="col-lg-4 col-md-4 o-f-inp mb-3">
-                        <label for="year">Year <span class="text-danger">*</span></label>
-                        <select name="year" id="year" class="form-select shadow-none pay-slip-filter" required>
+                        <label for="paySlipYear">Year <span class="text-danger">*</span></label>
+                        <select name="year" id="paySlipYear" class="form-select shadow-none pay-slip-filter" required>
                             @foreach ($years as $year)
                                 <option value="{{ $year }}" @selected((int) $filters['year'] === (int) $year)>{{ $year }}
                                 </option>
@@ -29,8 +29,8 @@
                         </select>
                     </div>
                     <div class="col-lg-4 col-md-4 o-f-inp mb-3">
-                        <label for="month">Month <span class="text-danger">*</span></label>
-                        <select name="month" id="month" class="form-select shadow-none pay-slip-filter" required>
+                        <label for="paySlipMonth">Month <span class="text-danger">*</span></label>
+                        <select name="month" id="paySlipMonth" class="form-select shadow-none pay-slip-filter" required>
                             <option value="">--- Select ---</option>
                             @foreach ($months as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
@@ -38,26 +38,17 @@
                         </select>
                     </div>
                     <div class="col-lg-4 col-md-4 o-f-inp mb-3">
-                        <label for="depot_id">Depo <span class="text-danger">*</span></label>
-                        <select name="depot_id" id="depot_id" class="form-select shadow-none pay-slip-filter" required>
+                        <label for="paySlipDepot">Depo <span class="text-danger">*</span></label>
+                        <select name="depot_id" id="paySlipDepot" class="form-select shadow-none pay-slip-filter" required>
                             <option value="">--- Select ---</option>
                             @foreach ($depots as $depot)
                                 <option value="{{ $depot->id }}">{{ $depot->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-4 col-md-4 o-f-inp mb-3">
-                        <label for="role_id">Role <span class="text-danger">*</span></label>
-                        <select name="role_id" id="role_id" class="form-select shadow-none pay-slip-filter" required>
-                            <option value="">--- Select ---</option>
-                            @foreach ($roles as $role)
-                                <option value="{{ $role->id }}">{{ $role->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
                     <div class="col-lg-4 col-md-8 o-f-inp mb-3">
-                        <label for="user_id">User <span class="text-danger">*</span></label>
-                        <select name="user_id" id="user_id" class="form-select shadow-none" required disabled>
+                        <label for="paySlipUser">User <span class="text-danger">*</span></label>
+                        <select name="user_id" id="paySlipUser" class="form-select shadow-none" required disabled>
                             <option value="">Select filters first</option>
                         </select>
                     </div>
@@ -96,8 +87,17 @@
     @section('scripts')
         <script>
             $(function () {
-                var userSelect = $('#user_id');
-                var paySlipModal = new bootstrap.Modal(document.getElementById('paySlipModal'));
+                var userSelect = $('#paySlipUser');
+                var paySlipModal = null;
+
+                function showPaySlipModal() {
+                    if (!paySlipModal && window.bootstrap) {
+                        paySlipModal = new bootstrap.Modal(document.getElementById('paySlipModal'));
+                    }
+                    if (paySlipModal) {
+                        paySlipModal.show();
+                    }
+                }
 
                 function setLoading(element) {
                     var $element = $(element);
@@ -131,7 +131,7 @@
                 }
 
                 function userFiltersReady() {
-                    return $('#depot_id').val() && $('#role_id').val();
+                    return Boolean($('#paySlipYear').val() && $('#paySlipMonth').val() && $('#paySlipDepot').val());
                 }
 
                 function resetUsers(message) {
@@ -145,39 +145,54 @@
                         .attr('href', enabled ? url : '#');
                 }
 
+                var usersRequest = null;
+                var usersRequestVersion = 0;
+
                 function loadUsers() {
+                    var version = ++usersRequestVersion;
+                    if (usersRequest) usersRequest.abort();
+                    setDownloadState(false, '#');
+
                     if (!userFiltersReady()) {
-                        resetUsers('Select depo and role first');
+                        resetUsers('Select year, month and depot first');
                         return;
                     }
 
                     resetUsers('Loading users...');
 
-                    $.get(@json(route('salary-slips.users')), {
-                        depot_id: $('#depot_id').val(),
-                        role_id: $('#role_id').val()
+                    usersRequest = $.getJSON(@json(route('salary-slips.users')), {
+                        year: $('#paySlipYear').val(),
+                        month: $('#paySlipMonth').val(),
+                        depot_id: $('#paySlipDepot').val()
                     }).done(function (users) {
+                        if (version !== usersRequestVersion) return;
                         if (!users.length) {
                             resetUsers('No users found');
-                            showToast('warning', 'No users found for the selected role and depo.');
+                            showToast('warning', 'No approved salary processing found for the selected period and depot.');
                             return;
                         }
 
                         userSelect.prop('disabled', false).html('<option value="">--- Select ---</option>' + users.map(function (user) {
                             return '<option value="' + user.id + '">' + $('<div>').text(user.text).html() + '</option>';
                         }).join(''));
-                    }).fail(function (xhr) {
+                    }).fail(function (xhr, status) {
+                        if (status === 'abort' || version !== usersRequestVersion) return;
                         resetUsers('Unable to load users');
                         showToast('error', xhr.responseJSON?.message || 'Unable to load users.');
                     });
                 }
 
-                $(document).on('change', '.pay-slip-filter', loadUsers);
+
+                $('#paySlipYear, #paySlipMonth, #paySlipDepot').on('change', function () {
+                    loadUsers();
+                });
 
                 $('#resetPaySlip').on('click', function () {
-                    $('#month, #depot_id, #role_id').val('');
-                    $('#year').val(@json(date('Y')));
-                    resetUsers('Select depo and role first');
+                    ++usersRequestVersion;
+                    if (usersRequest) usersRequest.abort();
+                    $('#paySlipMonth, #paySlipDepot').val('');
+                    $('#paySlipYear').val(@json(date('Y')));
+                    resetUsers('Select year, month and depot first');
                     $('#paySlipModalBody').html('<div class="text-center py-5 text-muted">Generate a pay slip to view details.</div>');
                     setDownloadState(false, '#');
                 });
@@ -195,7 +210,7 @@
                     setLoading(button);
                     $('#paySlipModalBody').html('<div class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Generating pay slip...</div>');
                     setDownloadState(false, '#');
-                    paySlipModal.show();
+                    showPaySlipModal();
 
                     $.get(form.attr('action'), form.serialize())
                         .done(function (response) {

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Attendance;
+use App\Models\AttendanceConsolidateImport;
 use App\Models\Depot;
 use App\Models\Leave;
 use App\Models\SalaryProcessing;
@@ -16,8 +16,8 @@ use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use Spatie\Permission\Models\Role;
 use Yajra\DataTables\Facades\DataTables;
 
 class SalaryProcessingController extends Controller implements HasMiddleware
@@ -37,11 +37,11 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = SalaryProcessing::with(['depot', 'role', 'creator', 'approver'])
+            $query = SalaryProcessing::with(['depot', 'attendanceImport', 'creator', 'approver'])
                 ->withCount('items')
                 ->latest();
 
-            foreach (['year', 'month', 'depot_id', 'role_id'] as $field) {
+            foreach (['year', 'month', 'depot_id'] as $field) {
                 if ($request->filled($field)) {
                     $query->where($field, $request->input($field));
                 }
@@ -52,7 +52,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
                 ->addColumn('month_name', fn($row) => Carbon::create($row->year, $row->month, 1)->format('F'))
                 ->addColumn('depot_name', fn($row) => $row->depot?->name ?? '-')
-                ->addColumn('role_name', fn($row) => $row->role?->name ?? '-')
+                ->addColumn('attendance_import', fn($row) => $row->attendanceImport?->original_filename ?? '-')
                 ->addColumn('created_by_name', fn($row) => $row->creator?->name ?? '-')
                 ->addColumn('created_date_time', fn($row) => $row->created_at?->format('d-m-Y h:i A') ?? '-')
                 ->addColumn('approved_by_name', fn($row) => $row->approver ? $row->approver->name . '<br><small>' . $row->approved_at?->format('d-m-Y h:i A') . '</small>' : '-')
@@ -83,8 +83,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
         DB::transaction(function () use ($data) {
             $processing = SalaryProcessing::updateOrCreate(
-                collect($data)->only(['year', 'month', 'depot_id', 'role_id'])->all(),
+                collect($data)->only(['year', 'month', 'depot_id'])->all(),
                 collect($data)->only(['salary_date', 'payment_method', 'remarks'])->merge([
+                    'attendance_consolidate_import_id' => $data['attendance_consolidate_import_id'],
                     'status' => 'Completed',
                     'created_by' => auth()->id(),
                     'updated_by' => auth()->id(),
@@ -101,7 +102,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     public function edit(SalaryProcessing $salaryProcessing)
     {
-        $salaryProcessing->load(['items.user', 'items.salaryProcessing.role', 'depot', 'role']);
+        $salaryProcessing->load(['items.user', 'items.salaryProcessing.attendanceImport', 'depot', 'attendanceImport']);
         $rows = $salaryProcessing->items->map(fn($item) => $this->storedRow($item))->values();
 
         return view('salary-processing.form', $this->commonData() + [
@@ -111,7 +112,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'year' => $salaryProcessing->year,
                 'month' => $salaryProcessing->month,
                 'depot_id' => $salaryProcessing->depot_id,
-                'role_id' => $salaryProcessing->role_id,
+                'attendance_consolidate_import_id' => $salaryProcessing->attendance_consolidate_import_id,
             ],
         ]);
     }
@@ -125,7 +126,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'year' => $data['year'],
                 'month' => $data['month'],
                 'depot_id' => $data['depot_id'],
-                'role_id' => $data['role_id'],
+                'attendance_consolidate_import_id' => $data['attendance_consolidate_import_id'],
                 'status' => $salaryProcessing->status === 'Approved' ? 'Completed' : $salaryProcessing->status,
                 'updated_by' => auth()->id(),
                 'approved_by' => null,
@@ -170,7 +171,6 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'year' => ['nullable', 'integer', 'between:2000,2100'],
             'month' => ['nullable', 'integer', 'between:1,12'],
             'depot_id' => [$requireUserSelection ? 'required' : 'nullable', 'integer', 'exists:depots,id'],
-            'role_id' => [$requireUserSelection ? 'required' : 'nullable', 'integer', 'exists:roles,id'],
         ];
 
         $validated = $request->validate($rules);
@@ -179,17 +179,21 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'year' => (int) ($validated['year'] ?? date('Y')),
             'month' => (int) ($validated['month'] ?? date('n')),
             'depot_id' => isset($validated['depot_id']) ? (int) $validated['depot_id'] : null,
-            'role_id' => isset($validated['role_id']) ? (int) $validated['role_id'] : null,
+            'attendance_consolidate_import_id' => ($validated['depot_id'] ?? null)
+                ? AttendanceConsolidateImport::where('year', (int) ($validated['year'] ?? date('Y')))
+                    ->where('month', (int) ($validated['month'] ?? date('n')))
+                    ->where('depot_id', (int) $validated['depot_id'])->latest('id')->value('id')
+                : null,
         ];
     }
 
     private function validatedPayload(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'year' => ['required', 'integer', 'between:2000,2100'],
             'month' => ['required', 'integer', 'between:1,12'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
+            'attendance_consolidate_import_id' => ['required', 'integer', 'exists:attendance_consolidate_imports,id'],
             'salary_date' => ['nullable', 'date'],
             'payment_method' => ['required', Rule::in(array_keys(SalaryProcessing::PAYMENT_METHODS))],
             'remarks' => ['nullable', 'string'],
@@ -201,11 +205,19 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'items.*.selected_components' => ['sometimes', 'array'],
             'items.*.selected_components.*' => ['integer'],
         ]);
+
+        $import = AttendanceConsolidateImport::findOrFail($data['attendance_consolidate_import_id']);
+        if ((int) $import->year !== (int) $data['year'] || (int) $import->month !== (int) $data['month'] || (int) $import->depot_id !== (int) $data['depot_id']) {
+            throw ValidationException::withMessages(['attendance_consolidate_import_id' => 'The selected attendance import does not match the selected period and depot.']);
+        }
+
+        $data['attendance_consolidate_import_id'] = (int) $import->id;
+        return $data;
     }
 
     private function syncItems(SalaryProcessing $processing, array $data): void
     {
-        $filters = collect($data)->only(['year', 'month', 'depot_id', 'role_id'])->all();
+        $filters = collect($data)->only(['year', 'month', 'depot_id', 'attendance_consolidate_import_id'])->all();
         $baseRows = $this->salaryRows($filters)->keyBy('user_id');
         $keptIds = [];
 
@@ -219,8 +231,6 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
             $unauthorizedLeaves = (float) ($item['unauthorized_leaves'] ?? 0);
             $row = $this->applySelectedComponents($row, $item['selected_components'] ?? []);
-            $row['deduction'] = array_key_exists('deduction', $item) ? (float) $item['deduction'] : (float) $row['deduction'];
-            $row['incentive'] = array_key_exists('incentive', $item) ? (float) $item['incentive'] : (float) $row['incentive'];
             $calculated = $this->applyUnauthorizedLeave($row, $unauthorizedLeaves);
 
             $salaryItem = SalaryProcessingItem::updateOrCreate(
@@ -236,6 +246,14 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                     'incentive',
                     'unauthorized_leaves',
                     'net_salary',
+                    'present_days',
+                    'week_off_days',
+                    'absent_days',
+                    'total_attendance_days',
+                    'actual_worked_days',
+                    'salary_day_rate',
+                    'template_deduction',
+                    'lop_deduction',
                     'salary_split',
                 ])->all()
             );
@@ -247,90 +265,117 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function salaryRows(array $filters)
     {
-        if (empty($filters['depot_id']) || empty($filters['role_id'])) {
+        if (empty($filters['depot_id'])) {
             return collect();
         }
 
-        $role = Role::find($filters['role_id']);
+        $import = ! empty($filters['attendance_consolidate_import_id'])
+            ? AttendanceConsolidateImport::with('rows')->find($filters['attendance_consolidate_import_id'])
+            : AttendanceConsolidateImport::with('rows')
+                ->where('year', $filters['year'])
+                ->where('month', $filters['month'])
+                ->where('depot_id', $filters['depot_id'])
+                ->latest('id')
+                ->first();
 
-        if (! $role) {
+        if (! $import || (int) $import->depot_id !== (int) $filters['depot_id']
+            || (int) $import->year !== (int) $filters['year']
+            || (int) $import->month !== (int) $filters['month']) {
             return collect();
         }
 
-        $users = $this->usersForRoleAndDepot($role->name, (int) $filters['depot_id']);
+        $users = $this->usersForDepot((int) $filters['depot_id']);
+        $attendanceRowsByUser = $import->rows->whereNotNull('user_id')->keyBy('user_id');
+        $attendanceRowsByRef = $import->rows->keyBy('employee_ref_code');
         $start = Carbon::create((int) $filters['year'], (int) $filters['month'], 1)->startOfMonth();
         $end = $start->copy()->endOfMonth();
         $workingDays = $start->daysInMonth;
 
-        return $users->map(function (User $user) use ($role, $start, $end, $workingDays) {
-            $split = $this->salarySplit($user, $role->name);
+        return $users->map(function (User $user) use ($attendanceRowsByUser, $attendanceRowsByRef, $import, $start, $end, $workingDays) {
+            $attendance = $attendanceRowsByUser->get($user->id)
+                ?? $attendanceRowsByRef->get($user->ref_code);
+            if (! $attendance) {
+                return null;
+            }
+            $role = $user->roles->first(function ($role) {
+                return in_array($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true);
+            }) ?? $user->roles->first();
+            if (! $role) {
+                return null;
+            }
+            $roleName = $role->name;
+            $split = $this->salarySplit($user, $roleName);
             $earningSplit = collect($split)->where('type', 'earning')->values();
-            $incentive = (float) $earningSplit->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
-            $grossSalary = $this->grossSalary(
-                $user,
-                $earningSplit->reject(fn($item) => $this->isIncentiveComponent($item))->all()
-            );
+            $incentive = 0;
+            $grossSalary = $this->grossSalary($user, $earningSplit->all());
             $componentDeduction = (float) collect($split)->where('type', 'deduction')->sum('amount');
             $leaveTaken = $this->leaveTaken($user->id, $start, $end);
-            $unpaidLeaveDays = $this->unpaidLeaveTaken($user->id, $start, $end);
-            $leaveDeduction = $workingDays > 0
-                ? round(((float) $grossSalary / $workingDays) * $unpaidLeaveDays, 2)
+            $lopDays = max((float) $attendance->absent_days - (float) $attendance->week_off_days, 0);
+            $unpaidLeaveDays = $lopDays;
+            $totalDays = (float) $attendance->total_days;
+            $dailySalaryExact = $totalDays > 0 ? $grossSalary / $totalDays : 0;
+            $dailySalary = round($dailySalaryExact, 2);
+            $lopDeduction = round($dailySalaryExact * $lopDays, 2);
+            $leaveDeduction = $totalDays > 0
+                ? $lopDeduction
                 : 0;
-            $totalShifts = match ($role->name) {
+            $totalShifts = match ($roleName) {
                 'Driver' => $this->completedDriverShifts($user, $start, $end),
-                'Housekeeping' => Attendance::where('user_id', $user->id)->whereBetween('attendance_date', [$start, $end])->whereIn('status', ['present', 'half_day'])->count(),
+                'Housekeeping' => (int) $attendance->total_days,
                 default => 0,
             };
             $row = [
                 'user_id' => $user->id,
                 'name' => $user->name,
-                'role_name' => $role->name,
-                'aadhaar_no' => $this->aadhaarNo($user, $role->name),
-                'user_details' => $this->userDetails($user, $role->name),
+                'role_name' => $roleName,
+                'aadhaar_no' => $this->aadhaarNo($user, $roleName),
+                'user_details' => $this->userDetails($user, $roleName),
+                'present_days' => (float) $attendance->present_days,
+                'week_off_days' => (float) $attendance->week_off_days,
+                'absent_days' => (float) $attendance->absent_days,
+                'total_attendance_days' => (float) $attendance->total_days,
+                'actual_worked_days' => max((float) $attendance->present_days - $lopDays, 0),
+                'attendance_import_id' => (int) $import->id,
                 'total_leave_taken' => $leaveTaken,
                 'unpaid_leave_days' => $unpaidLeaveDays,
                 'total_shifts_completed' => $totalShifts,
-                'total_working_days' => $workingDays,
+                'total_working_days' => (int) $attendance->total_days,
                 'basic_salary' => $grossSalary,
-                'deduction' => $componentDeduction + $leaveDeduction,
+                'deduction' => $componentDeduction,
+                'template_deduction' => $componentDeduction,
+                'lop_deduction' => $lopDeduction,
+                'salary_day_rate' => $dailySalary,
                 'incentive' => $incentive,
                 'salary_split' => collect($split)->values()->all(),
             ];
 
-            return $this->applyUnauthorizedLeave($row, 0);
-        });
+            return $this->applyUnauthorizedLeave($row, $lopDays);
+        })->filter()->values();
     }
 
-    private function usersForRoleAndDepot(string $roleName, int $depotId)
+    private function usersForDepot(int $depotId)
     {
-        return User::role($roleName)
-            ->where('is_active', true)
-            ->with(['driverProfile.depot', 'housekeepingProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'supervisorProfile.depot'])
-            ->where(function ($query) use ($roleName, $depotId) {
-                match ($roleName) {
-                    'Driver' => $query->whereHas('driverProfile', fn($profile) => $profile->where('depot_id', $depotId)),
-                    'Housekeeping' => $query->whereHas('housekeepingProfile', fn($profile) => $profile->where('depot_id', $depotId)),
-                    'Controller' => $query->whereHas('controllerProfile', fn($profile) => $profile->where('depot_id', $depotId)),
-                    'Supervisor' => $query->whereHas('supervisorProfile', fn($profile) => $profile->where('depot_id', $depotId)),
-                    default => $query->whereHas('staffProfile', fn($profile) => $profile->where('depot_id', $depotId)),
-                };
+        return User::query()
+            ->with(['roles', 'driverProfile.depot', 'housekeepingProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'supervisorProfile.depot'])
+            ->where(function ($query) use ($depotId) {
+                foreach (['driverProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile', 'staffProfile'] as $profile) {
+                    $query->orWhereHas($profile, fn ($profileQuery) => $profileQuery->where('depot_id', $depotId));
+                }
             })
             ->orderBy('name')
-            ->get(['id', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active']);
+            ->get(['id', 'ref_code', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active']);
     }
 
     private function salarySplit(User $user, string $roleName): array
     {
         $designationId = $roleName === 'Staff' ? $user->staffProfile?->designation_id : null;
         $components = SalaryComponents::forRole($roleName, $designationId);
-        $values = SalaryComponents::valuesFor($user);
-
         return $components
             ->map(fn($component) => [
                 'id' => $component->id,
                 'name' => $component->component_name,
                 'type' => $component->type,
-                'amount' => (float) ($values[$component->id] ?? $component->template_default_amount ?? 0),
+                'amount' => (float) ($component->template_default_amount ?? 0),
                 'selected' => true,
             ])
             ->values()
@@ -343,14 +388,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             return (float) collect($earningSplit)->sum('amount');
         }
 
-        return (float) (
-            $user->driverProfile?->salary
-            ?? $user->housekeepingProfile?->salary
-            ?? $user->staffProfile?->gross_salary
-            ?? $user->controllerProfile?->gross_salary
-            ?? $user->supervisorProfile?->gross_salary
-            ?? 0
-        );
+        return 0.0;
     }
 
     private function aadhaarNo(User $user, string $roleName): ?string
@@ -405,7 +443,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             $row['basic_salary'] = (float) $earnings
                 ->reject(fn($item) => $this->isIncentiveComponent($item))
                 ->sum('amount');
-            $row['deduction'] = (float) $selected->where('type', 'deduction')->sum('amount');
+        $row['deduction'] = (float) $selected->where('type', 'deduction')->sum('amount');
         }
 
         $row['salary_split'] = $split->values()->all();
@@ -461,7 +499,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $lop = round($perDay * $unauthorizedLeaves, 2);
         $row['unauthorized_leaves'] = $unauthorizedLeaves;
         $row['lop'] = $lop;
-        $row['net_salary'] = round((float) $row['basic_salary'] + (float) $row['incentive'] - (float) $row['deduction'] - $lop, 2);
+        $row['deduction'] = (float) $row['deduction'] + $lop;
+        $row['net_salary'] = round((float) $row['basic_salary'] + (float) $row['incentive'] - (float) $row['deduction'], 2);
 
         return $row;
     }
@@ -493,10 +532,20 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         return [
             'user_id' => $item->user_id,
             'name' => $item->user?->name ?? '-',
-            'role_name' => $item->salaryProcessing?->role?->name ?? '',
+            'role_name' => $item->user?->roles?->sortBy(fn ($role) => array_search($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true))->first()?->name ?? '',
             'aadhaar_no' => $item->aadhaar_no,
-            'user_details' => $this->userDetails($item->user, $item->salaryProcessing?->role?->name ?? ''),
+            'user_details' => $this->userDetails($item->user, $item->user?->roles?->sortBy(fn ($role) => array_search($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true))->first()?->name ?? ''),
             'total_leave_taken' => (float) $item->total_leave_taken,
+            'present_days' => (float) ($item->present_days ?? 0),
+            'week_off_days' => (float) ($item->week_off_days ?? 0),
+            'absent_days' => (float) ($item->absent_days ?? 0),
+            'week_off_days' => (float) ($item->week_off_days ?? 0),
+            'absent_days' => (float) ($item->absent_days ?? 0),
+            'total_attendance_days' => (float) ($item->total_attendance_days ?? $item->total_working_days),
+            'actual_worked_days' => (float) ($item->actual_worked_days ?? 0),
+            'salary_day_rate' => (float) ($item->salary_day_rate ?? 0),
+            'template_deduction' => (float) ($item->template_deduction ?? 0),
+            'lop_deduction' => (float) ($item->lop_deduction ?? 0),
             'unpaid_leave_days' => $unpaidLeaveDays,
             'total_shifts_completed' => $item->total_shifts_completed,
             'total_working_days' => $item->total_working_days,
@@ -520,7 +569,6 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'months' => collect(range(1, 12))->mapWithKeys(fn($month) => [$month => Carbon::create((int) date('Y'), $month, 1)->format('F')])->all(),
             'years' => range((int) date('Y') - 5, (int) date('Y') + 1),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'roles' => Role::whereIn('name', array_keys(Attendance::ROLES))->orderBy('name')->get(['id', 'name']),
             'paymentMethods' => SalaryProcessing::PAYMENT_METHODS,
         ];
     }

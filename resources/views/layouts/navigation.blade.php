@@ -366,7 +366,7 @@
                                     </a>
                                 </li>
                             @endcan
-                            @can('attendance-management.view')
+                            {{-- @can('attendance-management.view')
                                 <li>
                                     <a href="{{ route('attendance-management.index') }}"
                                         class="{{ request()->routeIs('attendance-management.*') ? 'sub-active' : '' }}">
@@ -374,7 +374,7 @@
                                             Management</span>
                                     </a>
                                 </li>
-                            @endcan
+                            @endcan --}}
                             @can('attendance-management.view')
                                 <li><a href="{{ route('attendance-consolidate.index') }}" class="{{ request()->routeIs('attendance-consolidate.*') ? 'sub-active' : '' }}"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Attendance Consolidate</span></a></li>
                             @endcan

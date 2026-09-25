@@ -9,7 +9,6 @@
                     data.year = $('#yearFilter').val();
                     data.month = $('#monthFilter').val();
                     data.depot_id = $('#depotFilter').val();
-                    data.role_id = $('#roleFilter').val();
                 }
             },
             columns: [
@@ -18,7 +17,6 @@
                 { data: 'month_name', name: 'month', className: 'text-center' },
                 { data: 'year', name: 'year', className: 'text-center' },
                 { data: 'depot_name', name: 'depot.name', orderable: false, className: 'text-center' },
-                { data: 'role_name', name: 'role.name', orderable: false, className: 'text-center' },
                 { data: 'payment_method', name: 'payment_method', className: 'text-center' },
                 { data: 'created_by_name', name: 'creator.name', orderable: false, className: 'text-center' },
                 { data: 'created_date_time', name: 'created_at', className: 'text-center' },
@@ -28,13 +26,13 @@
             ]
         });
 
-        $('#yearFilter, #monthFilter, #depotFilter, #roleFilter').on('change', function () {
+        $('#yearFilter, #monthFilter, #depotFilter').on('change', function () {
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
         });
 
         $('#resetFilters').on('click', function () {
-            $('#yearFilter, #monthFilter, #depotFilter, #roleFilter').val('');
+            $('#yearFilter, #monthFilter, #depotFilter').val('');
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
         });
