@@ -30,7 +30,7 @@ class UserSalaryComponentValueSeeder extends Seeder
                         return;
                     }
 
-                    $designationId = $roleName === 'Staff' ? $profile->designation_id : null;
+                    $designationId = $profile->designation_id;
                     $components = SalaryComponents::forRole($roleName, $designationId);
 
                     if ($components->isEmpty()) {

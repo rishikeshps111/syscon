@@ -22,7 +22,7 @@
                         <div class="col-lg-3">
                             <div class="o-f-inp">
                                 <label for="roleFilter">Filter by Role</label>
-                                <select name="role_id" id="roleFilter" class="form-select shadow-none">
+                                <select name="role_id" id="roleFilter" class="form-select shadow-none select2">
                                     <option value="">--- Select ---</option>
                                     @foreach ($roles as $role)
                                         <option value="{{ $role->id }}" data-role-name="{{ $role->name }}">{{ $role->name }}</option>
@@ -30,13 +30,13 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-lg-3 d-none" id="designationFilterWrapper">
+                        <div class="col-lg-3" id="designationFilterWrapper">
                             <div class="o-f-inp">
                                 <label for="designationFilter">Filter by Designation</label>
-                                <select name="designation_id" id="designationFilter" class="form-select shadow-none">
+                                <select name="designation_id" id="designationFilter" class="form-select shadow-none select2">
                                     <option value="">--- Select ---</option>
                                     @foreach ($designations as $designation)
-                                        <option value="{{ $designation->id }}">{{ $designation->name }}</option>
+                                        <option value="{{ $designation->id }}" data-role-type="{{ $designation->role_type }}" data-role-id="{{ $roles->firstWhere('name', $designation->role_type)?->id }}">{{ $designation->name }}</option>
                                     @endforeach
                                 </select>
                             </div>

@@ -22,27 +22,22 @@ class SalaryComponentSeeder extends Seeder
         $zeroValues = array_fill_keys(array_keys($this->components()), 0);
         $targets = collect();
 
-        if ($roles->has('Staff')) {
-            $targets = $targets->concat(
-                Designation::orderBy('name')->get(['id', 'name'])->map(function (Designation $designation) use ($roles, $staffTemplates, $zeroValues) {
-                    return [
-                        'role_id' => $roles['Staff']->id,
-                        'designation_id' => $designation->id,
-                        'values' => $staffTemplates[Str::lower(trim($designation->name))] ?? $zeroValues,
-                    ];
-                })
-            );
-        }
+        Designation::whereIn('role_type', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'role_type'])
+            ->each(function (Designation $designation) use (&$targets, $roles, $staffTemplates, $zeroValues) {
+                $role = $roles->get($designation->role_type);
 
-        foreach (['Driver', 'Controller', 'Supervisor', 'Housekeeping'] as $roleName) {
-            if ($roles->has($roleName)) {
+                if (! $role) {
+                    return;
+                }
+
                 $targets->push([
-                    'role_id' => $roles[$roleName]->id,
-                    'designation_id' => null,
-                    'values' => $zeroValues,
+                    'role_id' => $role->id,
+                    'designation_id' => $designation->id,
+                    'values' => $staffTemplates[Str::lower(trim($designation->name))] ?? $zeroValues,
                 ]);
-            }
-        }
+            });
 
         foreach ($targets as $target) {
             foreach ($this->components() as $componentName => $componentData) {

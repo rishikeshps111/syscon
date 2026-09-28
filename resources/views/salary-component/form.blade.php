@@ -60,16 +60,14 @@
                                 @enderror
                             </div>
 
-                            <div class="col-lg-12 o-f-inp mb-3 staff-designation-field d-none">
+                            <div class="col-lg-12 o-f-inp mb-3 designation-field d-none">
                                 <label for="designation_ids">HR Designation <span class="text-danger">*</span></label>
                                 <select name="designation_ids[]" id="designation_ids" class="form-select shadow-none select2">
                                     <option value=""></option>
-                                    @foreach ($designations as $designation)
-                                        <option value="{{ $designation->id }}"
-                                            {{ $designation->id === $selectedDesignationId ? 'selected' : '' }}>
-                                            {{ $designation->name }}
-                                        </option>
-                                    @endforeach
+                    @foreach ($designations as $designation)
+                        <option value="{{ $designation->id }}" data-role-type="{{ $designation->role_type }}"
+                            {{ $designation->id === $selectedDesignationId ? 'selected' : '' }}>{{ $designation->name }}</option>
+                    @endforeach
                                 </select>
                                 @error('designation_ids')
                                     <span class="text-danger">{{ $message }}</span>
@@ -124,20 +122,30 @@
 
                 $('#designation_ids').select2({
                     width: '100%',
-                    placeholder: '--- Select HR Designation ---',
+                    placeholder: '--- Select Designation ---',
                     allowClear: true
                 });
 
-                function toggleDesignation() {
-                    var hasStaffRole = $('#role_ids option:selected').data('role-name') === 'Staff';
+                var allDesignationOptions = $('#designation_ids option').clone();
 
-                    if (hasStaffRole) {
-                        $('.staff-designation-field').removeClass('d-none');
-                        $('#designation_ids').prop('disabled', false);
-                    } else {
-                        $('.staff-designation-field').addClass('d-none');
-                        $('#designation_ids').val(null).prop('disabled', true).trigger('change.select2');
+                function toggleDesignation() {
+                    var roleName = $('#role_ids option:selected').data('role-name');
+                    var $designation = $('#designation_ids');
+                    var selectedDesignation = $designation.val();
+                    var selectedRoleType = $designation.find('option:selected').data('role-type');
+                    var $matchingOptions = allDesignationOptions.filter(function () {
+                        return !$(this).val() || (roleName && $(this).data('role-type') === roleName);
+                    }).clone();
+
+                    $('.designation-field').toggleClass('d-none', !roleName);
+                    $designation.prop('disabled', !roleName);
+                    $designation.empty().append($matchingOptions);
+
+                    if (!roleName || (selectedRoleType && selectedRoleType !== roleName)) {
+                        selectedDesignation = '';
                     }
+
+                    $designation.val(selectedDesignation).trigger('change.select2');
                 }
 
                 toggleDesignation();

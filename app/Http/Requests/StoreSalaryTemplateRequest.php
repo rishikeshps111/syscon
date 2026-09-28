@@ -23,7 +23,7 @@ class StoreSalaryTemplateRequest extends FormRequest
                 'integer',
                 Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])),
             ],
-            'designation_id' => ['nullable', 'integer', 'exists:designations,id'],
+            'designation_id' => ['required', 'integer', 'exists:designations,id'],
             'components' => ['required', 'array', 'min:1'],
             'components.*' => ['required', 'numeric', 'min:0'],
         ];
@@ -33,10 +33,10 @@ class StoreSalaryTemplateRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $role = Role::find($this->input('role_id'));
-            $designationId = $role?->name === 'Staff' ? $this->integer('designation_id') : null;
+            $designationId = $this->integer('designation_id') ?: null;
 
-            if ($role?->name === 'Staff' && ! $designationId) {
-                $validator->errors()->add('designation_id', 'The designation field is required for Staff templates.');
+            if ($role && $designationId && ! \App\Models\Designation::whereKey($designationId)->where('role_type', $role->name)->exists()) {
+                $validator->errors()->add('designation_id', 'The selected designation must belong to the selected role.');
                 return;
             }
 
@@ -57,9 +57,7 @@ class StoreSalaryTemplateRequest extends FormRequest
             $eligibleIds = SalaryComponent::query()
                 ->whereHas('assignments', function ($query) use ($role, $designationId) {
                     $query->where('role_id', $role->id);
-                    if ($role->name === 'Staff') {
-                        $query->where('designation_id', $designationId);
-                    }
+                    $query->where('designation_id', $designationId);
                 })
                 ->pluck('id');
 
@@ -76,8 +74,5 @@ class StoreSalaryTemplateRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $role = Role::find($this->input('role_id'));
-        if ($role && $role->name !== 'Staff') {
-            $this->merge(['designation_id' => null]);
-        }
     }
 }

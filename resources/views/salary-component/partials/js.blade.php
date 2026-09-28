@@ -28,15 +28,34 @@
             ]
         });
 
-        $('#roleFilter').on('change', function () {
-            var selectedRole = $(this).find(':selected').data('role-name');
-            var isStaff = selectedRole === 'Staff';
+        $('#roleFilter, #designationFilter').select2({ width: '100%', allowClear: true });
 
-            $('#designationFilterWrapper').toggleClass('d-none', !isStaff);
+        var allDesignationOptions = $('#designationFilter option').clone();
 
-            if (!isStaff) {
-                $('#designationFilter').val('');
+        function filterDesignations() {
+            var selectedRoleId = $('#roleFilter').val();
+            var $designation = $('#designationFilter');
+            var selectedDesignation = $designation.val();
+            var selectedOptionRoleType = $designation.find('option:selected').data('role-type');
+            var selectedRoleName = $('#roleFilter option:selected').data('role-name');
+            var matchingOptions = allDesignationOptions.filter(function () {
+                return !$(this).val() || (selectedRoleName && $(this).data('role-type') === selectedRoleName);
+            }).clone();
+
+            $('#designationFilterWrapper').removeClass('d-none');
+            $designation.empty().append(matchingOptions);
+
+            if (!selectedRoleId || (selectedOptionRoleType && selectedOptionRoleType !== selectedRoleName)) {
+                selectedDesignation = '';
             }
+
+            $designation.val(selectedDesignation).trigger('change.select2');
+        }
+
+        filterDesignations();
+
+        $('#roleFilter').on('change', function () {
+            filterDesignations();
 
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
@@ -48,9 +67,9 @@
         });
 
         $('#resetFilters').on('click', function () {
-            $('#roleFilter').val('');
-            $('#designationFilter').val('');
-            $('#designationFilterWrapper').addClass('d-none');
+            $('#roleFilter').val('').trigger('change.select2');
+            $('#designationFilter').val('').trigger('change.select2');
+            $('#designationFilterWrapper').removeClass('d-none');
             $('#checkAll').prop('checked', false);
             $('.row-check').prop('checked', false);
             table.ajax.reload();

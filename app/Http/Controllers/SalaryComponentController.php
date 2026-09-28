@@ -43,7 +43,7 @@ class SalaryComponentController extends Controller implements HasMiddleware
                 $query->whereHas('assignments', function ($assignmentQuery) use ($selectedRole) {
                     $assignmentQuery->where('role_id', request('role_id'));
 
-                    if ($selectedRole?->name === 'Staff' && request()->filled('designation_id')) {
+                    if ($selectedRole && request()->filled('designation_id')) {
                         $assignmentQuery->where('designation_id', request('designation_id'));
                     }
                 });
@@ -157,7 +157,7 @@ class SalaryComponentController extends Controller implements HasMiddleware
 
     private function designations()
     {
-        return Designation::orderBy('name')->get(['id', 'name']);
+        return Designation::orderBy('name')->get(['id', 'name', 'role_type']);
     }
 
     private function componentData(array $data, bool $withDefaults = false): array
@@ -179,34 +179,21 @@ class SalaryComponentController extends Controller implements HasMiddleware
 
     private function syncAssignments(SalaryComponent $component, array $data): void
     {
-        $staffRole = Role::where('name', 'Staff')->where('guard_name', 'web')->first();
         $roleIds = collect($data['role_ids'] ?? [])->map(fn ($roleId) => (int) $roleId)->unique();
         $designationIds = collect($data['designation_ids'] ?? [])->map(fn ($designationId) => (int) $designationId)->unique();
 
         $assignments = [];
 
         foreach ($roleIds as $roleId) {
-            if ($staffRole && $roleId === (int) $staffRole->id) {
-                foreach ($designationIds as $designationId) {
-                    $assignments[] = [
-                        'salary_component_id' => $component->id,
-                        'role_id' => $roleId,
-                        'designation_id' => $designationId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-
-                continue;
+            foreach ($designationIds as $designationId) {
+                $assignments[] = [
+                    'salary_component_id' => $component->id,
+                    'role_id' => $roleId,
+                    'designation_id' => $designationId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
-
-            $assignments[] = [
-                'salary_component_id' => $component->id,
-                'role_id' => $roleId,
-                'designation_id' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
         }
 
         $component->assignments()->delete();

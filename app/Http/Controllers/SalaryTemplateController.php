@@ -31,7 +31,12 @@ class SalaryTemplateController extends Controller implements HasMiddleware
     public function index()
     {
         if (request()->ajax()) {
-            return DataTables::of(SalaryTemplate::with(['role', 'designation', 'items'])->latest())
+            $query = SalaryTemplate::with(['role', 'designation', 'items'])->latest();
+
+            $query->when(request()->filled('role_id'), fn ($query) => $query->where('role_id', request('role_id')))
+                ->when(request()->filled('designation_id'), fn ($query) => $query->where('designation_id', request('designation_id')));
+
+            return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('role_name', fn ($row) => $row->role?->name ?? '-')
                 ->addColumn('designation_name', fn ($row) => $row->designation?->name ?? '-')
@@ -41,7 +46,7 @@ class SalaryTemplateController extends Controller implements HasMiddleware
                 ->make(true);
         }
 
-        return view('salary-template.index');
+        return view('salary-template.index', $this->formData());
     }
 
     public function create()
@@ -96,17 +101,19 @@ class SalaryTemplateController extends Controller implements HasMiddleware
     {
         $data = $request->validate([
             'role_id' => ['required', 'integer', 'exists:roles,id'],
-            'designation_id' => ['nullable', 'integer', 'exists:designations,id'],
+            'designation_id' => ['required', 'integer', 'exists:designations,id'],
             'template_id' => ['nullable', 'integer', 'exists:salary_templates,id'],
         ]);
         $role = Role::findOrFail($data['role_id']);
 
+        if (! Designation::whereKey($data['designation_id'])->where('role_type', $role->name)->exists()) {
+            abort(422, 'The selected designation does not belong to this role.');
+        }
+
         $components = SalaryComponent::query()
             ->whereHas('assignments', function ($query) use ($role, $data) {
                 $query->where('role_id', $role->id);
-                if ($role->name === 'Staff') {
-                    $query->where('designation_id', $data['designation_id'] ?? 0);
-                }
+                $query->where('designation_id', $data['designation_id'] ?? 0);
             })
             ->orderByRaw("CASE type WHEN 'earning' THEN 1 ELSE 2 END")
             ->orderBy('component_name')
@@ -131,7 +138,7 @@ class SalaryTemplateController extends Controller implements HasMiddleware
             'roles' => Role::whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])
                 ->orderByRaw("CASE name WHEN 'Staff' THEN 1 WHEN 'Driver' THEN 2 WHEN 'Controller' THEN 3 ELSE 4 END")
                 ->get(['id', 'name']),
-            'designations' => Designation::orderBy('name')->get(['id', 'name']),
+            'designations' => Designation::orderBy('name')->get(['id', 'name', 'role_type']),
         ];
     }
 

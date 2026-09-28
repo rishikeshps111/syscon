@@ -212,12 +212,12 @@
                         </select>
                         @error('role_id')<span class="text-danger">{{ $message }}</span>@enderror
                     </div>
-                    <div class="col-lg-4 o-f-inp mb-3 d-none" id="designationWrapper">
+                    <div class="col-lg-4 o-f-inp mb-3" id="designationWrapper">
                         <label for="designation_id">Designation <span class="text-danger">*</span></label>
                         <select name="designation_id" id="designation_id" class="form-select shadow-none select2">
                             <option value="">--- Select ---</option>
                             @foreach($designations as $designation)
-                                <option value="{{ $designation->id }}" @selected(old('designation_id', $record->designation_id ?? '') == $designation->id)>{{ $designation->name }}</option>
+                                <option value="{{ $designation->id }}" data-role-type="{{ $designation->role_type }}" @selected(old('designation_id', $record->designation_id ?? '') == $designation->id)>{{ $designation->name }}</option>
                             @endforeach
                         </select>
                         @error('designation_id')<span class="text-danger">{{ $message }}</span>@enderror
@@ -227,7 +227,7 @@
                     <h5 class="title-w-sec">Salary Components</h5>
                     @error('components')<div class="text-danger mb-2">{{ $message }}</div>@enderror
                     <div class="row" id="componentRows">
-                        <div class="col-12"><div class="alert alert-info">Select a role{{ isset($record) && $record->role?->name === 'Staff' ? ' and designation' : '' }} to load salary components.</div></div>
+                        <div class="col-12"><div class="alert alert-info">Select a role and designation to load salary components.</div></div>
                     </div>
                 </div>
                 <div class="text-center modal-btns-last mt-3">
@@ -244,21 +244,31 @@
             $(function () {
                 $('.select2').select2({width: '100%', allowClear: true});
                 var templateId = @json($record->id ?? null);
+                var allDesignationOptions = $('#designation_id option').clone();
 
                 function roleName() {
                     return $('#role_id option:selected').data('role-name') || '';
                 }
                 function toggleDesignation() {
-                    var staff = roleName() === 'Staff';
-                    $('#designationWrapper').toggleClass('d-none', !staff);
-                    $('#designation_id').prop('disabled', !staff);
-                    if (!staff) $('#designation_id').val('').trigger('change.select2');
+                    var role = roleName();
+                    var $designation = $('#designation_id');
+                    var selectedDesignation = $designation.val();
+                    var selectedType = $designation.find('option:selected').data('role-type');
+                    var $matchingOptions = allDesignationOptions.filter(function () {
+                        return !$(this).val() || (role && $(this).data('role-type') === role);
+                    }).clone();
+
+                    $('#designationWrapper').removeClass('d-none');
+                    $designation.prop('disabled', !role);
+                    $designation.empty().append($matchingOptions);
+                    if (!role || (selectedType && selectedType !== role)) selectedDesignation = '';
+                    $designation.val(selectedDesignation).trigger('change.select2');
                     loadComponents();
                 }
                 function loadComponents() {
                     var roleId = $('#role_id').val();
                     var designationId = $('#designation_id').val();
-                    if (!roleId || (roleName() === 'Staff' && !designationId)) {
+                    if (!roleId || !designationId) {
                         $('#componentRows').html('<div class="col-12"><div class="alert alert-info">Select the role and required designation to load salary components.</div></div>');
                         return;
                     }
@@ -295,7 +305,7 @@
                 $('#role_id').on('change', function () { templateId = null; toggleDesignation(); });
                 $('#designation_id').on('change', function () {
                     templateId = null;
-                    if (roleName() === 'Staff') loadComponents();
+                    loadComponents();
                 });
                 $('#salaryTemplateForm').on('submit', function () {
                     var button = $(this).find('button[type="submit"]');

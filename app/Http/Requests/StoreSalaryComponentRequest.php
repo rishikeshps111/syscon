@@ -21,13 +21,26 @@ class StoreSalaryComponentRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $staffRole = Role::where('name', 'Staff')->where('guard_name', 'web')->first();
+            $roleIds = collect($this->input('role_ids', []))->filter()->map(fn ($id) => (int) $id);
+            $roleId = (int) $roleIds->first();
+            $role = Role::whereKey($roleId)->where('guard_name', 'web')->first();
+            $designationIds = collect($this->input('designation_ids', []))->filter()->map(fn ($id) => (int) $id);
 
-            if ($staffRole && in_array($staffRole->id, $this->input('role_ids', [])) && empty($this->input('designation_ids', []))) {
-                $validator->errors()->add('designation_ids', 'Select at least one designation when Staff role is selected.');
+            if ($role && $designationIds->isEmpty()) {
+                $validator->errors()->add('designation_ids', 'Select a designation for the selected role.');
             }
 
-            $roleId = (int) collect($this->input('role_ids', []))->first();
+            if ($role && $designationIds->isNotEmpty()) {
+                $matchingCount = \App\Models\Designation::query()
+                    ->whereIn('id', $designationIds)
+                    ->where('role_type', $role->name)
+                    ->count();
+
+                if ($matchingCount !== $designationIds->count()) {
+                    $validator->errors()->add('designation_ids', 'The selected designation must belong to the selected role.');
+                }
+            }
+
             $designationId = (int) collect($this->input('designation_ids', []))->first() ?: null;
 
             if (! $roleId || ! $this->filled('component_name')) {
@@ -58,7 +71,7 @@ class StoreSalaryComponentRequest extends FormRequest
                 'integer',
                 Rule::exists('roles', 'id')->where(fn ($query) => $query->whereIn('name', ['Staff', 'Driver', 'Controller', 'Supervisor', 'Housekeeping'])),
             ],
-            'designation_ids' => ['nullable', 'array', 'max:1'],
+            'designation_ids' => ['required', 'array', 'size:1'],
             'designation_ids.*' => ['integer', 'exists:designations,id'],
             'component_name' => [
                 'required',

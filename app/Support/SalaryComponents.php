@@ -21,11 +21,7 @@ class SalaryComponents
     {
         $templates = SalaryTemplate::query()
             ->whereHas('role', fn ($query) => $query->where('name', $roleName))
-            ->when(
-                $roleName === 'Staff' && $designationId,
-                fn ($query) => $query->where('designation_id', $designationId),
-                fn ($query) => $roleName === 'Staff' ? $query : $query->whereNull('designation_id')
-            )
+            ->when($designationId, fn ($query) => $query->where('designation_id', $designationId), fn ($query) => $query->whereNull('designation_id'))
             ->with(['items.salaryComponent'])
             ->get();
 
