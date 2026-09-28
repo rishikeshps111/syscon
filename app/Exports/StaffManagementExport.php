@@ -14,9 +14,9 @@ class StaffManagementExport implements FromCollection, WithHeadings
     {
         $this->query = $query ?: User::role(['Staff', 'Housekeeping', 'Controller', 'Supervisor'])->with([
             'roles', 'staffProfile.depot', 'staffProfile.designation', 'staffProfile.state', 'staffProfile.district', 'staffProfile.location',
-            'housekeepingProfile.depot', 'housekeepingProfile.state', 'housekeepingProfile.district', 'housekeepingProfile.location',
-            'controllerProfile.depot', 'controllerProfile.state', 'controllerProfile.district', 'controllerProfile.location',
-            'supervisorProfile.depot', 'supervisorProfile.state', 'supervisorProfile.district', 'supervisorProfile.location',
+            'housekeepingProfile.depot', 'housekeepingProfile.designation', 'housekeepingProfile.state', 'housekeepingProfile.district', 'housekeepingProfile.location',
+            'controllerProfile.depot', 'controllerProfile.designation', 'controllerProfile.state', 'controllerProfile.district', 'controllerProfile.location',
+            'supervisorProfile.depot', 'supervisorProfile.designation', 'supervisorProfile.state', 'supervisorProfile.district', 'supervisorProfile.location',
         ]);
     }
 
@@ -40,7 +40,7 @@ class StaffManagementExport implements FromCollection, WithHeadings
                 'Email' => $user->email,
                 'Phone' => trim(($user->country_code ?? '') . ' ' . ($user->phone ?? '')),
                 'Role' => $role,
-                'Designation' => $role === 'Staff' ? $profile?->designation?->name : null,
+                'Designation' => $profile?->designation?->name,
                 'Depot' => $profile?->depot?->name,
                 'Employment Type' => $profile?->employment_type_label,
                 'Status' => $user->is_active ? 'Active' : 'Inactive',

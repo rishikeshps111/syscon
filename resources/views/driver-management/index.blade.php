@@ -305,6 +305,7 @@ div:where(.swal2-container) button:where(.swal2-styled){
                                             <th class="text-center nowrap">Ref Code</th>
                                             <th class="text-center nowrap">Name</th>
                                             <th class="text-center nowrap">Phone</th>
+                                            <th class="text-center nowrap">Designation</th>
                                             <th class="text-center nowrap">License Type</th>
                                             <th class="text-center nowrap">License Expiry</th>
                                             <th class="text-center nowrap">Verification Status</th>

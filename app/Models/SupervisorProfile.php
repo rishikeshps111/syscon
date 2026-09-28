@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'user_id',
+    'designation_id',
     'depot_id',
     'reporting_to',
     'employment_type',
@@ -70,6 +71,8 @@ class SupervisorProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function designation(): BelongsTo { return $this->belongsTo(Designation::class); }
 
     public function depot(): BelongsTo
     {

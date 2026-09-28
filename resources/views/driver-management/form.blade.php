@@ -376,8 +376,17 @@
                                             value="{{ old('pan_number', $profile->pan_number ?? '') }}" required>
                                         @error('pan_number')<span class="text-danger">{{ $message }}</span>@enderror
                                     </div>
-                                    <div class="col-lg-6 o-f-inp mb-3">
-                                        <label for="depot_id">Depot <span class="text-danger">*</span></label>
+                                    <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="designation_id">Designation <span class="text-danger">*</span></label>
+                                        <select name="designation_id" id="designation_id" class="form-select shadow-none select2" required>
+                                            <option value="">--- Select ---</option>
+                                            @foreach($designations as $designation)
+                                                <option value="{{ $designation->id }}" @selected(old('designation_id', $profile->designation_id ?? '') == $designation->id)>{{ $designation->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('designation_id')<span class="text-danger">{{ $message }}</span>@enderror
+                                    </div>
+                                    <div class="col-lg-4 o-f-inp mb-3"><label for="depot_id">Depot <span class="text-danger">*</span></label>
                                         <select name="depot_id" id="depot_id"
                                             class="form-select shadow-none select2" required>
                                             <option value="">---Select---</option>
@@ -391,7 +400,7 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-                                    <div class="col-lg-6 o-f-inp mb-3">
+                                    <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="branch_location_id">Branch <span
                                                 class="text-danger">*</span></label>
                                         <select name="branch_location_id" id="branch_location_id"

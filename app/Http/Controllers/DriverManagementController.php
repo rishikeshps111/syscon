@@ -7,6 +7,7 @@ use App\Http\Requests\StoreDriverManagementRequest;
 use App\Http\Requests\UpdateDriverManagementRequest;
 use App\Models\BranchLocation;
 use App\Models\Depot;
+use App\Models\Designation;
 use App\Models\District;
 use App\Models\DriverProfile;
 use App\Models\Location;
@@ -46,6 +47,7 @@ class DriverManagementController extends Controller implements HasMiddleware
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-checkbox" value="'.$row->id.'">')
                 ->addColumn('phone_number', fn ($row) => $row->full_phone ?: '-')
+                ->addColumn('designation', fn ($row) => $row->driverProfile?->designation?->name ?? '-')
                 ->addColumn('license_type', fn ($row) => $row->driverProfile?->license_type_label ?: '-')
                 ->addColumn('license_expiry', fn ($row) => $this->licenseExpiryBadge($row->driverProfile?->expiry_date))
                 ->addColumn('verification_status', fn ($row) => $this->verificationBadge($row->driverProfile?->verification_status))
@@ -319,7 +321,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function filteredQuery()
     {
         $query = User::role('Driver')
-            ->with(['roles', 'driverProfile.state', 'driverProfile.district', 'driverProfile.location', 'driverProfile.depot', 'driverProfile.branchLocation'])
+            ->with(['roles', 'driverProfile.designation', 'driverProfile.state', 'driverProfile.district', 'driverProfile.location', 'driverProfile.depot', 'driverProfile.branchLocation'])
             ->select('users.*');
 
         if (request()->filled('search_text')) {
@@ -364,6 +366,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function formData(): array
     {
         return [
+            'designations' => Designation::where('is_active', true)->where('role_type', 'Driver')->orderBy('name')->get(['id', 'name', 'role_type']),
             'licenseTypes' => DriverProfile::LICENSE_TYPES,
             'employmentTypes' => DriverProfile::EMPLOYMENT_TYPES,
             'verificationStatuses' => DriverProfile::VERIFICATION_STATUSES,
@@ -381,6 +384,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     private function profileData(array $data): array
     {
         return collect($data)->only([
+            'designation_id',
             'alternate_country_code',
             'alternate_phone',
             'aadhaar_number',

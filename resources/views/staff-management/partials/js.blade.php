@@ -5,6 +5,7 @@
             allowClear: true,
             width: '100%'
         });
+        const allDesignationOptions = $('#designationFilter option').clone();
 
         var table = $('#table').DataTable({
             processing: true,
@@ -30,8 +31,8 @@
                 { data: 'ref_code', name: 'ref_code', defaultContent: '-', className: 'text-center' },
                 { data: 'name', name: 'name', className: 'text-center' },
                 { data: 'role', name: 'role', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'designation', name: 'staffProfile.designation.name', orderable: false, searchable: false, className: 'text-center' },
-                { data: 'date_of_joining', name: 'staffProfile.date_of_joining', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'designation', name: 'designation', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'date_of_joining', name: 'date_of_joining', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'status', name: 'status', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'action', name: 'action', orderable: false, searchable: false, className: 'text-center' }
             ],
@@ -49,8 +50,16 @@
         let isResettingFilters = false;
 
         $('#roleFilter').on('change', function () {
-            $('#designationFilterWrap').toggle($(this).val() === 'Staff');
-            if ($(this).val() !== 'Staff') $('#designationFilter').val('').trigger('change.select2');
+            const role = $(this).val();
+            const current = $('#designationFilter').val();
+            const matching = allDesignationOptions.filter(function () {
+                return !$(this).val() || !role || $(this).data('role-type') === role;
+            });
+            $('#designationFilter').empty().append(matching).val(
+                matching.filter('[value="' + current + '"]').length ? current : ''
+            ).trigger('change.select2');
+            $('#designationFilterWrap').show();
+            reloadTable();
         });
 
         $('#resetFilters').on('click', function () {

@@ -42,7 +42,7 @@ class SaveUnifiedStaffRequest extends FormRequest
             'password' => [Rule::requiredIf($creating && $role === 'Staff'), 'nullable', 'string', 'min:8'],
             'passcode' => [Rule::requiredIf($creating && in_array($role, ['Controller', 'Supervisor'], true)), 'nullable', 'digits:6'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
-            'designation_id' => [Rule::requiredIf($role === 'Staff'), 'nullable', 'integer', 'exists:designations,id'],
+            'designation_id' => ['required', 'integer', Rule::exists('designations', 'id')->where(fn ($query) => $query->where('is_active', true)->where('role_type', $role))],
             'reporting_to' => [
                 'nullable',
                 'integer',

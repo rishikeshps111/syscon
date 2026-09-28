@@ -67,6 +67,7 @@ class StoreDriverManagementRequest extends FormRequest
             'salary_components' => ['nullable', 'array'],
             'salary_components.*' => ['nullable', 'numeric', 'min:0'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
+            'designation_id' => ['required', 'integer', Rule::exists('designations', 'id')->where(fn ($query) => $query->where('is_active', true)->where('role_type', 'Driver'))],
             'branch_location_id' => ['required', 'integer', 'exists:branch_locations,id'],
 
             'account_number' => ['required', 'string', 'max:50'],

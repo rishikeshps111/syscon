@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'reporting_to', 'alternate_country_code', 'alternate_phone', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number', 'uan', 'esic_wc', 'country', 'state_id', 'district_id', 'location_id', 'pincode', 'address', 'employment_type', 'joining_date', 'salary', 'depot_id', 'branch_location_id', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status', 'basic', 'vda', 'basic_vda', 'hra', 'special_allowance', 'conveyance_allowance', 'bonus', 'gross_salary'])]
+#[Fillable(['user_id', 'designation_id', 'reporting_to', 'alternate_country_code', 'alternate_phone', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number', 'uan', 'esic_wc', 'country', 'state_id', 'district_id', 'location_id', 'pincode', 'address', 'employment_type', 'joining_date', 'salary', 'depot_id', 'branch_location_id', 'account_number', 'ifsc_code', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status', 'basic', 'vda', 'basic_vda', 'hra', 'special_allowance', 'conveyance_allowance', 'bonus', 'gross_salary'])]
 #[Table('housekeeping_profiles')]
 class HousekeepingProfile extends Model
 {
@@ -23,6 +23,7 @@ class HousekeepingProfile extends Model
     }
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function designation(): BelongsTo { return $this->belongsTo(Designation::class); }
     public function state(): BelongsTo { return $this->belongsTo(State::class); }
     public function district(): BelongsTo { return $this->belongsTo(District::class); }
     public function location(): BelongsTo { return $this->belongsTo(Location::class); }

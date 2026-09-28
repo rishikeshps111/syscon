@@ -48,7 +48,7 @@
         </div>
         <div class="staff-detail-content">
             <span>Designation</span>
-            <strong>{{ $staff->staffProfile?->designation?->name ?? '-' }}</strong>
+            <strong>{{ $staff->staffProfile?->designation?->name ?? $staff->housekeepingProfile?->designation?->name ?? $staff->controllerProfile?->designation?->name ?? $staff->supervisorProfile?->designation?->name ?? '-' }}</strong>
         </div>
     </div>
 </div>

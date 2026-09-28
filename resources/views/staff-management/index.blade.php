@@ -34,7 +34,7 @@
                                     <select id="designationFilter" class="form-select shadow-none select2-filter">
                                         <option value="">---Select---</option>
                                         @foreach ($designations as $designation)
-                                            <option value="{{ $designation->id }}">{{ $designation->name }}</option>
+                                            <option value="{{ $designation->id }}" data-role-type="{{ $designation->role_type }}">{{ $designation->name }} ({{ $designation->role_type }})</option>
                                         @endforeach
                                     </select>
                                 </div>

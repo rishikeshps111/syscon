@@ -50,7 +50,7 @@ class StaffManagementController extends Controller implements HasMiddleware
                 ->addIndexColumn()
                 ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-checkbox" value="'.$row->id.'">')
                 ->addColumn('role', fn (User $row) => $this->employeeRole($row))
-                ->addColumn('designation', fn ($row) => $row->staffProfile?->designation?->name ?? '-')
+                ->addColumn('designation', fn (User $row) => $this->employeeProfile($row)?->designation?->name ?? '-')
                 ->addColumn('date_of_joining', fn (User $row) => $this->employeeDateOfJoining($row)?->format('d M y') ?? '-')
                 ->addColumn('status', function ($row) {
                     return $row->is_active
@@ -344,14 +344,17 @@ class StaffManagementController extends Controller implements HasMiddleware
                 'staffProfile.district',
                 'staffProfile.location',
                 'housekeepingProfile.depot',
+                'housekeepingProfile.designation',
                 'housekeepingProfile.state',
                 'housekeepingProfile.district',
                 'housekeepingProfile.location',
                 'controllerProfile.depot',
+                'controllerProfile.designation',
                 'controllerProfile.state',
                 'controllerProfile.district',
                 'controllerProfile.location',
                 'supervisorProfile.depot',
+                'supervisorProfile.designation',
                 'supervisorProfile.state',
                 'supervisorProfile.district',
                 'supervisorProfile.location',
@@ -371,7 +374,13 @@ class StaffManagementController extends Controller implements HasMiddleware
             $query->role(request('role'));
         }
         if (request()->filled('designation_id')) {
-            $query->whereHas('staffProfile', fn ($profile) => $profile->where('designation_id', request('designation_id')));
+            $query->where(function ($profiles): void {
+                foreach (['staffProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile'] as $relation) {
+                    $profiles->orWhereHas($relation, fn ($profile) => $profile
+                        ->where('designation_id', request('designation_id'))
+                        ->when(request()->filled('role'), fn ($profileQuery) => $profileQuery->whereHas('designation', fn ($designation) => $designation->where('role_type', request('role')))));
+                }
+            });
         }
         if (request()->filled('depot_id')) {
             $query->where(fn ($employee) => $employee
@@ -405,8 +414,11 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     private function formData(): array
     {
+        $routeUser = request()->route('staff_management');
+        $designationId = $routeUser instanceof User ? $this->employeeProfile($routeUser)?->designation_id : null;
+
         return [
-            'designations' => Designation::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'designations' => Designation::where('is_active', true)->orderBy('name')->get(['id', 'name', 'role_type']),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => BranchLocation::orderBy('name')->get(['id', 'name']),
             'employeeRoles' => self::ROLES,
@@ -424,7 +436,7 @@ class StaffManagementController extends Controller implements HasMiddleware
                 '50001-100000' => '50,001 - 1,00,000',
                 '100001-' => 'Above 1,00,000',
             ],
-            'salaryComponents' => SalaryComponents::forRole($this->requestEmployeeRole(), request()->route('staff_management')?->staffProfile?->designation_id),
+            'salaryComponents' => SalaryComponents::forRole($this->requestEmployeeRole(), $designationId),
             'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('staff_management')),
         ];
     }
@@ -522,20 +534,23 @@ class StaffManagementController extends Controller implements HasMiddleware
             $housekeeping['account_number'] = $data['bank_account_number'];
             $housekeeping['salary'] = $salary['salary'];
             $user->housekeepingProfile()->updateOrCreate(['user_id' => $user->id], $housekeeping);
+            $user->housekeepingProfile->forceFill(['designation_id' => $data['designation_id']])->save();
 
             return;
         }
 
         $relation = $role === 'Controller' ? 'controllerProfile' : 'supervisorProfile';
         $user->{$relation}()->updateOrCreate(['user_id' => $user->id], $common);
+        $user->{$relation}->forceFill(['designation_id' => $data['designation_id']])->save();
     }
 
     private function syncEmployeeRoles(User $user, string $role, ?int $designationId): void
     {
         $roles = [$role];
-        if ($role === 'Staff' && $designationId) {
-            $designationRole = Designation::with('role')->find($designationId)?->role?->name;
-            if ($designationRole) {
+        if ($designationId) {
+            // Convert the user's application role to the role type configured on the designation.
+            $designationRole = Designation::find($designationId)?->role_type;
+            if ($designationRole && ! in_array($designationRole, $roles, true)) {
                 $roles[] = $designationRole;
             }
         }

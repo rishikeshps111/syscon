@@ -34,6 +34,7 @@
                 { data: 'ref_code', name: 'ref_code', className: 'text-center', defaultContent: '-' },
                 { data: 'name', name: 'name', className: 'text-center' },
                 { data: 'phone_number', name: 'phone', orderable: false, searchable: false, className: 'text-center' },
+                { data: 'designation', name: 'designation', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'license_type', name: 'driverProfile.license_type', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'license_expiry', name: 'driverProfile.expiry_date', orderable: false, searchable: false, className: 'text-center' },
                 { data: 'verification_status', name: 'driverProfile.verification_status', orderable: false, searchable: false, className: 'text-center' },

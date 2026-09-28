@@ -12,7 +12,7 @@ class DriverManagementExport implements FromCollection, WithHeadings
 
     public function __construct($query = null)
     {
-        $this->query = $query ?: User::role('Driver')->with(['driverProfile.state', 'driverProfile.district', 'driverProfile.location', 'driverProfile.depot', 'driverProfile.branchLocation']);
+        $this->query = $query ?: User::role('Driver')->with(['driverProfile.designation', 'driverProfile.state', 'driverProfile.district', 'driverProfile.location', 'driverProfile.depot', 'driverProfile.branchLocation']);
     }
 
     public function collection()
@@ -26,6 +26,7 @@ class DriverManagementExport implements FromCollection, WithHeadings
                 'Name' => $user->name,
                 'Email' => $user->email,
                 'Phone' => $user->full_phone,
+                'Designation' => $profile?->designation?->name,
                 'Alternate Phone' => trim(($profile?->alternate_country_code ?? '') . ' ' . ($profile?->alternate_phone ?? '')),
                 'Aadhaar Number' => $profile?->aadhaar_number,
                 'State' => $profile?->state?->name,
@@ -58,6 +59,7 @@ class DriverManagementExport implements FromCollection, WithHeadings
             'Name',
             'Email',
             'Phone',
+            'Designation',
             'Alternate Phone',
             'Aadhaar Number',
             'State',

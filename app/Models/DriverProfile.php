@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
+    'designation_id',
     'alternate_country_code',
     'alternate_phone',
     'aadhaar_number',
@@ -87,6 +88,8 @@ class DriverProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function designation(): BelongsTo { return $this->belongsTo(Designation::class); }
 
     public function state(): BelongsTo
     {
