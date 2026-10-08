@@ -503,9 +503,8 @@
                 function loadSalaryStructure(force = false) {
                     const role = $('#employeeRole').val();
                     const designation = $('#designation_id').val();
-                    if (!role || (role === 'Staff' && !designation)) {
-                        $('#salaryStructureContainer').html('<div class="alert alert-info mb-0">Select a role' + (
-                            role === 'Staff' ? ' and designation' : '') + ' to load salary components.</div>');
+                    if (!role || !designation) {
+                        $('#salaryStructureContainer').html('<div class="alert alert-info mb-0">Select both role and designation to load salary components.</div>');
                         return;
                     }
                     if (!force && role === initialRole && String(designation || '') === initialDesignation) {

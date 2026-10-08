@@ -9,8 +9,16 @@
     $presentDays = (float) ($item->present_days ?? 0);
     $weekOffDays = (float) ($item->week_off_days ?? 0);
     $absentDays = (float) ($item->absent_days ?? 0);
-    $lopDays = (float) ($item->unauthorized_leaves ?? 0);
-    $workedDays = (float) ($item->actual_worked_days ?? max($presentDays - $lopDays, 0));
+    $extraDays = (float) ($item->extra_days_worked ?? 0);
+    $grossSalary = (float) ($item->gross_salary ?? $item->basic_salary ?? 0);
+    $earnedSalary = (float) ($item->earned_salary ?? 0);
+    $extraDutyIncentive = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
+    $totalEarned = (float) ($item->total_earned ?? ($earnedSalary + $extraDutyIncentive));
+    $pf = (float) ($item->pf ?? 0);
+    $professionalTax = (float) ($item->professional_tax ?? 0);
+    $esi = (float) ($item->esi ?? 0);
+    $totalDeduction = (float) ($item->total_deduction ?? $item->deduction ?? 0);
+    $netTotal = (float) ($item->net_total ?? $item->net_salary ?? 0);
 @endphp
 
 <div class="pay-slip-preview">
@@ -34,13 +42,13 @@
             <small>{{ $item->user?->code ?: 'No code' }}</small>
         </div>
         <div>
-            <span>Actual Worked Days</span>
-            <strong>{{ number_format($workedDays, 2) }}</strong>
-            <small>{{ number_format($lopDays, 2) }} LOP days</small>
+            <span>Total Days</span>
+            <strong>{{ number_format($totalDays, 2) }}</strong>
+            <small>{{ number_format($extraDays, 2) }} extra days worked</small>
         </div>
         <div class="pay-slip-net">
-            <span>Net Salary</span>
-            <strong>{{ $money($item->net_salary) }}</strong>
+            <span>Net Total</span>
+            <strong>{{ $money($netTotal) }}</strong>
             <small>INR</small>
         </div>
     </div>
@@ -96,15 +104,11 @@
                     <dd>{{ number_format($absentDays, 2) }}</dd>
                 </div>
                 <div>
-                    <dt>Actual Worked Days</dt>
-                    <dd>{{ number_format($workedDays, 2) }}</dd>
+                    <dt>Extra Days Worked</dt>
+                    <dd>{{ number_format($extraDays, 2) }}</dd>
                 </div>
                 <div>
-                    <dt>LOP Days</dt>
-                    <dd>{{ number_format($lopDays, 2) }}</dd>
-                </div>
-                <div>
-                    <dt>Per-day Salary</dt>
+                    <dt>Salary Per Day</dt>
                     <dd>₹{{ $money($item->salary_day_rate) }}</dd>
                 </div>
             </dl>
@@ -144,20 +148,22 @@
             <div class="pay-slip-panel-title">Salary Summary</div>
             <div class="pay-slip-total-row">
                 <span>Gross Salary</span>
-                <strong>{{ $money($item->basic_salary) }}</strong>
+                <strong>{{ $money($grossSalary) }}</strong>
             </div>
-            <div class="pay-slip-total-row"><span>Template
-                    Deductions</span><strong>{{ $money($item->template_deduction ?? $deductions->sum('amount')) }}</strong>
+            <div class="pay-slip-total-row"><span>Earned Salary</span><strong>{{ $money($earnedSalary) }}</strong>
             </div>
-            <div class="pay-slip-total-row"><span>LOP
-                    Deduction</span><strong>{{ $money($item->lop_deduction ?? $item->lop) }}</strong></div>
+            <div class="pay-slip-total-row"><span>Extra Duty Incentive</span><strong>{{ $money($extraDutyIncentive) }}</strong></div>
+            <div class="pay-slip-total-row"><span>Total Earned</span><strong>{{ $money($totalEarned) }}</strong></div>
+            <div class="pay-slip-total-row"><span>PF</span><strong>{{ $money($pf) }}</strong></div>
+            <div class="pay-slip-total-row"><span>Professional Tax</span><strong>{{ $money($professionalTax) }}</strong></div>
+            <div class="pay-slip-total-row"><span>ESI</span><strong>{{ $money($esi) }}</strong></div>
             <div class="pay-slip-total-row">
                 <span>Total Deduction</span>
-                <strong>{{ $money($item->deduction) }}</strong>
+                <strong>{{ $money($totalDeduction) }}</strong>
             </div>
             <div class="pay-slip-total-row pay-slip-grand-total">
-                <span>Net Salary</span>
-                <strong>{{ $money($item->net_salary) }}</strong>
+                <span>Net Total</span>
+                <strong>{{ $money($netTotal) }}</strong>
             </div>
         </div>
     </div>

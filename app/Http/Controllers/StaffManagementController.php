@@ -87,9 +87,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     public function store(SaveUnifiedStaffRequest $request)
     {
         $data = $request->validated();
-        $data['salary_components'] = $data['role'] === 'Staff'
-            ? SalaryComponents::templateAmountsForRole('Staff', (int) ($data['designation_id'] ?? 0))
-            : ($data['salary_components'] ?? []);
+        $data['salary_components'] = SalaryComponents::templateAmountsForRole($data['role'], (int) ($data['designation_id'] ?? 0));
         DB::transaction(function () use ($request, $data): void {
             $role = $data['role'];
             $credential = $role === 'Staff' ? ($data['password'] ?? null) : ($data['passcode'] ?? null);
@@ -157,9 +155,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $data = $request->validated();
         $previousRole = $this->employeeRole($staff_management);
         $role = $data['role'];
-        $data['salary_components'] = $role === 'Staff'
-            ? SalaryComponents::templateAmountsForRole('Staff', (int) ($data['designation_id'] ?? 0))
-            : ($data['salary_components'] ?? []);
+        $data['salary_components'] = SalaryComponents::templateAmountsForRole($role, (int) ($data['designation_id'] ?? 0));
         DB::transaction(function () use ($request, $data, $role, $previousRole, $staff_management): void {
             $credential = $role === 'Staff' ? ($data['password'] ?? null) : ($data['passcode'] ?? null);
             $staff_management->update([
@@ -318,16 +314,20 @@ class StaffManagementController extends Controller implements HasMiddleware
     {
         $data = $request->validate([
             'role' => ['required', Rule::in(self::ROLES)],
-            'designation_id' => ['nullable', 'integer', 'exists:designations,id'],
+            'designation_id' => ['required', 'integer', 'exists:designations,id'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $user = filled($data['user_id'] ?? null) ? User::find($data['user_id']) : null;
 
+        if (! empty($data['designation_id'])) {
+            abort_unless(Designation::whereKey($data['designation_id'])->where('role_type', $data['role'])->exists(), 422, 'The selected designation does not belong to this role.');
+        }
+
         return view('components.dynamic-salary-structure', [
             'salaryComponents' => SalaryComponents::forRole(
                 $data['role'],
-                $data['role'] === 'Staff' ? ($data['designation_id'] ?? null) : null,
+                $data['designation_id'] ?? null,
             ),
             'componentValues' => SalaryComponents::valuesFor($user),
         ]);
@@ -549,7 +549,7 @@ class StaffManagementController extends Controller implements HasMiddleware
         $roles = [$role];
         if ($designationId) {
             // Convert the user's application role to the role type configured on the designation.
-            $designationRole = Designation::find($designationId)?->role_type;
+            $designationRole = Designation::find($designationId)?->name;
             if ($designationRole && ! in_array($designationRole, $roles, true)) {
                 $roles[] = $designationRole;
             }

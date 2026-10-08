@@ -198,8 +198,16 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $presentDays = (float) ($item->present_days ?? 0);
         $weekOffDays = (float) ($item->week_off_days ?? 0);
         $absentDays = (float) ($item->absent_days ?? 0);
-        $lopDays = (float) ($item->unauthorized_leaves ?? 0);
-        $workedDays = (float) ($item->actual_worked_days ?? max($presentDays - $lopDays, 0));
+        $extraDays = (float) ($item->extra_days_worked ?? 0);
+        $grossSalary = (float) ($item->gross_salary ?? $item->basic_salary ?? 0);
+        $earnedSalary = (float) ($item->earned_salary ?? 0);
+        $extraDutyIncentive = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
+        $totalEarned = (float) ($item->total_earned ?? ($earnedSalary + $extraDutyIncentive));
+        $pf = (float) ($item->pf ?? 0);
+        $professionalTax = (float) ($item->professional_tax ?? 0);
+        $esi = (float) ($item->esi ?? 0);
+        $totalDeduction = (float) ($item->total_deduction ?? $item->deduction ?? 0);
+        $netTotal = (float) ($item->net_total ?? $item->net_salary ?? 0);
         $stream = '';
 
         $stream .= $this->pdfFillRect(0, 0, 595, 842, [246, 248, 251]);
@@ -214,12 +222,12 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfText($item->user?->code ?: 'No code', 52, 662, 9, 'F1', [107, 114, 128]);
 
         $stream .= $this->pdfCard(216, 642, 160, 74);
-        $stream .= $this->pdfLabelValue('Worked Days', $this->money($workedDays), 232, 690);
+        $stream .= $this->pdfLabelValue('Total Days', $this->money($totalDays), 232, 690);
         $stream .= $this->pdfText($month . ' ' . $processing->year, 232, 662, 9, 'F1', [107, 114, 128]);
 
         $stream .= $this->pdfFillRect(396, 642, 163, 74, [17, 24, 39]);
         $stream .= $this->pdfText('NET SALARY', 412, 690, 9, 'F2', [203, 213, 225]);
-        $stream .= $this->pdfText('INR ' . $this->money($item->net_salary), 412, 664, 18, 'F2', [255, 255, 255]);
+        $stream .= $this->pdfText('INR ' . $this->money($netTotal), 412, 664, 18, 'F2', [255, 255, 255]);
 
         $stream .= $this->pdfCard(36, 488, 252, 128);
         $stream .= $this->pdfSectionTitle('Employee Details', 52, 590);
@@ -234,8 +242,8 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfPair('Present', $this->money($presentDays), 437, 562);
         $stream .= $this->pdfPair('Week-off', $this->money($weekOffDays), 323, 536);
         $stream .= $this->pdfPair('Absent', $this->money($absentDays), 437, 536);
-        $stream .= $this->pdfPair('Worked', $this->money($workedDays), 323, 510);
-        $stream .= $this->pdfPair('LOP Days', $this->money($lopDays), 437, 510);
+        $stream .= $this->pdfPair('Extra Days', $this->money($extraDays), 323, 510);
+        $stream .= $this->pdfPair('Salary Per Day', $this->money($item->salary_day_rate), 437, 510);
 
         $stream .= $this->pdfCard(36, 234, 318, 230);
         $stream .= $this->pdfSectionTitle('Salary Template Components', 52, 438);
@@ -266,13 +274,17 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
         $stream .= $this->pdfCard(375, 234, 184, 230);
         $stream .= $this->pdfSectionTitle('Salary Summary', 391, 438);
-        $stream .= $this->pdfAmountRow('Gross Salary', $this->money($item->basic_salary), 391, 404);
-        $stream .= $this->pdfAmountRow('Per-day Salary', $this->money($item->salary_day_rate), 391, 374);
-        $stream .= $this->pdfAmountRow('Template Deduction', $this->money($item->template_deduction), 391, 344);
-        $stream .= $this->pdfAmountRow('LOP Deduction', $this->money($item->lop_deduction ?? $item->lop), 391, 314);
-        $stream .= $this->pdfFillRect(391, 254, 152, 44, [17, 24, 39]);
-        $stream .= $this->pdfText('NET SALARY', 407, 280, 8, 'F2', [203, 213, 225]);
-        $stream .= $this->pdfText($this->money($item->net_salary), 407, 262, 15, 'F2', [255, 255, 255]);
+        $stream .= $this->pdfAmountRow('Gross Salary', $this->money($grossSalary), 391, 408);
+        $stream .= $this->pdfAmountRow('Earned Salary', $this->money($earnedSalary), 391, 388);
+        $stream .= $this->pdfAmountRow('Extra Duty Incentive', $this->money($extraDutyIncentive), 391, 368);
+        $stream .= $this->pdfAmountRow('Total Earned', $this->money($totalEarned), 391, 348);
+        $stream .= $this->pdfAmountRow('PF', $this->money($pf), 391, 328);
+        $stream .= $this->pdfAmountRow('Professional Tax', $this->money($professionalTax), 391, 308);
+        $stream .= $this->pdfAmountRow('ESI', $this->money($esi), 391, 288);
+        $stream .= $this->pdfAmountRow('Total Deduction', $this->money($totalDeduction), 391, 268);
+        $stream .= $this->pdfFillRect(391, 234, 152, 28, [17, 24, 39]);
+        $stream .= $this->pdfText('NET TOTAL', 407, 252, 8, 'F2', [203, 213, 225]);
+        $stream .= $this->pdfText($this->money($netTotal), 475, 240, 11, 'F2', [255, 255, 255]);
 
         $stream .= $this->pdfCard(36, 72, 523, 136);
         $stream .= $this->pdfSectionTitle('Payment & Approval', 52, 182);

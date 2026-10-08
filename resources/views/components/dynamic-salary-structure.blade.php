@@ -42,7 +42,7 @@
     @empty
         <div class="col-lg-12">
             <div class="alert alert-warning mb-0">
-                No salary template is assigned for this role{{ request('role') === 'Staff' ? ' and designation' : '' }}. Salary values will remain zero until a salary template is assigned.
+            No salary template is assigned for this role and designation. Salary values will remain zero until a salary template is assigned.
             </div>
         </div>
     @endforelse

@@ -709,6 +709,19 @@
                 $('#pincode').val(pincode);
             });
 
+            $('#designation_id').on('change', function() {
+                var designationId = $(this).val();
+                if (!designationId) {
+                    $('#salaryStructureContainer').html('<div class="alert alert-info mb-0">Select both role and designation to load salary components.</div>');
+                    return;
+                }
+
+                $('#salaryStructureContainer').html('<div class="text-muted">Loading salary components...</div>');
+                $.get(@json(route('driver-management.salary-structure')), { designation_id: designationId })
+                    .done(function (html) { $('#salaryStructureContainer').html(html); calculateDynamicSalary(); })
+                    .fail(function () { $('#salaryStructureContainer').html('<div class="alert alert-danger mb-0">Unable to load salary components.</div>'); });
+            });
+
             if ($('#location_id').val()) {
                 $('#location_id').trigger('change');
             }

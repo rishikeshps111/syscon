@@ -82,7 +82,7 @@ class DriverManagementController extends Controller implements HasMiddleware
     public function store(StoreDriverManagementRequest $request)
     {
         $data = $request->validated();
-        $data['salary_components'] = SalaryComponents::templateAmountsForRole('Driver');
+        $data['salary_components'] = SalaryComponents::templateAmountsForRole('Driver', (int) $data['designation_id']);
         $user = User::create([
             'code' => null,
             'ref_code' => $data['ref_code'] ?? null,
@@ -187,7 +187,7 @@ class DriverManagementController extends Controller implements HasMiddleware
         abort_unless($driver_management->hasRole('Driver'), 404);
 
         $data = $request->validated();
-        $data['salary_components'] = SalaryComponents::templateAmountsForRole('Driver');
+        $data['salary_components'] = SalaryComponents::templateAmountsForRole('Driver', (int) $data['designation_id']);
         $driver_management->update([
             'ref_code' => $data['ref_code'] ?? null,
             'name' => $data['name'],
@@ -205,6 +205,20 @@ class DriverManagementController extends Controller implements HasMiddleware
         SalaryComponents::sync($driver_management, $data['salary_components'] ?? []);
 
         return redirect()->route('driver-management.index')->with('success', 'Driver updated successfully.');
+    }
+
+    public function salaryStructure(Request $request)
+    {
+        $data = $request->validate([
+            'designation_id' => ['required', 'integer', 'exists:designations,id'],
+        ]);
+
+        abort_unless(Designation::whereKey($data['designation_id'])->where('role_type', 'Driver')->exists(), 422);
+
+        return view('components.dynamic-salary-structure', [
+            'salaryComponents' => SalaryComponents::forRole('Driver', (int) $data['designation_id']),
+            'componentValues' => SalaryComponents::valuesFor(null),
+        ]);
     }
 
     public function destroy(User $driver_management)
@@ -376,7 +390,9 @@ class DriverManagementController extends Controller implements HasMiddleware
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'branches' => BranchLocation::orderBy('name')->get(['id', 'name']),
             'countries' => ['India'],
-            'salaryComponents' => SalaryComponents::forRole('Driver'),
+            'salaryComponents' => ($designationId = (int) (request()->route('driver_management')?->driverProfile?->designation_id ?? 0))
+                ? SalaryComponents::forRole('Driver', $designationId)
+                : collect(),
             'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('driver_management')),
         ];
     }

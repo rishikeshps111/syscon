@@ -640,6 +640,8 @@ Route::middleware('auth')->group(function () {
         ->name('driver-management.districts-by-state');
     Route::get('/driver-management/locations-by-district', [DriverManagementController::class, 'locationsByDistrict'])
         ->name('driver-management.locations-by-district');
+    Route::get('/driver-management/salary-structure', [DriverManagementController::class, 'salaryStructure'])
+        ->name('driver-management.salary-structure');
     Route::post('/driver-management/status', [DriverManagementController::class, 'status'])
         ->name('driver-management.status');
     Route::post('/driver-management/{driver_management}/regenerate-passcode', [DriverManagementController::class, 'regeneratePasscode'])

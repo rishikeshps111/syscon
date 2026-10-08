@@ -251,9 +251,19 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                     'absent_days',
                     'total_attendance_days',
                     'actual_worked_days',
+                    'extra_days_worked',
                     'salary_day_rate',
                     'template_deduction',
                     'lop_deduction',
+                    'gross_salary',
+                    'earned_salary',
+                    'extra_duty_incentive',
+                    'total_earned',
+                    'pf',
+                    'professional_tax',
+                    'esi',
+                    'total_deduction',
+                    'net_total',
                     'salary_split',
                 ])->all()
             );
@@ -313,7 +323,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             $lopDays = max((float) $attendance->absent_days - (float) $attendance->week_off_days, 0);
             $unpaidLeaveDays = $lopDays;
             $totalDays = (float) $attendance->total_days;
-            $dailySalaryExact = $totalDays > 0 ? $grossSalary / $totalDays : 0;
+            $dailySalaryExact = $workingDays > 0 ? $grossSalary / $workingDays : 0;
             $dailySalary = round($dailySalaryExact, 2);
             $lopDeduction = round($dailySalaryExact * $lopDays, 2);
             $leaveDeduction = $totalDays > 0
@@ -335,6 +345,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'absent_days' => (float) $attendance->absent_days,
                 'total_attendance_days' => (float) $attendance->total_days,
                 'actual_worked_days' => max((float) $attendance->present_days - $lopDays, 0),
+                'extra_days_worked' => max((float) $attendance->total_days - $workingDays, 0),
                 'attendance_import_id' => (int) $import->id,
                 'total_leave_taken' => $leaveTaken,
                 'unpaid_leave_days' => $unpaidLeaveDays,
@@ -347,6 +358,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'salary_day_rate' => $dailySalary,
                 'incentive' => $incentive,
                 'salary_split' => collect($split)->values()->all(),
+                'calendar_days' => $workingDays,
             ];
 
             return $this->applyUnauthorizedLeave($row, $lopDays);
@@ -439,11 +451,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
         if ($split->isNotEmpty()) {
             $earnings = $selected->where('type', 'earning');
-            $row['incentive'] = (float) $earnings->filter(fn($item) => $this->isIncentiveComponent($item))->sum('amount');
-            $row['basic_salary'] = (float) $earnings
-                ->reject(fn($item) => $this->isIncentiveComponent($item))
-                ->sum('amount');
-        $row['deduction'] = (float) $selected->where('type', 'deduction')->sum('amount');
+            $row['incentive'] = 0.0;
+            $row['basic_salary'] = (float) $earnings->sum('amount');
+            $row['deduction'] = (float) $selected->where('type', 'deduction')->sum('amount');
         }
 
         $row['salary_split'] = $split->values()->all();
@@ -495,19 +505,49 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function applyUnauthorizedLeave(array $row, float $unauthorizedLeaves): array
     {
-        $perDay = $row['total_working_days'] > 0 ? ((float) $row['basic_salary'] / $row['total_working_days']) : 0;
+        $perDay = (float) ($row['salary_day_rate'] ?? 0);
         $lop = round($perDay * $unauthorizedLeaves, 2);
         $row['unauthorized_leaves'] = $unauthorizedLeaves;
         $row['lop'] = $lop;
         $row['deduction'] = (float) $row['deduction'] + $lop;
-        $row['net_salary'] = round((float) $row['basic_salary'] + (float) $row['incentive'] - (float) $row['deduction'], 2);
+        $row = $this->calculatePayrollTotals($row);
+        $row['net_salary'] = $row['net_total'];
 
         return $row;
     }
 
-    private function isIncentiveComponent(array $component): bool
+    private function calculatePayrollTotals(array $row): array
     {
-        return str($component['name'] ?? '')->lower()->contains('incent');
+        $gross = (float) ($row['basic_salary'] ?? 0);
+        $daysInMonth = (int) ($row['calendar_days'] ?? 0);
+        $attendanceDays = (float) ($row['total_attendance_days'] ?? 0);
+        $salaryPerDay = $daysInMonth > 0 ? $gross / $daysInMonth : 0;
+        $extraDays = max($attendanceDays - $daysInMonth, 0);
+        $regularDays = min($attendanceDays, $daysInMonth);
+        $earnedSalary = $salaryPerDay * $regularDays;
+        $incentive = $salaryPerDay * $extraDays;
+        $basic = collect($row['salary_split'] ?? [])
+            ->where('selected', true)
+            ->filter(fn ($component) => in_array(strtolower((string) ($component['name'] ?? '')), ['basic', 'vda'], true))
+            ->sum('amount');
+        $pf = $basic * 0.12;
+        $professionalTax = $gross <= 15000 ? 0 : ($gross <= 20000 ? 150 : 200);
+        $esi = $gross < 21000 ? $gross * 0.0075 : 0;
+        $totalEarned = $earnedSalary + $incentive;
+        $totalDeduction = (float) ($row['deduction'] ?? 0) + $pf + $professionalTax + $esi;
+
+        return array_merge($row, [
+            'extra_days_worked' => $extraDays,
+            'gross_salary' => $gross,
+            'earned_salary' => round($earnedSalary, 2),
+            'extra_duty_incentive' => $incentive,
+            'total_earned' => round($totalEarned, 2),
+            'pf' => round($pf, 2),
+            'professional_tax' => round($professionalTax, 2),
+            'esi' => round($esi, 2),
+            'total_deduction' => round($totalDeduction, 2),
+            'net_total' => round($totalEarned - $totalDeduction, 2),
+        ]);
     }
 
     private function approvalStatusBadge(SalaryProcessing $salaryProcessing): string
@@ -536,6 +576,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'aadhaar_no' => $item->aadhaar_no,
             'user_details' => $this->userDetails($item->user, $item->user?->roles?->sortBy(fn ($role) => array_search($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true))->first()?->name ?? ''),
             'total_leave_taken' => (float) $item->total_leave_taken,
+            'calendar_days' => $start?->daysInMonth ?? 0,
             'present_days' => (float) ($item->present_days ?? 0),
             'week_off_days' => (float) ($item->week_off_days ?? 0),
             'absent_days' => (float) ($item->absent_days ?? 0),
@@ -543,6 +584,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'absent_days' => (float) ($item->absent_days ?? 0),
             'total_attendance_days' => (float) ($item->total_attendance_days ?? $item->total_working_days),
             'actual_worked_days' => (float) ($item->actual_worked_days ?? 0),
+            'extra_days_worked' => (float) ($item->extra_days_worked ?? 0),
             'salary_day_rate' => (float) ($item->salary_day_rate ?? 0),
             'template_deduction' => (float) ($item->template_deduction ?? 0),
             'lop_deduction' => (float) ($item->lop_deduction ?? 0),
@@ -551,6 +593,15 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'total_working_days' => $item->total_working_days,
             'lop' => (float) $item->lop,
             'basic_salary' => (float) $item->basic_salary,
+            'gross_salary' => (float) ($item->gross_salary ?? $item->basic_salary),
+            'earned_salary' => (float) ($item->earned_salary ?? 0),
+            'extra_duty_incentive' => (float) ($item->extra_duty_incentive ?? $item->incentive),
+            'total_earned' => (float) ($item->total_earned ?? 0),
+            'pf' => (float) ($item->pf ?? 0),
+            'professional_tax' => (float) ($item->professional_tax ?? 0),
+            'esi' => (float) ($item->esi ?? 0),
+            'total_deduction' => (float) ($item->total_deduction ?? $item->deduction),
+            'net_total' => (float) ($item->net_total ?? $item->net_salary),
             'deduction' => (float) $item->deduction,
             'incentive' => (float) $item->incentive,
             'unauthorized_leaves' => (float) $item->unauthorized_leaves,

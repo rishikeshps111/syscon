@@ -3,349 +3,340 @@
 @endsection
 <style>
     #userDetailsContent {
-    padding: 22px !important;
+        padding: 22px !important;
 
-    background: #ffffff !important;
-}
+        background: #ffffff !important;
+    }
 
 
-/* =========================================
+    /* =========================================
    Avatar Section
    ========================================= */
 
-#userDetailsContent .user-details-avatar-wrap {
-    position: relative !important;
+    #userDetailsContent .user-details-avatar-wrap {
+        position: relative !important;
 
-    width: 82px !important;
-    height: 82px !important;
+        width: 82px !important;
+        height: 82px !important;
 
-    margin: 0 auto 24px !important;
-    padding: 4px !important;
+        margin: 0 auto 24px !important;
+        padding: 4px !important;
 
-    background: #eff6ff !important;
+        background: #eff6ff !important;
 
-    border: 1px solid #dbeafe !important;
-    border-radius: 50% !important;
+        border: 1px solid #dbeafe !important;
+        border-radius: 50% !important;
 
-    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.10) !important;
-}
-
-
-/* Decorative ring */
-#userDetailsContent .user-details-avatar-wrap::before {
-    content: "" !important;
-
-    position: absolute !important;
-    inset: -5px !important;
-
-    border: 1px solid #bfdbfe !important;
-    border-radius: 50% !important;
-
-    opacity: 0.7 !important;
-}
+        box-shadow: 0 5px 15px rgba(37, 99, 235, 0.10) !important;
+    }
 
 
-/* Avatar */
-#userDetailsContent .user-details-avatar {
-    position: relative !important;
-    z-index: 1 !important;
+    /* Decorative ring */
+    #userDetailsContent .user-details-avatar-wrap::before {
+        content: "" !important;
 
-    display: block !important;
+        position: absolute !important;
+        inset: -5px !important;
 
-    width: 100% !important;
-    height: 100% !important;
+        border: 1px solid #bfdbfe !important;
+        border-radius: 50% !important;
 
-    object-fit: cover !important;
-
-    border-radius: 50% !important;
-
-    background: #f8fafc !important;
-}
+        opacity: 0.7 !important;
+    }
 
 
-/* =========================================
+    /* Avatar */
+    #userDetailsContent .user-details-avatar {
+        position: relative !important;
+        z-index: 1 !important;
+
+        display: block !important;
+
+        width: 100% !important;
+        height: 100% !important;
+
+        object-fit: cover !important;
+
+        border-radius: 50% !important;
+
+        background: #f8fafc !important;
+    }
+
+
+    /* =========================================
    Details Grid
    ========================================= */
 
-#userDetailsContent .row {
-    margin-left: -6px !important;
-    margin-right: -6px !important;
+    #userDetailsContent .row {
+        margin-left: -6px !important;
+        margin-right: -6px !important;
         gap: 5px;
-}
+    }
 
 
-/* Detail Item */
-#userDetailsContent .row > div {
-    position: relative !important;
+    /* Detail Item */
+    #userDetailsContent .row>div {
+        position: relative !important;
 
-    padding: 13px 14px !important;
-    margin-bottom: 12px !important;
+        padding: 13px 14px !important;
+        margin-bottom: 12px !important;
 
-    border: 1px solid #e8edf3 !important;
-    border-radius: 9px !important;
+        border: 1px solid #e8edf3 !important;
+        border-radius: 9px !important;
 
-    background: #f8fafc !important;
+        background: #f8fafc !important;
 
-    transition: all 0.2s ease !important;
-    width:49%;
-}
-
-
-#userDetailsContent .row > div:hover {
-    background: #ffffff !important;
-
-    border-color: #bfdbfe !important;
-
-    transform: translateY(-1px) !important;
-
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
-}
+        transition: all 0.2s ease !important;
+        width: 49%;
+    }
 
 
-/* =========================================
+    #userDetailsContent .row>div:hover {
+        background: #ffffff !important;
+
+        border-color: #bfdbfe !important;
+
+        transform: translateY(-1px) !important;
+
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+    }
+
+
+    /* =========================================
    Labels
    ========================================= */
 
-#userDetailsContent .row > div small {
-    display: block !important;
+    #userDetailsContent .row>div small {
+        display: block !important;
 
-    margin-bottom: 5px !important;
+        margin-bottom: 5px !important;
 
-    color: #64748b !important;
+        color: #64748b !important;
 
-    font-size: 10px !important;
-    font-weight: 600 !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
 
-    text-transform: uppercase !important;
-    letter-spacing: 0.45px !important;
-}
+        text-transform: uppercase !important;
+        letter-spacing: 0.45px !important;
+    }
 
 
-/* =========================================
+    /* =========================================
    Values
    ========================================= */
 
-#userDetailsContent .row > div strong {
-    display: block !important;
+    #userDetailsContent .row>div strong {
+        display: block !important;
 
-    color: #1e293b !important;
+        color: #1e293b !important;
 
-    font-size: 13px !important;
-    font-weight: 600 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
 
-    line-height: 1.4 !important;
+        line-height: 1.4 !important;
 
-    word-break: break-word !important;
-}
-
-
-
-#userDetailsContent .row > div strong:empty {
-    color: #94a3b8 !important;
-}
-
-#salarySplitModal .modal-content {
-    border: 0 !important;
-    border-radius: 14px !important;
-
-    overflow: hidden !important;
-
-    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
-}
+        word-break: break-word !important;
+    }
 
 
-/* Modal Body */
-#salarySplitModal .modal-body {
-    padding: 20px !important;
-    background: #ffffff !important;
-}
+
+    #userDetailsContent .row>div strong:empty {
+        color: #94a3b8 !important;
+    }
+
+    #salarySplitModal .modal-content {
+        border: 0 !important;
+        border-radius: 14px !important;
+
+        overflow: hidden !important;
+
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16) !important;
+    }
 
 
-/* =========================================
+    /* Modal Body */
+    #salarySplitModal .modal-body {
+        padding: 20px !important;
+        background: #ffffff !important;
+    }
+
+
+    /* =========================================
    Salary Table
    ========================================= */
 
-#salarySplitModal #salarySplitContent {
-    width: 100% !important;
+    #salarySplitModal #salarySplitContent {
+        width: 100% !important;
 
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
 
-    overflow: hidden !important;
-}
-
-
-#salarySplitModal #salarySplitContent .table {
-    margin-bottom: 0 !important;
-
-    color: #334155 !important;
-
-    vertical-align: middle !important;
-}
+        overflow: hidden !important;
+    }
 
 
-/* =========================================
+    #salarySplitModal #salarySplitContent .table {
+        margin-bottom: 0 !important;
+
+        color: #334155 !important;
+
+        vertical-align: middle !important;
+    }
+
+
+    /* =========================================
    Table Header
    ========================================= */
 
-#salarySplitModal #salarySplitContent thead {
-    background: #f8fafc !important;
-}
+    #salarySplitModal #salarySplitContent thead {
+        background: #f8fafc !important;
+    }
 
 
-#salarySplitModal #salarySplitContent thead th {
-    padding: 12px 14px !important;
+    #salarySplitModal #salarySplitContent thead th {
+        padding: 12px 14px !important;
 
-    color: #64748b !important;
+        color: #64748b !important;
 
-    background: #f8fafc !important;
+        background: #f8fafc !important;
 
-    border-bottom: 1px solid #e2e8f0 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
 
-    font-size: 10px !important;
-    font-weight: 700 !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
 
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-}
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+    }
 
 
-/* =========================================
+    /* =========================================
    Table Rows
    ========================================= */
 
-#salarySplitModal #salarySplitContent tbody tr {
-    background: #ffffff !important;
+    #salarySplitModal #salarySplitContent tbody tr {
+        background: #ffffff !important;
 
-    transition: all 0.2s ease !important;
-}
-
-
-#salarySplitModal #salarySplitContent tbody tr:hover {
-    background: #f8fbff !important;
-}
+        transition: all 0.2s ease !important;
+    }
 
 
-#salarySplitModal #salarySplitContent tbody td {
-    padding: 12px 14px !important;
-
-    color: #334155 !important;
-
-    border-bottom: 1px solid #f1f5f9 !important;
-
-    font-size: 13px !important;
-    font-weight: 500 !important;
-}
+    #salarySplitModal #salarySplitContent tbody tr:hover {
+        background: #f8fbff !important;
+    }
 
 
-/* Remove last border */
-#salarySplitModal #salarySplitContent tbody tr:last-child td {
-    border-bottom: 0 !important;
-}
+    #salarySplitModal #salarySplitContent tbody td {
+        padding: 12px 14px !important;
+
+        color: #334155 !important;
+
+        border-bottom: 1px solid #f1f5f9 !important;
+
+        font-size: 13px !important;
+        font-weight: 500 !important;
+    }
 
 
-/* =========================================
+    /* Remove last border */
+    #salarySplitModal #salarySplitContent tbody tr:last-child td {
+        border-bottom: 0 !important;
+    }
+
+
+    /* =========================================
    Salary Component Name
    ========================================= */
 
-#salarySplitModal #salarySplitContent tbody td:nth-child(2) {
-    color: #1e293b !important;
+    #salarySplitModal #salarySplitContent tbody td:nth-child(2) {
+        color: #1e293b !important;
 
-    font-weight: 600 !important;
-}
+        font-weight: 600 !important;
+    }
 
 
-/* =========================================
+    /* =========================================
    Amount
    ========================================= */
 
-#salarySplitModal #salarySplitContent tbody td.text-end {
-    color: #166534 !important;
+    #salarySplitModal #salarySplitContent tbody td.text-end {
+        color: #166534 !important;
 
-    font-size: 13px !important;
-    font-weight: 700 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
 
-    white-space: nowrap !important;
-}
+        white-space: nowrap !important;
+    }
 
 
-/* =========================================
+    /* =========================================
    Checkbox
    ========================================= */
 
-#salarySplitModal .salary-component-toggle {
-    width: 17px !important;
-    height: 17px !important;
+    #salarySplitModal .salary-component-toggle {
+        width: 17px !important;
+        height: 17px !important;
 
-    margin: 0 !important;
+        margin: 0 !important;
 
-    cursor: pointer !important;
+        cursor: pointer !important;
 
-    border: 1px solid #cbd5e1 !important;
-    border-radius: 5px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 5px !important;
 
-    box-shadow: none !important;
-}
-
-
-#salarySplitModal .salary-component-toggle:checked {
-    background-color: #2563eb !important;
-    border-color: #2563eb !important;
-}
+        box-shadow: none !important;
+    }
 
 
-#salarySplitModal .salary-component-toggle:focus {
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
-}
+    #salarySplitModal .salary-component-toggle:checked {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+    }
 
 
-/* =========================================
+    #salarySplitModal .salary-component-toggle:focus {
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    }
+
+
+    /* =========================================
    Include Column
    ========================================= */
 
-#salarySplitModal #salarySplitContent th:first-child,
-#salarySplitModal #salarySplitContent td:first-child {
-    width: 75px !important;
+    #salarySplitModal #salarySplitContent th:first-child,
+    #salarySplitModal #salarySplitContent td:first-child {
+        width: 75px !important;
 
-    text-align: center !important;
-}
+        text-align: center !important;
+    }
 
 
-/* =========================================
+    /* =========================================
    Selected Row
    ========================================= */
 
-#salarySplitModal #salarySplitContent tbody tr:has(
-    .salary-component-toggle:checked
-) {
-    background: #f8fbff !important;
-}
+    #salarySplitModal #salarySplitContent tbody tr:has(.salary-component-toggle:checked) {
+        background: #f8fbff !important;
+    }
 
 
 
 
-/* =========================================
+    /* =========================================
    Unchecked Row
    ========================================= */
 
-#salarySplitModal #salarySplitContent tbody tr:has(
-    .salary-component-toggle:not(:checked)
-) {
-    opacity: 0.55 !important;
-    background: #f8fafc !important;
-}
+    #salarySplitModal #salarySplitContent tbody tr:has(.salary-component-toggle:not(:checked)) {
+        opacity: 0.55 !important;
+        background: #f8fafc !important;
+    }
 
 
-#salarySplitModal #salarySplitContent tbody tr:has(
-    .salary-component-toggle:not(:checked)
-) td:nth-child(2),
-#salarySplitModal #salarySplitContent tbody tr:has(
-    .salary-component-toggle:not(:checked)
-) td.text-end {
-    text-decoration: line-through !important;
-    color: #94a3b8 !important;
-}
-
+    #salarySplitModal #salarySplitContent tbody tr:has(.salary-component-toggle:not(:checked)) td:nth-child(2),
+    #salarySplitModal #salarySplitContent tbody tr:has(.salary-component-toggle:not(:checked)) td.text-end {
+        text-decoration: line-through !important;
+        color: #94a3b8 !important;
+    }
 </style>
 <x-app-layout>
     @php
@@ -419,12 +410,15 @@
                                 <th class="text-center nowrap">SL No</th>
                                 <th class="text-center">Name</th>
                                 <th class="text-center">Total Days</th>
-                                <th class="text-center">Total Actual Days</th>
-                                <th class="text-center">Total Worked Days</th>
-                                <th class="text-center">LOP Days</th>
+                                <th class="text-center">Extra Days Worked</th>
                                 <th class="text-center">Gross Salary</th>
-                                <th class="text-center">Deduction</th>
-                                <th class="text-center">Net Salary</th>
+                                <th class="text-center">Extra Duty Incentive</th>
+                                <th class="text-center">Total Earned</th>
+                                <th class="text-center">PF</th>
+                                <th class="text-center">Professional Tax</th>
+                                <th class="text-center">ESI</th>
+                                <th class="text-center">Total Deduction</th>
+                                <th class="text-center">Net Total</th>
                             </tr>
                         </thead>
                         <tbody id="salaryRows">
@@ -483,7 +477,10 @@
         <div class="modal fade" id="attendanceInfoModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content cnt-modal-cs">
-                    <div class="modal-header"><h5 class="modal-title">Attendance Details</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-header">
+                        <h5 class="modal-title">Attendance Details</h5><button type="button" class="btn-close"
+                            data-bs-dismiss="modal"></button>
+                    </div>
                     <div class="modal-body" id="attendanceInfoContent"></div>
                 </div>
             </div>
@@ -519,22 +516,25 @@
                     }).map(function (item) {
                         return '<input type="hidden" class="selected-component-input" name="items[' + index + '][selected_components][]" value="' + item.id + '">';
                     }).join('');
-                    return '<tr data-basic="' + row.basic_salary + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
+                    return '<tr data-basic="' + row.basic_salary + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-calendar-days="' + row.calendar_days + '" data-total-days="' + row.total_attendance_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
                         '<td class="text-center">' + (index + 1) + '<input type="hidden" name="items[' + index + '][user_id]" value="' + row.user_id + '"></td>' +
-                        '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance=\'' + JSON.stringify({total_days: row.total_attendance_days, week_off_days: row.week_off_days, absent_days: row.absent_days, actual_working_days: row.present_days, actual_worked_days: row.actual_worked_days, lop_days: row.unpaid_leave_days, per_day_salary: row.salary_day_rate}).replace(/'/g, '&#039;') + '\'>[Attendance]</button></td>' +
+                        '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance=\'' + JSON.stringify({ present_days: row.present_days, wo_days: row.total_attendance_days, absent_days: row.absent_days, week_off_days: row.week_off_days, per_day_salary: row.salary_day_rate }).replace(/'/g, '&#039;') + '\'>[Attendance]</button></td>' +
                         '<td class="text-center">' + row.total_attendance_days + '</td>' +
-                        '<td class="text-center">' + row.present_days + '</td>' +
-                        '<td class="text-center">' + row.actual_worked_days + '</td>' +
-                        '<td class="text-center lop"><span class="lop-days">' + Number(row.unpaid_leave_days || 0) + '</span><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
-                        '<td class="text-center"><span class="gross-salary">' + Number(row.basic_salary).toFixed(2) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
-                        '<td class="text-center"><input type="number" step="0.01" class="form-control shadow-none deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '" readonly></td>' +
-                        '<td class="text-center net-salary">' + Number(row.net_salary).toFixed(2) + '</td>' +
+                        '<td class="text-center extra-days-worked">' + Number(row.extra_days_worked || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center"><span class="gross-salary">' + Number(row.gross_salary || row.basic_salary).toFixed(2) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
+                        '<td class="text-center extra-duty-incentive">' + Number(row.extra_duty_incentive || row.incentive || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center total-earned">' + Number(row.total_earned || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center pf">' + Number(row.pf || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center professional-tax">' + Number(row.professional_tax || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center esi">' + Number(row.esi || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center total-deduction">' + Number(row.total_deduction || row.deduction || 0).toFixed(2) + '<input type="hidden" class="deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
+                        '<td class="text-center net-total">' + Number(row.net_total || row.net_salary || 0).toFixed(2) + '</td>' +
                         '</tr>';
                 }
 
                 function reloadUsers() {
                     if (!$('#depot_id').val()) {
-                        $('#salaryRows').html('<tr><td colspan="9" class="text-center text-muted">Select a depot.</td></tr>');
+                        $('#salaryRows').html('<tr><td colspan="12" class="text-center text-muted">Select a depot.</td></tr>');
                         return;
                     }
 
@@ -548,7 +548,7 @@
                         }
                         $('#salaryRows').html(rows.length ? rows.map(function (row, index) {
                             return rowHtml(row, index);
-                        }).join('') : '<tr><td colspan="9" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
+                        }).join('') : '<tr><td colspan="12" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
                     }).fail(function () {
                         showToast('error', 'Unable to load users.');
                     });
@@ -604,19 +604,35 @@
                     var selected = split.filter(function (item) { return item.selected; });
                     var gross = selected.filter(function (item) { return String(item.type).toLowerCase() === 'earning'; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
                     var templateDeduction = selected.filter(function (item) { return String(item.type).toLowerCase() === 'deduction'; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
-                    var lopDays = Number(row.find('.lop-days').text()) || 0;
-                    var totalDays = Number(row.data('working-days')) || 0;
-                    var lopDeduction = totalDays > 0 ? (gross / totalDays) * lopDays : 0;
-                    row.data('basic', gross);
-                    row.find('.gross-salary').text(gross.toFixed(2));
-                    row.find('.deduction-input').val((templateDeduction + lopDeduction).toFixed(2));
-                    row.find('.net-salary').text((gross - templateDeduction - lopDeduction).toFixed(2));
+                    var incentive = 0;
+                    var baseGross = gross;
+                    var calendarDays = Number(row.data('calendar-days')) || 0;
+                    var attendanceDays = Number(row.data('total-days')) || 0;
+                    var earned = calendarDays > 0 ? (baseGross / calendarDays) * attendanceDays : 0;
+                    var basicVda = selected.filter(function (item) { return ['basic', 'vda'].indexOf(String(item.name || '').toLowerCase()) !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var pf = basicVda * 0.12;
+                    var professionalTax = baseGross <= 15000 ? 0 : (baseGross <= 20000 ? 150 : 200);
+                    var esi = baseGross < 21000 ? baseGross * 0.0075 : 0;
+                    var extraDays = Math.max(attendanceDays - calendarDays, 0);
+                    incentive = calendarDays > 0 ? (baseGross / calendarDays) * extraDays : 0;
+                    var totalEarned = earned + incentive;
+                    var totalDeduction = templateDeduction + pf + professionalTax + esi;
+                    row.data('basic', baseGross);
+                    row.find('.gross-salary').text(baseGross.toFixed(2));
+                    row.find('.extra-duty-incentive').text(incentive.toFixed(2));
+                    row.find('.total-earned').text(totalEarned.toFixed(2));
+                    row.find('.pf').text(pf.toFixed(2));
+                    row.find('.professional-tax').text(professionalTax.toFixed(2));
+                    row.find('.esi').text(esi.toFixed(2));
+                    row.find('.total-deduction').contents().first().replaceWith(totalDeduction.toFixed(2));
+                    row.find('.deduction-input').val(templateDeduction.toFixed(2));
+                    row.find('.net-total').text((totalEarned - totalDeduction).toFixed(2));
                     $('#salarySplitModal').modal('hide');
                 });
 
                 $(document).on('click', '.view-attendance', function () {
                     var data = $(this).data('attendance') || {};
-                    var labels = { total_days: 'Total Days', week_off_days: 'Week-off Days', absent_days: 'Absent Days', actual_working_days: 'Actual Working Days', actual_worked_days: 'Actual Worked Days', lop_days: 'LOP Days', per_day_salary: 'Per-day Salary' };
+                    var labels = { present_days: 'Present Days', absent_days: 'Absent Days', week_off_days: 'Week Off', wo_days: 'Total Days', per_day_salary: 'Salary Per Day' };
                     var html = '<div class="attendance-summary">' + Object.keys(labels).map(function (key) {
                         var value = key === 'per_day_salary' ? '₹' + Number(data[key] || 0).toFixed(2) : Number(data[key] || 0).toFixed(2);
                         return '<div class="attendance-summary-item"><span class="attendance-summary-label">' + labels[key] + '</span><span class="attendance-summary-value">' + value + '</span></div>';
@@ -631,8 +647,8 @@
                     var avatarUrl = details.avatar_url || '{{ asset('assets/img/user.png') }}';
                     var html = '<div class="user-details-avatar-wrap"><img src="' + escapeHtml(avatarUrl) + '" alt="' + escapeHtml((details.name || 'User') + ' image') + '" class="user-details-avatar"></div>' +
                         '<div class="row">' + Object.keys(labels).map(function (key) {
-                        return '<div class="col-sm-6 mb-3"><small class="text-muted d-block">' + labels[key] + '</small><strong>' + $('<div>').text(details[key] || '-').html() + '</strong></div>';
-                    }).join('') + '</div>';
+                            return '<div class="col-sm-6 mb-3"><small class="text-muted d-block">' + labels[key] + '</small><strong>' + $('<div>').text(details[key] || '-').html() + '</strong></div>';
+                        }).join('') + '</div>';
                     $('#userDetailsContent').html(html);
                     $('#userDetailsModal').modal('show');
                 });
@@ -652,6 +668,7 @@
                 line-height: 1;
                 white-space: nowrap;
             }
+
             .salary-table-scroll {
                 overflow-x: auto;
                 width: 100%;
@@ -686,15 +703,56 @@
                 margin: 2px auto 0;
             }
 
-            #attendanceInfoModal .modal-dialog { max-width: 430px; }
-            #attendanceInfoModal .modal-content { border: 0; border-radius: 14px; box-shadow: 0 12px 35px rgba(15, 23, 42, .2); }
-            #attendanceInfoModal .modal-header { padding: 18px 22px; border-bottom: 1px solid #eef1f5; }
-            #attendanceInfoModal .modal-title { font-size: 17px; font-weight: 600; }
-            #attendanceInfoModal .modal-body { padding: 18px 22px 22px; }
-            #attendanceInfoModal .attendance-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-            #attendanceInfoModal .attendance-summary-item { padding: 12px 14px; border: 1px solid #edf0f4; border-radius: 9px; background: #fafbfc; }
-            #attendanceInfoModal .attendance-summary-label { display: block; color: #6b7280; font-size: 11px; margin-bottom: 4px; }
-            #attendanceInfoModal .attendance-summary-value { display: block; color: #1f2937; font-size: 15px; font-weight: 600; }
+            #attendanceInfoModal .modal-dialog {
+                max-width: 430px;
+            }
+
+            #attendanceInfoModal .modal-content {
+                border: 0;
+                border-radius: 14px;
+                box-shadow: 0 12px 35px rgba(15, 23, 42, .2);
+            }
+
+            #attendanceInfoModal .modal-header {
+                padding: 18px 22px;
+                border-bottom: 1px solid #eef1f5;
+            }
+
+            #attendanceInfoModal .modal-title {
+                font-size: 17px;
+                font-weight: 600;
+            }
+
+            #attendanceInfoModal .modal-body {
+                padding: 18px 22px 22px;
+            }
+
+            #attendanceInfoModal .attendance-summary {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+
+            #attendanceInfoModal .attendance-summary-item {
+                padding: 12px 14px;
+                border: 1px solid #edf0f4;
+                border-radius: 9px;
+                background: #fafbfc;
+            }
+
+            #attendanceInfoModal .attendance-summary-label {
+                display: block;
+                color: #6b7280;
+                font-size: 11px;
+                margin-bottom: 4px;
+            }
+
+            #attendanceInfoModal .attendance-summary-value {
+                display: block;
+                color: #1f2937;
+                font-size: 15px;
+                font-weight: 600;
+            }
 
             .user-details-avatar-wrap {
                 align-items: center;

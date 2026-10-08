@@ -83,6 +83,10 @@ class AttendanceConsolidateCsv
                 if (count($numbers) === 4 && $numbers['total_days'] !== $numbers['present_days'] + $numbers['week_off_days']) {
                     $errors[] = "Row {$line}: Total must equal P + W/O; absent days are excluded.";
                 }
+                if (isset($numbers['present_days'], $numbers['week_off_days'])) {
+                    $totalCents = $numbers['present_days'] + $numbers['week_off_days'];
+                    $row['total_days'] = intdiv($totalCents, 100).'.'.str_pad((string) ($totalCents % 100), 2, '0', STR_PAD_LEFT);
+                }
                 $row['source_row'] = $line;
                 $rows[] = $row;
             }
