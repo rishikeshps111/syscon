@@ -368,7 +368,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     private function usersForDepot(int $depotId)
     {
         return User::query()
-            ->with(['roles', 'driverProfile.depot', 'housekeepingProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'supervisorProfile.depot'])
+            ->with(['roles', 'driverProfile.depot', 'driverProfile.designation', 'housekeepingProfile.depot', 'housekeepingProfile.designation', 'staffProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'controllerProfile.designation', 'supervisorProfile.depot', 'supervisorProfile.designation'])
             ->where(function ($query) use ($depotId) {
                 foreach (['driverProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile', 'staffProfile'] as $profile) {
                     $query->orWhereHas($profile, fn ($profileQuery) => $profileQuery->where('depot_id', $depotId));
@@ -380,7 +380,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function salarySplit(User $user, string $roleName): array
     {
-        $designationId = $roleName === 'Staff' ? $user->staffProfile?->designation_id : null;
+        $designationId = $this->employeeProfile($user, $roleName)?->designation_id;
         $components = SalaryComponents::forRole($roleName, $designationId);
         return $components
             ->map(fn($component) => [
@@ -414,15 +414,20 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         };
     }
 
-    private function userDetails(User $user, string $roleName): array
+    private function employeeProfile(User $user, string $roleName)
     {
-        $profile = match ($roleName) {
+        return match ($roleName) {
             'Driver' => $user->driverProfile,
             'Housekeeping' => $user->housekeepingProfile,
             'Controller' => $user->controllerProfile,
             'Supervisor' => $user->supervisorProfile,
             default => $user->staffProfile,
         };
+    }
+
+    private function userDetails(User $user, string $roleName): array
+    {
+        $profile = $this->employeeProfile($user, $roleName);
 
         return [
             'name' => $user->name,
@@ -433,7 +438,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'email' => $user->email ?: '-',
             'aadhaar_number' => $this->aadhaarNo($user, $roleName) ?: '-',
             'depot' => $profile?->depot?->name ?? '-',
-            'designation' => $user->staffProfile?->designation?->name ?? '-',
+            'designation' => $profile?->designation?->name ?? '-',
             'employment_type' => $profile?->employment_type_label ?: '-',
             'joining_date' => ($profile?->joining_date ?? $profile?->date_of_joining)?->format('d-m-Y') ?? '-',
         ];
