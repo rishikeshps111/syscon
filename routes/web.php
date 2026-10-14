@@ -464,6 +464,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/salary-slips/users', [GeneratePaySlipController::class, 'users'])->name('salary-slips.users');
     Route::get('/salary-slips/preview', [GeneratePaySlipController::class, 'preview'])->name('salary-slips.preview');
     Route::get('/salary-slips/pdf', [GeneratePaySlipController::class, 'pdf'])->name('salary-slips.pdf');
+    Route::post('/salary-slips/zip', [GeneratePaySlipController::class, 'zip'])->name('salary-slips.zip');
 
     Route::get('/role-permissions', [RolePermissionController::class, 'index'])
         ->name('role-permissions.index');

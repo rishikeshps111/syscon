@@ -17,7 +17,7 @@
         </div>
 
         <div class="main-table-container">
-            <form id="paySlipForm" method="GET" action="{{ route('salary-slips.preview') }}">
+            <form id="paySlipForm" method="GET" action="{{ route('salary-slips.preview') }}" novalidate>
                 <div class="row align-items-end">
                     <div class="col-lg-4 col-md-4 o-f-inp mb-3">
                         <label for="paySlipYear">Year <span class="text-danger">*</span></label>
@@ -39,14 +39,22 @@
                     </div>
                     <div class="col-lg-4 col-md-4 o-f-inp mb-3">
                         <label for="paySlipDepot">Depo <span class="text-danger">*</span></label>
-                        <select name="depot_id" id="paySlipDepot" class="form-select shadow-none pay-slip-filter" required>
+                        <select name="depot_id" id="paySlipDepot" class="form-select shadow-none pay-slip-filter"
+                            required>
                             <option value="">--- Select ---</option>
                             @foreach ($depots as $depot)
                                 <option value="{{ $depot->id }}">{{ $depot->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-4 col-md-8 o-f-inp mb-3">
+                    <div class="col-lg-4 col-md-4 o-f-inp mb-3">
+                        <label for="paySlipType">Type</label>
+                        <select id="paySlipType" class="form-select shadow-none">
+                            <option value="individual">Individual</option>
+                            <option value="bulk">Bulk</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-4 col-md-8 o-f-inp mb-3" id="paySlipUserField">
                         <label for="paySlipUser">User <span class="text-danger">*</span></label>
                         <select name="user_id" id="paySlipUser" class="form-select shadow-none" required disabled>
                             <option value="">Select filters first</option>
@@ -58,6 +66,9 @@
                             data-loading-text="Generating...">
                             Generate Pay Slip
                         </button>
+                        <button type="button" id="downloadPaySlipZip" class="exp-btn m-0 d-none"
+                            style="font-size: 11px !important" data-loading-text="Downloading...">Download Payslips
+                            ZIP</button>
                     </div>
                 </div>
             </form>
@@ -89,6 +100,26 @@
             $(function () {
                 var userSelect = $('#paySlipUser');
                 var paySlipModal = null;
+                $('#paySlipForm select').select2({ width: '100%' });
+                var previewVersion = 0;
+
+                function clearPreview() {
+                    ++previewVersion;
+                    setDownloadState(false, '#');
+                    $('#paySlipModalBody').html('<div class="text-center py-5 text-muted">Generate a pay slip to view details.</div>');
+                    if (paySlipModal) paySlipModal.hide();
+                }
+
+                function updateType() {
+                    var bulk = $('#paySlipType').val() === 'bulk';
+                    $('#paySlipUserField, #generatePaySlip').toggleClass('d-none', bulk);
+                    $('#downloadPaySlipZip').toggleClass('d-none', !bulk);
+                    userSelect.prop('required', !bulk);
+                    clearPreview();
+                }
+                $('#paySlipType').on('change', updateType);
+                userSelect.on('change', clearPreview);
+                updateType();
 
                 function showPaySlipModal() {
                     if (!paySlipModal && window.bootstrap) {
@@ -135,7 +166,7 @@
                 }
 
                 function resetUsers(message) {
-                    userSelect.prop('disabled', true).html('<option value="">' + message + '</option>').val('');
+                    userSelect.prop('disabled', true).html('<option value="">' + message + '</option>').val('').trigger('change.select2');
                 }
 
                 function setDownloadState(enabled, url) {
@@ -151,7 +182,7 @@
                 function loadUsers() {
                     var version = ++usersRequestVersion;
                     if (usersRequest) usersRequest.abort();
-                    setDownloadState(false, '#');
+                    clearPreview();
 
                     if (!userFiltersReady()) {
                         resetUsers('Select year, month and depot first');
@@ -174,7 +205,7 @@
 
                         userSelect.prop('disabled', false).html('<option value="">--- Select ---</option>' + users.map(function (user) {
                             return '<option value="' + user.id + '">' + $('<div>').text(user.text).html() + '</option>';
-                        }).join(''));
+                        }).join('')).trigger('change.select2');
                     }).fail(function (xhr, status) {
                         if (status === 'abort' || version !== usersRequestVersion) return;
                         resetUsers('Unable to load users');
@@ -190,8 +221,10 @@
                 $('#resetPaySlip').on('click', function () {
                     ++usersRequestVersion;
                     if (usersRequest) usersRequest.abort();
-                    $('#paySlipMonth, #paySlipDepot').val('');
-                    $('#paySlipYear').val(@json(date('Y')));
+                    $('#paySlipMonth, #paySlipDepot').val('').trigger('change.select2');
+                    $('#paySlipYear').val(@json(date('Y'))).trigger('change.select2');
+                    $('#paySlipType').val('individual').trigger('change.select2');
+                    updateType();
                     resetUsers('Select year, month and depot first');
                     $('#paySlipModalBody').html('<div class="text-center py-5 text-muted">Generate a pay slip to view details.</div>');
                     setDownloadState(false, '#');
@@ -199,14 +232,19 @@
 
                 $('#paySlipForm').on('submit', function (event) {
                     event.preventDefault();
+                    if ($('#paySlipType').val() === 'bulk') {
+                        $('#downloadPaySlipZip').trigger('click');
+                        return;
+                    }
 
-                    if (!this.checkValidity()) {
-                        this.reportValidity();
+                    if (!userFiltersReady() || !userSelect.val()) {
+                        showToast('warning', 'Select year, month, depot and employee.');
                         return;
                     }
 
                     var form = $(this);
                     var button = $('#generatePaySlip');
+                    var version = ++previewVersion;
                     setLoading(button);
                     $('#paySlipModalBody').html('<div class="text-center py-5 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Generating pay slip...</div>');
                     setDownloadState(false, '#');
@@ -214,17 +252,56 @@
 
                     $.get(form.attr('action'), form.serialize())
                         .done(function (response) {
+                            if (version !== previewVersion) return;
                             $('#paySlipModalBody').html(response.html);
                             setDownloadState(response.success, response.download_pdf_url);
                             showToast('success', 'Pay slip generated successfully.');
                         })
                         .fail(function (xhr) {
+                            if (version !== previewVersion) return;
                             $('#paySlipModalBody').html('<div class="alert alert-danger mb-0">Unable to generate pay slip.</div>');
                             showToast('error', xhr.responseJSON?.message || 'Unable to generate pay slip.');
                         })
                         .always(function () {
                             resetLoading(button);
                         });
+                });
+
+                $('#downloadPaySlipZip').on('click', async function () {
+                    if (!userFiltersReady()) {
+                        showToast('warning', 'Select year, month and depot.');
+                        return;
+                    }
+                    var button = this;
+                    var filters = {
+                        year: $('#paySlipYear').val(), month: $('#paySlipMonth').val(),
+                        depot_id: $('#paySlipDepot').val()
+                    };
+                    setLoading(button);
+                    try {
+                        var response = await fetch(@json(route('salary-slips.zip')), {
+                            method: 'POST', credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @json(csrf_token()) },
+                            body: JSON.stringify(filters)
+                        });
+                        if (!response.ok) {
+                            var error = await response.json().catch(function () { return {}; });
+                            throw new Error(error.message || 'Unable to download payslip ZIP.');
+                        }
+                        var blob = await response.blob();
+                        var url = URL.createObjectURL(blob);
+                        var link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'payslips-depot-' + filters.depot_id + '-' + filters.year + '-' + String(filters.month).padStart(2, '0') + '.zip';
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+                    } catch (error) {
+                        showToast('error', error.message);
+                    } finally {
+                        resetLoading(button);
+                    }
                 });
 
                 $('#downloadPaySlipPdf').on('click', function (event) {
@@ -247,6 +324,11 @@
 
     @section('styles')
         <style>
+            #paySlipForm #generatePaySlip.d-none,
+            #paySlipForm #downloadPaySlipZip.d-none {
+                display: none !important;
+            }
+
             .pay-slip-preview {
                 background: #f6f8fb;
                 border: 1px solid #e6ebf2;
@@ -320,14 +402,14 @@
                 margin-bottom: 14px;
             }
 
-            .pay-slip-summary-strip > div,
+            .pay-slip-summary-strip>div,
             .pay-slip-panel {
                 background: #ffffff;
                 border: 1px solid #e6ebf2;
                 border-radius: 8px;
             }
 
-            .pay-slip-summary-strip > div {
+            .pay-slip-summary-strip>div {
                 min-height: 92px;
                 padding: 14px;
             }
@@ -460,6 +542,7 @@
             }
 
             @media (max-width: 991.98px) {
+
                 .pay-slip-summary-strip,
                 .pay-slip-grid,
                 .pay-slip-grid-wide,

@@ -1,6 +1,11 @@
 @php
-    $money = fn($value) => number_format((float) $value, 2);
-    $components = collect($item->salary_split ?: []);
+    $money = fn($value) => number_format((float) $value, 0);
+    $components = collect($item->salary_split ?: [])->map(function ($component) use ($item) {
+        if (strtolower(trim((string) ($component['name'] ?? ''))) === 'duty incentive') {
+            $component['amount'] = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
+        }
+        return $component;
+    });
     $earnings = $components->where('type', 'earning')->values();
     $deductions = $components->where('type', 'deduction')->values();
     $status = $processing->status ?: 'Pending';
@@ -10,10 +15,9 @@
     $weekOffDays = (float) ($item->week_off_days ?? 0);
     $absentDays = (float) ($item->absent_days ?? 0);
     $extraDays = (float) ($item->extra_days_worked ?? 0);
-    $grossSalary = (float) ($item->gross_salary ?? $item->basic_salary ?? 0);
-    $earnedSalary = (float) ($item->earned_salary ?? 0);
+    $earnedSalary = (float) ($item->earned_salary ?? $item->basic_salary ?? 0);
     $extraDutyIncentive = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
-    $totalEarned = (float) ($item->total_earned ?? ($earnedSalary + $extraDutyIncentive));
+    $grossSalary = $earnedSalary + $extraDutyIncentive;
     $pf = (float) ($item->pf ?? 0);
     $professionalTax = (float) ($item->professional_tax ?? 0);
     $esi = (float) ($item->esi ?? 0);
@@ -150,13 +154,9 @@
                 <span>Gross Salary</span>
                 <strong>{{ $money($grossSalary) }}</strong>
             </div>
-            <div class="pay-slip-total-row"><span>Earned Salary</span><strong>{{ $money($earnedSalary) }}</strong>
-            </div>
-            <div class="pay-slip-total-row"><span>Extra Duty Incentive</span><strong>{{ $money($extraDutyIncentive) }}</strong></div>
-            <div class="pay-slip-total-row"><span>Total Earned</span><strong>{{ $money($totalEarned) }}</strong></div>
             <div class="pay-slip-total-row"><span>PF</span><strong>{{ $money($pf) }}</strong></div>
             <div class="pay-slip-total-row"><span>Professional Tax</span><strong>{{ $money($professionalTax) }}</strong></div>
-            <div class="pay-slip-total-row"><span>ESI</span><strong>{{ $money($esi) }}</strong></div>
+            <div class="pay-slip-total-row"><span>ESIC</span><strong>{{ $money($esi) }}</strong></div>
             <div class="pay-slip-total-row">
                 <span>Total Deduction</span>
                 <strong>{{ $money($totalDeduction) }}</strong>

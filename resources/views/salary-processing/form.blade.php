@@ -412,8 +412,6 @@
                                 <th class="text-center">Total Days</th>
                                 <th class="text-center">Extra Days Worked</th>
                                 <th class="text-center">Gross Salary</th>
-                                <th class="text-center">Extra Duty Incentive</th>
-                                <th class="text-center">Total Earned</th>
                                 <th class="text-center">PF</th>
                                 <th class="text-center">Professional Tax</th>
                                 <th class="text-center">ESI</th>
@@ -504,6 +502,70 @@
                 var usersUrl = "{{ route('salary-processing.users') }}";
                 var csrf = "{{ csrf_token() }}";
 
+                // The horizontal overflow wrapper prevents a CSS sticky header
+                // from following page scroll, so mirror it above that wrapper.
+                var payrollTable = document.querySelector('.salary-table-scroll .payroll-table');
+                var payrollScroller = payrollTable.closest('.salary-table-scroll');
+                var floatingHeader = document.createElement('div');
+                floatingHeader.className = 'salary-floating-header';
+                floatingHeader.setAttribute('aria-hidden', 'true');
+                var headerTable = payrollTable.cloneNode(false);
+                headerTable.classList.remove('mt-3');
+                headerTable.appendChild(payrollTable.tHead.cloneNode(true));
+                floatingHeader.appendChild(headerTable);
+                document.body.appendChild(floatingHeader);
+
+                function updatePayrollHeader() {
+                    var rect = payrollTable.getBoundingClientRect();
+                    var viewport = payrollScroller.getBoundingClientRect();
+                    var navigation = document.getElementById('header');
+                    var top = navigation ? Math.max(navigation.getBoundingClientRect().bottom, 0) : 0;
+                    var height = payrollTable.tHead.getBoundingClientRect().height;
+                    var left = Math.max(viewport.left, 0);
+                    var right = Math.min(viewport.right, document.documentElement.clientWidth);
+                    floatingHeader.style.display = rect.top < top && rect.bottom > top && right > left ? 'block' : 'none';
+                    floatingHeader.style.top = Math.min(top, rect.bottom - height) + 'px';
+                    floatingHeader.style.left = left + 'px';
+                    floatingHeader.style.width = Math.max(right - left, 0) + 'px';
+                    headerTable.style.width = rect.width + 'px';
+                    headerTable.style.minWidth = rect.width + 'px';
+                    headerTable.style.marginLeft = (rect.left - left) + 'px';
+                    Array.from(payrollTable.tHead.rows[0].cells).forEach(function (cell, index) {
+                        headerTable.tHead.rows[0].cells[index].style.width = cell.getBoundingClientRect().width + 'px';
+                    });
+                }
+
+                var headerFrame;
+                function schedulePayrollHeader() {
+                    if (headerFrame) return;
+                    headerFrame = requestAnimationFrame(function () {
+                        headerFrame = null;
+                        updatePayrollHeader();
+                    });
+                }
+                window.addEventListener('scroll', schedulePayrollHeader, { passive: true, capture: true });
+                window.addEventListener('resize', schedulePayrollHeader);
+                if (window.ResizeObserver) {
+                    var payrollObserver = new ResizeObserver(schedulePayrollHeader);
+                    payrollObserver.observe(payrollTable);
+                    if (document.getElementById('header')) payrollObserver.observe(document.getElementById('header'));
+                }
+                updatePayrollHeader();
+
+                function isDutyIncentive(item) {
+                    return String(item.name || '').trim().toLowerCase() === 'duty incentive';
+                }
+
+                function roundMoney(value) {
+                    return Math.round((value + Number.EPSILON) * 100) / 100;
+                }
+
+                function displayMoney(value) {
+                    var amount = Number(value) || 0;
+                    var rounded = Math.sign(amount) * Math.floor(Math.abs(amount) + 0.5);
+                    return rounded.toLocaleString('en-US', { maximumFractionDigits: 0 });
+                }
+
                 function escapeHtml(value) {
                     return $('<div>').text(value == null ? '' : value).html();
                 }
@@ -516,25 +578,23 @@
                     }).map(function (item) {
                         return '<input type="hidden" class="selected-component-input" name="items[' + index + '][selected_components][]" value="' + item.id + '">';
                     }).join('');
-                    return '<tr data-basic="' + row.basic_salary + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-calendar-days="' + row.calendar_days + '" data-total-days="' + row.total_attendance_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
+                    return '<tr data-basic="' + row.basic_salary + '" data-lop="' + Number(row.lop || 0) + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-calendar-days="' + row.calendar_days + '" data-total-days="' + row.total_attendance_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
                         '<td class="text-center">' + (index + 1) + '<input type="hidden" name="items[' + index + '][user_id]" value="' + row.user_id + '"></td>' +
                         '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance=\'' + JSON.stringify({ present_days: row.present_days, wo_days: row.total_attendance_days, absent_days: row.absent_days, week_off_days: row.week_off_days, per_day_salary: row.salary_day_rate }).replace(/'/g, '&#039;') + '\'>[Attendance]</button></td>' +
                         '<td class="text-center">' + row.total_attendance_days + '</td>' +
                         '<td class="text-center extra-days-worked">' + Number(row.extra_days_worked || 0).toFixed(2) + '</td>' +
-                        '<td class="text-center"><span class="gross-salary">' + Number(row.gross_salary || row.basic_salary).toFixed(2) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
-                        '<td class="text-center extra-duty-incentive">' + Number(row.extra_duty_incentive || row.incentive || 0).toFixed(2) + '</td>' +
-                        '<td class="text-center total-earned">' + Number(row.total_earned || 0).toFixed(2) + '</td>' +
-                        '<td class="text-center pf">' + Number(row.pf || 0).toFixed(2) + '</td>' +
-                        '<td class="text-center professional-tax">' + Number(row.professional_tax || 0).toFixed(2) + '</td>' +
-                        '<td class="text-center esi">' + Number(row.esi || 0).toFixed(2) + '</td>' +
-                        '<td class="text-center total-deduction">' + Number(row.total_deduction || row.deduction || 0).toFixed(2) + '<input type="hidden" class="deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
-                        '<td class="text-center net-total">' + Number(row.net_total || row.net_salary || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center"><span class="gross-salary">' + displayMoney(row.gross_salary ?? row.basic_salary) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
+                        '<td class="text-center pf">' + displayMoney(row.pf) + '</td>' +
+                        '<td class="text-center professional-tax">' + displayMoney(row.professional_tax) + '</td>' +
+                        '<td class="text-center esi">' + displayMoney(row.esi) + '</td>' +
+                        '<td class="text-center total-deduction">' + displayMoney(row.total_deduction ?? row.deduction) + '<input type="hidden" class="deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
+                        '<td class="text-center net-total">' + displayMoney(row.net_total ?? row.net_salary) + '</td>' +
                         '</tr>';
                 }
 
                 function reloadUsers() {
                     if (!$('#depot_id').val()) {
-                        $('#salaryRows').html('<tr><td colspan="12" class="text-center text-muted">Select a depot.</td></tr>');
+                        $('#salaryRows').html('<tr><td colspan="10" class="text-center text-muted">Select a depot.</td></tr>');
                         return;
                     }
 
@@ -548,7 +608,7 @@
                         }
                         $('#salaryRows').html(rows.length ? rows.map(function (row, index) {
                             return rowHtml(row, index);
-                        }).join('') : '<tr><td colspan="12" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
+                        }).join('') : '<tr><td colspan="10" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
                     }).fail(function () {
                         showToast('error', 'Unable to load users.');
                     });
@@ -564,8 +624,8 @@
                     var unauthorized = Number(row.find('.unauthorized-leaves').val()) || 0;
                     var lop = workingDays > 0 ? (basic / workingDays) * unauthorized : 0;
                     var net = basic + incentive - deduction - lop;
-                    row.find('.lop-amount').text(lop.toFixed(2));
-                    row.find('.net-salary').text(net.toFixed(2));
+                    row.find('.lop-amount').text(displayMoney(lop));
+                    row.find('.net-salary').text(displayMoney(net));
                 }
 
                 $(document).on('input', '.unauthorized-leaves, .salary-adjustment', function () {
@@ -577,7 +637,7 @@
                     var split = $(this).data('split') || [];
                     var html = split.length ? '<table class="table table-sm"><thead><tr><th>Include</th><th>Salary Component</th><th class="text-end">Amount</th></tr></thead><tbody>' +
                         split.map(function (item) {
-                            return '<tr><td><input type="checkbox" class="form-check-input salary-component-toggle" value="' + item.id + '" data-amount="' + item.amount + '" data-name="' + $('<div>').text(item.name).html() + '" ' + (item.selected !== false ? 'checked' : '') + '></td><td>' + $('<div>').text(item.name).html() + '</td><td class="text-end">' + Number(item.amount).toFixed(2) + '</td></tr>';
+                            return '<tr><td><input type="checkbox" class="form-check-input salary-component-toggle" value="' + item.id + '" data-amount="' + item.amount + '" data-name="' + $('<div>').text(item.name).html() + '" ' + (item.selected !== false ? 'checked' : '') + '></td><td>' + $('<div>').text(item.name).html() + '</td><td class="text-end">' + displayMoney(item.amount) + '</td></tr>';
                         }).join('') + '</tbody></table>' : '<p class="text-muted mb-0">No salary split available.</p>';
                     $('#salarySplitContent').html(html).data('button', button);
                     $('#salarySplitModal').modal('show');
@@ -602,31 +662,34 @@
                         button.after($('<input>', { type: 'hidden', class: 'selected-component-input', name: name, value: id }));
                     });
                     var selected = split.filter(function (item) { return item.selected; });
-                    var gross = selected.filter(function (item) { return String(item.type).toLowerCase() === 'earning'; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
-                    var templateDeduction = selected.filter(function (item) { return String(item.type).toLowerCase() === 'deduction'; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var gross = selected.filter(function (item) { return String(item.type).toLowerCase() === 'earning' && !isDutyIncentive(item); }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var templateDeduction = selected.filter(function (item) { return String(item.type).toLowerCase() === 'deduction' && !isDutyIncentive(item); }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
                     var incentive = 0;
                     var baseGross = gross;
                     var calendarDays = Number(row.data('calendar-days')) || 0;
                     var attendanceDays = Number(row.data('total-days')) || 0;
-                    var earned = calendarDays > 0 ? (baseGross / calendarDays) * attendanceDays : 0;
-                    var basicVda = selected.filter(function (item) { return ['basic', 'vda'].indexOf(String(item.name || '').toLowerCase()) !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
-                    var pf = basicVda * 0.12;
-                    var professionalTax = baseGross <= 15000 ? 0 : (baseGross <= 20000 ? 150 : 200);
-                    var esi = baseGross < 21000 ? baseGross * 0.0075 : 0;
+                    var earned = calendarDays > 0 ? (baseGross / calendarDays) * Math.min(attendanceDays, calendarDays) : 0;
+                    var basicVda = selected.filter(function (item) { return ['basic', 'vda'].indexOf(String(item.name || '').trim().toLowerCase()) !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
+                    var pf = roundMoney(basicVda * 0.12);
                     var extraDays = Math.max(attendanceDays - calendarDays, 0);
                     incentive = calendarDays > 0 ? (baseGross / calendarDays) * extraDays : 0;
-                    var totalEarned = earned + incentive;
-                    var totalDeduction = templateDeduction + pf + professionalTax + esi;
+                    split.forEach(function (item) {
+                        if (isDutyIncentive(item)) item.amount = incentive;
+                    });
+                    button.data('split', split);
+                    var totalEarned = roundMoney(earned + incentive);
+                    var professionalTax = totalEarned <= 15000 ? 0 : (totalEarned <= 20000 ? 150 : 200);
+                    var esi = baseGross < 21000 ? roundMoney(totalEarned * 0.0075) : 0;
+                    var deduction = templateDeduction + Number(row.data('lop') || 0);
+                    var totalDeduction = roundMoney(deduction + pf + professionalTax + esi);
                     row.data('basic', baseGross);
-                    row.find('.gross-salary').text(baseGross.toFixed(2));
-                    row.find('.extra-duty-incentive').text(incentive.toFixed(2));
-                    row.find('.total-earned').text(totalEarned.toFixed(2));
-                    row.find('.pf').text(pf.toFixed(2));
-                    row.find('.professional-tax').text(professionalTax.toFixed(2));
-                    row.find('.esi').text(esi.toFixed(2));
-                    row.find('.total-deduction').contents().first().replaceWith(totalDeduction.toFixed(2));
-                    row.find('.deduction-input').val(templateDeduction.toFixed(2));
-                    row.find('.net-total').text((totalEarned - totalDeduction).toFixed(2));
+                    row.find('.gross-salary').text(displayMoney(totalEarned));
+                    row.find('.pf').text(displayMoney(pf));
+                    row.find('.professional-tax').text(displayMoney(professionalTax));
+                    row.find('.esi').text(displayMoney(esi));
+                    row.find('.total-deduction').contents().first().replaceWith(displayMoney(totalDeduction));
+                    row.find('.deduction-input').val(deduction.toFixed(2));
+                    row.find('.net-total').text(displayMoney(roundMoney(totalEarned - totalDeduction)));
                     $('#salarySplitModal').modal('hide');
                 });
 
@@ -634,7 +697,7 @@
                     var data = $(this).data('attendance') || {};
                     var labels = { present_days: 'Present Days', absent_days: 'Absent Days', week_off_days: 'Week Off', wo_days: 'Total Days', per_day_salary: 'Salary Per Day' };
                     var html = '<div class="attendance-summary">' + Object.keys(labels).map(function (key) {
-                        var value = key === 'per_day_salary' ? '₹' + Number(data[key] || 0).toFixed(2) : Number(data[key] || 0).toFixed(2);
+                        var value = key === 'per_day_salary' ? '₹' + displayMoney(data[key]) : Number(data[key] || 0).toFixed(2);
                         return '<div class="attendance-summary-item"><span class="attendance-summary-label">' + labels[key] + '</span><span class="attendance-summary-value">' + value + '</span></div>';
                     }).join('') + '</div>';
                     $('#attendanceInfoContent').html(html);
@@ -673,6 +736,33 @@
                 overflow-x: auto;
                 width: 100%;
                 -webkit-overflow-scrolling: touch;
+            }
+
+            .salary-floating-header {
+                position: fixed;
+                overflow: hidden;
+                z-index: 990;
+                pointer-events: none;
+                background: #fff;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, .12);
+            }
+
+            .salary-floating-header .payroll-table {
+                margin: 0 !important;
+                table-layout: fixed;
+                font-size: 12px;
+            }
+
+            .salary-floating-header .payroll-table th {
+                padding: 8px 5px;
+                vertical-align: middle;
+                white-space: normal;
+                background: linear-gradient(135deg, #082647 0%, #1c3e64 100%);
+                color: #fff;
+            }
+
+            @media print {
+                .salary-floating-header { display: none !important; }
             }
 
             .salary-table-scroll .payroll-table {

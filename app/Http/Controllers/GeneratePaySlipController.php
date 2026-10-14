@@ -18,7 +18,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('salary-slips.view'), ['index', 'users', 'preview', 'pdf']),
+            new Middleware(PermissionMiddleware::using('salary-slips.view'), ['index', 'users', 'preview', 'pdf', 'zip']),
         ];
     }
 
@@ -87,6 +87,50 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $fileName . '"',
         ]);
+    }
+
+    public function zip(Request $request)
+    {
+        $filters = $this->validatedUserFilters($request);
+        $processing = $this->processing($filters);
+        abort_if(! $processing, 404, 'No approved salary processing found for the selected filters.');
+        $processing->load(['depot', 'approver']);
+        $items = $processing->items()->with([
+            'user.roles', 'user.driverProfile', 'user.housekeepingProfile',
+            'user.staffProfile', 'user.controllerProfile', 'user.supervisorProfile',
+        ])->orderBy('user_id')->get()->filter(fn ($item) => $item->user);
+        abort_if($items->isEmpty(), 404, 'No employee payslips are available for the selected payroll.');
+
+        $path = tempnam(storage_path('app'), 'payslips-');
+        abort_if($path === false, 500, 'Unable to create payslip archive.');
+        $archive = new \ZipArchive();
+        $opened = false;
+        try {
+            if ($archive->open($path, \ZipArchive::OVERWRITE) !== true) {
+                throw new \RuntimeException('Unable to open payslip archive.');
+            }
+            $opened = true;
+            foreach ($items as $item) {
+                $filename = pathinfo($this->fileName($processing, $item), PATHINFO_FILENAME)
+                    . '-employee-' . $item->user_id . '.pdf';
+                if (! $archive->addFromString($filename, $this->buildPdf($processing, $item))) {
+                    throw new \RuntimeException('Unable to add payslip to archive.');
+                }
+            }
+            $closed = $archive->close();
+            $opened = false;
+            if (! $closed) {
+                throw new \RuntimeException('Unable to finalize payslip archive.');
+            }
+            $filename = sprintf('payslips-depot-%d-%d-%02d.zip', $filters['depot_id'], $filters['year'], $filters['month']);
+            return response()->download($path, $filename, ['Content-Type' => 'application/zip'])
+                ->deleteFileAfterSend(true);
+        } catch (\Throwable $exception) {
+            if ($opened) $archive->close();
+            if (is_file($path)) unlink($path);
+            report($exception);
+            abort(500, 'Unable to generate payslip ZIP. Please try again.');
+        }
     }
 
     public function preview(Request $request)
@@ -189,7 +233,12 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
     private function buildPdf(SalaryProcessing $processing, SalaryProcessingItem $item): string
     {
-        $components = collect($item->salary_split ?: [])->values();
+        $components = collect($item->salary_split ?: [])->map(function ($component) use ($item) {
+            if (strtolower(trim((string) ($component['name'] ?? ''))) === 'duty incentive') {
+                $component['amount'] = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
+            }
+            return $component;
+        })->values();
         $bankDetails = $this->bankDetails($processing, $item);
 
         $month = Carbon::create(null, $processing->month, 1)->format('F');
@@ -199,10 +248,9 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $weekOffDays = (float) ($item->week_off_days ?? 0);
         $absentDays = (float) ($item->absent_days ?? 0);
         $extraDays = (float) ($item->extra_days_worked ?? 0);
-        $grossSalary = (float) ($item->gross_salary ?? $item->basic_salary ?? 0);
-        $earnedSalary = (float) ($item->earned_salary ?? 0);
+        $earnedSalary = (float) ($item->earned_salary ?? $item->basic_salary ?? 0);
         $extraDutyIncentive = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
-        $totalEarned = (float) ($item->total_earned ?? ($earnedSalary + $extraDutyIncentive));
+        $grossSalary = $earnedSalary + $extraDutyIncentive;
         $pf = (float) ($item->pf ?? 0);
         $professionalTax = (float) ($item->professional_tax ?? 0);
         $esi = (float) ($item->esi ?? 0);
@@ -215,15 +263,15 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfText('SYSCON', 56, 786, 10, 'F2', [191, 219, 254]);
         $stream .= $this->pdfText('Pay Slip', 56, 764, 24, 'F2', [255, 255, 255]);
         $stream .= $this->pdfText($month . ' ' . $processing->year, 438, 786, 11, 'F2', [255, 255, 255]);
-        $stream .= $this->pdfText('Generated ' . now()->format('d-m-Y h:i A'), 438, 766, 9, 'F1', [203, 213, 225]);
+        $stream .= $this->pdfText('Generated ' . now()->format('d-m-Y h:i A'), 370, 766, 9, 'F1', [203, 213, 225]);
 
         $stream .= $this->pdfCard(36, 642, 160, 74);
         $stream .= $this->pdfLabelValue('Employee', $item->user?->name ?: '-', 52, 690);
-        $stream .= $this->pdfText($item->user?->code ?: 'No code', 52, 662, 9, 'F1', [107, 114, 128]);
+        $stream .= $this->pdfText($item->user?->code ?: 'No code', 52, 650, 9, 'F1', [107, 114, 128]);
 
         $stream .= $this->pdfCard(216, 642, 160, 74);
-        $stream .= $this->pdfLabelValue('Total Days', $this->money($totalDays), 232, 690);
-        $stream .= $this->pdfText($month . ' ' . $processing->year, 232, 662, 9, 'F1', [107, 114, 128]);
+        $stream .= $this->pdfLabelValue('Total Days', number_format($totalDays, 2), 232, 690);
+        $stream .= $this->pdfText($month . ' ' . $processing->year, 232, 650, 9, 'F1', [107, 114, 128]);
 
         $stream .= $this->pdfFillRect(396, 642, 163, 74, [17, 24, 39]);
         $stream .= $this->pdfText('NET SALARY', 412, 690, 9, 'F2', [203, 213, 225]);
@@ -238,11 +286,11 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
         $stream .= $this->pdfCard(307, 488, 252, 128);
         $stream .= $this->pdfSectionTitle('Consolidated Attendance', 323, 590);
-        $stream .= $this->pdfPair('Total Days', $this->money($totalDays), 323, 562);
-        $stream .= $this->pdfPair('Present', $this->money($presentDays), 437, 562);
-        $stream .= $this->pdfPair('Week-off', $this->money($weekOffDays), 323, 536);
-        $stream .= $this->pdfPair('Absent', $this->money($absentDays), 437, 536);
-        $stream .= $this->pdfPair('Extra Days', $this->money($extraDays), 323, 510);
+        $stream .= $this->pdfPair('Total Days', number_format($totalDays, 2), 323, 562);
+        $stream .= $this->pdfPair('Present', number_format($presentDays, 2), 437, 562);
+        $stream .= $this->pdfPair('Week-off', number_format($weekOffDays, 2), 323, 536);
+        $stream .= $this->pdfPair('Absent', number_format($absentDays, 2), 437, 536);
+        $stream .= $this->pdfPair('Extra Days', number_format($extraDays, 2), 323, 510);
         $stream .= $this->pdfPair('Salary Per Day', $this->money($item->salary_day_rate), 437, 510);
 
         $stream .= $this->pdfCard(36, 234, 318, 230);
@@ -273,15 +321,12 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         }
 
         $stream .= $this->pdfCard(375, 234, 184, 230);
-        $stream .= $this->pdfSectionTitle('Salary Summary', 391, 438);
+        $stream .= $this->pdfSectionTitle('Salary Summary', 391, 438, 152);
         $stream .= $this->pdfAmountRow('Gross Salary', $this->money($grossSalary), 391, 408);
-        $stream .= $this->pdfAmountRow('Earned Salary', $this->money($earnedSalary), 391, 388);
-        $stream .= $this->pdfAmountRow('Extra Duty Incentive', $this->money($extraDutyIncentive), 391, 368);
-        $stream .= $this->pdfAmountRow('Total Earned', $this->money($totalEarned), 391, 348);
-        $stream .= $this->pdfAmountRow('PF', $this->money($pf), 391, 328);
-        $stream .= $this->pdfAmountRow('Professional Tax', $this->money($professionalTax), 391, 308);
-        $stream .= $this->pdfAmountRow('ESI', $this->money($esi), 391, 288);
-        $stream .= $this->pdfAmountRow('Total Deduction', $this->money($totalDeduction), 391, 268);
+        $stream .= $this->pdfAmountRow('PF', $this->money($pf), 391, 380);
+        $stream .= $this->pdfAmountRow('Professional Tax', $this->money($professionalTax), 391, 352);
+        $stream .= $this->pdfAmountRow('ESIC', $this->money($esi), 391, 324);
+        $stream .= $this->pdfAmountRow('Total Deduction', $this->money($totalDeduction), 391, 296);
         $stream .= $this->pdfFillRect(391, 234, 152, 28, [17, 24, 39]);
         $stream .= $this->pdfText('NET TOTAL', 407, 252, 8, 'F2', [203, 213, 225]);
         $stream .= $this->pdfText($this->money($netTotal), 475, 240, 11, 'F2', [255, 255, 255]);
@@ -328,7 +373,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
     private function money(mixed $value): string
     {
-        return number_format((float) $value, 2);
+        return number_format((float) $value, 0);
     }
 
     private function simplePdf(string $stream): string
@@ -383,10 +428,10 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
             . $this->pdfText($value, $x, $y - 14, 9, 'F2', [17, 24, 39]);
     }
 
-    private function pdfSectionTitle(string $title, float $x, float $y): string
+    private function pdfSectionTitle(string $title, float $x, float $y, float $width = 210): string
     {
         return $this->pdfText($title, $x, $y, 12, 'F2', [17, 24, 39])
-            . $this->pdfLine($x, $y - 10, $x + 210, $y - 10, [237, 241, 247]);
+            . $this->pdfLine($x, $y - 10, $x + $width, $y - 10, [237, 241, 247]);
     }
 
     private function pdfAmountRow(string $label, string $value, float $x, float $y): string

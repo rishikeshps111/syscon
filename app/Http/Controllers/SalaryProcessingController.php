@@ -49,15 +49,15 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn($row) => '<input type="checkbox" class="row-check" value="' . $row->id . '">')
-                ->addColumn('month_name', fn($row) => Carbon::create($row->year, $row->month, 1)->format('F'))
-                ->addColumn('depot_name', fn($row) => $row->depot?->name ?? '-')
-                ->addColumn('attendance_import', fn($row) => $row->attendanceImport?->original_filename ?? '-')
-                ->addColumn('created_by_name', fn($row) => $row->creator?->name ?? '-')
-                ->addColumn('created_date_time', fn($row) => $row->created_at?->format('d-m-Y h:i A') ?? '-')
-                ->addColumn('approved_by_name', fn($row) => $row->approver ? $row->approver->name . '<br><small>' . $row->approved_at?->format('d-m-Y h:i A') . '</small>' : '-')
-                ->addColumn('approval_status_label', fn($row) => $this->approvalStatusBadge($row))
-                ->addColumn('action', fn($row) => view('salary-processing.partials.action', compact('row'))->render())
+                ->addColumn('checkbox', fn ($row) => '<input type="checkbox" class="row-check" value="'.$row->id.'">')
+                ->addColumn('month_name', fn ($row) => Carbon::create($row->year, $row->month, 1)->format('F'))
+                ->addColumn('depot_name', fn ($row) => $row->depot?->name ?? '-')
+                ->addColumn('attendance_import', fn ($row) => $row->attendanceImport?->original_filename ?? '-')
+                ->addColumn('created_by_name', fn ($row) => $row->creator?->name ?? '-')
+                ->addColumn('created_date_time', fn ($row) => $row->created_at?->format('d-m-Y h:i A') ?? '-')
+                ->addColumn('approved_by_name', fn ($row) => $row->approver ? $row->approver->name.'<br><small>'.$row->approved_at?->format('d-m-Y h:i A').'</small>' : '-')
+                ->addColumn('approval_status_label', fn ($row) => $this->approvalStatusBadge($row))
+                ->addColumn('action', fn ($row) => view('salary-processing.partials.action', compact('row'))->render())
                 ->rawColumns(['checkbox', 'approved_by_name', 'approval_status_label', 'action'])
                 ->make(true);
         }
@@ -103,7 +103,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     public function edit(SalaryProcessing $salaryProcessing)
     {
         $salaryProcessing->load(['items.user', 'items.salaryProcessing.attendanceImport', 'depot', 'attendanceImport']);
-        $rows = $salaryProcessing->items->map(fn($item) => $this->storedRow($item))->values();
+        $rows = $salaryProcessing->items->map(fn ($item) => $this->storedRow($item))->values();
 
         return view('salary-processing.form', $this->commonData() + [
             'record' => $salaryProcessing,
@@ -212,6 +212,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         }
 
         $data['attendance_consolidate_import_id'] = (int) $import->id;
+
         return $data;
     }
 
@@ -318,7 +319,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             $earningSplit = collect($split)->where('type', 'earning')->values();
             $incentive = 0;
             $grossSalary = $this->grossSalary($user, $earningSplit->all());
-            $componentDeduction = (float) collect($split)->where('type', 'deduction')->sum('amount');
+            $componentDeduction = (float) collect($split)->where('type', 'deduction')
+                ->reject(fn ($component) => $this->isDutyIncentive($component))->sum('amount');
             $leaveTaken = $this->leaveTaken($user->id, $start, $end);
             $lopDays = max((float) $attendance->absent_days - (float) $attendance->week_off_days, 0);
             $unpaidLeaveDays = $lopDays;
@@ -382,8 +384,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     {
         $designationId = $this->employeeProfile($user, $roleName)?->designation_id;
         $components = SalaryComponents::forRole($roleName, $designationId);
+
         return $components
-            ->map(fn($component) => [
+            ->map(fn ($component) => [
                 'id' => $component->id,
                 'name' => $component->component_name,
                 'type' => $component->type,
@@ -397,7 +400,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     private function grossSalary(User $user, array $earningSplit): float
     {
         if ($earningSplit !== []) {
-            return (float) collect($earningSplit)->sum('amount');
+            return (float) collect($earningSplit)
+                ->reject(fn ($component) => $this->isDutyIncentive($component))
+                ->sum('amount');
         }
 
         return 0.0;
@@ -446,7 +451,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function applySelectedComponents(array $row, array $selectedIds): array
     {
-        $selectedIds = collect($selectedIds)->map(fn($id) => (int) $id)->all();
+        $selectedIds = collect($selectedIds)->map(fn ($id) => (int) $id)->all();
         $split = collect($row['salary_split'])->map(function (array $component) use ($selectedIds) {
             $component['selected'] = in_array((int) $component['id'], $selectedIds, true);
 
@@ -455,10 +460,12 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $selected = $split->where('selected', true);
 
         if ($split->isNotEmpty()) {
-            $earnings = $selected->where('type', 'earning');
+            $earnings = $selected->where('type', 'earning')
+                ->reject(fn ($component) => $this->isDutyIncentive($component));
             $row['incentive'] = 0.0;
             $row['basic_salary'] = (float) $earnings->sum('amount');
-            $row['deduction'] = (float) $selected->where('type', 'deduction')->sum('amount');
+            $row['deduction'] = (float) $selected->where('type', 'deduction')
+                ->reject(fn ($component) => $this->isDutyIncentive($component))->sum('amount');
         }
 
         $row['salary_split'] = $split->values()->all();
@@ -504,7 +511,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
         return TripSheetEntryDor::where('is_completed', true)
             ->whereBetween('dor_date', [$start, $end])
-            ->whereHas('tripSheetEntry', fn($query) => $query->where('driver_profile_id', $driverProfileId))
+            ->whereHas('tripSheetEntry', fn ($query) => $query->where('driver_profile_id', $driverProfileId))
             ->count();
     }
 
@@ -521,6 +528,22 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         return $row;
     }
 
+    private function isDutyIncentive(array $component): bool
+    {
+        return strtolower(trim((string) ($component['name'] ?? ''))) === 'duty incentive';
+    }
+
+    private function dutyIncentiveSplit(array $split, float $amount): array
+    {
+        return collect($split)->map(function (array $component) use ($amount) {
+            if ($this->isDutyIncentive($component)) {
+                $component['amount'] = $amount;
+            }
+
+            return $component;
+        })->values()->all();
+    }
+
     private function calculatePayrollTotals(array $row): array
     {
         $gross = (float) ($row['basic_salary'] ?? 0);
@@ -533,19 +556,20 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $incentive = $salaryPerDay * $extraDays;
         $basic = collect($row['salary_split'] ?? [])
             ->where('selected', true)
-            ->filter(fn ($component) => in_array(strtolower((string) ($component['name'] ?? '')), ['basic', 'vda'], true))
+            ->filter(fn ($component) => in_array(strtolower(trim((string) ($component['name'] ?? ''))), ['basic', 'vda'], true))
             ->sum('amount');
-        $pf = $basic * 0.12;
-        $professionalTax = $gross <= 15000 ? 0 : ($gross <= 20000 ? 150 : 200);
-        $esi = $gross < 21000 ? $gross * 0.0075 : 0;
-        $totalEarned = $earnedSalary + $incentive;
-        $totalDeduction = (float) ($row['deduction'] ?? 0) + $pf + $professionalTax + $esi;
+        $totalEarned = round($earnedSalary + $incentive, 2);
+        $pf = round($basic * 0.12, 2);
+        $professionalTax = $totalEarned <= 15000 ? 0 : ($totalEarned <= 20000 ? 150 : 200);
+        $esi = $gross < 21000 ? round($totalEarned * 0.0075, 2) : 0;
+        $totalDeduction = round((float) ($row['deduction'] ?? 0) + $pf + $professionalTax + $esi, 2);
 
         return array_merge($row, [
             'extra_days_worked' => $extraDays,
-            'gross_salary' => $gross,
+            'gross_salary' => $totalEarned,
             'earned_salary' => round($earnedSalary, 2),
             'extra_duty_incentive' => $incentive,
+            'salary_split' => $this->dutyIncentiveSplit($row['salary_split'] ?? [], $incentive),
             'total_earned' => round($totalEarned, 2),
             'pf' => round($pf, 2),
             'professional_tax' => round($professionalTax, 2),
@@ -561,7 +585,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $label = $isApproved ? 'Approved' : 'Pending';
         $class = $isApproved ? 'status-green' : 'status-orange';
 
-        return '<span class="' . $class . '">' . e($label) . '</span>';
+        return '<span class="'.$class.'">'.e($label).'</span>';
     }
 
     private function storedRow(SalaryProcessingItem $item): array
@@ -598,7 +622,10 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'total_working_days' => $item->total_working_days,
             'lop' => (float) $item->lop,
             'basic_salary' => (float) $item->basic_salary,
-            'gross_salary' => (float) ($item->gross_salary ?? $item->basic_salary),
+            'gross_salary' => round(
+                (float) ($item->earned_salary ?? $item->basic_salary)
+                + (float) ($item->extra_duty_incentive ?? $item->incentive), 2
+            ),
             'earned_salary' => (float) ($item->earned_salary ?? 0),
             'extra_duty_incentive' => (float) ($item->extra_duty_incentive ?? $item->incentive),
             'total_earned' => (float) ($item->total_earned ?? 0),
@@ -611,7 +638,10 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'incentive' => (float) $item->incentive,
             'unauthorized_leaves' => (float) $item->unauthorized_leaves,
             'net_salary' => (float) $item->net_salary,
-            'salary_split' => collect($item->salary_split ?: [])->map(function ($component) {
+            'salary_split' => collect($this->dutyIncentiveSplit(
+                $item->salary_split ?: [],
+                (float) ($item->extra_duty_incentive ?? $item->incentive)
+            ))->map(function ($component) {
                 $component['selected'] = $component['selected'] ?? true;
 
                 return $component;
@@ -622,7 +652,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     private function commonData(): array
     {
         return [
-            'months' => collect(range(1, 12))->mapWithKeys(fn($month) => [$month => Carbon::create((int) date('Y'), $month, 1)->format('F')])->all(),
+            'months' => collect(range(1, 12))->mapWithKeys(fn ($month) => [$month => Carbon::create((int) date('Y'), $month, 1)->format('F')])->all(),
             'years' => range((int) date('Y') - 5, (int) date('Y') + 1),
             'depots' => Depot::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'paymentMethods' => SalaryProcessing::PAYMENT_METHODS,
