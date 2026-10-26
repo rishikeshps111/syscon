@@ -58,14 +58,16 @@ class BulkImportController extends Controller
         $this->authorizeModule($config);
 
         if ($module) {
-            return response()->streamDownload(function () use ($config) {
+            return response()->streamDownload(function () use ($config, $module) {
                 $spreadsheet = new Spreadsheet;
                 $sheet = $spreadsheet->getActiveSheet();
                 $sheet->setTitle(ucfirst($module).' Import');
                 $sheet->fromArray($config['sample_headers'] ?? $config['headers'], null, 'A1');
                 $sheet->fromArray($config['sample'], null, 'A2');
                 $sheet->getStyle('A1:'.$sheet->getHighestColumn().'1')->getFont()->setBold(true);
-                foreach (range('A', $sheet->getHighestColumn()) as $column) {
+                $highestColumn = Coordinate::columnIndexFromString($sheet->getHighestColumn());
+                for ($columnIndex = 1; $columnIndex <= $highestColumn; $columnIndex++) {
+                    $column = Coordinate::stringFromColumnIndex($columnIndex);
                     $sheet->getColumnDimension($column)->setAutoSize(true);
                 }
                 (new Xlsx($spreadsheet))->save('php://output');
@@ -81,6 +83,9 @@ class BulkImportController extends Controller
     {
         $config = $this->config($module);
         $this->authorizeModule($config);
+        if (in_array($module, ['drivers', 'staff'], true) && $request->input('import_step') && $request->input('import_step') !== 'prepare') {
+            return $this->processImportChunk($request, $module, $config);
+        }
         $request->validate([
             'csv_file' => ['required', 'file', 'mimes:xlsx,xls', 'extensions:xlsx,xls', 'max:5120'],
         ]);
@@ -93,13 +98,34 @@ class BulkImportController extends Controller
             throw ValidationException::withMessages(['csv_file' => $readErrors]);
         }
 
+        if (in_array($module, ['drivers', 'staff'], true) && $request->input('import_step') === 'prepare') {
+            $token = (string) Str::uuid();
+            $request->session()->put('bulk_import.'.$token, [
+                'module' => $module, 'rows' => $rows, 'valid' => [], 'validation' => [],
+                'offset' => 0, 'saved' => 0, 'updated' => 0, 'phase' => 'validate', 'expires' => time() + 3600,
+            ]);
+            return response()->json(['token' => $token, 'phase' => 'validate', 'processed' => 0,
+                'total' => count($rows), 'validated' => 0, 'saved' => 0, 'created' => 0, 'updated' => 0]);
+        }
+
         [$validatedRows, $errors] = $this->validateRows($module, $rows, $config);
         if ($errors) {
             throw ValidationException::withMessages(['csv_file' => $errors]);
         }
 
-        DB::transaction(function () use ($module, $validatedRows) {
+        $updated = 0;
+        DB::transaction(function () use ($module, $validatedRows, &$updated) {
             foreach ($validatedRows as $data) {
+                if ($module === 'drivers' && isset($data['_driver_user_id'])) {
+                    $this->updateImportedDriver($data);
+                    $updated++;
+                    continue;
+                }
+                if ($module === 'staff' && isset($data['_staff_user_id'])) {
+                    $this->updateImportedStaff($data);
+                    $updated++;
+                    continue;
+                }
                 match ($module) {
                     'vehicles' => $this->createVehicle($data),
                     'designations' => $this->createDesignation($data),
@@ -109,15 +135,18 @@ class BulkImportController extends Controller
         });
 
         return redirect()->route($config['index_route'])
-            ->with('success', count($validatedRows).' '.Str::lower($config['label']).' record(s) imported successfully.');
+            ->with('success', in_array($module, ['drivers', 'staff'], true)
+                ? 'Import completed: '.(count($validatedRows) - $updated).' rows created, '.$updated.' rows updated'
+                : count($validatedRows).' '.Str::lower($config['label']).' record(s) imported successfully.');
     }
 
-    private function validateRows(string $module, array $rows, array $config): array
+    private function validateRows(string $module, array $rows, array $config, array &$state = []): array
     {
         $this->relationLookupCache = [];
         $valid = [];
         $errors = [];
-        $seen = [];
+        $seen = $state['seen'] ?? [];
+        $seenDrivers = $state['seen_users'] ?? [];
 
         foreach ($rows as $row) {
             $data = array_map(fn ($value) => is_string($value) ? trim($value) : $value, $row['data']);
@@ -129,13 +158,48 @@ class BulkImportController extends Controller
                 }
             }
             $data = $this->normalize($data, $module);
-            $validator = Validator::make($data, $this->rules($module));
+            $driver = null;
+            if (in_array($module, ['drivers', 'staff'], true) && filled($data['ref_code'] ?? null)) {
+                $matches = User::query()->where('ref_code', $data['ref_code'])
+                    ->where(function ($query) use ($module) {
+                        foreach ($module === 'drivers' ? ['driverProfile'] : ['staffProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile'] as $relation) {
+                            $query->orWhereHas($relation);
+                        }
+                    })->with($module === 'drivers' ? ['driverProfile'] : ['staffProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile'])->limit(2)->get();
+                if ($matches->count() > 1) {
+                    $errors[] = "Row {$row['line']}: ref_code '{$data['ref_code']}' matches multiple ".($module === 'drivers' ? 'drivers.' : 'employees.');
+                } elseif ($matches->count() === 1) {
+                    $driver = $matches->first();
+                    if (isset($seenDrivers[$driver->id])) {
+                        $errors[] = "Row {$row['line']}: duplicate ref_code; first seen on row {$seenDrivers[$driver->id]}.";
+                    }
+                    $seenDrivers[$driver->id] = $row['line'];
+                }
+            }
+            $rules = $this->rules($module);
+            if ($driver) {
+                $unique = $module === 'drivers'
+                    ? ['email' => ['users', $driver->id], 'aadhaar_number' => ['driver_profiles', $driver->driverProfile->id], 'license_number' => ['driver_profiles', $driver->driverProfile->id]]
+                    : ['email' => ['users', $driver->id], 'phone' => ['users', $driver->id]];
+                if ($module === 'staff') {
+                    $relation = $this->staffImportRelation($data['role'] ?? '');
+                    if (! $relation || ! $driver->{$relation}) {
+                        $errors[] = "Row {$row['line']}: role does not match the existing employee; bulk import cannot change roles.";
+                    }
+                }
+                foreach ($unique as $field => [$table, $id]) {
+                    $rules[$field] = array_values(array_filter($rules[$field], fn ($rule) => ! is_string($rule) || ! str_starts_with($rule, 'unique:')));
+                    $rules[$field][] = Rule::unique($table, $field)->ignore($id);
+                }
+                $data[$module === 'drivers' ? '_driver_user_id' : '_staff_user_id'] = $driver->id;
+            }
+            $validator = Validator::make($data, $rules);
 
             foreach ($validator->errors()->all() as $message) {
                 $errors[] = "Row {$row['line']}: {$message}";
             }
 
-            foreach ($config['unique_csv'] as $field) {
+            foreach (array_merge($config['unique_csv'], in_array($module, ['drivers', 'staff'], true) ? ['ref_code'] : []) as $field) {
                 $value = Str::lower((string) ($data[$field] ?? ''));
                 if ($value === '') {
                     continue;
@@ -149,7 +213,94 @@ class BulkImportController extends Controller
             $valid[] = $data;
         }
 
+        $state = ['seen' => $seen, 'seen_users' => $seenDrivers];
         return [$valid, array_values(array_unique($errors))];
+    }
+
+    private function processImportChunk(Request $request, string $module, array $config)
+    {
+        $request->validate(['token' => ['required', 'uuid'], 'offset' => ['required', 'integer', 'min:0'], 'import_step' => ['required', Rule::in(['validate', 'save'])]]);
+        $key = 'bulk_import.'.$request->input('token');
+        $state = $request->session()->get($key);
+        abort_unless($state && $state['module'] === $module && $state['expires'] > time(), 410, 'Import expired. Please upload the file again.');
+        $phase = $state['phase'];
+        $offset = $phase === 'validate' ? $state['offset'] : $state['saved'];
+        abort_unless($request->input('import_step') === $phase && (int) $request->input('offset') === $offset, 409, 'Import progress has changed. Please reload before retrying.');
+        $total = count($state['rows']);
+        if ($phase === 'validate') {
+            [$valid, $errors] = $this->validateRows($module, array_slice($state['rows'], $offset, 25), $config, $state['validation']);
+            if ($errors) {
+                $request->session()->forget($key);
+                throw ValidationException::withMessages(['csv_file' => $errors]);
+            }
+            $state['valid'] = array_merge($state['valid'], $valid);
+            $state['offset'] += count($valid);
+            if ($state['offset'] === $total) {
+                $state['phase'] = 'save';
+            }
+        } else {
+            $batch = array_slice($state['valid'], $offset, 25);
+            $updated = 0;
+            DB::transaction(function () use ($module, $batch, &$updated) {
+                foreach ($batch as $data) {
+                    if (isset($data['_driver_user_id'])) {
+                        $this->updateImportedDriver($data);
+                        $updated++;
+                    } elseif (isset($data['_staff_user_id'])) {
+                        $this->updateImportedStaff($data);
+                        $updated++;
+                    } else {
+                        $this->createPerson($module, $data);
+                    }
+                }
+            });
+            $state['saved'] += count($batch);
+            $state['updated'] += $updated;
+            if ($state['saved'] === $total) {
+                $request->session()->forget($key);
+                $message = 'Import completed: '.($total - $state['updated']).' rows created, '.$state['updated'].' rows updated';
+                $request->session()->flash('success', $message);
+                return response()->json(array_merge($this->importProgress($state), [
+                    'phase' => 'done', 'processed' => $total, 'message' => $message, 'redirect' => route($config['index_route']),
+                ]));
+            }
+        }
+        $request->session()->put($key, $state);
+        return response()->json(array_merge($this->importProgress($state), [
+            'phase' => $state['phase'], 'processed' => $state['phase'] === 'validate' ? $state['offset'] : $state['saved'],
+        ]));
+    }
+
+    private function importProgress(array $state): array
+    {
+        return [
+            'total' => count($state['rows']),
+            'validated' => count($state['valid']),
+            'saved' => $state['saved'],
+            'created' => $state['saved'] - $state['updated'],
+            'updated' => $state['updated'],
+        ];
+    }
+
+    private function staffImportRelation(string $role): ?string
+    {
+        return ['Staff' => 'staffProfile', 'Housekeeping' => 'housekeepingProfile', 'Controller' => 'controllerProfile', 'Supervisor' => 'supervisorProfile'][$role] ?? null;
+    }
+
+    private function updateImportedStaff(array $data): void
+    {
+        $user = User::findOrFail($data['_staff_user_id']);
+        $relation = $this->staffImportRelation($data['role']);
+        $profile = $user->{$relation};
+        $nonblank = fn ($value) => $value !== null && $value !== '';
+        $user->update(array_filter(collect($data)->only(['ref_code', 'name', 'email', 'country_code', 'phone', 'is_active'])->all(), $nonblank));
+        $fields = ['depot_id', 'designation_id', 'employment_type', 'father_name', 'date_of_birth', 'aadhaar_number', 'pan_number', 'date_of_joining', 'uan', 'esic_wc', 'country', 'state_id', 'district_id', 'location_id', 'bank_account_number', 'ifsc_code'];
+        if ($data['role'] === 'Housekeeping') {
+            $data['joining_date'] = $data['date_of_joining'] ?? null;
+            $data['account_number'] = $data['bank_account_number'] ?? null;
+            $fields = array_merge(array_diff($fields, ['date_of_joining', 'bank_account_number']), ['joining_date', 'account_number', 'branch_location_id', 'pincode', 'address', 'emergency_contact_name', 'emergency_country_code', 'emergency_contact_no', 'medical_fitness_expiry', 'police_verification_status', 'verification_status']);
+        }
+        $profile->forceFill(array_filter(collect($data)->only($fields)->all(), $nonblank))->save();
     }
 
     private function resolveRelations(array $data, string $module, int $line, array &$errors): array
@@ -357,6 +508,18 @@ class BulkImportController extends Controller
         }
     }
 
+    private function updateImportedDriver(array $data): void
+    {
+        $user = User::with('driverProfile')->findOrFail($data['_driver_user_id']);
+        $nonblank = fn ($value) => $value !== null && $value !== '';
+        $userData = array_filter(collect($data)->only(['ref_code', 'name', 'email', 'country_code', 'phone', 'is_active'])->all(), $nonblank);
+        if (filled($data['passcode'] ?? null)) {
+            $userData['password'] = $data['passcode'];
+        }
+        $user->update($userData);
+        $user->driverProfile->update(array_filter(collect($data)->only($this->config('drivers')['profile_fields'])->all(), $nonblank));
+    }
+
     private function createUnifiedEmployee(array $data): void
     {
         $role = $data['role'];
@@ -553,6 +716,7 @@ class BulkImportController extends Controller
             ];
         }
         if ($module === 'staff') {
+            $rules['phone'][] = 'unique:users,phone';
             return $rules + [
                 'ref_code' => ['nullable', 'string', 'max:100'],
                 'role' => ['required', Rule::in(['Staff', 'Housekeeping', 'Controller', 'Supervisor'])],
@@ -923,7 +1087,9 @@ class BulkImportController extends Controller
             'phone' => $module === 'staff'
                 ? 'Full phone number with country code, for example +91 9876543210. If omitted, +91 is used.'
                 : 'Primary phone number, maximum 30 characters.',
-            'ref_code' => 'Optional external reference code.',
+            'ref_code' => in_array($module, ['drivers', 'staff'], true)
+                ? 'Optional external reference code. A matching record is updated; a new or blank code creates a record. Must not repeat within the file.'
+                : 'Optional external reference code.',
             'role' => 'Use Staff, Housekeeping, Controller, or Supervisor.',
             'alternate_country_code' => 'Optional alternate telephone country code, for example +91.',
             'alternate_phone' => 'Optional alternate phone number, maximum 30 characters.',

@@ -189,6 +189,23 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function validatedPayload(Request $request): array
     {
+        if ($request->exists('items_json')) {
+            $encodedItems = $request->input('items_json');
+            try {
+                $items = is_string($encodedItems)
+                    ? json_decode($encodedItems, true, 512, JSON_THROW_ON_ERROR)
+                    : null;
+            } catch (\JsonException $exception) {
+                throw ValidationException::withMessages(['items' => 'The employee items payload is invalid. Please reload the form and try again.']);
+            }
+
+            if (! is_array($items) || ! array_is_list($items) || ! str_starts_with(ltrim($encodedItems), '[')) {
+                throw ValidationException::withMessages(['items' => 'The employee items payload must be a list.']);
+            }
+
+            $request->merge(['items' => $items]);
+        }
+
         $data = $request->validate([
             'year' => ['required', 'integer', 'between:2000,2100'],
             'month' => ['required', 'integer', 'between:1,12'],

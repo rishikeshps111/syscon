@@ -717,6 +717,26 @@
                 });
 
                 $('#salaryProcessingForm').on('submit', function () {
+                    var form = $(this);
+                    var itemInputs = form.find(':input[name^="items["]');
+                    var items = {};
+                    itemInputs.serializeArray().forEach(function (input) {
+                        var match = input.name.match(/^items\[(\d+)\]\[([^\]]+)\](\[\])?$/);
+                        if (!match) return;
+                        var item = items[match[1]] || (items[match[1]] = {});
+                        if (match[3]) {
+                            (item[match[2]] || (item[match[2]] = [])).push(input.value);
+                        } else {
+                            item[match[2]] = input.value;
+                        }
+                    });
+                    form.find('input[name="items_json"]').remove();
+                    $('<input>', {
+                        type: 'hidden',
+                        name: 'items_json',
+                        value: JSON.stringify(Object.keys(items).map(function (key) { return items[key]; }))
+                    }).appendTo(form);
+                    itemInputs.prop('disabled', true);
                     var submitBtn = $(this).find('button[type="submit"]');
                     submitBtn.prop('disabled', true).html(submitBtn.data('loading-text'));
                 });

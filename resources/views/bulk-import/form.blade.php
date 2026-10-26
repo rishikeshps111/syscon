@@ -16,8 +16,25 @@
                 <p class="mb-0"><strong>Dates:</strong> {{ in_array($module, ['staff', 'drivers'], true) ? 'dd-mm-yyyy' : 'YYYY-MM-DD' }} &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
             </div>
             @if ($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-            <form class="js-loading-form" method="POST" action="{{ route('bulk-import.store', $module) }}" enctype="multipart/form-data">
+            <form class="{{ in_array($module, ['drivers', 'staff'], true) ? 'js-chunk-import' : 'js-loading-form' }}" method="POST" action="{{ route('bulk-import.store', $module) }}" enctype="multipart/form-data">
                 @csrf
+                @if (in_array($module, ['drivers', 'staff'], true))
+                    <div class="alert alert-info mb-3">
+                        Matching <strong>ref_code</strong> updates the existing {{ $module === 'drivers' ? 'driver' : 'employee' }}. New or blank ref codes create records.
+                        Ref codes must not repeat in the file. Required fields must still be supplied.
+                        Empty optional cells preserve existing values; a blank passcode keeps the current password.
+                        Existing codes, roles and salary are preserved. Imports validate and save in batches of 25 rows.
+                        Keep this page open until the import completes. If saving fails, earlier completed batches remain saved.
+                    </div>
+                @endif
+                <div class="alert alert-info d-none js-import-progress">
+                    <div class="js-import-status" role="status" aria-live="polite"></div>
+                    <div class="progress mt-2">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated js-import-bar" role="progressbar" aria-label="Import progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%"></div>
+                    </div>
+                    <div class="js-import-counts mt-2"></div>
+                </div>
+                <div class="alert alert-danger d-none js-import-errors" role="alert"></div>
                 @if ($module === 'staff')
                     <div class="alert alert-info mb-3">
                         Imported Staff accounts use <strong>Syscon@123</strong> as the default login password. Imported Controller and Supervisor accounts use <strong>111111</strong> as the default passcode.
@@ -59,14 +76,70 @@
                         </tbody>
                     </table>
                 </div>
-                <p style="font-size:13px; color:red; margin-top:10px; margin-bottom:0;">The complete file is validated before any record is saved. If any row has an error, nothing is imported.</p>
+                <p style="font-size:13px; color:red; margin-top:10px; margin-bottom:0;">The complete file is validated before any record is saved. If validation fails, nothing is imported.</p>
             </div>
-            @if (in_array($module, ['drivers', 'controllers', 'supervisors', 'staff', 'housekeeping'], true))<div class="alert alert-info mb-0">Salary structure is intentionally excluded. Imported profiles start with the existing zero/default salary values.</div>@endif
+            @if (in_array($module, ['drivers', 'controllers', 'supervisors', 'staff', 'housekeeping'], true))<div class="alert alert-info mb-0">Salary structure is intentionally excluded. New profiles start with zero/default salary values. @if (in_array($module, ['drivers', 'staff'], true))Existing records retain their salary values.@endif</div>@endif
         </div>
     </section>
     @section('scripts')
         <script>
             $(function () {
+                $('.js-chunk-import').on('submit', async function (event) {
+                    event.preventDefault();
+                    const form = this;
+                    const button = $(form).find('button[type="submit"]');
+                    if (button.prop('disabled')) return;
+                    const progress = $(form).find('.js-import-progress');
+                    const status = progress.find('.js-import-status');
+                    const bar = progress.find('.js-import-bar');
+                    const counts = progress.find('.js-import-counts');
+                    const errors = $(form).find('.js-import-errors').empty().addClass('d-none');
+                    const originalButton = button.html();
+                    button.prop('disabled', true).attr('aria-busy', 'true').html('<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span><span>Importing&hellip;</span>');
+                    $(form).attr('aria-busy', 'true');
+                    progress.removeClass('d-none');
+                    status.text('Reading file...');
+                    counts.empty();
+                    bar.addClass('progress-bar-animated').css('width', '0%').attr('aria-valuenow', 0).attr('aria-valuetext', 'Reading file');
+                    let phase = 'prepare', offset = 0, token = null, saved = 0, created = 0, updated = 0;
+                    try {
+                        while (true) {
+                            const body = phase === 'prepare' ? new FormData(form) : new FormData();
+                            body.set('_token', form.querySelector('[name="_token"]').value);
+                            body.set('import_step', phase);
+                            if (token) { body.set('token', token); body.set('offset', offset); }
+                            const response = await fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+                            const result = await response.json().catch(() => ({}));
+                            if (!response.ok) {
+                                const messages = result.errors ? Object.values(result.errors).flat() : [result.message || 'Import request failed.'];
+                                throw new Error(messages.join('\n'));
+                            }
+                            if (!['validate', 'save', 'done'].includes(result.phase)) throw new Error('Unexpected import response.');
+                            saved = result.saved;
+                            created = result.created;
+                            updated = result.updated;
+                            const percent = result.total > 0 ? Math.round((result.validated + saved) / (2 * result.total) * 100) : 0;
+                            const label = result.phase === 'done' ? result.message : `${result.phase === 'validate' ? 'Validating' : 'Saving'} ${result.processed} / ${result.total} rows`;
+                            status.text(label);
+                            bar.css('width', `${percent}%`).attr('aria-valuenow', percent).attr('aria-valuetext', label);
+                            counts.text(`${created} rows created, ${updated} rows updated`);
+                            if (result.phase === 'done') {
+                                phase = 'done';
+                                window.location.assign(result.redirect);
+                                return;
+                            }
+                            token = result.token || token;
+                            phase = result.phase;
+                            offset = result.processed;
+                        }
+                    } catch (error) {
+                        errors.removeClass('d-none').css('white-space', 'pre-wrap').text(error.message + (phase === 'save' || phase === 'done' ? `\n${saved} rows were confirmed saved: ${created} created, ${updated} updated. The last batch may also have completed if the connection was lost. Review records before uploading again.` : '\nNo records were saved.'));
+                        status.text(phase === 'done' ? 'Import completed. Open the listing to view your records.' : 'Import stopped.');
+                        bar.removeClass('progress-bar-animated');
+                        $(form).removeAttr('aria-busy');
+                        button.prop('disabled', false).removeAttr('aria-busy').html(originalButton);
+                    }
+                });
                 $('.js-loading-form').on('submit', function () {
                     var button = $(this).find('.js-loading-submit');
 
