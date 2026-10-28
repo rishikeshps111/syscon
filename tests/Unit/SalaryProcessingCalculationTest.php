@@ -4,6 +4,29 @@ use App\Http\Controllers\SalaryProcessingController;
 
 uses(Tests\TestCase::class);
 
+test('attendance components retain template amounts across repeated calculations', function (int $calendarDays, float $workedDays) {
+    $split = [
+        ['name' => 'Basic', 'type' => 'earning', 'amount' => 15000, 'selected' => true],
+        ['name' => 'Allowance', 'type' => 'earning', 'amount' => 15000, 'selected' => true],
+        ['name' => 'Recovery', 'type' => 'deduction', 'amount' => 300, 'selected' => true],
+        ['name' => 'Duty Incentive', 'type' => 'earning', 'amount' => 0, 'selected' => true],
+    ];
+    $method = salaryProcessingPrivateMethod('calculatePayrollTotals');
+    $row = $method->invoke(new SalaryProcessingController(), [
+        'basic_salary' => 30000, 'calendar_days' => $calendarDays,
+        'total_attendance_days' => $workedDays, 'salary_split' => $split, 'deduction' => 300,
+    ]);
+    $ratio = min($workedDays, $calendarDays) / $calendarDays;
+    expect($row['salary_split'][0]['amount'])->toBe(15000)
+        ->and($row['salary_split'][0]['calculated_amount'])->toBe(15000.0 * $ratio)
+        ->and($row['template_deduction'])->toBe(round(300 * $ratio, 2))
+        ->and($row['pf'])->toBe(round(1800 * $ratio, 2))
+        ->and($row['gross_salary'])->toBe(round(30000 / $calendarDays * $workedDays, 2))
+        ->and($method->invoke(new SalaryProcessingController(), $row))->toBe($row);
+})->with([
+    [28, 20.5], [29, 29.0], [30, 0.0], [30, 20.0], [30, 32.0], [31, 22.5],
+]);
+
 function salaryProcessingPrivateMethod(string $methodName): ReflectionMethod
 {
     $method = new ReflectionMethod(SalaryProcessingController::class, $methodName);
@@ -88,7 +111,7 @@ test('stored split mapping uses saved incentive even for an excluded component',
         ->and($split[0]['amount'])->toBe(900);
 });
 
-test('monthly gross determines tax and ESIC while fixed gross determines ESIC eligibility', function (float $fixed, float $days, float $monthly, int $tax, float $esi) {
+test('calculated monthly gross determines tax and ESIC eligibility and contribution', function (float $fixed, float $days, float $monthly, int $tax, float $esi) {
     $row = salaryProcessingPrivateMethod('calculatePayrollTotals')->invoke(new SalaryProcessingController(), [
         'basic_salary' => $fixed,
         'calendar_days' => 30,
@@ -98,14 +121,15 @@ test('monthly gross determines tax and ESIC while fixed gross determines ESIC el
             ['name' => ' Basic ', 'amount' => 10000, 'selected' => true],
             ['name' => 'VDA', 'amount' => 1000, 'selected' => true],
             ['name' => 'Basic', 'amount' => 9999, 'selected' => false],
+            ['name' => 'Recovery', 'type' => 'deduction', 'amount' => 25, 'selected' => true],
         ],
     ]);
 
     expect($row['gross_salary'])->toBe($monthly)
         ->and($row['professional_tax'])->toBe((float) $tax)
         ->and($row['esi'])->toBe($esi)
-        ->and($row['pf'])->toBe(1320.0)
-        ->and($row['total_deduction'])->toBe(round(25 + 1320 + $tax + $esi, 2))
+        ->and($row['pf'])->toBe(round(1320 * min($days, 30) / 30, 2))
+        ->and($row['total_deduction'])->toBe(round(25 * min($days, 30) / 30 + $row['pf'] + $tax + $esi, 2))
         ->and($row['net_total'])->toBe(round($monthly - $row['total_deduction'], 2));
 })->with([
     '15000 boundary' => [15000.0, 30.0, 15000.0, 0, 112.5],
@@ -113,8 +137,11 @@ test('monthly gross determines tax and ESIC while fixed gross determines ESIC el
     '20000 boundary' => [20000.0, 30.0, 20000.0, 150, 150.0],
     'above 20000' => [20001.0, 30.0, 20001.0, 200, 150.01],
     'incentive crosses tax band' => [15000.0, 31.0, 15500.0, 150, 116.25],
-    'eligible despite incentive exceeding 21000' => [20000.0, 33.0, 22000.0, 200, 165.0],
-    'fixed 21000 ineligible despite partial attendance' => [21000.0, 20.0, 14000.0, 0, 0.0],
+    'incentive makes monthly gross ineligible' => [20000.0, 33.0, 22000.0, 200, 0.0],
+    'partial attendance makes monthly gross eligible' => [21000.0, 20.0, 14000.0, 0, 105.0],
+    '30000 template earned as 20000' => [30000.0, 20.0, 20000.0, 150, 150.0],
+    'exactly 21000 ineligible' => [21000.0, 30.0, 21000.0, 200, 0.0],
+    'above 21000 ineligible' => [21001.0, 30.0, 21001.0, 200, 0.0],
     'below 21000 eligible' => [20999.0, 30.0, 20999.0, 200, 157.49],
 ]);
 

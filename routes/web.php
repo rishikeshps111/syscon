@@ -510,6 +510,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/sample-csv', 'sample')->name('sample');
         Route::get('/{import}/download', 'download')->whereNumber('import')->name('download');
         Route::get('/{import}', 'show')->whereNumber('import')->name('show');
+        Route::delete('/{import}', 'destroy')->whereNumber('import')->name('destroy');
     });
 
     Route::get('/attendance-management/users-by-role', [AttendanceController::class, 'usersByRole'])

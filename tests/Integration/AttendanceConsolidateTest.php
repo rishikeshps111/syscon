@@ -43,6 +43,12 @@ class AttendanceConsolidateTest extends TestCase
             });
         }
         (require database_path('migrations/2026_09_09_000001_create_attendance_consolidate_tables.php'))->up();
+        Schema::create('salary_processings', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('attendance_consolidate_import_id')->nullable()->constrained('attendance_consolidate_imports')->nullOnDelete();
+            $table->decimal('net_total', 12, 2)->default(0);
+        });
+        (require database_path('migrations/2026_10_26_000001_make_attendance_consolidate_period_unique.php'))->up();
         Storage::set('local', Storage::build(['driver' => 'local', 'root' => sys_get_temp_dir().'/consolidate-'.Str::uuid()]));
         $this->withoutMiddleware(TrackStaffUserLog::class);
         $this->operator = User::factory()->create(['name' => 'Importer']);
@@ -56,10 +62,26 @@ class AttendanceConsolidateTest extends TestCase
 
     private function preview(string $line = '0012,Employee,31,4,2,35', array $extra = [])
     {
-        return $this->from('/attendance-consolidate/import')->post('/attendance-consolidate/preview', array_merge([
-            'year' => 2026, 'month' => 8, 'depot_id' => 1,
-            'csv_file' => UploadedFile::fake()->createWithContent('attendance.csv', "\xEF\xBB\xBFWGL ATTENDANCE,,,,,\r\nEmp Id,Name Of The Employee,P,W/O,A,Total\r\n".$line."\r\n"),
-        ], $extra));
+        $book = new Spreadsheet;
+        $sheet = $book->getActiveSheet();
+        $sheet->fromArray(['Emp Id', 'Name Of The Employee', 'P', 'W/O', 'A', 'Total'], null, 'A1');
+        foreach (explode("\n", $line) as $index => $record) {
+            $values = str_getcsv($record);
+            $sheet->fromArray($values, null, 'A'.($index + 2), true);
+            $sheet->setCellValueExplicit('A'.($index + 2), $values[0], DataType::TYPE_STRING);
+        }
+        $temporary = tmpfile();
+        try {
+            $path = stream_get_meta_data($temporary)['uri'];
+            IOFactory::createWriter($book, 'Xlsx')->save($path);
+            return $this->from('/attendance-consolidate/import')->post('/attendance-consolidate/preview', array_merge([
+                'year' => 2026, 'month' => 8, 'depot_id' => 1,
+                'csv_file' => UploadedFile::fake()->createWithContent('attendance.xlsx', file_get_contents($path)),
+            ], $extra));
+        } finally {
+            fclose($temporary);
+            $book->disconnectWorksheets();
+        }
     }
 
     private function confirm(array $extra = [])
@@ -67,7 +89,7 @@ class AttendanceConsolidateTest extends TestCase
         return $this->post('/attendance-consolidate/import', array_merge(['token' => session('attendance_consolidate_preview.token')], $extra));
     }
 
-    public function test_excel_formats_import_and_preserve_original_upload(): void
+    public function test_excel_formats_import_and_download_saved_values(): void
     {
         foreach (['Xlsx' => 'xlsx', 'Xls' => 'xls'] as $writerType => $extension) {
             $book = new Spreadsheet;
@@ -84,8 +106,9 @@ class AttendanceConsolidateTest extends TestCase
                 $import = AttendanceConsolidateImport::latest('id')->firstOrFail();
                 $this->assertSame('0012', $import->rows()->first()->employee_ref_code);
                 $this->assertSame('23.50', $import->rows()->first()->total_days);
-                $this->assertStringEndsWith('.'.$extension, $import->file_path);
-                $this->assertSame($bytes, $this->get('/attendance-consolidate/'.$import->id.'/download?format=original')->assertOk()->streamedContent());
+                $download = $this->readDownload('/attendance-consolidate/'.$import->id.'/download');
+                $this->assertEquals(23.5, $download->getActiveSheet()->getCell('F3')->getValue());
+                $download->disconnectWorksheets();
             } finally {
                 fclose($temporary);
                 $book->disconnectWorksheets();
@@ -116,7 +139,7 @@ class AttendanceConsolidateTest extends TestCase
         $this->assertSame(0, AttendanceConsolidateImport::count());
     }
 
-    public function test_import_button_saves_valid_csv_without_review(): void
+    public function test_import_button_saves_valid_excel_without_review(): void
     {
         $this->preview(extra: ['import_now' => 1])->assertRedirect('/attendance-consolidate');
         $this->assertSame(1, AttendanceConsolidateImport::count());
@@ -168,7 +191,7 @@ class AttendanceConsolidateTest extends TestCase
     {
         $this->preview(extra: ['import_now' => 1])->assertRedirect();
         DB::table('users')->where('ref_code', '0012')->update(['name' => 'Changed']);
-        $book = $this->readDownload('/attendance-consolidate/1/download');
+        $book = $this->readDownload('/attendance-consolidate/'.AttendanceConsolidateImport::firstOrFail()->id.'/download');
         try {
             $sheet = $book->getActiveSheet();
             $this->assertSame('Employee', $sheet->getCell('B3')->getValue());
@@ -182,13 +205,12 @@ class AttendanceConsolidateTest extends TestCase
             ->assertOk()->assertJsonPath('data.0.imported_details', fn ($value) => str_contains($value, 'Importer') && str_contains($value, '<small>'));
     }
 
-    public function test_import_renders_pages_keeps_existing_users_and_downloads_original_bytes(): void
+    public function test_import_renders_pages_keeps_existing_users_and_downloads_saved_attendance(): void
     {
         $before = DB::table('users')->get()->toJson();
         $this->get('/attendance-consolidate')->assertOk()->assertSee('Attendance Consolidate');
-        $this->get('/attendance-consolidate/import')->assertOk()->assertSee('Import CSV');
+        $this->get('/attendance-consolidate/import')->assertOk()->assertSee('Import Excel');
         $this->preview()->assertOk()->assertSee('Import CSV');
-        $original = Storage::disk('local')->get(session('attendance_consolidate_preview.path'));
         $this->assertSame(0, AttendanceConsolidateImport::count());
         $this->confirm()->assertRedirect('/attendance-consolidate');
         $import = AttendanceConsolidateImport::firstOrFail();
@@ -198,7 +220,9 @@ class AttendanceConsolidateTest extends TestCase
         $this->assertSame('35.00', $import->rows()->first()->total_days);
         $this->assertSame($before, DB::table('users')->get()->toJson());
         $this->get('/attendance-consolidate/'.$import->id)->assertOk()->assertSee('Employee');
-        $this->assertSame($original, $this->get('/attendance-consolidate/'.$import->id.'/download?format=csv')->assertOk()->streamedContent());
+        $download = $this->readDownload('/attendance-consolidate/'.$import->id.'/download');
+        $this->assertEquals(35, $download->getActiveSheet()->getCell('F3')->getValue());
+        $download->disconnectWorksheets();
         $this->getJson('/attendance-consolidate', ['X-Requested-With' => 'XMLHttpRequest'])->assertOk()->assertJsonMissingPath('data.0.file_path');
     }
 
@@ -225,15 +249,19 @@ class AttendanceConsolidateTest extends TestCase
         $this->assertSame('23.75', AttendanceConsolidateRow::first()->total_days);
     }
 
-    public function test_exact_duplicate_is_rejected_but_corrected_batch_is_retained(): void
+    public function test_identical_and_corrected_imports_replace_the_batch_in_place(): void
     {
         $this->preview()->assertOk();
         $this->confirm()->assertRedirect();
-        $this->preview()->assertSessionHasErrors('csv_file');
+        $id = AttendanceConsolidateImport::firstOrFail()->id;
+        $this->preview()->assertOk();
+        $this->confirm()->assertRedirect();
         $this->preview('0012,Employee,30,4,3,34')->assertOk();
         $this->confirm()->assertRedirect();
-        $this->assertSame(2, AttendanceConsolidateImport::count());
-        $this->assertSame(2, AttendanceConsolidateRow::count());
+        $this->assertSame(1, AttendanceConsolidateImport::count());
+        $this->assertSame($id, AttendanceConsolidateImport::firstOrFail()->id);
+        $this->assertSame(1, AttendanceConsolidateRow::count());
+        $this->assertSame('34.00', AttendanceConsolidateRow::firstOrFail()->total_days);
     }
 
     public function test_changed_employee_mapping_requires_fresh_review(): void
@@ -243,6 +271,101 @@ class AttendanceConsolidateTest extends TestCase
         $this->confirm(['acknowledge_mismatches' => 1])->assertOk()->assertSee('Employee records changed');
         $this->assertSame(0, AttendanceConsolidateImport::count());
         $this->confirm(['acknowledge_mismatches' => 1])->assertRedirect();
+    }
+
+    public function test_delete_removes_attendance_and_preserves_saved_payroll(): void
+    {
+        $this->operator->givePermissionTo(Permission::create([
+            'name' => 'attendance-management.delete', 'guard_name' => 'web', 'group_name' => 'HRMS',
+        ]));
+        $this->preview(extra: ['import_now' => 1])->assertRedirect();
+        $import = AttendanceConsolidateImport::firstOrFail();
+        DB::table('salary_processings')->insert(['attendance_consolidate_import_id' => $import->id, 'net_total' => 12345]);
+        $this->getJson('/attendance-consolidate', ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()->assertJsonPath('data.0.action', fn ($html) => str_contains($html, 'delete-consolidated-attendance'));
+        $this->deleteJson('/attendance-consolidate/'.$import->id)->assertOk()->assertJson(['success' => true]);
+        $this->assertSame(0, AttendanceConsolidateImport::count());
+        $this->assertSame(0, AttendanceConsolidateRow::count());
+        $this->assertNull(DB::table('salary_processings')->value('attendance_consolidate_import_id'));
+        $this->assertEquals(12345, DB::table('salary_processings')->value('net_total'));
+        $this->deleteJson('/attendance-consolidate/'.$import->id)->assertNotFound();
+        $this->preview(extra: ['import_now' => 1])->assertRedirect();
+        $this->assertSame(1, AttendanceConsolidateImport::count());
+    }
+
+    public function test_delete_requires_permission_and_hides_the_action(): void
+    {
+        $this->preview(extra: ['import_now' => 1])->assertRedirect();
+        $import = AttendanceConsolidateImport::firstOrFail();
+        $this->getJson('/attendance-consolidate', ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()->assertJsonPath('data.0.action', fn ($html) => !str_contains($html, 'delete-consolidated-attendance'));
+        $this->deleteJson('/attendance-consolidate/'.$import->id)->assertForbidden();
+        $this->assertSame(1, AttendanceConsolidateImport::count());
+        $this->assertSame(1, AttendanceConsolidateRow::count());
+    }
+
+    public function test_replacement_removes_missing_employees_and_preserves_payroll_reference(): void
+    {
+        $employee = User::factory()->create(['ref_code' => '0013', 'name' => 'Second Employee']);
+        DB::table('staff_profiles')->insert(['user_id' => $employee->id, 'depot_id' => 1]);
+        $this->preview("0012,Employee,20,3,0,23\n0013,Second Employee,20,3,0,23")->assertOk();
+        $this->confirm()->assertRedirect();
+        $import = AttendanceConsolidateImport::firstOrFail();
+        DB::table('salary_processings')->insert(['attendance_consolidate_import_id' => $import->id, 'net_total' => 12345]);
+        $checksum = $import->file_checksum;
+        $this->travel(1)->minutes();
+        $this->preview('0012,Employee,19,3,0,22')->assertOk();
+        $this->confirm()->assertRedirect();
+        $import->refresh();
+        $this->assertSame(1, AttendanceConsolidateImport::count());
+        $this->assertSame(1, $import->employee_count);
+        $this->assertNotSame($checksum, $import->file_checksum);
+        $this->assertSame(now()->timestamp, $import->imported_at->timestamp);
+        $this->assertSame(['0012'], $import->rows()->pluck('employee_ref_code')->all());
+        $this->assertEquals($import->id, DB::table('salary_processings')->value('attendance_consolidate_import_id'));
+        $this->assertEquals(12345, DB::table('salary_processings')->value('net_total'));
+    }
+
+    public function test_invalid_or_failed_replacement_preserves_existing_attendance(): void
+    {
+        $this->preview(extra: ['import_now' => 1])->assertRedirect();
+        $before = AttendanceConsolidateImport::firstOrFail()->getAttributes();
+        $rows = AttendanceConsolidateRow::all()->toArray();
+        $this->preview('0012,Employee,-1,3,0,2')->assertSessionHasErrors('csv_file');
+        $this->preview('0012,Employee,20,3,0,23')->assertOk();
+        AttendanceConsolidateRow::creating(fn () => throw new \RuntimeException('Simulated replacement failure'));
+        try {
+            $this->confirm()->assertStatus(500);
+            $this->assertSame($before, AttendanceConsolidateImport::firstOrFail()->getAttributes());
+            $this->assertSame($rows, AttendanceConsolidateRow::all()->toArray());
+        } finally {
+            AttendanceConsolidateRow::flushEventListeners();
+        }
+    }
+
+    public function test_period_unique_migration_keeps_newest_batch_and_repoints_payroll(): void
+    {
+        $migration = require database_path('migrations/2026_10_26_000001_make_attendance_consolidate_period_unique.php');
+        $migration->down();
+        $this->preview(extra: ['import_now' => 1])->assertRedirect();
+        $old = AttendanceConsolidateImport::firstOrFail();
+        $new = $old->replicate();
+        $new->file_checksum = str_repeat('a', 64);
+        $new->save();
+        $new->rows()->create(array_merge($old->rows()->firstOrFail()->replicate()->getAttributes(), [
+            'present_days' => 20, 'week_off_days' => 4, 'total_days' => 24,
+        ]));
+        DB::table('salary_processings')->insert(['attendance_consolidate_import_id' => $old->id, 'net_total' => 4321]);
+        $migration->up();
+        $this->assertSame([$new->id], AttendanceConsolidateImport::pluck('id')->all());
+        $this->assertSame(1, AttendanceConsolidateRow::count());
+        $this->assertSame('24.00', AttendanceConsolidateRow::firstOrFail()->total_days);
+        $this->assertEquals($new->id, DB::table('salary_processings')->value('attendance_consolidate_import_id'));
+        $this->assertEquals(4321, DB::table('salary_processings')->value('net_total'));
+        $duplicate = $new->replicate();
+        $duplicate->file_checksum = str_repeat('b', 64);
+        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
+        $duplicate->save();
     }
 
     public function test_expired_preview_cannot_import(): void
@@ -289,6 +412,12 @@ class AttendanceConsolidateTest extends TestCase
         $this->preview(extra: ['month' => 9])->assertOk();
         $this->confirm()->assertRedirect();
         $this->assertSame(2, AttendanceConsolidateImport::count());
+        $this->preview(extra: ['year' => 2025])->assertOk();
+        $this->confirm()->assertRedirect();
+        DB::table('depots')->insert(['id' => 2, 'name' => 'Other Depot']);
+        $this->preview(extra: ['depot_id' => 2])->assertOk();
+        $this->confirm(['acknowledge_mismatches' => 1])->assertRedirect();
+        $this->assertSame(4, AttendanceConsolidateImport::count());
     }
 
     public function test_cleanup_only_removes_old_pending_files(): void

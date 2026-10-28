@@ -233,12 +233,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
 
     private function buildPdf(SalaryProcessing $processing, SalaryProcessingItem $item): string
     {
-        $components = collect($item->salary_split ?: [])->map(function ($component) use ($item) {
-            if (strtolower(trim((string) ($component['name'] ?? ''))) === 'duty incentive') {
-                $component['amount'] = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
-            }
-            return $component;
-        })->values();
+        $components = collect(\App\Support\SalaryCalculation::payslipSplit($processing, $item));
         $bankDetails = $this->bankDetails($processing, $item);
 
         $month = Carbon::create(null, $processing->month, 1)->format('F');
@@ -294,7 +289,7 @@ class GeneratePaySlipController extends Controller implements HasMiddleware
         $stream .= $this->pdfPair('Salary Per Day', $this->money($item->salary_day_rate), 437, 510);
 
         $stream .= $this->pdfCard(36, 234, 318, 230);
-        $stream .= $this->pdfSectionTitle('Salary Template Components', 52, 438);
+        $stream .= $this->pdfSectionTitle('Calculated Salary Components', 52, 438);
         $stream .= $this->pdfFillRect(52, 408, 286, 24, [248, 250, 252]);
         $stream .= $this->pdfText('Component', 64, 416, 9, 'F2', [75, 85, 99]);
         $stream .= $this->pdfText('Type', 218, 416, 9, 'F2', [75, 85, 99]);

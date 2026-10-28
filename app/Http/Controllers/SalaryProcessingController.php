@@ -534,7 +534,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     private function applyUnauthorizedLeave(array $row, float $unauthorizedLeaves): array
     {
-        $perDay = (float) ($row['salary_day_rate'] ?? 0);
+        $perDay = ($row['calendar_days'] ?? 0) > 0 ? (float) $row['basic_salary'] / $row['calendar_days'] : 0;
+        $row['salary_day_rate'] = round($perDay, 2);
         $lop = round($perDay * $unauthorizedLeaves, 2);
         $row['unauthorized_leaves'] = $unauthorizedLeaves;
         $row['lop'] = $lop;
@@ -565,28 +566,35 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     {
         $gross = (float) ($row['basic_salary'] ?? 0);
         $daysInMonth = (int) ($row['calendar_days'] ?? 0);
-        $attendanceDays = (float) ($row['total_attendance_days'] ?? 0);
+        $attendanceDays = max((float) ($row['total_attendance_days'] ?? 0), 0);
         $salaryPerDay = $daysInMonth > 0 ? $gross / $daysInMonth : 0;
         $extraDays = max($attendanceDays - $daysInMonth, 0);
         $regularDays = min($attendanceDays, $daysInMonth);
         $earnedSalary = $salaryPerDay * $regularDays;
         $incentive = $salaryPerDay * $extraDays;
-        $basic = collect($row['salary_split'] ?? [])
+        $split = \App\Support\SalaryCalculation::split($row['salary_split'] ?? [], $attendanceDays, $daysInMonth, $incentive);
+        $basic = collect($split)
             ->where('selected', true)
             ->filter(fn ($component) => in_array(strtolower(trim((string) ($component['name'] ?? ''))), ['basic', 'vda'], true))
-            ->sum('amount');
+            ->sum('calculated_amount');
+        $templateDeduction = collect($split)->where('selected', true)->where('type', 'deduction')
+            ->reject(fn ($component) => $this->isDutyIncentive($component))->sum('calculated_amount');
+        $deduction = $split !== [] ? $templateDeduction + (float) ($row['lop'] ?? 0) : (float) ($row['deduction'] ?? 0);
         $totalEarned = round($earnedSalary + $incentive, 2);
         $pf = round($basic * 0.12, 2);
         $professionalTax = $totalEarned <= 15000 ? 0 : ($totalEarned <= 20000 ? 150 : 200);
-        $esi = $gross < 21000 ? round($totalEarned * 0.0075, 2) : 0;
-        $totalDeduction = round((float) ($row['deduction'] ?? 0) + $pf + $professionalTax + $esi, 2);
+        $esi = $totalEarned < 21000 ? round($totalEarned * 0.0075, 2) : 0;
+        $totalDeduction = round($deduction + $pf + $professionalTax + $esi, 2);
 
         return array_merge($row, [
+            'deduction' => round($deduction, 2),
+            'template_deduction' => round($templateDeduction, 2),
+            'salary_day_rate' => round($salaryPerDay, 2),
             'extra_days_worked' => $extraDays,
             'gross_salary' => $totalEarned,
             'earned_salary' => round($earnedSalary, 2),
             'extra_duty_incentive' => $incentive,
-            'salary_split' => $this->dutyIncentiveSplit($row['salary_split'] ?? [], $incentive),
+            'salary_split' => $this->dutyIncentiveSplit($split, $incentive),
             'total_earned' => round($totalEarned, 2),
             'pf' => round($pf, 2),
             'professional_tax' => round($professionalTax, 2),
@@ -656,7 +664,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'unauthorized_leaves' => (float) $item->unauthorized_leaves,
             'net_salary' => (float) $item->net_salary,
             'salary_split' => collect($this->dutyIncentiveSplit(
-                $item->salary_split ?: [],
+                \App\Support\SalaryCalculation::split($item->salary_split ?: [],
+                    (float) ($item->total_attendance_days ?? $item->total_working_days ?? 0), $start?->daysInMonth ?? 0,
+                    (float) ($item->extra_duty_incentive ?? $item->incentive)),
                 (float) ($item->extra_duty_incentive ?? $item->incentive)
             ))->map(function ($component) {
                 $component['selected'] = $component['selected'] ?? true;

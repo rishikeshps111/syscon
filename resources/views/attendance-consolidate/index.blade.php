@@ -117,6 +117,10 @@
                     $('.consolidate-filter').val('').trigger('change.select2');
                     table.ajax.reload();
                 });
+                $(document).on('click', '.delete-consolidated-attendance', function () {
+                    deleteRecord($(this).data('url'), 'consolidateTable',
+                        'Delete this consolidated attendance batch and all its employee rows? Saved payroll amounts will remain unchanged.');
+                });
             });
         </script>
     @endsection

@@ -7,7 +7,7 @@
         <div class="main-table-container">
             <p><strong>{{ $months[$draft['month']] }} {{ $draft['year'] }} ·
                     {{ $depot->name }}</strong><br>{{ $draft['original_filename'] }} · {{ count($rows) }} employees</p>
-            <p>Review the employee matches before importing. This preview expires after 30 minutes.</p>
+            <p>Review the employee matches before importing. This preview expires after 30 minutes. Importing replaces all existing consolidated attendance for this year, month and depot. Saved payroll amounts remain unchanged.</p>
             @if($notice)
             <div class="alert alert-warning">{{ $notice }}</div>@endif
             @include('attendance-consolidate.partials.rows', ['showReview' => true])

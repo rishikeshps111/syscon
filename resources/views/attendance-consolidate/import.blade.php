@@ -133,8 +133,8 @@
                     <p class="mb-2">Maximum 2 MB and 10,000 employees per file. Each employee ID must be unique. Name or
                         depot differences require confirmation.</p>
                     <p class="mb-0" style="font-size:13px; color:red; margin-top:5px;">The whole file is validated
-                        before saving. Imports create separate batches without updating existing attendance or payroll.
-                        An identical file cannot be imported twice for the same year, month and depot.</p>
+                        before saving. Each year, month and depot has one batch. Importing again replaces all attendance in that batch, including removing employees absent from the new file. Saved payroll amounts remain unchanged until recalculated.
+                        Identical files may also be reimported.</p>
                 </div>
             </div>
         </div>

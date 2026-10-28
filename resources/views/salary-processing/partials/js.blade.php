@@ -1,5 +1,8 @@
 <script>
     $(function () {
+        $('#yearFilter, #monthFilter, #depotFilter').select2({
+            width: '100%', allowClear: true, placeholder: '--- Select ---'
+        });
         var table = $('#table').DataTable({
             processing: true,
             serverSide: true,
@@ -32,7 +35,7 @@
         });
 
         $('#resetFilters').on('click', function () {
-            $('#yearFilter, #monthFilter, #depotFilter').val('');
+            $('#yearFilter, #monthFilter, #depotFilter').val('').trigger('change.select2');
             $('#checkAll').prop('checked', false);
             table.ajax.reload();
         });

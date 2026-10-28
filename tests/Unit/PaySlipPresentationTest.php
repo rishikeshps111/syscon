@@ -37,11 +37,16 @@ test('preview and PDF show monthly gross and preserve historical deductions', fu
     ]);
     $item->setRelation('user', $user);
     $before = $item->getAttributes();
+    $calculated = \App\Support\SalaryCalculation::payslipSplit($processing, $item);
+    expect($calculated[0]['amount'])->toBe(10000.5 * (28.5 / 31))
+        ->and($calculated[1]['amount'])->toBe(1000.25);
     $html = view('payroll.pay-slip.partials.preview', [
         'processing' => $processing, 'item' => $item, 'monthName' => 'October',
     ])->render();
     $method = new ReflectionMethod(GeneratePaySlipController::class, 'buildPdf');
     $pdf = $method->invoke(new GeneratePaySlipController(), $processing, $item);
+    expect($html)->toContain(number_format($calculated[0]['amount'], 0));
+    expect($pdf)->toContain(number_format($calculated[0]['amount'], 0));
     foreach (['19,001', '1,201', '150', '17,450', '1,000', '28.50', 'ESIC'] as $text) {
         expect($html)->toContain($text);
         expect($pdf)->toContain($text);

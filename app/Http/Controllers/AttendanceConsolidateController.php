@@ -29,6 +29,7 @@ class AttendanceConsolidateController extends Controller implements HasMiddlewar
             'auth',
             new Middleware(PermissionMiddleware::using('attendance-management.view')),
             new Middleware(PermissionMiddleware::using('attendance-management.create'), ['importForm', 'preview', 'store', 'sample']),
+            new Middleware(PermissionMiddleware::using('attendance-management.delete'), ['destroy']),
         ];
     }
 
@@ -72,7 +73,6 @@ class AttendanceConsolidateController extends Controller implements HasMiddlewar
         $extension = strtolower($file->getClientOriginalExtension());
         $rows = $csv->read($file->getRealPath(), (int) $data['depot_id'], $extension);
         $checksum = hash_file('sha256', $file->getRealPath());
-        $this->checkDuplicate($data, $checksum);
         $token = (string) Str::uuid();
         $path = $file->storeAs('attendance-consolidate/pending', $token.'.'.$extension, 'local');
         if (! $path) {
@@ -136,37 +136,51 @@ class AttendanceConsolidateController extends Controller implements HasMiddlewar
         if (collect($rows)->contains(fn ($row) => count($row['warnings']) > 0) && ! $request->boolean('acknowledge_mismatches')) {
             return $this->review($draft, $rows, 'Please acknowledge the highlighted name/depot differences before importing.');
         }
-        $this->checkDuplicate($draft, $draft['checksum']);
         try {
             $import = DB::transaction(function () use ($request, $draft, $rows) {
-                $import = AttendanceConsolidateImport::create([
+                // Lock the parent even for a first import, where no batch row exists yet.
+                $depot = Depot::whereKey($draft['depot_id'])->lockForUpdate()->firstOrFail();
+                $import = AttendanceConsolidateImport::updateOrCreate([
                     'year' => $draft['year'], 'month' => $draft['month'], 'depot_id' => $draft['depot_id'],
-                    'depot_name' => Depot::findOrFail($draft['depot_id'])->name,
+                ], [
+                    'year' => $draft['year'], 'month' => $draft['month'], 'depot_id' => $draft['depot_id'],
+                    'depot_name' => $depot->name,
                     'original_filename' => $draft['original_filename'], 'file_path' => '',
                     'file_checksum' => $draft['checksum'], 'employee_count' => count($rows),
                     'imported_by' => $request->user()->id, 'imported_by_name' => $request->user()->name, 'imported_at' => now(),
                 ]);
+                $import->rows()->delete();
                 foreach ($rows as $row) {
                     $import->rows()->create($row);
                 }
 
                 return $import;
-            });
+            }, 3);
         } catch (Throwable $exception) {
             if ($exception instanceof UniqueConstraintViolationException) {
-                throw ValidationException::withMessages(['csv_file' => 'This file has already been imported for the selected year, month and depot.']);
+                throw ValidationException::withMessages(['csv_file' => 'Attendance for this year, month and depot was updated by another import. Please upload and try again.']);
             }
             throw $exception;
         }
         $disk->delete($draft['path']);
         $request->session()->forget(self::SESSION_KEY);
 
-        return redirect()->route('attendance-consolidate.index')->with('success', "{$import->employee_count} consolidated attendance rows imported successfully.");
+        return redirect()->route('attendance-consolidate.index')->with('success', "{$import->employee_count} consolidated attendance rows saved successfully. Any previous attendance for this year, month and depot was replaced.");
     }
 
     public function show(AttendanceConsolidateImport $import)
     {
         return view('attendance-consolidate.show', ['import' => $import, 'rows' => $import->rows()->orderBy('source_row')->paginate(100), 'months' => $this->months()]);
+    }
+
+    public function destroy(AttendanceConsolidateImport $import)
+    {
+        DB::transaction(function () use ($import) {
+            Depot::whereKey($import->depot_id)->lockForUpdate()->firstOrFail();
+            $import->delete();
+        }, 3);
+
+        return response()->json(['success' => true, 'message' => 'Consolidated attendance deleted successfully.']);
     }
 
     public function download(AttendanceConsolidateImport $import, AttendanceConsolidateWorkbook $workbook)
@@ -201,14 +215,6 @@ class AttendanceConsolidateController extends Controller implements HasMiddlewar
             'depot' => Depot::findOrFail($draft['depot_id']),
             'hasWarnings' => collect($rows)->contains(fn ($row) => count($row['warnings']) > 0),
         ]);
-    }
-
-    private function checkDuplicate(array $data, string $checksum): void
-    {
-        if (AttendanceConsolidateImport::where('year', $data['year'])->where('month', $data['month'])
-            ->where('depot_id', $data['depot_id'])->where('file_checksum', $checksum)->exists()) {
-            throw ValidationException::withMessages(['csv_file' => 'This file has already been imported for the selected year, month and depot.']);
-        }
     }
 
     private function formData(): array

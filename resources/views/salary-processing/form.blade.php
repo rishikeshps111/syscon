@@ -499,6 +499,11 @@
     @section('scripts')
         <script>
             $(function () {
+                $('#salary_year, #salary_month, #depot_id, #payment_method').each(function () {
+                    if (!$(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2({ width: '100%' });
+                    }
+                });
                 var usersUrl = "{{ route('salary-processing.users') }}";
                 var csrf = "{{ csrf_token() }}";
 
@@ -637,7 +642,7 @@
                     var split = $(this).data('split') || [];
                     var html = split.length ? '<table class="table table-sm"><thead><tr><th>Include</th><th>Salary Component</th><th class="text-end">Amount</th></tr></thead><tbody>' +
                         split.map(function (item) {
-                            return '<tr><td><input type="checkbox" class="form-check-input salary-component-toggle" value="' + item.id + '" data-amount="' + item.amount + '" data-name="' + $('<div>').text(item.name).html() + '" ' + (item.selected !== false ? 'checked' : '') + '></td><td>' + $('<div>').text(item.name).html() + '</td><td class="text-end">' + displayMoney(item.amount) + '</td></tr>';
+                            return '<tr><td><input type="checkbox" class="form-check-input salary-component-toggle" value="' + item.id + '" data-amount="' + item.amount + '" data-name="' + $('<div>').text(item.name).html() + '" ' + (item.selected !== false ? 'checked' : '') + '></td><td>' + $('<div>').text(item.name).html() + '</td><td class="text-end">' + displayMoney(item.calculated_amount ?? item.amount) + '</td></tr>';
                         }).join('') + '</tbody></table>' : '<p class="text-muted mb-0">No salary split available.</p>';
                     $('#salarySplitContent').html(html).data('button', button);
                     $('#salarySplitModal').modal('show');
@@ -670,17 +675,26 @@
                     var attendanceDays = Number(row.data('total-days')) || 0;
                     var earned = calendarDays > 0 ? (baseGross / calendarDays) * Math.min(attendanceDays, calendarDays) : 0;
                     var basicVda = selected.filter(function (item) { return ['basic', 'vda'].indexOf(String(item.name || '').trim().toLowerCase()) !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
-                    var pf = roundMoney(basicVda * 0.12);
+                    var ratio = calendarDays > 0 ? Math.min(Math.max(attendanceDays, 0), calendarDays) / calendarDays : 0;
+                    var pf = roundMoney(basicVda * ratio * 0.12);
                     var extraDays = Math.max(attendanceDays - calendarDays, 0);
                     incentive = calendarDays > 0 ? (baseGross / calendarDays) * extraDays : 0;
                     split.forEach(function (item) {
                         if (isDutyIncentive(item)) item.amount = incentive;
+                        item.calculated_amount = isDutyIncentive(item) ? incentive : Number(item.amount || 0) * ratio;
                     });
                     button.data('split', split);
                     var totalEarned = roundMoney(earned + incentive);
                     var professionalTax = totalEarned <= 15000 ? 0 : (totalEarned <= 20000 ? 150 : 200);
-                    var esi = baseGross < 21000 ? roundMoney(totalEarned * 0.0075) : 0;
-                    var deduction = templateDeduction + Number(row.data('lop') || 0);
+                    var esi = totalEarned < 21000 ? roundMoney(totalEarned * 0.0075) : 0;
+                    var dailyRate = calendarDays > 0 ? baseGross / calendarDays : 0;
+                    var lop = roundMoney(dailyRate * Number(row.data('unpaid-leave-days') || 0));
+                    var deduction = templateDeduction * ratio + lop;
+                    row.data('lop', lop);
+                    var attendanceButton = row.find('.view-attendance');
+                    var attendance = attendanceButton.data('attendance') || {};
+                    attendance.per_day_salary = roundMoney(dailyRate);
+                    attendanceButton.data('attendance', attendance);
                     var totalDeduction = roundMoney(deduction + pf + professionalTax + esi);
                     row.data('basic', baseGross);
                     row.find('.gross-salary').text(displayMoney(totalEarned));

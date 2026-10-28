@@ -1,11 +1,6 @@
 @php
     $money = fn($value) => number_format((float) $value, 0);
-    $components = collect($item->salary_split ?: [])->map(function ($component) use ($item) {
-        if (strtolower(trim((string) ($component['name'] ?? ''))) === 'duty incentive') {
-            $component['amount'] = (float) ($item->extra_duty_incentive ?? $item->incentive ?? 0);
-        }
-        return $component;
-    });
+    $components = collect(\App\Support\SalaryCalculation::payslipSplit($processing, $item));
     $earnings = $components->where('type', 'earning')->values();
     $deductions = $components->where('type', 'deduction')->values();
     $status = $processing->status ?: 'Pending';
@@ -121,7 +116,7 @@
 
     <div class="pay-slip-grid pay-slip-grid-wide">
         <div class="pay-slip-panel">
-            <div class="pay-slip-panel-title">Salary Template Components</div>
+            <div class="pay-slip-panel-title">Calculated Salary Components</div>
             <div class="table-responsive">
                 <table class="table pay-slip-table align-middle mb-0">
                     <thead>
