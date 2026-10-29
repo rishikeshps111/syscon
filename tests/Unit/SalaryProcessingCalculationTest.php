@@ -111,7 +111,7 @@ test('stored split mapping uses saved incentive even for an excluded component',
         ->and($split[0]['amount'])->toBe(900);
 });
 
-test('calculated monthly gross determines tax and ESIC eligibility and contribution', function (float $fixed, float $days, float $monthly, int $tax, float $esi) {
+test('monthly gross determines tax while fixed template gross determines ESIC', function (float $fixed, float $days, float $monthly, int $tax, float $esi) {
     $row = salaryProcessingPrivateMethod('calculatePayrollTotals')->invoke(new SalaryProcessingController(), [
         'basic_salary' => $fixed,
         'calendar_days' => 30,
@@ -136,12 +136,14 @@ test('calculated monthly gross determines tax and ESIC eligibility and contribut
     'above 15000' => [15001.0, 30.0, 15001.0, 150, 112.51],
     '20000 boundary' => [20000.0, 30.0, 20000.0, 150, 150.0],
     'above 20000' => [20001.0, 30.0, 20001.0, 200, 150.01],
-    'incentive crosses tax band' => [15000.0, 31.0, 15500.0, 150, 116.25],
-    'incentive makes monthly gross ineligible' => [20000.0, 33.0, 22000.0, 200, 0.0],
-    'partial attendance makes monthly gross eligible' => [21000.0, 20.0, 14000.0, 0, 105.0],
-    '30000 template earned as 20000' => [30000.0, 20.0, 20000.0, 150, 150.0],
-    'exactly 21000 ineligible' => [21000.0, 30.0, 21000.0, 200, 0.0],
+    'incentive crosses tax band' => [15000.0, 31.0, 15500.0, 150, 112.5],
+    'extra duty leaves fixed ESI unchanged' => [20000.0, 33.0, 22000.0, 200, 150.0],
+    'partial attendance leaves fixed ESI unchanged' => [21000.0, 20.0, 14000.0, 0, 157.5],
+    '30000 template earned as 20000' => [30000.0, 20.0, 20000.0, 150, 0.0],
+    'exactly 21000 eligible' => [21000.0, 30.0, 21000.0, 200, 157.5],
     'above 21000 ineligible' => [21001.0, 30.0, 21001.0, 200, 0.0],
+    'zero attendance retains fixed ESI' => [20000.0, 0.0, 0.0, 0, 150.0],
+    'partial attendance 20000 template' => [20000.0, 20.0, 13333.33, 0, 150.0],
     'below 21000 eligible' => [20999.0, 30.0, 20999.0, 200, 157.49],
 ]);
 

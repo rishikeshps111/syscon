@@ -237,6 +237,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     {
         $filters = collect($data)->only(['year', 'month', 'depot_id', 'attendance_consolidate_import_id'])->all();
         $baseRows = $this->salaryRows($filters)->keyBy('user_id');
+        $savedItems = $processing->items()->get()->keyBy('user_id');
         $keptIds = [];
 
         foreach ($data['items'] as $item) {
@@ -245,6 +246,12 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
             if (! $row) {
                 continue;
+            }
+
+            // Recalculate existing payroll from its saved template snapshot.
+            $savedSplit = $savedItems->get($userId)?->salary_split;
+            if (is_array($savedSplit) && $savedSplit !== []) {
+                $row['salary_split'] = $savedSplit;
             }
 
             $unauthorizedLeaves = (float) ($item['unauthorized_leaves'] ?? 0);
@@ -583,7 +590,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $totalEarned = round($earnedSalary + $incentive, 2);
         $pf = round($basic * 0.12, 2);
         $professionalTax = $totalEarned <= 15000 ? 0 : ($totalEarned <= 20000 ? 150 : 200);
-        $esi = $totalEarned < 21000 ? round($totalEarned * 0.0075, 2) : 0;
+        $esi = $gross <= 21000 ? round($gross * 0.0075, 2) : 0;
         $totalDeduction = round($deduction + $pf + $professionalTax + $esi, 2);
 
         return array_merge($row, [

@@ -686,7 +686,7 @@
                     button.data('split', split);
                     var totalEarned = roundMoney(earned + incentive);
                     var professionalTax = totalEarned <= 15000 ? 0 : (totalEarned <= 20000 ? 150 : 200);
-                    var esi = totalEarned < 21000 ? roundMoney(totalEarned * 0.0075) : 0;
+                    var esi = baseGross <= 21000 ? roundMoney(baseGross * 0.0075) : 0;
                     var dailyRate = calendarDays > 0 ? baseGross / calendarDays : 0;
                     var lop = roundMoney(dailyRate * Number(row.data('unpaid-leave-days') || 0));
                     var deduction = templateDeduction * ratio + lop;
