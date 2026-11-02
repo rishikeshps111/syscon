@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\SalaryReportExport;
 use App\Mail\SalaryReportMail;
 use App\Models\Attendance;
-use App\Models\AttendanceConsolidateImport;
+use App\Support\WageRegister;
 use App\Models\Depot;
 use App\Models\SalaryProcessing;
 use App\Models\SalaryProcessingItem;
@@ -60,20 +60,22 @@ class SalaryReportController extends Controller implements HasMiddleware
 
     public function show(SalaryProcessingItem $salaryProcessingItem)
     {
-        $salaryProcessingItem->load(['user', 'salaryProcessing.depot', 'salaryProcessing.role', 'salaryProcessing.approver']);
+        $salaryProcessingItem->load(['user.roles', 'salaryProcessing.depot', 'salaryProcessing.approver']);
         $processing = $salaryProcessingItem->salaryProcessing;
+        abort_unless($processing && strtolower($processing->status) === 'approved', 404, 'No approved salary processing found.');
+        $register = WageRegister::row($salaryProcessingItem, 0);
 
         return response()->json([
             'user' => [
                 'name' => $salaryProcessingItem->user?->name ?: '-',
-                'code' => $salaryProcessingItem->user?->code ?: '-',
+                'code' => $salaryProcessingItem->user?->ref_code ?? '',
                 'aadhaar_no' => $salaryProcessingItem->aadhaar_no ?: '-',
             ],
             'processing' => [
                 'month' => Carbon::create(null, $processing->month, 1)->format('F'),
                 'year' => $processing->year,
                 'depot' => $processing->depot?->name ?: '-',
-                'role' => $processing->role?->name ?: '-',
+                'role' => WageRegister::role($salaryProcessingItem) ?? '',
                 'salary_date' => $processing->salary_date?->format('d-m-Y') ?: '-',
                 'payment_method' => $processing->payment_method ?: '-',
                 'status' => $processing->status,
@@ -87,13 +89,15 @@ class SalaryReportController extends Controller implements HasMiddleware
                 'total_shifts_completed' => $salaryProcessingItem->total_shifts_completed,
                 'total_working_days' => $salaryProcessingItem->total_working_days,
             ],
+            'register' => ['headings' => WageRegister::headings(), 'row' => $register, 'warnings' => WageRegister::warnings([$register])],
             'salary' => [
-                'components' => collect($salaryProcessingItem->salary_split ?: [])->values(),
-                'gross_salary' => (float) $salaryProcessingItem->basic_salary,
-                'incentive' => (float) $salaryProcessingItem->incentive,
-                'deduction' => (float) $salaryProcessingItem->deduction,
+                'components' => collect([40, 41, 43, 44, 45, 46, 47])->filter(fn ($c) => $register[$c] !== null)
+                    ->map(fn ($c) => ['name' => WageRegister::headings()[$c], 'type' => 'earning', 'amount' => $register[$c]])->values(),
+                'gross_salary' => $register[48],
+                'incentive' => $register[47],
+                'deduction' => $register[57],
                 'lop' => (float) $salaryProcessingItem->lop,
-                'net_salary' => (float) $salaryProcessingItem->net_salary,
+                'net_salary' => $register[58],
             ],
         ]);
     }
@@ -102,6 +106,7 @@ class SalaryReportController extends Controller implements HasMiddleware
     {
         $filters = $this->validatedFilters($request, true);
         $report = $this->reportData($filters);
+        abort_unless($report['processing'] && $report['items']->isNotEmpty(), 404, 'No approved salary processing found for the selected filters.');
 
         return Excel::download(new SalaryReportExport($report), $this->fileName($report, 'xlsx'));
     }
@@ -110,6 +115,7 @@ class SalaryReportController extends Controller implements HasMiddleware
     {
         $filters = $this->validatedFilters($request, true);
         $report = $this->reportData($filters);
+        abort_unless($report['processing'] && $report['items']->isNotEmpty(), 404, 'No approved salary processing found for the selected filters.');
         $pdf = $this->buildPdf($report);
 
         return response($pdf, 200, [
@@ -122,6 +128,7 @@ class SalaryReportController extends Controller implements HasMiddleware
     {
         $filters = $this->validatedFilters($request, true);
         $report = $this->reportData($filters);
+        abort_unless($report['processing'] && $report['items']->isNotEmpty(), 404, 'No approved salary processing found for the selected filters.');
         $pdf = $this->buildPdf($report);
         $to = config('mail.salary_report_to');
 
@@ -174,66 +181,28 @@ class SalaryReportController extends Controller implements HasMiddleware
 
     private function reportData(array $filters): array
     {
-        $query = SalaryProcessing::with([
-            'depot',
-            'role',
-            'approver',
-            'items.salaryProcessing.role',
-            'items.salaryProcessing.approver',
-            'items.user.roles',
-            'items.user.staffProfile.designation',
-            'items.user.staffProfile.location',
-            'items.user.driverProfile.location',
-            'items.user.housekeepingProfile.location',
-            'items.user.controllerProfile.location',
-            'items.user.supervisorProfile.location',
-        ])
-            ->where('year', $filters['year'])
-            ->where('month', $filters['month'])
-            ->where('depot_id', $filters['depot_id'])
-            ->whereIn('status', ['Completed', 'Approved'])
-            ->when($filters['role_id'] !== 'all', fn ($query) => $query->where('role_id', $filters['role_id']));
-
-        $processings = $query->get();
+        $relations = ['depot', 'approver', 'items.user.roles', 'items.salaryProcessing.depot'];
+        foreach (['staffProfile', 'driverProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile'] as $profile) {
+            $relations[] = 'items.user.'.$profile.'.designation';
+            $relations[] = 'items.user.'.$profile.'.location';
+        }
+        $processings = SalaryProcessing::with($relations)
+            ->where('year', $filters['year'])->where('month', $filters['month'])
+            ->where('depot_id', $filters['depot_id'])->whereRaw('LOWER(status) = ?', ['approved'])->get();
         $processing = $processings->first();
-        $items = $processings
-            ->flatMap(fn (SalaryProcessing $salaryProcessing) => $salaryProcessing->items)
-            ->sortBy(fn (SalaryProcessingItem $item) => $item->user?->name ?? '')
-            ->values();
-
-        $attendanceRows = (AttendanceConsolidateImport::query()
-            ->with('rows')
-            ->where('year', $filters['year'])
-            ->where('month', $filters['month'])
-            ->where('depot_id', $filters['depot_id'])
-            ->latest('id')
-            ->first()?->rows ?? collect())->keyBy('employee_ref_code');
-
-        $componentNames = $items
-            ->flatMap(fn(SalaryProcessingItem $item) => collect($item->salary_split ?: [])->map(
-                fn ($component) => ($component['name'] ?? 'Component') . ' (' . ucfirst($component['type'] ?? 'earning') . ')'
-            ))
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
+        $role = $filters['role_id'] === 'all' ? null : Role::find($filters['role_id']);
+        $items = $processings->flatMap(fn ($payroll) => $payroll->items)
+            ->filter(fn ($item) => $filters['role_id'] === 'all' || WageRegister::role($item) === $role?->name)
+            ->sortBy(fn ($item) => $item->user?->name ?? '')->values();
+        $rows = $items->map(fn ($item, $index) => WageRegister::row($item, $index))->all();
 
         return [
-            'filters' => $filters,
-            'processing' => $processing,
-            'processings' => $processings,
-            'items' => $items,
-            'attendanceRows' => $attendanceRows,
-            'componentNames' => $componentNames,
-            'monthName' => $filters['month'] ? Carbon::create(null, $filters['month'], 1)->format('F') : '-',
-            'year' => $filters['year'],
-            'depot' => $processing?->depot ?: Depot::find($filters['depot_id']),
-            'role' => $filters['role_id'] === 'all'
-                ? null
-                : ($processing?->role ?: Role::find($filters['role_id'])),
-            'roleLabel' => $filters['role_id'] === 'all'
-                ? 'All'
-                : ($processing?->role?->name ?: Role::find($filters['role_id'])?->name ?: '-'),
+            'filters' => $filters, 'processing' => $processing, 'processings' => $processings,
+            'items' => $items, 'rows' => $rows, 'headings' => WageRegister::headings(),
+            'groups' => WageRegister::GROUPS, 'warnings' => WageRegister::warnings($rows),
+            'monthName' => $filters['month'] ? Carbon::create(null, $filters['month'], 1)->format('F') : '',
+            'year' => $filters['year'], 'depot' => $processing?->depot ?: Depot::find($filters['depot_id']),
+            'role' => $role, 'roleLabel' => $filters['role_id'] === 'all' ? 'All' : ($role?->name ?? ''),
             'showRoleColumns' => $filters['role_id'] === 'all',
         ];
     }
@@ -289,96 +258,6 @@ class SalaryReportController extends Controller implements HasMiddleware
 
     private function buildPdf(array $report): string
     {
-        $lines = [
-            'SYSCON Salary Report',
-            'Period: ' . $this->periodLabel($report),
-            'Depo: ' . ($report['depot']?->name ?? '-'),
-            'Role: ' . $report['roleLabel'],
-            'Generated: ' . now()->format('d-m-Y h:i A'),
-            '',
-            $report['showRoleColumns']
-                ? 'SL  Code        Name                 Role        Designation          Gross       Deduction   LOP        Net'
-                : 'SL  Code        Name                         Gross       Deduction   LOP        Net        Status',
-        ];
-
-        foreach ($report['items'] as $index => $item) {
-            if ($report['showRoleColumns']) {
-                $roleName = $item->salaryProcessing?->role?->name ?: '-';
-                $designation = $roleName === 'Staff'
-                    ? ($item->user?->staffProfile?->designation?->name ?: '-')
-                    : '-';
-                $lines[] = sprintf(
-                    '%-3s %-11s %-20s %-11s %-20s %10s %10s %10s %10s',
-                    $index + 1,
-                    substr((string) ($item->user?->code ?: '-'), 0, 11),
-                    substr((string) ($item->user?->name ?: '-'), 0, 20),
-                    substr($roleName, 0, 11),
-                    substr($designation, 0, 20),
-                    $this->money($item->basic_salary),
-                    $this->money($item->deduction),
-                    $this->money($item->lop),
-                    $this->money($item->net_salary),
-                );
-            } else {
-                $lines[] = sprintf(
-                    '%-3s %-11s %-28s %10s %10s %10s %10s %s',
-                    $index + 1,
-                    substr((string) ($item->user?->code ?: '-'), 0, 11),
-                    substr((string) ($item->user?->name ?: '-'), 0, 28),
-                    $this->money($item->basic_salary),
-                    $this->money($item->deduction),
-                    $this->money($item->lop),
-                    $this->money($item->net_salary),
-                    $item->salaryProcessing?->status ?: '-'
-                );
-            }
-        }
-
-        if ($report['items']->isEmpty()) {
-            $lines[] = 'No completed salary records found for the selected filters.';
-        }
-
-        return $this->simplePdf($lines);
-    }
-
-    private function simplePdf(array $lines): string
-    {
-        $content = "%PDF-1.4\n";
-        $objects = [];
-        $stream = "BT\n/F1 9 Tf\n50 550 Td\n";
-
-        foreach ($lines as $line) {
-            $stream .= '(' . $this->pdfEscape($line) . ") Tj\n0 -15 Td\n";
-        }
-
-        $stream .= "ET";
-        $objects[] = "<< /Type /Catalog /Pages 2 0 R >>";
-        $objects[] = "<< /Type /Pages /Kids [3 0 R] /Count 1 >>";
-        $objects[] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>";
-        $objects[] = "<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>";
-        $objects[] = "<< /Length " . strlen($stream) . " >>\nstream\n{$stream}\nendstream";
-
-        $offsets = [0];
-
-        foreach ($objects as $index => $object) {
-            $offsets[] = strlen($content);
-            $content .= ($index + 1) . " 0 obj\n{$object}\nendobj\n";
-        }
-
-        $xref = strlen($content);
-        $content .= "xref\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
-
-        foreach (array_slice($offsets, 1) as $offset) {
-            $content .= str_pad((string) $offset, 10, '0', STR_PAD_LEFT) . " 00000 n \n";
-        }
-
-        $content .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n{$xref}\n%%EOF";
-
-        return $content;
-    }
-
-    private function pdfEscape(string $value): string
-    {
-        return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $value);
+        return \App\Support\WageRegisterPdf::render($report);
     }
 }

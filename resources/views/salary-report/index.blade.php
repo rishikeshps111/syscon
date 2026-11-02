@@ -259,6 +259,11 @@
     @section('scripts')
         <script>
             $(function () {
+                $('#year, #month, #depot_id, #role_id').each(function () {
+                    if (!$(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2({ width: '100%' });
+                    }
+                });
                 var reportModal = new bootstrap.Modal(document.getElementById('salaryReportModal'));
                 var reportFilters = {};
 
@@ -335,8 +340,8 @@
                 });
 
                 $('#resetReportFilters').on('click', function () {
-                    $('#month, #depot_id, #role_id').val('');
-                    $('#year').val('{{ date('Y') }}');
+                    $('#month, #depot_id, #role_id').val('').trigger('change.select2');
+                    $('#year').val('{{ date('Y') }}').trigger('change.select2');
                     $('#salaryReportModalBody').html('<div class="text-center py-5 text-muted">Generate a report to view details.</div>');
                     setActionState(false, {});
                 });

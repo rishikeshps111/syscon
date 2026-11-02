@@ -2,198 +2,96 @@
 
 namespace App\Exports;
 
-use App\Models\SalaryProcessingItem;
-use Illuminate\Support\Collection;
+use App\Support\WageRegister;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SalaryReportExport implements FromArray, ShouldAutoSize, WithStyles
+class SalaryReportExport extends DefaultValueBinder implements FromArray, WithStyles, WithCustomValueBinder, WithStrictNullComparison
 {
     public function __construct(private array $report) {}
 
     public function array(): array
     {
-        $earningNames = $this->componentNames('earning');
-        $deductionNames = $this->componentNames('deduction');
-        $identity = $this->identityHeadings();
-        $earnings = [...$earningNames->all(), 'Incentive', 'Gross Earnings'];
-        $attendance = ['Present Days', 'Week Off Days', 'Absent Days', 'Total Days'];
-        $deductions = [...$deductionNames->all(), 'Other Deduction', 'LOP', 'Total Deduction'];
-        $payment = ['Net Salary Paid', 'Payment Method', 'Status', 'Approved By', 'Approved At', 'Remarks'];
-        $rows = [
-            [$this->report['monthName'].' '.$this->report['year'].' - ATTENDANCE AND WAGE REGISTER'],
-            ['SYSCON FUNCTIONAL NETWORKS PRIVATE LIMITED'],
-            ['Depot: '.($this->report['depot']?->name ?? '-').' | Role: '.$this->report['roleLabel']],
-            array_merge(
-                ['EMPLOYEE DETAILS'], array_fill(0, count($identity) - 1, ''),
-                [''],
-                ['EARNINGS'], array_fill(0, count($earnings) - 1, ''),
-                [''],
-                ['ATTENDANCE CONSOLIDATE'], array_fill(0, count($attendance) - 1, ''),
-                [''],
-                ['DEDUCTIONS'], array_fill(0, count($deductions) - 1, ''),
-                [''],
-                ['PAYMENT DETAILS'], array_fill(0, count($payment) - 1, ''),
-            ),
-            array_merge($identity, [''], $earnings, [''], $attendance, [''], $deductions, [''], $payment),
-        ];
-
-        foreach ($this->items()->values() as $index => $item) {
-            $rows[] = $this->itemRow($item, $index, $earningNames, $deductionNames, $this->attendanceRow($item));
+        $groups = array_fill(0, 63, null);
+        foreach (WageRegister::GROUPS as [$start, $length, $label]) {
+            $groups[$start] = $label;
+        }
+        // An empty array is flattened away by Laravel Excel's appendRows pipeline.
+        $blank = array_fill(0, 63, null);
+        $rows = [[WageRegister::title($this->report)], $blank, $groups, WageRegister::headings(), ...$this->report['rows']];
+        if ($this->report['warnings']) {
+            $rows[] = $blank;
+            $rows[] = ['Reconciliation notes (approved amounts have not been changed)'];
+            foreach ($this->report['warnings'] as $warning) {
+                $rows[] = [$warning];
+            }
         }
 
         return $rows;
     }
 
+    public function bindValue(Cell $cell, mixed $value): bool
+    {
+        if (is_int($value) || is_float($value)) {
+            $cell->setValueExplicit($value, DataType::TYPE_NUMERIC);
+            return true;
+        }
+        if (is_string($value)) {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+            return true;
+        }
+        return parent::bindValue($cell, $value);
+    }
+
     public function styles(Worksheet $sheet): array
     {
-        $identityCount = count($this->identityHeadings());
-        $earningCount = $this->componentNames('earning')->count() + 2;
-        $attendanceCount = 4;
-        $deductionCount = $this->componentNames('deduction')->count() + 3;
-        $paymentCount = 6;
-        $lastColumn = Coordinate::stringFromColumnIndex($identityCount + 1 + $earningCount + 1 + $attendanceCount + 1 + $deductionCount + 1 + $paymentCount);
-        $lastRow = $sheet->getHighestDataRow();
-
-        $sheet->mergeCells("A1:{$lastColumn}1");
-        $sheet->mergeCells("A2:{$lastColumn}2");
-        $sheet->mergeCells("A3:{$lastColumn}3");
-
-        $sheet->getStyle("A1:{$lastColumn}1")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('A9D18E');
-        $sheet->getStyle("A2:{$lastColumn}2")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('BDD7EE');
-
-        $start = 1;
-        foreach ([
-            [$identityCount, 1, '92D050'],
-            [$earningCount, 1, 'BDD7EE'],
-            [$attendanceCount, 1, 'D9EAD3'],
-            [$deductionCount, 1, 'FFE699'],
-            [$paymentCount, 0, '92D050'],
-        ] as [$length, $spacing, $color]) {
-            $end = $start + $length - 1;
-            $from = Coordinate::stringFromColumnIndex($start);
-            $to = Coordinate::stringFromColumnIndex($end);
-            $sheet->mergeCells("{$from}4:{$to}4");
-            $sheet->getStyle("{$from}4:{$to}5")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($color);
-            $start = $end + $spacing + 1;
-        }
-
-        $sheet->freezePane('A6');
-        $sheet->setAutoFilter("A5:{$lastColumn}{$lastRow}");
-        $sheet->getPageSetup()->setOrientation('landscape')->setFitToWidth(1)->setFitToHeight(0);
-        $sheet->getPageMargins()->setTop(0.25)->setRight(0.25)->setBottom(0.25)->setLeft(0.25);
-        $sheet->getStyle("A1:{$lastColumn}5")->getFont()->setBold(true);
+        $last = max(4, 4 + count($this->report['rows']));
+        $sheet->mergeCells('A1:BK1');
+        $sheet->getStyle('A1:BK1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('92D050');
+        $sheet->getStyle('A1:BK4')->getFont()->setBold(true);
         $sheet->getStyle('A1')->getFont()->setSize(20);
-        $sheet->getStyle('A2')->getFont()->setSize(18);
-        $sheet->getStyle("A1:{$lastColumn}5")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-        $sheet->getRowDimension(1)->setRowHeight(25.8);
-        $sheet->getRowDimension(2)->setRowHeight(23.4);
-        $sheet->getRowDimension(5)->setRowHeight(43.2);
-        $sheet->getStyle("A4:{$lastColumn}{$lastRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setARGB('B7B7B7');
-        $sheet->getStyle("A6:{$lastColumn}{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-
-        foreach ([$identityCount + 1, $identityCount + $earningCount + 2, $identityCount + $earningCount + $attendanceCount + 3, $identityCount + $earningCount + $attendanceCount + $deductionCount + 4] as $spacerColumn) {
-            $letter = Coordinate::stringFromColumnIndex($spacerColumn);
-            $sheet->getColumnDimension($letter)->setAutoSize(false)->setWidth(3);
-            $sheet->getStyle("{$letter}4:{$letter}{$lastRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FFFFFF');
+        $sheet->getStyle('A1:BK4')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $sheet->getRowDimension(1)->setRowHeight(32);
+        $sheet->getRowDimension(3)->setRowHeight(30);
+        $sheet->getRowDimension(4)->setRowHeight(64);
+        foreach (WageRegister::GROUPS as [$start, $length, $label, $color]) {
+            $from = Coordinate::stringFromColumnIndex($start + 1);
+            $to = Coordinate::stringFromColumnIndex($start + $length);
+            if ($length > 1) {
+                $sheet->mergeCells("{$from}3:{$to}3");
+            }
+            $sheet->getStyle("{$from}3:{$to}4")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($color);
+            for ($c = $start + 1; $c <= $start + $length; $c++) {
+                $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($c))->setWidth($label === '' ? 3 : 17);
+            }
         }
-
-        for ($column = $identityCount + 2; $column <= Coordinate::columnIndexFromString($lastColumn) - 5; $column++) {
-            $letter = Coordinate::stringFromColumnIndex($column);
-            $sheet->getStyle("{$letter}6:{$letter}{$lastRow}")->getNumberFormat()->setFormatCode('#,##0.00');
+        foreach (['C' => 30, 'D' => 25, 'K' => 32, 'S' => 25, 'P' => 25, 'Q' => 24, 'BK' => 35] as $column => $width) {
+            $sheet->getColumnDimension($column)->setWidth($width);
         }
-
+        $sheet->getStyle("A3:BK{$last}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        if ($last >= 5) {
+            $sheet->getStyle("V5:BJ{$last}")->getNumberFormat()->setFormatCode('#,##0');
+            $sheet->getStyle("A5:BK{$last}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        }
+        $sheet->freezePane('D5');
+        $sheet->setAutoFilter("A4:BK{$last}");
+        $sheet->getPageSetup()->setOrientation('landscape')->setRowsToRepeatAtTopByStartAndEnd(1, 4);
+        $sheet->getPageSetup()->setPrintArea("A1:BK{$last}");
+        foreach ($this->report['warnings'] as $index => $warning) {
+            $line = $last + 3 + $index;
+            $sheet->mergeCells("A{$line}:BK{$line}");
+            $sheet->getStyle("A{$line}")->getAlignment()->setWrapText(true);
+        }
         return [];
-    }
-
-    private function identityHeadings(): array
-    {
-        return ['Sl No', 'Employee Code', 'Name', "Father's Name", 'DOJ', 'DOB', 'Aadhaar', 'PAN', 'Location', 'UAN', 'ESIC / WC', 'Bank Account Number', 'IFSC', 'Role', 'Designation', 'Days in Month', 'Shifts Worked', 'Leave Taken', 'Unauthorized Leave'];
-    }
-
-    private function itemRow(SalaryProcessingItem $item, int $index, Collection $earningNames, Collection $deductionNames, mixed $attendance): array
-    {
-        $role = $item->salaryProcessing?->role?->name ?: '-';
-        $profile = $this->profile($item, $role);
-        $components = collect($item->salary_split ?: [])->filter(fn ($component) => (bool) ($component['selected'] ?? true));
-        $earnings = $components->where('type', 'earning')->keyBy('name');
-        $deductions = $components->where('type', 'deduction')->keyBy('name');
-        $deductionTotal = (float) $item->deduction + (float) $item->lop;
-
-        return array_merge([
-            $index + 1,
-            $item->user?->code ?: '-',
-            $item->user?->name ?: '-',
-            $profile?->father_name ?: '-',
-            ($profile?->date_of_joining ?? $profile?->joining_date)?->format('d-m-Y') ?: '-',
-            $profile?->date_of_birth?->format('d-m-Y') ?: '-',
-            $item->aadhaar_no ?: ($profile?->aadhaar_number ?: '-'),
-            $profile?->pan_number ?: '-',
-            $profile?->location?->name ?: '-',
-            $profile?->uan ?: '-',
-            $profile?->esic_wc ?: '-',
-            $profile?->bank_account_number ?? $profile?->account_number ?? '-',
-            $profile?->ifsc_code ?: '-',
-            $role,
-            $role === 'Staff' ? ($item->user?->staffProfile?->designation?->name ?: '-') : $role,
-            (float) ($attendance?->total_days ?? 0),
-            (int) ($item->total_shifts_completed ?? 0),
-            (float) ($item->total_leave_taken ?? 0),
-            (float) ($item->unauthorized_leaves ?? 0),
-        ], [''],
-            $earningNames->map(fn ($name) => (float) ($earnings->get($name)['amount'] ?? 0))->all(), [
-                (float) $item->incentive,
-                (float) $item->basic_salary + (float) $item->incentive,
-            ], [''], [
-                (float) ($attendance?->present_days ?? 0),
-                (float) ($attendance?->week_off_days ?? 0),
-                (float) ($attendance?->absent_days ?? 0),
-                (float) ($attendance?->total_days ?? 0),
-            ], [''], $deductionNames->map(fn ($name) => (float) ($deductions->get($name)['amount'] ?? 0))->all(), [
-                (float) $item->deduction,
-                (float) $item->lop,
-                $deductionTotal,
-            ], [''], [
-                (float) $item->net_salary,
-                $item->salaryProcessing?->payment_method ?: '-',
-                $item->salaryProcessing?->status ?: '-',
-                $item->salaryProcessing?->approver?->name ?: '-',
-                $item->salaryProcessing?->approved_at?->format('d-m-Y h:i A') ?: '-',
-                $item->salaryProcessing?->remarks ?: '-',
-            ]);
-    }
-
-    private function profile(SalaryProcessingItem $item, string $role): mixed
-    {
-        return match ($role) {
-            'Driver' => $item->user?->driverProfile,
-            'Housekeeping' => $item->user?->housekeepingProfile,
-            'Controller' => $item->user?->controllerProfile,
-            'Supervisor' => $item->user?->supervisorProfile,
-            default => $item->user?->staffProfile,
-        };
-    }
-
-    private function componentNames(string $type): Collection
-    {
-        return $this->items()->flatMap(fn (SalaryProcessingItem $item) => collect($item->salary_split ?: []))
-            ->filter(fn ($component) => ($component['type'] ?? null) === $type && (bool) ($component['selected'] ?? true))
-            ->pluck('name')->filter()->unique()->sort()->values();
-    }
-
-    private function items(): Collection
-    {
-        return $this->report['items'];
-    }
-
-    private function attendanceRow(SalaryProcessingItem $item): mixed
-    {
-        return ($this->report['attendanceRows'] ?? collect())->get($item->user?->code);
     }
 }
