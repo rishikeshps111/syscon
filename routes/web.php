@@ -306,6 +306,10 @@ Route::middleware('auth')->group(function () {
         ->name('trips.roster.update');
     Route::post('/trips/{trip}/update-roster', [TripController::class, 'storeRosterUpdates'])
         ->name('trips.roster.store');
+    Route::get('/trips/{trip}/roster/monthly-template', [\App\Http\Controllers\MonthlyRosterImportController::class, 'template'])
+        ->name('trips.roster.monthly-template');
+    Route::post('/trips/{trip}/roster/monthly-import', [\App\Http\Controllers\MonthlyRosterImportController::class, 'import'])
+        ->name('trips.roster.monthly-import');
     Route::get('/trips/{trip}/sheet/import', [TripController::class, 'importSheetForm'])
         ->name('trips.sheet.import.form');
     Route::post('/trips/{trip}/sheet/import', [TripController::class, 'importSheet'])

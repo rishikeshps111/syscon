@@ -18120,3 +18120,11 @@ div.dataTables_wrapper div.dataTables_paginate ul.pagination{
 
 
 
+/* Keep the notification permission helper out of modal action areas. */
+.chrome-notification-permission {
+    max-width: calc(100vw - 40px);
+    white-space: normal;
+}
+body.modal-open .chrome-notification-permission {
+    display: none !important;
+}

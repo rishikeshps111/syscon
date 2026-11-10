@@ -173,12 +173,12 @@
                 if (!chromeNotificationButton) {
                     chromeNotificationButton = $('<button>', {
                         type: 'button',
-                        class: 'btn btn-warning shadow',
+                        class: 'btn btn-warning shadow chrome-notification-permission',
                         css: {
                             position: 'fixed',
                             right: '20px',
                             bottom: '20px',
-                            zIndex: 99999
+                            zIndex: 1030
                         }
                     }).appendTo(document.body);
                 }

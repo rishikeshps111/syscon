@@ -20,11 +20,12 @@ class TripDriverAssignment
         return $this->assignments->context($user, $entry, $lock);
     }
 
-    public function available(Roster $roster, TripSheetEntry $entry, bool $excludeCurrent = true, ?int $lockedDriverId = null): Collection
+    public function available(Roster $roster, TripSheetEntry $entry, bool $excludeCurrent = true, ?int $lockedDriverId = null, bool $lock = true): Collection
     {
         [, $end] = $this->window($roster);
         $drivers = DriverProfile::query()
-            ->when($lockedDriverId, fn ($query) => $query->whereKey($lockedDriverId)->lockForUpdate())
+            ->when($lockedDriverId, fn ($query) => $query->whereKey($lockedDriverId))
+            ->when($lockedDriverId && $lock, fn ($query) => $query->lockForUpdate())
             ->where('depot_id', $roster->depot_id)
             ->when($excludeCurrent, fn ($query) => $query->whereNotIn('id', array_filter([$roster->driver_profile_id, $entry->driver_profile_id])))
             ->whereDate('expiry_date', '>=', $end->toDateString())
@@ -32,10 +33,10 @@ class TripDriverAssignment
             ->with('user:id,name,code')
             ->get();
 
-        $busy = $this->assignments->busyIds($roster, 'driver_profile_id', $drivers->pluck('id')->all(), $lockedDriverId !== null);
+        $busy = $this->assignments->busyIds($roster, 'driver_profile_id', $drivers->pluck('id')->all(), $lockedDriverId !== null && $lock);
         $leaves = Leave::query()->whereIn('user_id', $drivers->pluck('user_id'))
             ->whereIn('status', ['Approved', 'Auto Marked'])
-            ->when($lockedDriverId, fn ($query) => $query->lockForUpdate())->get();
+            ->when($lockedDriverId && $lock, fn ($query) => $query->lockForUpdate())->get();
 
         return $drivers->reject(fn ($driver) => in_array((int) $driver->id, $busy, true)
             || $leaves->contains(fn ($leave) => (int) $leave->user_id === (int) $driver->user_id

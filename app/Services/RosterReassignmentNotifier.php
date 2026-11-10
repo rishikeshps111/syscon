@@ -22,7 +22,8 @@ class RosterReassignmentNotifier
         $trip = $entry->code ?: (string) $entry->id;
         $date = $roster->duty_date->format('d M Y');
         $payload = ['type' => 'trip_vehicle_change', 'trip_sheet_entry_id' => $entry->id, 'old_vehicle_id' => $oldVehicleId];
-        $body = "Vehicle for trip {$trip} on {$date} changed to {$roster->vehicle->vehicle_no}.";
+        $vehicle = $roster->vehicle?->vehicle_no ?? 'Not assigned';
+        $body = "Vehicle for trip {$trip} on {$date} changed to {$vehicle}.";
         foreach ($this->operationsUsers((int) $roster->depot_id) as $user) {
             $this->sendToUser($user, 'Trip Vehicle Changed', $body, 'operations', $roster, $sent, $failed, $payload);
         }

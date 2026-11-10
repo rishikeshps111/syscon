@@ -60,9 +60,11 @@
                 @if (session('roster_update_summary'))
                     @php($summary = session('roster_update_summary'))
                     <div class="alert alert-info">
-                        <strong>{{ $summary['created'] }} created, {{ $summary['updated'] }} updated, {{ $summary['skipped'] }} skipped.</strong>
+                        <strong>{{ $summary['created'] }} created, {{ $summary['updated'] }} updated, {{ $summary['unchanged'] ?? 0 }} unchanged, {{ $summary['skipped'] }} skipped.</strong>
                         @if (! empty($summary['reasons']))
-                            <ul class="mb-0 mt-2">@foreach ($summary['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach</ul>
+                            <details class="mt-2"><summary>View {{ count($summary['reasons']) }} skipped row reason(s)</summary>
+                                <ul class="mb-0 mt-2">@foreach ($summary['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach</ul>
+                            </details>
                         @endif
                     </div>
                 @endif
@@ -93,6 +95,7 @@
                          <div class="btns-group-container   mb-3" style="margin-left:0 !important; margin-bottom:0px !important;">
                     <a href="{{ route('trips.index') }}" class="bk-btn">Back</a>
                     <button type="submit" class="add-btn m-0 js-loading-submit">Update Roasters</button>
+                    <button type="button" class="add-btn m-0" data-bs-toggle="modal" data-bs-target="#rosterImportModal">Update Roaster Via Import</button>
                 </div>
                     </div>
                 </div>
@@ -115,6 +118,7 @@
                 </div>
             </div>
         </form>
+        @include('trip.partials.roster-import-modal')
     </section>
 
     <style>
@@ -291,6 +295,7 @@
     </style>
 
     @section('scripts')
+        <script src="{{ asset('assets/js/monthly-roster-import.js') }}?v={{ filemtime(public_path('assets/js/monthly-roster-import.js')) }}"></script>
         <script>
             $(function () {
                 $('#rosterTable').DataTable({

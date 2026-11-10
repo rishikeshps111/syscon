@@ -583,6 +583,7 @@ class TripController extends Controller implements HasMiddleware
 
     public function updateRoster(Request $request, Trip $trip)
     {
+        app(\App\Services\TripRosterAssignment::class)->authorize($request->user(), $trip);
         if ($request->ajax()) {
             $drivers = DriverProfile::with('user')
                 ->whereHas('user', fn ($query) => $query->where('is_active', true))
@@ -666,121 +667,28 @@ class TripController extends Controller implements HasMiddleware
 
         abort_unless($entries->count() === count($selectedIds), 422, 'One or more selected entries do not belong to this trip.');
 
-        $trip->loadMissing(['depot', 'assignments']);
-        $result = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'reasons' => []];
-
-        DB::transaction(function () use ($entries, $validated, $trip, &$result): void {
-            foreach ($entries as $entry) {
-                $assignment = $validated['assignments'][$entry->id] ?? [];
-                $driverId = (int) ($assignment['driver_profile_id'] ?? 0);
-                $vehicleId = (int) ($assignment['vehicle_id'] ?? 0);
-                $existingRoster = $entry->rosters->sortByDesc('id')->first();
-
-                if (! $driverId || ! $vehicleId || ! $entry->sheet?->date || ! $entry->departure_time || ! $entry->arrival_time) {
-                    $this->skipRosterResult($result, $entry, 'Driver, vehicle, date, shift start and shift end are required.');
-
-                    continue;
+        $service = app(\App\Services\TripRosterAssignment::class);
+        $service->authorize($request->user(), $trip);
+        $result = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'reasons' => []];
+        foreach ($entries as $entry) {
+            $assignment = $validated['assignments'][$entry->id] ?? [];
+            try {
+                if (empty($assignment['driver_profile_id']) || empty($assignment['vehicle_id'])) {
+                    throw ValidationException::withMessages(['assignment' => 'Driver and vehicle are required.']);
                 }
-
-                if ($existingRoster && in_array($existingRoster->status, ['in_progress', 'completed'], true)) {
-                    $this->skipRosterResult($result, $entry, 'An in-progress or completed roaster cannot be changed.');
-
-                    continue;
-                }
-
-                $vehicle = Vehicle::find($vehicleId);
-                $driver = DriverProfile::with('user')->find($driverId);
-                if (! $vehicle?->oem_id || ! $trip->state_id || ! $trip->depot_id || ! $driver?->user?->is_active) {
-                    $this->skipRosterResult($result, $entry, 'Required trip, driver, depot or vehicle OEM details are missing.');
-
-                    continue;
-                }
-
-                if (! $driver->expiry_date || $driver->expiry_date->lt(now()->startOfDay())) {
-                    $this->skipRosterResult($result, $entry, 'The selected driver licence is expired.');
-
-                    continue;
-                }
-
-                $dutyDate = $entry->sheet->date->format('Y-m-d');
-                $shiftStart = substr((string) $entry->departure_time, 0, 5);
-                $shiftEnd = substr((string) $entry->arrival_time, 0, 5);
-                if (
-                    $this->bulkRosterConflict('driver_profile_id', $driverId, $dutyDate, $shiftStart, $shiftEnd, $existingRoster)
-                    || $this->bulkRosterConflict('vehicle_id', $vehicleId, $dutyDate, $shiftStart, $shiftEnd, $existingRoster)
-                ) {
-                    $this->skipRosterResult($result, $entry, 'Driver or vehicle is already assigned to another active roaster in this time slot.');
-
-                    continue;
-                }
-
-                $tripAssignment = $trip->assignments->first(fn (TripAssignment $item) => $item->from_date?->lte($entry->sheet->date) && $item->to_date?->gte($entry->sheet->date));
-                $payload = [
-                    'state_id' => $trip->state_id,
-                    'oem_id' => $vehicle->oem_id,
-                    'depot_id' => $trip->depot_id,
-                    'duty_date' => $dutyDate,
-                    'shift_type' => $this->bulkRosterShiftType($shiftStart),
-                    'shift_start_time' => $shiftStart,
-                    'shift_end_time' => $shiftEnd,
-                    'trip_assignment_id' => $tripAssignment?->id,
-                    'driver_profile_id' => $driverId,
-                    'vehicle_id' => $vehicleId,
-                    'reporting_time' => Carbon::parse($dutyDate.' '.$shiftStart)->subMinutes(20)->format('H:i'),
-                    'status' => $existingRoster?->status ?: 'assigned',
-                    'updated_by' => auth()->id(),
-                ];
-
-                if ($existingRoster) {
-                    $existingRoster->update($payload);
-                    $existingRoster->tripSheetEntries()->syncWithoutDetaching([$entry->id]);
-                    $result['updated']++;
-                } else {
-                    $roster = Roster::create($payload + ['created_by' => auth()->id()]);
-                    $roster->update(['code' => generate_code(Roster::PREFIX_MODULE, $roster->id, 4, 'RST')]);
-                    $roster->tripSheetEntries()->attach($entry->id);
-                    $result['created']++;
-                }
-
-                $entry->update(['driver_profile_id' => $driverId, 'vehicle_id' => $vehicleId]);
+                $status = $service->assign($request->user(), $trip, $entry->id,
+                    (int) $assignment['driver_profile_id'], (int) $assignment['vehicle_id']);
+                $result[$status]++;
+            } catch (ValidationException $exception) {
+                $this->skipRosterResult($result, $entry, implode(' ', $exception->validator->errors()->all()));
             }
-        });
+        }
 
-        $message = "{$result['created']} roaster(s) created, {$result['updated']} updated, {$result['skipped']} skipped.";
+        $message = "{$result['created']} roaster(s) created, {$result['updated']} updated, {$result['unchanged']} unchanged, {$result['skipped']} skipped.";
 
         return redirect()->route('trips.roster.update', $trip)
             ->with('success', $message)
             ->with('roster_update_summary', $result);
-    }
-
-    private function bulkRosterShiftType(string $startTime): string
-    {
-        $hour = (int) substr($startTime, 0, 2);
-
-        return $hour >= 5 && $hour < 12 ? 'morning' : ($hour >= 12 && $hour < 20 ? 'evening' : 'night');
-    }
-
-    private function bulkRosterConflict(string $field, int $id, string $date, string $startTime, string $endTime, ?Roster $currentRoster): bool
-    {
-        $start = Carbon::parse($date.' '.$startTime);
-        $end = Carbon::parse($date.' '.$endTime);
-        if ($end->lessThanOrEqualTo($start)) {
-            $end->addDay();
-        }
-
-        return Roster::query()->where($field, $id)->whereIn('status', ['assigned', 'in_progress'])
-            ->when($currentRoster, fn ($query) => $query->whereKeyNot($currentRoster->id))
-            ->whereBetween('duty_date', [$start->copy()->subDay()->toDateString(), $end->toDateString()])
-            ->get(['id', 'duty_date', 'shift_start_time', 'shift_end_time'])
-            ->contains(function (Roster $roster) use ($start, $end): bool {
-                $rosterStart = Carbon::parse($roster->duty_date->format('Y-m-d').' '.substr((string) $roster->shift_start_time, 0, 5));
-                $rosterEnd = Carbon::parse($roster->duty_date->format('Y-m-d').' '.substr((string) $roster->shift_end_time, 0, 5));
-                if ($rosterEnd->lessThanOrEqualTo($rosterStart)) {
-                    $rosterEnd->addDay();
-                }
-
-                return $rosterStart->lt($end) && $rosterEnd->gt($start);
-            });
     }
 
     private function skipRosterResult(array &$result, TripSheetEntry $entry, string $reason): void
