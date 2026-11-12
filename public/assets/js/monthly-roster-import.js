@@ -65,47 +65,47 @@
             const tr = document.createElement('tr');
             const state = row.outcome || row.status;
             if (state === 'issue' || state === 'skipped') tr.className = 'table-warning';
-            [row.line, row.trip_code, row.display_date, row.service, row.current_driver, row.proposed_driver, row.vehicle, labels[state] || state, row.reason]
+            [row.line, row.trip_code, row.display_date, row.service, row.current_driver, row.proposed_driver, row.current_vehicle || row.vehicle || 'Not assigned', row.proposed_vehicle || row.vehicle || 'Not assigned', labels[state] || state, row.reason]
                 .forEach((value, index) => {
                     const td = document.createElement('td');
-                    if (index === 7) {
-                        const badge = document.createElement('span');
-                        badge.className = `ri-status ri-status--${Object.hasOwn(labels, state) ? state : 'issue'}`;
-                        badge.textContent = value;
-                        td.appendChild(badge);
-                    } else if (index === 8) {
-                        td.className = 'ri-reason';
-                        const reason = document.createElement('div');
-                        reason.textContent = value || '—';
-                        td.appendChild(reason);
-                        if (row.conflicts?.length) {
-                            const duties = document.createElement('div');
-                            duties.className = 'ri-conflicts';
-                            row.conflicts.forEach(conflict => {
-                                const card = document.createElement('div');
-                                card.className = 'ri-conflict';
-                                const label = document.createElement('span');
-                                label.className = 'ri-conflict-label';
-                                label.textContent = conflict.source === 'upload' ? `Uploaded row ${conflict.row}`
-                                    : `${conflict.resource === 'vehicle' ? 'Vehicle' : 'Driver'} assigned to another trip`;
-                                const code = document.createElement('strong');
-                                code.className = 'ri-conflict-code';
-                                code.textContent = conflict.trip_code;
-                                const detail = document.createElement('span');
-                                detail.className = 'ri-conflict-meta';
-                                detail.textContent = [conflict.parent_trip_code && conflict.parent_trip_code !== conflict.trip_code ? `Trip ${conflict.parent_trip_code}` : '',
+                        if (index === 8) {
+                            const badge = document.createElement('span');
+                            badge.className = `ri-status ri-status--${Object.hasOwn(labels, state) ? state : 'issue'}`;
+                            badge.textContent = value;
+                            td.appendChild(badge);
+                        } else if (index === 9) {
+                            td.className = 'ri-reason';
+                            const reason = document.createElement('div');
+                            reason.textContent = value || '—';
+                            td.appendChild(reason);
+                            if (row.conflicts?.length) {
+                                const duties = document.createElement('div');
+                                duties.className = 'ri-conflicts';
+                                row.conflicts.forEach(conflict => {
+                                    const card = document.createElement('div');
+                                    card.className = 'ri-conflict';
+                                    const label = document.createElement('span');
+                                    label.className = 'ri-conflict-label';
+                                    label.textContent = conflict.source === 'upload' ? `Uploaded row ${conflict.row}`
+                                        : `${conflict.resource === 'vehicle' ? 'Vehicle' : 'Driver'} assigned to another trip`;
+                                    const code = document.createElement('strong');
+                                    code.className = 'ri-conflict-code';
+                                    code.textContent = conflict.trip_code;
+                                    const detail = document.createElement('span');
+                                    detail.className = 'ri-conflict-meta';
+                                    detail.textContent = [conflict.parent_trip_code && conflict.parent_trip_code !== conflict.trip_code ? `Trip ${conflict.parent_trip_code}` : '',
                                     conflict.service_code ? `Service ${conflict.service_code}` : '', conflict.date,
                                     `${conflict.start_time}–${conflict.end_time}`, conflict.status === 'in_progress' ? 'In progress' : ''].filter(Boolean).join(' · ');
-                                card.appendChild(label);
-                                card.appendChild(code);
-                                card.appendChild(detail);
-                                duties.appendChild(card);
-                            });
-                            td.appendChild(duties);
-                        }
-                    } else td.textContent = value ?? '';
-                    tr.appendChild(td);
-                });
+                                    card.appendChild(label);
+                                    card.appendChild(code);
+                                    card.appendChild(detail);
+                                    duties.appendChild(card);
+                                });
+                                td.appendChild(duties);
+                            }
+                        } else td.textContent = value ?? '';
+                        tr.appendChild(td);
+                    });
             tbody.appendChild(tr);
         });
         get('[data-import-page]').textContent = `Page ${page} of ${pages} (${data.total} rows)`;
@@ -172,7 +172,7 @@
         if (reloadAfterClose) { window.location.reload(); return; }
         const old = reset();
         file.value = '';
-        return discard(old).catch(() => {});
+        return discard(old).catch(() => { });
     });
     template.addEventListener('click', event => { if (running) event.preventDefault(); });
     file.addEventListener('change', () => {

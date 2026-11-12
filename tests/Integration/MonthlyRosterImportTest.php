@@ -203,12 +203,12 @@ class MonthlyRosterImportTest extends TripAssignmentTestCase
         $this->assertSame(30, Roster::count());
     }
 
-    public function test_skips_invalid_rows_but_imports_valid_excel_date_and_ignores_vehicle_edits(): void
+    public function test_skips_invalid_rows_but_imports_valid_excel_date_and_vehicle_is_optional(): void
     {
         $this->entryOn('2026-09-09');
         $serial = Date::PHPToExcel(new \DateTime('2026-09-08'));
         $state = $this->process($this->prepare([
-            [$serial, '001', '  DRIVER TWO  ', 'EDITED'], ['09-09-2026', '001', '', ''],
+            [$serial, '001', '  DRIVER TWO  ', ''], ['09-09-2026', '001', '', ''],
             ['10-09-2026', '001', 'Driver Two', ''], ['01-10-2026', '001', 'Driver Two', ''],
             ['31-09-2026', '001', 'Driver Two', ''], ['09-09-2026', 'OTHER', 'Driver Two', ''],
         ]));
@@ -359,10 +359,63 @@ class MonthlyRosterImportTest extends TripAssignmentTestCase
     public function test_existing_roster_vehicle_is_used_when_entry_vehicle_is_blank(): void
     {
         $this->entry->update(['vehicle_id' => null]);
-        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', 'FAKE BUS']]));
+        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', '']]));
         $this->assertSame(1, $state['updated']);
         $this->assertSame($this->vehicle->id, (int) $this->entry->fresh()->vehicle_id);
         $this->assertSame($this->vehicle->id, (int) $this->roster->fresh()->vehicle_id);
+    }
+
+    public function test_valid_vehicle_in_excel_is_imported_and_assigned(): void
+    {
+        $otherVehicle = Vehicle::create([
+            'vehicle_code' => 'V2', 'vehicle_no' => 'BUS02', 'depot_id' => 1,
+            'vehicle_classification_id' => 1, 'oem_id' => 1, 'status' => 'Active',
+        ]);
+        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', 'BUS02']]));
+        $this->assertSame(1, $state['updated']);
+        $this->assertSame($otherVehicle->id, (int) $this->entry->fresh()->vehicle_id);
+        $this->assertSame($otherVehicle->id, (int) $this->roster->fresh()->vehicle_id);
+    }
+
+    public function test_invalid_or_unknown_vehicle_reports_not_found_reason(): void
+    {
+        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', 'UNKNOWN-BUS']]));
+        $this->assertSame(1, $this->skipped($state));
+        $this->assertSame(0, $state['updated']);
+        $this->assertStringContainsString("Vehicle 'UNKNOWN-BUS' was not found.", $state['reasons'][0]);
+    }
+
+    public function test_inactive_vehicle_reports_not_active_reason(): void
+    {
+        Vehicle::create([
+            'vehicle_code' => 'V_INACT', 'vehicle_no' => 'BUS-INACT', 'depot_id' => 1,
+            'vehicle_classification_id' => 1, 'oem_id' => 1, 'status' => 'Inactive',
+        ]);
+        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', 'BUS-INACT']]));
+        $this->assertSame(1, $this->skipped($state));
+        $this->assertStringContainsString("Vehicle 'BUS-INACT' is not active", $state['reasons'][0]);
+    }
+
+    public function test_wrong_depot_vehicle_reports_depot_reason(): void
+    {
+        Vehicle::create([
+            'vehicle_code' => 'V_DEP2', 'vehicle_no' => 'BUS-DEP2', 'depot_id' => 2,
+            'vehicle_classification_id' => 1, 'oem_id' => 1, 'status' => 'Active',
+        ]);
+        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', 'BUS-DEP2']]));
+        $this->assertSame(1, $this->skipped($state));
+        $this->assertStringContainsString("Vehicle 'BUS-DEP2' must belong to this trip depot.", $state['reasons'][0]);
+    }
+
+    public function test_wrong_classification_vehicle_reports_classification_reason(): void
+    {
+        Vehicle::create([
+            'vehicle_code' => 'V_CLS2', 'vehicle_no' => 'BUS-CLS2', 'depot_id' => 1,
+            'vehicle_classification_id' => 2, 'oem_id' => 1, 'status' => 'Active',
+        ]);
+        $state = $this->process($this->prepare([['08-09-2026', '001', 'Driver Two', 'BUS-CLS2']]));
+        $this->assertSame(1, $this->skipped($state));
+        $this->assertStringContainsString("Vehicle 'BUS-CLS2' does not match the trip vehicle classification.", $state['reasons'][0]);
     }
 
     public function test_vehicle_conflict_is_independent_of_driver_availability(): void

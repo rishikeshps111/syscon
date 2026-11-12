@@ -88,7 +88,8 @@ class MonthlyRosterImportController extends Controller
                 $page = (int) $request->page;
                 return response()->json($this->progress($state) + ['page' => $page, 'pages' => max(1, (int) ceil(count($state['previews']) / 25)),
                     'rows' => array_map(fn ($row) => array_intersect_key($row, array_flip([
-                        'line', 'trip_code', 'display_date', 'service', 'driver_name', 'current_driver', 'proposed_driver', 'vehicle', 'status', 'reason', 'outcome', 'conflicts',
+                        'line', 'trip_code', 'display_date', 'service', 'driver_name', 'current_driver', 'proposed_driver',
+                        'vehicle', 'current_vehicle', 'proposed_vehicle', 'status', 'reason', 'outcome', 'conflicts',
                     ])), array_slice($state['previews'], ($page - 1) * 25, 25))]);
             }
             if ($request->step === 'confirm') {

@@ -112,7 +112,7 @@ class TripRosterAssignment
         $this->require(! $vehicleId || ($vehicle && $vehicle->status === 'Active' && $vehicle->oem_id
             && (int) $vehicle->depot_id === (int) $trip->depot_id
             && (int) $vehicle->vehicle_classification_id === (int) $trip->vehicle_classification_id),
-            'The existing vehicle must be active, in this depot, and match the trip classification with an OEM.');
+            'The vehicle must be active, in this depot, and match the trip classification with an OEM.');
         $date = $entry->sheet->date->toDateString();
         $start = substr((string) $entry->departure_time, 0, 5);
         $end = substr((string) $entry->arrival_time, 0, 5);

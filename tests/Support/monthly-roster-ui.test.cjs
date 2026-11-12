@@ -15,7 +15,8 @@ function harness(responses) {
     function node(key) {
         if (nodes.has(key)) return nodes.get(key);
         const classes = new Set();
-        const result = { disabled: false, value: '', innerHTML: '', textContent: '', attrs: {}, style: {}, dataset: {}, children: [], handlers: {},
+        const result = {
+            disabled: false, value: '', innerHTML: '', textContent: '', attrs: {}, style: {}, dataset: {}, children: [], handlers: {},
             classList: { add(value) { classes.add(value); }, remove(value) { classes.delete(value); }, contains(value) { return classes.has(value); }, toggle(value, force) { if (force) classes.add(value); else classes.delete(value); } },
             addEventListener(event, callback) { this.handlers[event] = callback; },
             setAttribute(name, value) { this.attrs[name] = String(value); }, removeAttribute(name) { delete this.attrs[name]; },
@@ -48,16 +49,23 @@ function harness(responses) {
             set(name, value) { this.data.set(name, value); } get(name) { return this.data.get(name); }
         },
         window: {
-            bootstrap: { Modal: { getOrCreateInstance: () => ({ hide() {
-                let prevented = false;
-                modal.handlers['hide.bs.modal']({ preventDefault() { prevented = true; } });
-                assert.equal(prevented, false, 'Completed imports must be allowed to close');
-                completion.push('hide');
-                modal.classList.remove('show');
-                modal.handlers['hidden.bs.modal']();
-            } }) } },
+            bootstrap: {
+                Modal: {
+                    getOrCreateInstance: () => ({
+                        hide() {
+                            let prevented = false;
+                            modal.handlers['hide.bs.modal']({ preventDefault() { prevented = true; } });
+                            assert.equal(prevented, false, 'Completed imports must be allowed to close');
+                            completion.push('hide');
+                            modal.classList.remove('show');
+                            modal.handlers['hidden.bs.modal']();
+                        }
+                    })
+                }
+            },
             location: { reload() { completion.push('reload'); } },
-            jQuery: selector => ({ DataTable: () => ({ ajax: { reload(...args) { filters[selector] = args; refreshes++; } } }) }) },
+            jQuery: selector => ({ DataTable: () => ({ ajax: { reload(...args) { filters[selector] = args; refreshes++; } } }) })
+        },
         fetch: async (url, request) => {
             const step = request.body.get('step');
             if (step !== 'discard') {
@@ -66,7 +74,7 @@ function harness(responses) {
                 assert.equal(close.disabled, true);
                 assert.ok(button.innerHTML.includes('spinner-border') || confirm.innerHTML.includes('spinner-border'));
                 assert.equal(form.attrs['aria-busy'], 'true');
-                await form.handlers.submit({ preventDefault() {} });
+                await form.handlers.submit({ preventDefault() { } });
                 await confirm.handlers.click();
                 let prevented = false;
                 modal.handlers['hide.bs.modal']({ preventDefault() { prevented = true; } });
@@ -79,12 +87,12 @@ function harness(responses) {
             return { ok: !response.errors, json: async () => JSON.parse(JSON.stringify(response)) };
         },
     });
-    return { node, requests, filters, completion, run: () => form.handlers.submit({ preventDefault() {} }), confirm: () => confirm.handlers.click(), get refreshes() { return refreshes; } };
+    return { node, requests, filters, completion, run: () => form.handlers.submit({ preventDefault() { } }), confirm: () => confirm.handlers.click(), get refreshes() { return refreshes; } };
 }
 const emptySummary = { ready_create: 0, ready_update: 0, unchanged: 0, blank: 0, issue: 0, eligible: 0 };
 const prepared = { phase: 'preview', token: 'token', previewed: 0, processed: 0, total: 26, created: 0, updated: 0, unchanged: 0, skipped: 0, summary: emptySummary };
 const ready = { ...prepared, phase: 'ready', previewed: 26, summary: { ...emptySummary, ready_create: 20, ready_update: 3, unchanged: 1, blank: 1, issue: 1, eligible: 23 } };
-const row = { line: 2, trip_code: 'TRP2026#0051-0476', display_date: '08-09-2026', service: '001', current_driver: 'Driver One', proposed_driver: 'Driver Two', vehicle: 'BUS01', status: 'ready_update', reason: '<script>untrusted</script>' };
+const row = { line: 2, trip_code: 'TRP2026#0051-0476', display_date: '08-09-2026', service: '001', current_driver: 'Driver One', proposed_driver: 'Driver Two', current_vehicle: 'BUS01', proposed_vehicle: 'BUS01', vehicle: 'BUS01', status: 'ready_update', reason: '<script>untrusted</script>' };
 const readyPage = { ...ready, page: 1, pages: 2, rows: [row] };
 const saving = { ...ready, phase: 'saving' };
 const partial = { ...saving, processed: 25, created: 20, updated: 2, unchanged: 1, skipped: 2 };
@@ -100,10 +108,10 @@ test('preview stays read only then completed import closes modal before page rel
     assert.equal(ui.node('[data-import-confirm]').disabled, false);
     assert.equal(ui.node('[data-import-confirm]').textContent, 'Confirm & Update Eligible Rows (23)');
     const cells = ui.node('[data-import-rows]').children[0].children;
-    assert.equal(cells[7].children[0].textContent, 'Ready to update');
-    assert.equal(cells[7].children[0].className, 'ri-status ri-status--ready_update');
+    assert.equal(cells[8].children[0].textContent, 'Ready to update');
+    assert.equal(cells[8].children[0].className, 'ri-status ri-status--ready_update');
     assert.equal(cells[1].textContent, 'TRP2026#0051-0476');
-    assert.equal(cells[8].children[0].textContent, '<script>untrusted</script>');
+    assert.equal(cells[9].children[0].textContent, '<script>untrusted</script>');
     assert.equal(ui.refreshes, 0);
     await ui.confirm();
     assert.deepEqual(ui.requests.map(request => request.step), ['prepare', 'preview', 'preview', 'rows', 'confirm', 'save', 'save']);
@@ -201,22 +209,24 @@ test('failure to load completed preview cannot enable confirmation', async () =>
 });
 
 test('vehicle-free preview displays Not assigned and permits explicit confirmation', async () => {
-    const ui = harness([prepared, ready, { ...readyPage, rows: [{ ...row, vehicle: 'Not assigned' }] }]);
+    const ui = harness([prepared, ready, { ...readyPage, rows: [{ ...row, proposed_vehicle: 'Not assigned', vehicle: 'Not assigned' }] }]);
     await ui.run();
     assert.equal(ui.node('[data-import-error]').textContent, '');
-    assert.equal(ui.node('[data-import-rows]').children[0].children[6].textContent, 'Not assigned');
+    assert.equal(ui.node('[data-import-rows]').children[0].children[7].textContent, 'Not assigned');
     assert.equal(ui.node('[data-import-confirm]').disabled, false);
     assert.equal(ui.requests.some(request => request.step === 'save'), false);
 });
 
 test('conflict cards show other trip identity duty window and uploaded conflicts as safe text', async () => {
-    const conflict = { trip_code: 'TRP2026#0099-0007<script>unsafe</script>', parent_trip_code: 'TRP2026#0099',
-        service_code: 'ED77', date: '08-09-2026', start_time: '09:00', end_time: '11:00', status: 'in_progress', source: 'running_trip', resource: 'driver' };
+    const conflict = {
+        trip_code: 'TRP2026#0099-0007<script>unsafe</script>', parent_trip_code: 'TRP2026#0099',
+        service_code: 'ED77', date: '08-09-2026', start_time: '09:00', end_time: '11:00', status: 'in_progress', source: 'running_trip', resource: 'driver'
+    };
     const ui = harness([prepared, ready, { ...readyPage, rows: [{ ...row, status: 'issue', conflicts: [conflict, { ...conflict, source: 'upload', row: 27 }] }] }]);
     await ui.run();
     const cells = ui.node('[data-import-rows]').children[0].children;
-    assert.equal(cells[7].children[0].className, 'ri-status ri-status--issue');
-    const cards = cells[8].children[1].children;
+    assert.equal(cells[8].children[0].className, 'ri-status ri-status--issue');
+    const cards = cells[9].children[1].children;
     assert.equal(cards.length, 2);
     assert.equal(cards[0].children[0].textContent, 'Driver assigned to another trip');
     assert.equal(cards[0].children[1].textContent, conflict.trip_code);
@@ -238,8 +248,10 @@ test('blocked notification helper stays behind the Bootstrap modal instead of co
         || bootstrapCss.match(/\.modal\{[^}]*z-index:\s*(\d+)/)?.[1]);
     assert.ok(modalLayer > 0, 'Resolve the actual modal layer from the installed Bootstrap stylesheet');
     const captured = {};
-    const button = { appendTo() { return this; }, text(value) { captured.message = value; return this; },
-        prop(name, value) { captured[name] = value; return this; } };
+    const button = {
+        appendTo() { return this; }, text(value) { captured.message = value; return this; },
+        prop(name, value) { captured[name] = value; return this; }
+    };
     vm.runInNewContext(`let chromeNotificationButton = null; ${renderer}; renderChromeNotificationButton();`, {
         window: { Notification: {} }, Notification: { permission: 'denied' }, document: { body: {} },
         $: (tag, settings) => { captured.settings = settings; return button; },
