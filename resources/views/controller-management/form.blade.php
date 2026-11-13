@@ -179,8 +179,8 @@
                                         <input type="date" id="date_of_joining" name="date_of_joining" class="shadow-none form-control" value="{{ old('date_of_joining', $profile?->date_of_joining?->format('Y-m-d')) }}" required>
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="uan">UAN <span class="text-danger">*</span></label>
-                                        <input type="text" id="uan" name="uan" class="shadow-none form-control" value="{{ old('uan', $profile->uan ?? '') }}" required>
+                                        <label for="uan">UAN</label>
+                                        <input type="text" id="uan" name="uan" class="shadow-none form-control" value="{{ old('uan', $profile->uan ?? '') }}">
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="esic_wc">ESIC / WC <span class="text-danger">*</span></label>

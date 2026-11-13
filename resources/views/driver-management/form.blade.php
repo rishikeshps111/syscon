@@ -58,6 +58,7 @@
         'drv7' => 'Status & Verification',
         'drv8' => 'Salary Structure',
     ] as $target => $label)
+                                @continue($target === 'drv8' && ! (auth()->user()?->can('driver-management.view-salary') ?? false))
                                 <li class="nav-item {{ $loop->first ? 'ps-0 ms-0' : '' }}" role="presentation">
                                     <button type="button"
                                         class="nav-link {{ $loop->first ? 'ms-0 active' : '' }} wizard-tab-button"
@@ -170,6 +171,15 @@
 
                             <div class="tab-pane fade" id="drv2" role="tabpanel">
                                 <div class="row">
+                                    <div class="col-lg-4 o-f-inp mb-3">
+                                        <label for="date_of_birth">Date of Birth</label>
+                                        <input type="date" id="date_of_birth" name="date_of_birth"
+                                            class="form-control shadow-none @error('date_of_birth') is-invalid @enderror"
+                                            value="{{ old('date_of_birth', $profile?->date_of_birth?->format('Y-m-d')) }}">
+                                        @error('date_of_birth')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="aadhaar_number">Aadhaar Number <span
                                                 class="text-danger">*</span></label>
@@ -359,9 +369,9 @@
                                         @enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="uan">UAN <span class="text-danger">*</span></label>
+                                        <label for="uan">UAN</label>
                                         <input type="text" id="uan" name="uan" class="form-control shadow-none"
-                                            value="{{ old('uan', $profile->uan ?? '') }}" required>
+                                            value="{{ old('uan', $profile->uan ?? '') }}">
                                         @error('uan')<span class="text-danger">{{ $message }}</span>@enderror
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
@@ -542,9 +552,11 @@
                                 </div>
                             </div>
 
+                            @can('driver-management.view-salary')
                             <div class="tab-pane fade" id="drv8" role="tabpanel">
-                                @include('components.dynamic-salary-structure')
+                                <div id="salaryStructureContainer">@include('components.dynamic-salary-structure')</div>
                             </div>
+                            @endcan
                         </div>
 
                         <div class="col-lg-12 mt-3">
@@ -709,6 +721,7 @@
                 $('#pincode').val(pincode);
             });
 
+            @can('driver-management.view-salary')
             $('#designation_id').on('change', function() {
                 var designationId = $(this).val();
                 if (!designationId) {
@@ -721,6 +734,8 @@
                     .done(function (html) { $('#salaryStructureContainer').html(html); calculateDynamicSalary(); })
                     .fail(function () { $('#salaryStructureContainer').html('<div class="alert alert-danger mb-0">Unable to load salary components.</div>'); });
             });
+
+            @endcan
 
             if ($('#location_id').val()) {
                 $('#location_id').trigger('change');

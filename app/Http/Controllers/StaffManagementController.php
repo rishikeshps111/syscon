@@ -36,7 +36,7 @@ class StaffManagementController extends Controller implements HasMiddleware
     {
         return [
             'auth',
-            new Middleware(PermissionMiddleware::using('staff-management.view|housekeeping-management.view|controller-management.view|supervisor-management.view'), ['index', 'show', 'export', 'downloadPdf', 'statesByCountry', 'districtsByState', 'locationsByDistrict', 'reportingManagers', 'salaryStructure']),
+            new Middleware(PermissionMiddleware::using('staff-management.view|housekeeping-management.view|controller-management.view|supervisor-management.view'), ['index', 'show', 'export', 'downloadPdf', 'statesByCountry', 'districtsByState', 'locationsByDistrict', 'reportingManagers']),
             new Middleware(PermissionMiddleware::using('staff-management.create|housekeeping-management.create|controller-management.create|supervisor-management.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('staff-management.edit|housekeeping-management.edit|controller-management.edit|supervisor-management.edit'), ['edit', 'update', 'status']),
             new Middleware(PermissionMiddleware::using('staff-management.delete|housekeeping-management.delete|controller-management.delete|supervisor-management.delete'), ['destroy']),
@@ -312,6 +312,8 @@ class StaffManagementController extends Controller implements HasMiddleware
 
     public function salaryStructure(Request $request)
     {
+        abort_unless($request->user()?->can('staff-management.view-salary'), 403);
+
         $data = $request->validate([
             'role' => ['required', Rule::in(self::ROLES)],
             'designation_id' => ['required', 'integer', 'exists:designations,id'],
@@ -436,8 +438,9 @@ class StaffManagementController extends Controller implements HasMiddleware
                 '50001-100000' => '50,001 - 1,00,000',
                 '100001-' => 'Above 1,00,000',
             ],
-            'salaryComponents' => SalaryComponents::forRole($this->requestEmployeeRole(), $designationId),
-            'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('staff_management')),
+            'salaryComponents' => auth()->user()?->can('staff-management.view-salary')
+                ? SalaryComponents::forRole($this->requestEmployeeRole(), $designationId) : collect(),
+            'salaryComponentValues' => auth()->user()?->can('staff-management.view-salary') ? SalaryComponents::valuesFor(request()->route('staff_management')) : collect(),
         ];
     }
 

@@ -71,13 +71,16 @@ class WageRegister
             $calculated = isset($component['calculated_amount']) ? (float) $component['calculated_amount']
                 : ($name === 'duty incentive' ? ($number('extra_duty_incentive') ?? $number('incentive')) : ($ratio !== null && $amount !== null ? $amount * $ratio : null));
             if (($component['type'] ?? '') === 'deduction') {
-                $deductions[$name] = $calculated;
+                $deductions[$name] = ($deductions[$name] ?? 0) + $calculated;
             } elseif (($component['type'] ?? '') === 'earning') {
                 if ($name !== 'duty incentive') {
                     $fixed[$name] = $amount;
                 }
                 $earned[$name] = $calculated;
             }
+        }
+        foreach (['tds' => 'tds', 'salary advance' => 'salary_advance', 'lwf' => 'lwf', 'penalty' => 'penalty'] as $name => $field) {
+            $deductions[$name] = round(($deductions[$name] ?? 0) + ($number($field) ?? 0), 2);
         }
         $sumPair = fn ($values) => isset($values['basic'], $values['vda']) ? $values['basic'] + $values['vda'] : null;
         $fixedGross = $fixed !== [] && !in_array(null, $fixed, true) ? array_sum($fixed) : null;
@@ -86,7 +89,6 @@ class WageRegister
         $gross = $legacy ? null : ($number('total_earned') ?? $number('gross_salary'));
         $net = $legacy ? $number('net_salary') : ($number('net_total') ?? $number('net_salary'));
         $totalDeduction = $legacy ? null : $number('total_deduction');
-        $basicVda = $sumPair($earned);
         $date = fn ($value) => $value ? Carbon::parse($value)->format('d-m-Y') : null;
         $componentColumns = fn ($values) => [$values['basic'] ?? null, $values['vda'] ?? null, $sumPair($values), $values['hra'] ?? null, $values['bonus'] ?? null, $values['special allowance'] ?? null, $values['managerial travel allowance'] ?? null];
         $esic = $attr($profile, 'esic_number');
@@ -115,8 +117,8 @@ class WageRegister
             $legacy ? null : $number('pf'), $legacy ? null : $number('professional_tax'), $legacy ? null : $number('esi'),
             $deductions['tds'] ?? null, $deductions['salary advance'] ?? null, $deductions['lwf'] ?? null, $deductions['penalty'] ?? null,
             $totalDeduction, $net, null,
-            $basicVda === null ? null : round($basicVda * .12, 2),
-            $fixedGross === null ? null : ($fixedGross <= 21000 ? round($fixedGross * .0325, 2) : 0.0),
+            $legacy ? null : $number('pf'),
+            $number('employer_esi') ?? ($fixedGross === null ? null : ($fixedGross <= 21000 ? round($fixedGross * .0325, 2) : 0.0)),
             null,
         ]);
     }

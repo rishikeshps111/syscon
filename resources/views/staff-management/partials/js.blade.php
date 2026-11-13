@@ -11,6 +11,11 @@
             processing: true,
             serverSide: true,
             searching: false,
+            pageLength: 10,
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
             ajax: {
                 url: "{{ route('staff-management.index') }}",
                 data: filters
@@ -118,7 +123,7 @@
             event.preventDefault();
             const url = $(this).data('url');
             Swal.fire({
-                title: 'Are you sure?', text: 'Do you really want to regenerate this passcode?', icon: 'warning',
+                title: 'Are you sure?', text: 'Do you really want to regenerate this passcode ? ', icon: 'warning',
                 showCancelButton: true, confirmButtonText: 'Yes, regenerate it', cancelButtonText: 'Cancel'
             }).then(function (result) {
                 if (!result.isConfirmed) return;

@@ -24,16 +24,18 @@ class DriverBulkImportTest extends TestCase
         Schema::create('driver_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id');
-            foreach (['aadhaar_number', 'license_number', 'badge_number', 'salary'] as $field) {
+            foreach (['aadhaar_number', 'license_number', 'badge_number', 'salary', 'uan'] as $field) {
                 $table->string($field)->nullable();
             }
             $table->timestamps();
         });
+        (require database_path('migrations/2026_11_13_000001_add_date_of_birth_to_driver_profiles_table.php'))->up();
         foreach (['staff_profiles', 'housekeeping_profiles', 'controller_profiles', 'supervisor_profiles'] as $name) {
             Schema::create($name, function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('user_id');
                 $table->string('father_name')->nullable();
+                $table->string('uan')->nullable();
                 $table->string('gross_salary')->nullable();
                 $table->timestamps();
             });
@@ -52,6 +54,107 @@ class DriverBulkImportTest extends TestCase
         $controller = new BulkImportController;
         $config = (new \ReflectionMethod($controller, 'config'))->invoke($controller, 'drivers');
         return (new \ReflectionMethod($controller, 'validateRows'))->invoke($controller, 'drivers', $rows, $config);
+    }
+
+    public function test_driver_import_accepts_legacy_and_dob_spreadsheet_headers(): void
+    {
+        (require database_path('migrations/2026_05_12_031408_create_permission_tables.php'))->up();
+        $this->actingAs($this->driver());
+        \Illuminate\Support\Facades\Gate::before(fn () => true);
+        $controller = new BulkImportController;
+        $config = (new \ReflectionMethod($controller, 'config'))->invoke($controller, 'drivers');
+        $this->assertSame('date_of_birth', $config['headers'][array_key_last($config['headers'])]);
+        $this->assertSame('15-06-1990', $config['sample'][array_key_last($config['sample'])]);
+        foreach ([false, true] as $withDob) {
+            $book = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+            $headers = $withDob ? $config['headers'] : array_values(array_diff($config['headers'], ['date_of_birth', 'uan']));
+            $sample = array_map(fn ($header) => $config['sample'][array_search($header, $config['headers'], true)], $headers);
+            $book->getActiveSheet()->fromArray([$headers, $sample]);
+            $path = tempnam(sys_get_temp_dir(), 'driver-dob-');
+            try {
+                (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($path);
+                $file = new \Illuminate\Http\UploadedFile($path, 'drivers.xlsx', null, null, true);
+                $request = \Illuminate\Http\Request::create('/', 'POST', ['import_step' => 'prepare'], [], ['csv_file' => $file]);
+                $session = new \Illuminate\Session\Store('test', new \Illuminate\Session\ArraySessionHandler(120));
+                $request->setLaravelSession($session);
+                $response = $controller->import($request, 'drivers')->getData(true);
+                $this->assertSame(1, $response['total']);
+                $row = $session->get('bulk_import.'.$response['token'])['rows'][0]['data'];
+                $this->assertSame($withDob ? '15-06-1990' : null, $row['date_of_birth'] ?? null);
+            } finally {
+                unlink($path);
+                $book->disconnectWorksheets();
+            }
+        }
+    }
+
+    public function test_driver_dob_import_normalizes_dates_and_persists_updates(): void
+    {
+        $user = $this->driver();
+        $controller = new BulkImportController;
+        $normalize = new \ReflectionMethod($controller, 'normalize');
+        $update = new \ReflectionMethod($controller, 'updateImportedDriver');
+        foreach (['15-06-1990', \PhpOffice\PhpSpreadsheet\Shared\Date::PHPToExcel(new \DateTime('1990-06-15'))] as $value) {
+            $data = $normalize->invoke($controller, ['date_of_birth' => $value], 'drivers');
+            $this->assertSame('1990-06-15', $data['date_of_birth']);
+            $update->invoke($controller, $data + ['_driver_user_id' => $user->id]);
+            $this->assertSame('1990-06-15', $user->driverProfile->fresh()->date_of_birth->format('Y-m-d'));
+        }
+        $update->invoke($controller, ['_driver_user_id' => $user->id, 'date_of_birth' => null]);
+        $this->assertSame('1990-06-15', $user->driverProfile->fresh()->date_of_birth->format('Y-m-d'));
+        foreach (['31-02-1990', 'invalid'] as $value) {
+            [, $errors] = $this->validateImport([['line' => 2, 'data' => ['date_of_birth' => $value]]]);
+            $this->assertStringContainsString('date_of_birth received', implode(' ', $errors));
+        }
+        foreach ([[], ['date_of_birth' => '']] as $data) {
+            [, $errors] = $this->validateImport([['line' => 2, 'data' => $data]]);
+            $this->assertStringNotContainsString('birth', implode(' ', $errors));
+        }
+    }
+
+    public function test_driver_dob_form_validation_and_profile_creation_editing_and_clearing(): void
+    {
+        foreach ([new \App\Http\Requests\StoreDriverManagementRequest, new \App\Http\Requests\UpdateDriverManagementRequest] as $request) {
+            $rules = $request->rules()['date_of_birth'];
+            foreach ([null, '1990-06-15'] as $value) {
+                $this->assertFalse(\Illuminate\Support\Facades\Validator::make(['date_of_birth' => $value], ['date_of_birth' => $rules])->fails());
+            }
+            $this->assertTrue(\Illuminate\Support\Facades\Validator::make(['date_of_birth' => 'invalid'], ['date_of_birth' => $rules])->fails());
+        }
+        Schema::create('salary_components', fn (Blueprint $table) => $table->id());
+        $profileData = new \ReflectionMethod(\App\Http\Controllers\DriverManagementController::class, 'profileData');
+        $controller = new \App\Http\Controllers\DriverManagementController;
+        $user = User::factory()->create();
+        $data = $profileData->invoke($controller, ['date_of_birth' => '1990-06-15']);
+        $user->driverProfile()->create($data);
+        $this->assertSame('1990-06-15', $user->driverProfile->fresh()->date_of_birth->format('Y-m-d'));
+        foreach (['1991-07-16', null] as $value) {
+            $user->driverProfile()->update($profileData->invoke($controller, ['date_of_birth' => $value]));
+            $this->assertSame($value, $user->driverProfile->fresh()->date_of_birth?->format('Y-m-d'));
+        }
+    }
+
+    public function test_import_uan_can_be_cleared_or_preserved_for_all_employee_roles(): void
+    {
+        $controller = new BulkImportController;
+        foreach (['Driver', 'Staff', 'Housekeeping', 'Controller', 'Supervisor'] as $role) {
+            $user = User::factory()->create();
+            $relation = lcfirst($role).'Profile';
+            $user->{$relation}()->create(['uan' => 'OLD-UAN']);
+            $method = new \ReflectionMethod($controller, $role === 'Driver' ? 'updateImportedDriver' : 'updateImportedStaff');
+            $identity = $role === 'Driver' ? ['_driver_user_id' => $user->id] : ['_staff_user_id' => $user->id, 'role' => $role];
+            $method->invoke($controller, $identity);
+            $this->assertSame('OLD-UAN', $user->{$relation}->fresh()->uan);
+            $method->invoke($controller, $identity + ['uan' => '  ']);
+            $this->assertNull($user->{$relation}->fresh()->uan);
+            $method->invoke($controller, $identity + ['uan' => '  NEW-UAN  ']);
+            $this->assertSame('NEW-UAN', $user->{$relation}->fresh()->uan);
+        }
+        $normalize = new \ReflectionMethod($controller, 'normalize');
+        foreach (['drivers', 'staff', 'controllers', 'supervisors'] as $module) {
+            $this->assertNull($normalize->invoke($controller, ['uan' => '  '], $module)['uan']);
+            $this->assertSame('00123', $normalize->invoke($controller, ['uan' => ' 00123 '], $module)['uan']);
+        }
     }
 
     public function test_matches_trimmed_ref_and_ignores_own_unique_values(): void

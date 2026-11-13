@@ -209,6 +209,8 @@ class DriverManagementController extends Controller implements HasMiddleware
 
     public function salaryStructure(Request $request)
     {
+        abort_unless($request->user()?->can('driver-management.view-salary'), 403);
+
         $data = $request->validate([
             'designation_id' => ['required', 'integer', 'exists:designations,id'],
         ]);
@@ -390,10 +392,10 @@ class DriverManagementController extends Controller implements HasMiddleware
             'depots' => Depot::orderBy('name')->get(['id', 'name']),
             'branches' => BranchLocation::orderBy('name')->get(['id', 'name']),
             'countries' => ['India'],
-            'salaryComponents' => ($designationId = (int) (request()->route('driver_management')?->driverProfile?->designation_id ?? 0))
+            'salaryComponents' => auth()->user()?->can('driver-management.view-salary') && ($designationId = (int) (request()->route('driver_management')?->driverProfile?->designation_id ?? 0))
                 ? SalaryComponents::forRole('Driver', $designationId)
                 : collect(),
-            'salaryComponentValues' => SalaryComponents::valuesFor(request()->route('driver_management')),
+            'salaryComponentValues' => auth()->user()?->can('driver-management.view-salary') ? SalaryComponents::valuesFor(request()->route('driver_management')) : collect(),
         ];
     }
 
@@ -403,6 +405,7 @@ class DriverManagementController extends Controller implements HasMiddleware
             'designation_id',
             'alternate_country_code',
             'alternate_phone',
+            'date_of_birth',
             'aadhaar_number',
             'country',
             'state_id',
@@ -545,6 +548,7 @@ class DriverManagementController extends Controller implements HasMiddleware
 
         $this->pdfSection($content, 'Employment Details', 40, 235, 250, [
             'Employment Type' => $profile?->employment_type_label ?: '-',
+            'Date of Birth' => $date($profile?->date_of_birth),
             'Joining Date' => $date($profile?->joining_date),
             'Salary' => $money($profile?->salary),
             'Depot' => $profile?->depot?->name ?: '-',

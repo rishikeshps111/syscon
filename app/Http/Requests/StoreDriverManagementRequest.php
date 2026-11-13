@@ -10,6 +10,8 @@ class StoreDriverManagementRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        $uan = $this->input('uan');
+        $this->merge(['uan' => is_string($uan) ? (trim($uan) === '' ? null : trim($uan)) : $uan]);
         if (! $this->filled('passcode') && $this->filled('password')) {
             $this->merge(['passcode' => $this->input('password')]);
         }
@@ -34,6 +36,7 @@ class StoreDriverManagementRequest extends FormRequest
             'avatar' => ['nullable', 'image', 'max:2048'],
             'is_active' => ['required', 'boolean'],
 
+            'date_of_birth' => ['nullable', 'date'],
             'aadhaar_number' => ['required', 'string', 'max:20', 'unique:driver_profiles,aadhaar_number'],
             'country' => ['required', 'string', 'max:100'],
             'state_id' => ['required', 'integer', 'exists:states,id'],
@@ -61,7 +64,7 @@ class StoreDriverManagementRequest extends FormRequest
 
             'employment_type' => ['required', Rule::in(array_keys(DriverProfile::EMPLOYMENT_TYPES))],
             'joining_date' => ['required', 'date'],
-            'uan' => ['required', 'string', 'max:50'],
+            'uan' => ['nullable', 'string', 'max:50'],
             'wc_policy' => ['required', 'string', 'max:100'],
             'pan_number' => ['required', 'string', 'max:20'],
             'salary_components' => ['nullable', 'array'],

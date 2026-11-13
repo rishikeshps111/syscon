@@ -9,6 +9,12 @@ use Illuminate\Validation\Rule;
 
 class StoreStaffManagementRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $uan = $this->input('uan');
+        $this->merge(['uan' => is_string($uan) ? (trim($uan) === '' ? null : trim($uan)) : $uan]);
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -52,7 +58,7 @@ class StoreStaffManagementRequest extends FormRequest
             'aadhaar_number' => ['required', 'string', 'max:20'],
             'pan_number' => ['required', 'string', 'max:20'],
             'date_of_joining' => ['required', 'date'],
-            'uan' => ['required', 'string', 'max:50'],
+            'uan' => ['nullable', 'string', 'max:50'],
             'esic_wc' => ['required', 'string', 'max:50'],
             'country' => ['required', 'string', 'max:100'],
             'state_id' => ['required', 'integer', 'exists:states,id'],

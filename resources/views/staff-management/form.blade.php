@@ -66,10 +66,12 @@
                                 <button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#stf5">Bank
                                     Details</button>
                             </li>
+                            @can('staff-management.view-salary')
                             <li class="nav-item" role="presentation">
                                 <button type="button" class="nav-link" data-bs-toggle="tab"
                                     data-bs-target="#stf6">Salary Structure</button>
                             </li>
+                            @endcan
                         </ul>
 
                         <div class="tab-content pt-2">
@@ -259,9 +261,9 @@
                                             required>
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
-                                        <label for="uan">UAN <span class="text-danger">*</span></label>
+                                        <label for="uan">UAN</label>
                                         <input type="text" id="uan" name="uan" class="shadow-none form-control"
-                                            value="{{ old('uan', $profile->uan ?? '') }}" required>
+                                            value="{{ old('uan', $profile->uan ?? '') }}">
                                     </div>
                                     <div class="col-lg-4 o-f-inp mb-3">
                                         <label for="esic_wc">ESIC / WC <span class="text-danger">*</span></label>
@@ -336,9 +338,11 @@
                                 </div>
                             </div>
 
+                            @can('staff-management.view-salary')
                             <div class="tab-pane fade" id="stf6" role="tabpanel">
                                 @include('components.dynamic-salary-structure')
                             </div>
+                            @endcan
                         </div>
 
                         <div class="col-lg-12 mt-3">

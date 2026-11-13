@@ -1,6 +1,7 @@
 @section('title', isset($record) ? 'Edit Staff' : 'Add Edit Staff')
 <x-app-layout>
     @php
+        $canViewSalary = auth()->user()?->can('staff-management.view-salary') ?? false;
         $record = $record ?? null;
         $profile = $profile ?? null;
         $selectedRole = old('role', $employeeRole ?? 'Staff');
@@ -54,6 +55,7 @@
 
                 <ul class="nav nav-tabs-custom" role="tablist">
                     @foreach (['Basic Information', 'Personal Details', 'Employment Details', 'Location Details', 'Bank Details', 'Salary Structure'] as $index => $tab)
+                        @continue($tab === 'Salary Structure' && ! $canViewSalary)
                         <li class="nav-item {{ $index === 0 ? 'ps-0 ms-0' : '' }}" role="presentation">
                             <button type="button" class="nav-link {{ $index === 0 ? 'active ms-0' : '' }}"
                                 data-bs-toggle="tab"
@@ -288,10 +290,9 @@
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
                             </div>
-                            <div class="col-lg-4 o-f-inp mb-3"><label for="uan">UAN <span
-                                        class="text-danger">*</span></label><input id="uan" name="uan"
+                            <div class="col-lg-4 o-f-inp mb-3"><label for="uan">UAN</label><input id="uan" name="uan"
                                     class="form-control shadow-none @error('uan') is-invalid @enderror"
-                                    value="{{ $value('uan') }}" required>
+                                    value="{{ $value('uan') }}">
                                 @error('uan')
                                     <span class="text-danger">{{ $message }}</span>
                                 @enderror
@@ -396,9 +397,11 @@
                         </div>
                     </div>
 
+                    @if ($canViewSalary)
                     <div class="tab-pane fade" id="stf6" role="tabpanel">
                         <div id="salaryStructureContainer">@include('components.dynamic-salary-structure')</div>
                     </div>
+                    @endif
                 </div>
 
                 <div class="btn-flex-cs mt-3">
@@ -500,6 +503,7 @@
                     calculate();
                 }
 
+                @if ($canViewSalary)
                 function loadSalaryStructure(force = false) {
                     const role = $('#employeeRole').val();
                     const designation = $('#designation_id').val();
@@ -524,6 +528,10 @@
                         .fail(() => $('#salaryStructureContainer').html(
                             '<div class="alert alert-danger mb-0">Unable to load salary components.</div>'));
                 }
+
+                @else
+                function loadSalaryStructure() {}
+                @endif
 
                 $('#employeeRole').on('change', function() {
                     updateCredentialFields();

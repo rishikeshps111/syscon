@@ -65,6 +65,7 @@
                                     <li>Email : <span>{{ $record->email ?: '-' }}</span></li>
                                     <li>Phone : <span>{{ $record->full_phone ?: '-' }}</span></li>
                                     <li>Alternate Phone : <span>{{ $alternatePhone ?: '-' }}</span></li>
+                                    <li>Date of Birth : <span>{{ $date($profile?->date_of_birth) }}</span></li>
                                     <li>Aadhaar Number : <span>{{ $profile?->aadhaar_number ?: '-' }}</span></li>
                                     <li>License Type : <span>{{ $profile?->license_type_label ?: '-' }}</span></li>
                                     <li>License Expiry : <span>{{ $date($profile?->expiry_date) }}</span></li>

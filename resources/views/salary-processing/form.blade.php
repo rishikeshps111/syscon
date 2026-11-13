@@ -409,12 +409,16 @@
                             <tr>
                                 <th class="text-center nowrap">SL No</th>
                                 <th class="text-center">Name</th>
-                                <th class="text-center">Total Days</th>
-                                <th class="text-center">Extra Days Worked</th>
+                                <th class="text-center">Total Shifts</th>
+                                <th class="text-center">Extra Shifts Worked</th>
                                 <th class="text-center">Gross Salary</th>
                                 <th class="text-center">PF</th>
                                 <th class="text-center">Professional Tax</th>
                                 <th class="text-center">ESI</th>
+                                <th class="text-center">TDS</th>
+                                <th class="text-center">Salary Advance</th>
+                                <th class="text-center">LWF</th>
+                                <th class="text-center">Penalty</th>
                                 <th class="text-center">Total Deduction</th>
                                 <th class="text-center">Net Total</th>
                             </tr>
@@ -507,8 +511,7 @@
                 var usersUrl = "{{ route('salary-processing.users') }}";
                 var csrf = "{{ csrf_token() }}";
 
-                // The horizontal overflow wrapper prevents a CSS sticky header
-                // from following page scroll, so mirror it above that wrapper.
+                // Mirror the table header while the payroll rows scroll vertically.
                 var payrollTable = document.querySelector('.salary-table-scroll .payroll-table');
                 var payrollScroller = payrollTable.closest('.salary-table-scroll');
                 var floatingHeader = document.createElement('div');
@@ -575,7 +578,34 @@
                     return $('<div>').text(value == null ? '' : value).html();
                 }
 
+                function labelPayrollCells() {
+                    var labels = Array.from(payrollTable.tHead.rows[0].cells).map(function (cell) {
+                        return cell.textContent.trim();
+                    });
+                    Array.from(payrollTable.tBodies[0].rows).forEach(function (row) {
+                        if (row.cells.length !== labels.length) return;
+                        Array.from(row.cells).forEach(function (cell, index) {
+                            cell.setAttribute('data-label', labels[index]);
+                        });
+                    });
+                }
+
+                labelPayrollCells();
+
                 function rowHtml(row, index) {
+                    row = Object.assign({}, row);
+                    var difference = 0;
+                    if (row.pf_applicable === false || row.pf_applicable === 0) {
+                        difference -= Number(row.pf || 0);
+                        row.pf = 0;
+                    }
+                    ['esi', 'tds', 'salary_advance', 'lwf', 'penalty'].forEach(function (field) {
+                        var original = Number(row[field] || 0);
+                        row[field] = Math.round(original);
+                        difference += row[field] - original;
+                    });
+                    row.total_deduction = roundMoney(Number(row.total_deduction ?? row.deduction ?? 0) + difference);
+                    row.net_total = roundMoney(Number(row.net_total ?? row.net_salary ?? 0) - difference);
                     var split = JSON.stringify(row.salary_split || []).replace(/'/g, '&#039;');
                     var details = JSON.stringify(row.user_details || {}).replace(/'/g, '&#039;');
                     var selectedInputs = (row.salary_split || []).filter(function (item) {
@@ -583,7 +613,7 @@
                     }).map(function (item) {
                         return '<input type="hidden" class="selected-component-input" name="items[' + index + '][selected_components][]" value="' + item.id + '">';
                     }).join('');
-                    return '<tr data-basic="' + row.basic_salary + '" data-lop="' + Number(row.lop || 0) + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-calendar-days="' + row.calendar_days + '" data-total-days="' + row.total_attendance_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
+                    return '<tr data-pf-applicable="' + ((row.pf_applicable === false || row.pf_applicable === 0) ? 0 : 1) + '" data-base-deduction="' + (Number(row.total_deduction ?? row.deduction ?? 0) - ['esi', 'tds', 'salary_advance', 'lwf', 'penalty'].reduce(function (sum, field) { return sum + Number(row[field] || 0); }, 0)) + '" data-total-earned="' + Number(row.total_earned ?? (Number(row.net_total ?? row.net_salary ?? 0) + Number(row.total_deduction ?? row.deduction ?? 0))) + '" data-basic="' + row.basic_salary + '" data-lop="' + Number(row.lop || 0) + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-calendar-days="' + row.calendar_days + '" data-total-days="' + row.total_attendance_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
                         '<td class="text-center">' + (index + 1) + '<input type="hidden" name="items[' + index + '][user_id]" value="' + row.user_id + '"></td>' +
                         '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance=\'' + JSON.stringify({ present_days: row.present_days, wo_days: row.total_attendance_days, absent_days: row.absent_days, week_off_days: row.week_off_days, per_day_salary: row.salary_day_rate }).replace(/'/g, '&#039;') + '\'>[Attendance]</button></td>' +
                         '<td class="text-center">' + row.total_attendance_days + '</td>' +
@@ -591,7 +621,9 @@
                         '<td class="text-center"><span class="gross-salary">' + displayMoney(row.gross_salary ?? row.basic_salary) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
                         '<td class="text-center pf">' + displayMoney(row.pf) + '</td>' +
                         '<td class="text-center professional-tax">' + displayMoney(row.professional_tax) + '</td>' +
-                        '<td class="text-center esi">' + displayMoney(row.esi) + '</td>' +
+                        ['esi', 'tds', 'salary_advance', 'lwf', 'penalty'].map(function (field, i) {
+                            return '<td><input type="text" inputmode="numeric" pattern="[0-9]{1,10}([.][0-9]{1,2})?" maxlength="13" class="form-control manual-deduction" aria-label="' + ['ESI', 'TDS', 'Salary Advance', 'LWF', 'Penalty'][i] + '" name="items[' + index + '][' + field + ']" value="' + Math.round(Number(row[field] || 0)) + '">' + (field === 'esi' ? '<input type="hidden" class="recalculate-esi-flag" name="items[' + index + '][recalculate_esi]" value="0">' : '') + '</td>';
+                        }).join('') +
                         '<td class="text-center total-deduction">' + displayMoney(row.total_deduction ?? row.deduction) + '<input type="hidden" class="deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
                         '<td class="text-center net-total">' + displayMoney(row.net_total ?? row.net_salary) + '</td>' +
                         '</tr>';
@@ -599,7 +631,7 @@
 
                 function reloadUsers() {
                     if (!$('#depot_id').val()) {
-                        $('#salaryRows').html('<tr><td colspan="10" class="text-center text-muted">Select a depot.</td></tr>');
+                        $('#salaryRows').html('<tr><td colspan="14" class="text-center text-muted">Select a depot.</td></tr>');
                         return;
                     }
 
@@ -613,7 +645,8 @@
                         }
                         $('#salaryRows').html(rows.length ? rows.map(function (row, index) {
                             return rowHtml(row, index);
-                        }).join('') : '<tr><td colspan="10" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
+                        }).join('') : '<tr><td colspan="14" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
+                        labelPayrollCells();
                     }).fail(function () {
                         showToast('error', 'Unable to load users.');
                     });
@@ -621,20 +654,49 @@
 
                 $(document).on('change', '.salary-filter', reloadUsers);
 
-                function recalculateRow(row) {
-                    var basic = Number(row.data('basic')) || 0;
-                    var deduction = Number(row.find('.deduction-input').val()) || 0;
-                    var incentive = Number(row.find('.incentive-input').val()) || 0;
-                    var workingDays = Number(row.data('working-days')) || 0;
-                    var unauthorized = Number(row.find('.unauthorized-leaves').val()) || 0;
-                    var lop = workingDays > 0 ? (basic / workingDays) * unauthorized : 0;
-                    var net = basic + incentive - deduction - lop;
-                    row.find('.lop-amount').text(displayMoney(lop));
-                    row.find('.net-salary').text(displayMoney(net));
+                function manualDeductionTotal(row) {
+                    var total = 0;
+                    row.find('.manual-deduction').each(function () {
+                        total += Math.round(Number(this.value) || 0);
+                    });
+                    return total;
                 }
 
-                $(document).on('input', '.unauthorized-leaves, .salary-adjustment', function () {
-                    recalculateRow($(this).closest('tr'));
+                function recalculateManualDeductions(row) {
+                    var total = roundMoney(Number(row.data('base-deduction') || 0) + manualDeductionTotal(row));
+                    row.find('.total-deduction').contents().first().replaceWith(displayMoney(total));
+                    row.find('.net-total').text(displayMoney(roundMoney(Number(row.data('total-earned') || 0) - total)));
+                }
+
+                function numericDeductionValue(value) {
+                    var parts = value.replace(/[^0-9.]/g, '').split('.');
+                    var whole = parts.shift().slice(0, 10);
+                    return parts.length ? (whole || '0') + '.' + parts.join('').slice(0, 2) : whole;
+                }
+
+                function roundDeductionInput(input) {
+                    input.value = String(Math.round(Number(numericDeductionValue(input.value)) || 0));
+                }
+
+                $(document).on('blur', '.manual-deduction', function () {
+                    roundDeductionInput(this);
+                    recalculateManualDeductions($(this).closest('tr'));
+                });
+
+                function recalculateEmployeeEsi(row) {
+                    var fixedGross = Number(row.data('basic') || 0);
+                    var earnedGross = Number(row.data('total-earned') || 0);
+                    var amount = fixedGross <= 21000 ? Math.round(earnedGross * 0.0075) : 0;
+                    row.find('input[name$="[esi]"]').val(String(amount));
+                    row.find('.recalculate-esi-flag').val('1');
+                    recalculateManualDeductions(row);
+                }
+
+                $(document).on('input', '.manual-deduction', function () {
+                    if (this.name.endsWith('[esi]')) $(this).closest('tr').find('.recalculate-esi-flag').val('0');
+                    var numericValue = numericDeductionValue(this.value);
+                    if (this.value !== numericValue) this.value = numericValue;
+                    recalculateManualDeductions($(this).closest('tr'));
                 });
 
                 $(document).on('click', '.view-split', function () {
@@ -676,7 +738,7 @@
                     var earned = calendarDays > 0 ? (baseGross / calendarDays) * Math.min(attendanceDays, calendarDays) : 0;
                     var basicVda = selected.filter(function (item) { return ['basic', 'vda'].indexOf(String(item.name || '').trim().toLowerCase()) !== -1; }).reduce(function (sum, item) { return sum + Number(item.amount || 0); }, 0);
                     var ratio = calendarDays > 0 ? Math.min(Math.max(attendanceDays, 0), calendarDays) / calendarDays : 0;
-                    var pf = roundMoney(basicVda * ratio * 0.12);
+                    var pf = Number(row.data('pf-applicable')) === 1 ? roundMoney(basicVda * ratio * 0.12) : 0;
                     var extraDays = Math.max(attendanceDays - calendarDays, 0);
                     incentive = calendarDays > 0 ? (baseGross / calendarDays) * extraDays : 0;
                     split.forEach(function (item) {
@@ -686,7 +748,6 @@
                     button.data('split', split);
                     var totalEarned = roundMoney(earned + incentive);
                     var professionalTax = totalEarned <= 15000 ? 0 : (totalEarned <= 20000 ? 150 : 200);
-                    var esi = baseGross <= 21000 ? roundMoney(baseGross * 0.0075) : 0;
                     var dailyRate = calendarDays > 0 ? baseGross / calendarDays : 0;
                     var lop = roundMoney(dailyRate * Number(row.data('unpaid-leave-days') || 0));
                     var deduction = templateDeduction * ratio + lop;
@@ -695,15 +756,15 @@
                     var attendance = attendanceButton.data('attendance') || {};
                     attendance.per_day_salary = roundMoney(dailyRate);
                     attendanceButton.data('attendance', attendance);
-                    var totalDeduction = roundMoney(deduction + pf + professionalTax + esi);
+                    var baseDeduction = roundMoney(deduction + pf + professionalTax);
+                    row.data('base-deduction', baseDeduction);
+                    row.data('total-earned', totalEarned);
                     row.data('basic', baseGross);
                     row.find('.gross-salary').text(displayMoney(totalEarned));
                     row.find('.pf').text(displayMoney(pf));
                     row.find('.professional-tax').text(displayMoney(professionalTax));
-                    row.find('.esi').text(displayMoney(esi));
-                    row.find('.total-deduction').contents().first().replaceWith(displayMoney(totalDeduction));
                     row.find('.deduction-input').val(deduction.toFixed(2));
-                    row.find('.net-total').text(displayMoney(roundMoney(totalEarned - totalDeduction)));
+                    recalculateEmployeeEsi(row);
                     $('#salarySplitModal').modal('hide');
                 });
 
@@ -732,6 +793,7 @@
 
                 $('#salaryProcessingForm').on('submit', function () {
                     var form = $(this);
+                    form.find('.manual-deduction').each(function () { roundDeductionInput(this); });
                     var itemInputs = form.find(':input[name^="items["]');
                     var items = {};
                     itemInputs.serializeArray().forEach(function (input) {
@@ -767,7 +829,7 @@
             }
 
             .salary-table-scroll {
-                overflow-x: auto;
+                overflow-x: visible;
                 width: 100%;
                 -webkit-overflow-scrolling: touch;
             }
@@ -788,7 +850,10 @@
             }
 
             .salary-floating-header .payroll-table th {
-                padding: 8px 5px;
+                min-width: 0 !important;
+                overflow-wrap: anywhere;
+                font-size: 11px;
+                padding: 8px 3px;
                 vertical-align: middle;
                 white-space: normal;
                 background: linear-gradient(135deg, #082647 0%, #1c3e64 100%);
@@ -801,7 +866,7 @@
 
             .salary-table-scroll .payroll-table {
                 font-size: 12px;
-                min-width: 1050px;
+                min-width: 0;
                 table-layout: fixed;
                 width: 100%;
             }
@@ -812,6 +877,73 @@
                 vertical-align: middle;
                 white-space: normal;
                 word-break: normal;
+            }
+
+            .salary-table-scroll .payroll-table th,
+            .salary-table-scroll .payroll-table td {
+                min-width: 0 !important;
+                overflow-wrap: anywhere;
+                padding: 8px 3px;
+            }
+
+            .salary-table-scroll .payroll-table th {
+                width: 7%;
+                font-size: 11px;
+            }
+
+            .salary-table-scroll .payroll-table th:first-child {
+                width: 3%;
+            }
+
+            .salary-table-scroll .payroll-table th:nth-child(2) {
+                width: 13%;
+            }
+
+            @media (max-width: 991.98px) {
+                .salary-floating-header { display: none !important; }
+                .salary-table-scroll .payroll-table thead { display: none; }
+                .salary-table-scroll .payroll-table,
+                .salary-table-scroll .payroll-table tbody { display: block; }
+                .salary-table-scroll .payroll-table tbody tr {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 8px;
+                    margin-bottom: 12px;
+                    padding: 12px;
+                    border: 1px solid #dee2e6;
+                    border-radius: 8px;
+                }
+                .salary-table-scroll .payroll-table tbody td {
+                    display: block;
+                    min-width: 0;
+                    border: 0;
+                    text-align: left !important;
+                }
+                .salary-table-scroll .payroll-table tbody td::before {
+                    content: attr(data-label);
+                    display: block;
+                    margin-bottom: 4px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: #64748b;
+                }
+                .salary-table-scroll .payroll-table tbody td:nth-child(2),
+                .salary-table-scroll .payroll-table tbody td[colspan] { grid-column: 1 / -1; }
+                .salary-table-scroll .payroll-table .view-split,
+                .salary-table-scroll .payroll-table .view-user-details { margin-left: 0; }
+            }
+
+            .salary-table-scroll .payroll-table .manual-deduction {
+                display: block;
+                box-sizing: border-box;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                height: 36px;
+                padding: 6px 8px;
+                font-size: 12px;
+                text-align: right;
+                border-radius: 6px;
             }
 
             .salary-table-scroll .payroll-table .unauthorized-leaves,

@@ -82,11 +82,11 @@ test('register maps ref codes snapshot attendance fixed and earned components se
         ->and(WageRegister::warnings([$row]))->toBe([])->and($item->getAttributes())->toBe($before);
 });
 
-test('employer ESI uses fixed gross with inclusive cutoff and never changes saved net', function (float $fixed, float $expected) {
+test('historical employer ESI retains fixed gross fallback and never changes saved net', function (float $fixed, float $expected) {
     [$item] = registerFixture($fixed, 33);
     $row = WageRegister::row($item, 0);
     expect($row[61])->toBe($expected)->and($row[39])->toBe(3.0)
-        ->and($row[58])->toBe((float) $item->net_total)->and($row[60])->toBe(1320.0);
+        ->and($row[58])->toBe((float) $item->net_total)->and($row[60])->toBe(880.0);
 })->with([[20000.0, 650.0], [21000.0, 682.5], [21001.0, 0.0]]);
 
 test('register respects saved calculated amounts and mapped deductions', function () {
@@ -192,3 +192,50 @@ test('screen workbook and paginated PDF use the shared register rows', function 
     }
     $book->disconnectWorksheets();
 });
+
+
+test('driver DOB populates the salary register and stays blank when absent', function () {
+    [$item, $processing] = registerFixture();
+    $item->user->setRelation('roles', collect([new Role(['name' => 'Driver'])]));
+    $item->user->setRelation('staffProfile', null);
+    $profile = new \App\Models\DriverProfile(['date_of_birth' => '1990-06-15']);
+    $profile->setRelation('location', null);
+    $profile->setRelation('designation', null);
+    $item->user->setRelation('driverProfile', $profile);
+    $row = WageRegister::row($item, 0);
+    expect($row[5])->toBe('15-06-1990');
+    $report = registerReport([$row], $processing);
+    expect(view('salary-report.partials.report-table', ['report' => $report])->render())->toContain('15-06-1990');
+    $export = new SalaryReportExport($report);
+    expect(json_encode($export->array()))->toContain('15-06-1990');
+    $profile->date_of_birth = null;
+    expect(WageRegister::row($item, 0)[5])->toBeNull();
+});
+
+
+test('salary register combines saved manual and matching template deductions once', function () {
+    [$item, $processing] = registerFixture();
+    $item->fill(['tds' => 100.25, 'salary_advance' => 200.5, 'lwf' => 10.75, 'penalty' => 40,
+        'total_deduction' => 1481.5, 'net_total' => 11851.83]);
+    $split = $item->salary_split;
+    foreach (['TDS', 'Salary Advance', 'LWF', 'Penalty'] as $name) {
+        $split[] = ['name' => $name, 'type' => 'deduction', 'amount' => 150, 'calculated_amount' => 100];
+    }
+    $item->salary_split = $split;
+    $row = WageRegister::row($item, 0);
+    expect(array_slice($row, 53, 6))->toBe([200.25, 300.5, 110.75, 140.0, 1481.5, 11851.83]);
+    $report = registerReport([$row], $processing);
+    $export = new SalaryReportExport($report);
+    expect(array_slice($export->array()[4], 53, 6))->toBe(array_slice($row, 53, 6));
+    expect(view('salary-report.partials.report-table', ['report' => $report])->render())->toContain('301', '111', '140', '1,482', '11,852');
+});
+
+
+test('reports and payslips use saved employer ESIC including explicit zero', function (mixed $saved, float $expected) {
+    [$item, $processing] = registerFixture();
+    $item->employer_esi = $saved;
+    $before = $item->getAttributes();
+    expect(WageRegister::row($item, 0)[61])->toBe($expected)
+        ->and(\App\Support\PaySlipData::build($processing, $item)['employer_esi'])->toBe($expected)
+        ->and($item->getAttributes())->toBe($before);
+})->with([[null, 650.0], [433.33, 433.33], [0, 0.0]]);

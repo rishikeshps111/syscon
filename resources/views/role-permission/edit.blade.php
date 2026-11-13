@@ -58,7 +58,7 @@
                                                         @foreach($child['permissions'] as $permission)
                                                             @php
                                                                 $inputId = $groupId . '_' . $permission->id;
-                                                                $action = str($permission->name)->afterLast('.')->headline();
+                                                                $action = str($permission->name)->endsWith('.view-salary') ? 'View Salary Structure' : str($permission->name)->afterLast('.')->headline();
                                                             @endphp
                                                             <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-2">
                                                                 <label for="{{ $inputId }}" class="mb-0">

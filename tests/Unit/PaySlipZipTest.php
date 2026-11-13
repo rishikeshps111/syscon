@@ -92,7 +92,9 @@ test('zip includes each employee once with unique names and deletes after sendin
         $pdf = $archive->getFromIndex($index);
         expect($pdf)->toStartWith('%PDF')->toContain('10,000')->toContain('9,000');
         $individual = $this->get(route('salary-slips.pdf', $this->filters + ['user_id' => $index + 2]))->assertOk();
-        expect($pdf)->toBe($individual->getContent());
+        // Dompdf assigns a fresh document ID to each rendering; compare all content excluding that metadata.
+        $normalizePdf = fn ($content) => preg_replace(['/\/ID\s*\[.*?\]/s', '/\/(CreationDate|ModDate)\s*\(.*?\)/s'], '', $content);
+        expect($normalizePdf($pdf))->toBe($normalizePdf($individual->getContent()));
     }
     $archive->close();
     ob_start();

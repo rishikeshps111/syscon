@@ -103,7 +103,10 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     public function edit(SalaryProcessing $salaryProcessing)
     {
         $salaryProcessing->load(['items.user', 'items.salaryProcessing.attendanceImport', 'depot', 'attendanceImport']);
-        $rows = $salaryProcessing->items->map(fn ($item) => $this->storedRow($item))->values();
+        $rows = $salaryProcessing->items
+            ->map(fn ($item) => $this->storedRow($item))
+            ->sortBy('name', SORT_STRING | SORT_FLAG_CASE)
+            ->values();
 
         return view('salary-processing.form', $this->commonData() + [
             'record' => $salaryProcessing,
@@ -216,6 +219,12 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'remarks' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.user_id' => ['required', 'integer', 'exists:users,id'],
+            'items.*.recalculate_esi' => ['nullable', 'boolean'],
+            'items.*.esi' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
+            'items.*.tds' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
+            'items.*.salary_advance' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
+            'items.*.lwf' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
+            'items.*.penalty' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
             'items.*.deduction' => ['nullable', 'numeric', 'min:0'],
             'items.*.incentive' => ['nullable', 'numeric', 'min:0'],
             'items.*.unauthorized_leaves' => ['nullable', 'numeric', 'min:0'],
@@ -254,6 +263,18 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 $row['salary_split'] = $savedSplit;
             }
 
+            foreach (['tds', 'salary_advance', 'lwf', 'penalty'] as $field) {
+                $row[$field] = (float) ($item[$field] ?? 0);
+            }
+
+            if (! empty($item['recalculate_esi'])) {
+                unset($row['esi_override']);
+            } elseif (array_key_exists('esi', $item)) {
+                $row['esi_override'] = (float) ($item['esi'] ?? 0);
+            } elseif ($savedItems->has($userId)) {
+                $row['esi_override'] = (float) ($savedItems->get($userId)->esi ?? 0);
+            }
+
             $unauthorizedLeaves = (float) ($item['unauthorized_leaves'] ?? 0);
             $row = $this->applySelectedComponents($row, $item['selected_components'] ?? []);
             $calculated = $this->applyUnauthorizedLeave($row, $unauthorizedLeaves);
@@ -287,6 +308,11 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                     'pf',
                     'professional_tax',
                     'esi',
+                    'employer_esi',
+                    'tds',
+                    'salary_advance',
+                    'lwf',
+                    'penalty',
                     'total_deduction',
                     'net_total',
                     'salary_split',
@@ -364,6 +390,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'user_id' => $user->id,
                 'name' => $user->name,
                 'role_name' => $roleName,
+                'pf_applicable' => filled(trim((string) $this->employeeProfile($user, $roleName)?->uan)),
                 'aadhaar_no' => $this->aadhaarNo($user, $roleName),
                 'user_details' => $this->userDetails($user, $roleName),
                 'present_days' => (float) $attendance->present_days,
@@ -588,12 +615,19 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             ->reject(fn ($component) => $this->isDutyIncentive($component))->sum('calculated_amount');
         $deduction = $split !== [] ? $templateDeduction + (float) ($row['lop'] ?? 0) : (float) ($row['deduction'] ?? 0);
         $totalEarned = round($earnedSalary + $incentive, 2);
-        $pf = round($basic * 0.12, 2);
+        $pf = ($row['pf_applicable'] ?? true) ? round($basic * 0.12, 2) : 0.0;
         $professionalTax = $totalEarned <= 15000 ? 0 : ($totalEarned <= 20000 ? 150 : 200);
-        $esi = $gross <= 21000 ? round($gross * 0.0075, 2) : 0;
-        $totalDeduction = round($deduction + $pf + $professionalTax + $esi, 2);
+        $esic = \App\Support\SalaryCalculation::esicContributions($gross, $totalEarned);
+        $esi = array_key_exists('esi_override', $row)
+            ? round((float) $row['esi_override'])
+            : $esic['esi'];
+        $manualDeductions = [];
+        foreach (['tds', 'salary_advance', 'lwf', 'penalty'] as $field) {
+            $manualDeductions[$field] = round((float) ($row[$field] ?? 0));
+        }
+        $totalDeduction = round($deduction + $pf + $professionalTax + $esi + array_sum($manualDeductions), 2);
 
-        return array_merge($row, [
+        return array_merge($row, $manualDeductions, [
             'deduction' => round($deduction, 2),
             'template_deduction' => round($templateDeduction, 2),
             'salary_day_rate' => round($salaryPerDay, 2),
@@ -606,6 +640,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'pf' => round($pf, 2),
             'professional_tax' => round($professionalTax, 2),
             'esi' => round($esi, 2),
+            'employer_esi' => $esic['employer_esi'],
             'total_deduction' => round($totalDeduction, 2),
             'net_total' => round($totalEarned - $totalDeduction, 2),
         ]);
@@ -630,7 +665,10 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             ? $this->unpaidLeaveTaken($item->user_id, $start, $start->copy()->endOfMonth())
             : 0;
 
+        $roleName = $item->user?->roles?->sortBy(fn ($role) => array_search($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true))->first()?->name ?? '';
+
         return [
+            'pf_applicable' => $item->user && filled(trim((string) $this->employeeProfile($item->user, $roleName)?->uan)),
             'user_id' => $item->user_id,
             'name' => $item->user?->name ?? '-',
             'role_name' => $item->user?->roles?->sortBy(fn ($role) => array_search($role->name, ['Driver', 'Housekeeping', 'Controller', 'Supervisor', 'Staff'], true))->first()?->name ?? '',
@@ -664,6 +702,11 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'pf' => (float) ($item->pf ?? 0),
             'professional_tax' => (float) ($item->professional_tax ?? 0),
             'esi' => (float) ($item->esi ?? 0),
+            'employer_esi' => $item->employer_esi === null ? null : (float) $item->employer_esi,
+            'tds' => (float) ($item->tds ?? 0),
+            'salary_advance' => (float) ($item->salary_advance ?? 0),
+            'lwf' => (float) ($item->lwf ?? 0),
+            'penalty' => (float) ($item->penalty ?? 0),
             'total_deduction' => (float) ($item->total_deduction ?? $item->deduction),
             'net_total' => (float) ($item->net_total ?? $item->net_salary),
             'deduction' => (float) $item->deduction,

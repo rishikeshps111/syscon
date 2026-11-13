@@ -18,6 +18,8 @@ class SaveUnifiedStaffRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $uan = $this->input('uan');
+        $this->merge(['uan' => is_string($uan) ? (trim($uan) === '' ? null : trim($uan)) : $uan]);
         $this->merge([
             'email' => $this->filled('email') ? $this->input('email') : null,
             'reporting_to' => $this->filled('reporting_to') ? $this->input('reporting_to') : null,
@@ -80,7 +82,7 @@ class SaveUnifiedStaffRequest extends FormRequest
             'aadhaar_number' => ['required', 'string', 'max:20'],
             'pan_number' => ['required', 'string', 'max:20'],
             'date_of_joining' => ['required', 'date'],
-            'uan' => ['required', 'string', 'max:50'],
+            'uan' => ['nullable', 'string', 'max:50'],
             'esic_wc' => ['required', 'string', 'max:50'],
             'country' => ['required', 'string', 'max:100'],
             'state_id' => ['required', 'integer', 'exists:states,id'],

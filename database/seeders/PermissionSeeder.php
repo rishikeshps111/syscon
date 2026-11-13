@@ -250,6 +250,7 @@ class PermissionSeeder extends Seeder
                 'staff-management.edit',
                 'staff-management.delete',
                 'staff-management.view',
+                'staff-management.view-salary',
             ],
             'Controller Management' => [
                 'controller-management.create',
@@ -268,6 +269,7 @@ class PermissionSeeder extends Seeder
                 'driver-management.edit',
                 'driver-management.delete',
                 'driver-management.view',
+                'driver-management.view-salary',
             ],
             'Housekeeping Management' => [
                 'housekeeping-management.create',
