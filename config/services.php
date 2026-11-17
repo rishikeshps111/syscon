@@ -14,6 +14,11 @@ return [
     |
     */
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'vision_model' => env('OPENAI_VISION_MODEL', 'gpt-5.6-terra'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
