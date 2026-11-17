@@ -1,4 +1,6 @@
-@section('title') Import {{ $config['label'] }} @endsection
+@php($updating = $updating ?? false)
+@php($operation = $updating ? 'Bulk Update' : 'Import')
+@section('title') {{ $operation }} {{ $config['label'] }} @endsection
 <style>
     .alert {
         font-size:14px;
@@ -7,18 +9,26 @@
 <x-app-layout>
     <section class="section dashboard section-top-padding">
         <div class="page-title">
-            <h3>Import {{ $config['label'] }}</h3>
-            <nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li><li class="breadcrumb-item"><a href="{{ route($config['index_route']) }}">{{ $config['label'] }}</a></li><li class="breadcrumb-item active">Import</li></ol></nav>
+            <h3>{{ $operation }} {{ $config['label'] }}</h3>
+            <nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li><li class="breadcrumb-item"><a href="{{ route($config['index_route']) }}">{{ $config['label'] }}</a></li><li class="breadcrumb-item active">{{ $operation }}</li></ol></nav>
         </div>
         <div class="main-table-container">
             <div class="mb-4 import-desc-top">
                 <p>Upload an Excel file containing the fields listed below. Relationship columns use names, never database IDs. Names must exactly identify an existing record.</p>
-                <p class="mb-0"><strong>Dates:</strong> {{ in_array($module, ['staff', 'drivers'], true) ? 'dd-mm-yyyy' : 'YYYY-MM-DD' }} &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
+                <p class="mb-0"><strong>Dates:</strong> {{ $updating || in_array($module, ['staff', 'drivers'], true) ? 'dd-mm-yyyy' : 'YYYY-MM-DD' }} &nbsp; <strong>Boolean values:</strong> yes/no, true/false, active/inactive, or 1/0.</p>
             </div>
             @if ($errors->any())<div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
-            <form class="{{ in_array($module, ['drivers', 'staff'], true) ? 'js-chunk-import' : 'js-loading-form' }}" method="POST" action="{{ route('bulk-import.store', $module) }}" enctype="multipart/form-data">
+            <form class="{{ $updating || in_array($module, ['drivers', 'staff'], true) ? 'js-chunk-import' : 'js-loading-form' }}" data-bulk-update="{{ $updating ? '1' : '0' }}" method="POST" action="{{ route($updating ? 'bulk-update.store' : 'bulk-import.store', $module) }}" enctype="multipart/form-data">
                 @csrf
-                @if (in_array($module, ['drivers', 'staff'], true))
+                @if ($updating)
+                    <div class="alert alert-info mb-3">
+                        Download the sample with existing employees' <strong>Ref Code and Name</strong>. Fill only the values you want to change.
+                        Only Ref Code is required; unused columns and rows may be removed. Blank cells keep existing values, including UAN.
+                        A populated Name cell updates the employee name. Employees without a Ref Code must have one assigned individually first.
+                        Roles, login credentials, salary and documents cannot be changed here. No employees are created.
+                        Keep this page open until completion. The complete file is validated before saving in batches of 25; completed batches remain saved if a later batch fails.
+                    </div>
+                @elseif (in_array($module, ['drivers', 'staff'], true))
                     <div class="alert alert-info mb-3">
                         Matching <strong>ref_code</strong> updates the existing {{ $module === 'drivers' ? 'driver' : 'employee' }}. New or blank ref codes create records.
                         Ref codes must not repeat in the file. Required fields must still be supplied.
@@ -35,12 +45,12 @@
                     <div class="js-import-counts mt-2"></div>
                 </div>
                 <div class="alert alert-danger d-none js-import-errors" role="alert"></div>
-                @if ($module === 'staff')
+                @if (! $updating && $module === 'staff')
                     <div class="alert alert-info mb-3">
                         Imported Staff accounts use <strong>Syscon@123</strong> as the default login password. Imported Controller and Supervisor accounts use <strong>111111</strong> as the default passcode.
                     </div>
                 @endif
-                @if (in_array($module, ['staff', 'drivers'], true))
+                @if (! $updating && in_array($module, ['staff', 'drivers'], true))
                     <div class="alert alert-warning mb-3">
                         <strong>Salary template warning:</strong>
                         @if ($module === 'staff')
@@ -51,15 +61,35 @@
                     </div>
                 @endif
                 <div class="o-f-inp file-input mb-3"><label for="csv_file">Excel file</label><input class="form-control shadow-none @error('csv_file') is-invalid @enderror" type="file" id="csv_file" name="csv_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required></div>
-                <div class="d-flex gap-2"><button class="btn-imp-sb  js-loading-submit" type="submit" data-loading-text="Loading..."><span class="js-submit-label">Import</span></button><a class="btn-imp-cancel" href="{{ route($config['index_route']) }}">Cancel</a></div>
+                <div class="d-flex gap-2"><button class="btn-imp-sb  js-loading-submit" type="submit" data-loading-text="Loading..."><span class="js-submit-label">{{ $operation }}</span></button><a class="btn-imp-cancel" href="{{ route($config['index_route']) }}">Cancel</a></div>
             </form>
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 btns-group-container" style="justify-content:space-between !important;">
-                    <h5 class="mb-0">Import Instructions</h5>
-                    <a href="{{ route('bulk-import.sample', $module) }}" class="exp-btn">Download Sample Excel</a>
+                    <h5 class="mb-0">{{ $operation }} Instructions</h5>
+                    @unless ($updating)
+                        <a href="{{ route('bulk-import.sample', $module) }}" class="exp-btn">Download Sample Excel</a>
+                    @endunless
                 </div>
+                @if ($updating)
+                    <form method="GET" action="{{ route('bulk-update.sample', $module) }}" class="mb-4 js-update-sample">
+                        <div class="o-f-inp mb-3">
+                            <label for="sample_scope">Employees to include</label>
+                            <select id="sample_scope" name="sample_scope" class="form-select shadow-none">
+                                <option value="all">All employees</option>
+                                <option value="selected">Choose employees</option>
+                            </select>
+                        </div>
+                        <div class="o-f-inp mb-3 js-update-user-picker" hidden>
+                            <label for="sample_user_ids">Search by name, employee code or Ref Code</label>
+                            <select id="sample_user_ids" name="user_ids[]" class="form-select shadow-none" multiple disabled data-search-url="{{ route('bulk-update.users', $module) }}" style="width:100%"></select>
+                            <div class="text-danger js-update-selection-error" role="alert" hidden>Choose at least one employee.</div>
+                            <small class="text-muted">Choose one or more employees. Switch to All employees to include everyone you can edit in this module.</small>
+                        </div>
+                        <button type="submit" class="exp-btn">Download Update Sample</button>
+                    </form>
+                @endif
               <div class="instrction-odr">
-                    <p class="mb-2">Use these columns in this exact order:</p>
+                    <p class="mb-2">{{ $updating ? 'Keep Ref Code and any columns you want to update, in any order:' : 'Use these columns in this exact order:' }}</p>
                 <code class="d-block mb-3">{{ implode(', ', $config['sample_headers'] ?? $config['headers']) }}</code>
               </div>
                 <div class="table-over mb-3">
@@ -78,15 +108,19 @@
                 </div>
                 <p style="font-size:13px; color:red; margin-top:10px; margin-bottom:0;">The complete file is validated before any record is saved. If validation fails, nothing is imported.</p>
             </div>
-            @if (in_array($module, ['drivers', 'controllers', 'supervisors', 'staff', 'housekeeping'], true))<div class="alert alert-info mb-0">Salary structure is intentionally excluded. New profiles start with zero/default salary values. @if (in_array($module, ['drivers', 'staff'], true))Existing records retain their salary values.@endif</div>@endif
+            @if (! $updating && in_array($module, ['drivers', 'controllers', 'supervisors', 'staff', 'housekeeping'], true))<div class="alert alert-info mb-0">Salary structure is intentionally excluded. New profiles start with zero/default salary values. @if (in_array($module, ['drivers', 'staff'], true))Existing records retain their salary values.@endif</div>@endif
         </div>
     </section>
     @section('scripts')
+        @if ($updating)
+            <script src="{{ asset('assets/js/bulk-update-sample.js') }}"></script>
+        @endif
         <script>
             $(function () {
                 $('.js-chunk-import').on('submit', async function (event) {
                     event.preventDefault();
                     const form = this;
+                    const updating = (form.dataset || {}).bulkUpdate === '1';
                     const button = $(form).find('button[type="submit"]');
                     if (button.prop('disabled')) return;
                     const progress = $(form).find('.js-import-progress');
@@ -95,13 +129,13 @@
                     const counts = progress.find('.js-import-counts');
                     const errors = $(form).find('.js-import-errors').empty().addClass('d-none');
                     const originalButton = button.html();
-                    button.prop('disabled', true).attr('aria-busy', 'true').html('<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span><span>Importing&hellip;</span>');
+                    button.prop('disabled', true).attr('aria-busy', 'true').html('<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span><span>' + (updating ? 'Updating' : 'Importing') + '&hellip;</span>');
                     $(form).attr('aria-busy', 'true');
                     progress.removeClass('d-none');
                     status.text('Reading file...');
                     counts.empty();
                     bar.addClass('progress-bar-animated').css('width', '0%').attr('aria-valuenow', 0).attr('aria-valuetext', 'Reading file');
-                    let phase = 'prepare', offset = 0, token = null, saved = 0, created = 0, updated = 0;
+                    let phase = 'prepare', offset = 0, token = null, saved = 0, created = 0, updated = 0, unchanged = 0;
                     try {
                         while (true) {
                             const body = phase === 'prepare' ? new FormData(form) : new FormData();
@@ -118,11 +152,12 @@
                             saved = result.saved;
                             created = result.created;
                             updated = result.updated;
+                            unchanged = result.unchanged || 0;
                             const percent = result.total > 0 ? Math.round((result.validated + saved) / (2 * result.total) * 100) : 0;
                             const label = result.phase === 'done' ? result.message : `${result.phase === 'validate' ? 'Validating' : 'Saving'} ${result.processed} / ${result.total} rows`;
                             status.text(label);
                             bar.css('width', `${percent}%`).attr('aria-valuenow', percent).attr('aria-valuetext', label);
-                            counts.text(`${created} rows created, ${updated} rows updated`);
+                            counts.text(updating ? `${updated} rows updated, ${unchanged} rows unchanged` : `${created} rows created, ${updated} rows updated`);
                             if (result.phase === 'done') {
                                 phase = 'done';
                                 window.location.assign(result.redirect);
@@ -133,7 +168,8 @@
                             offset = result.processed;
                         }
                     } catch (error) {
-                        errors.removeClass('d-none').css('white-space', 'pre-wrap').text(error.message + (phase === 'save' || phase === 'done' ? `\n${saved} rows were confirmed saved: ${created} created, ${updated} updated. The last batch may also have completed if the connection was lost. Review records before uploading again.` : '\nNo records were saved.'));
+                        const summary = updating ? `${updated} updated, ${unchanged} unchanged` : `${created} created, ${updated} updated`;
+                        errors.removeClass('d-none').css('white-space', 'pre-wrap').text(error.message + (phase === 'save' || phase === 'done' ? `\n${saved} rows were confirmed saved: ${summary}. The last batch may also have completed if the connection was lost. Review records before uploading again.` : '\nNo records were saved.'));
                         status.text(phase === 'done' ? 'Import completed. Open the listing to view your records.' : 'Import stopped.');
                         bar.removeClass('progress-bar-animated');
                         $(form).removeAttr('aria-busy');

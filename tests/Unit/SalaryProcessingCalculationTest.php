@@ -35,6 +35,20 @@ function salaryProcessingPrivateMethod(string $methodName): ReflectionMethod
     return $method;
 }
 
+test('fractional shift examples retain proportional earnings and extra duty', function (float $shifts, float $earned, float $extra, float $incentive, float $pf, float $net) {
+    $row = salaryProcessingPrivateMethod('calculatePayrollTotals')->invoke(new SalaryProcessingController, [
+        'basic_salary' => 30000, 'calendar_days' => 30, 'total_attendance_days' => $shifts,
+        'salary_split' => [
+            ['name' => 'Basic', 'type' => 'earning', 'amount' => 10000, 'selected' => true],
+            ['name' => 'Allowance', 'type' => 'earning', 'amount' => 20000, 'selected' => true],
+        ],
+    ]);
+    expect($row['total_earned'])->toBe($earned)->and($row['extra_days_worked'])->toEqual($extra)
+        ->and($row['extra_duty_incentive'])->toBe($incentive)->and($row['pf'])->toBe($pf)
+        ->and($row['net_total'])->toBe($net)->and($row['esi'])->toBe(0.0)->and($row['employer_esi'])->toBe(0.0);
+})->with([[31.5, 31500.0, 1.5, 1500.0, 1200.0, 30100.0], [26.25, 26250.0, 0.0, 0.0, 1050.0, 25000.0],
+    [33.75, 33750.0, 3.75, 3750.0, 1200.0, 32350.0], [30.0, 30000.0, 0.0, 0.0, 1200.0, 28600.0]]);
+
 test('salary processing net salary includes attendance earnings and deductions', function () {
     $controller = new SalaryProcessingController();
     $method = salaryProcessingPrivateMethod('applyUnauthorizedLeave');

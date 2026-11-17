@@ -93,6 +93,9 @@
                         <div class="btns-group-container">
                             <a class="filter-btnss" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
+                            @canany(['staff-management.edit', 'housekeeping-management.edit', 'controller-management.edit', 'supervisor-management.edit'])
+                                <a href="{{ route('bulk-update.form', 'staff') }}" class="imp-btn">Bulk Update</a>
+                            @endcanany
                             @can('staff-management.create')
                                 <a href="{{ route('bulk-import.form', 'staff') }}" class="imp-btn">Import Staff</a>
                                 <a href="{{ route('staff-management.create') }}" class="add-btn m-0">Add New Staff</a>

@@ -76,7 +76,7 @@ test('payment method remains required with compact salary items', function () {
 
 
 test('manual deductions survive form arrays and compact JSON payloads', function (bool $compact) {
-    $items = [['user_id' => 1, 'recalculate_esi' => '1', 'esi' => '78.90', 'tds' => '123.45', 'salary_advance' => '200', 'lwf' => '0', 'penalty' => null]];
+    $items = [['user_id' => 1, 'recalculate_esi' => '1', 'recalculate_employer_esi' => '1', 'employer_esi' => '123.45', 'esi' => '78.90', 'tds' => '123.45', 'salary_advance' => '200', 'lwf' => '0', 'penalty' => null]];
     $input = $compact ? ['items_json' => json_encode($items)] : ['items' => $items];
     expect(validateSalaryPayload(salaryPayloadRequest($input))['items'])->toBe($items);
 })->with([false, true]);
@@ -88,14 +88,14 @@ test('manual deduction validation rejects invalid monetary values', function (st
     } catch (ValidationException $exception) {
         expect($exception->errors())->toHaveKey('items.0.'.$field);
     }
-})->with(['esi', 'tds', 'salary_advance', 'lwf', 'penalty'])->with([-1, 'invalid', '1.234', '10000000000']);
+})->with(['esi', 'employer_esi', 'tds', 'salary_advance', 'lwf', 'penalty'])->with([-1, 'invalid', '1.234', '10000000000']);
 
 
-test('ESI recalculation flag rejects invalid values', function (mixed $value) {
+test('ESI recalculation flags reject invalid values', function (string $field, mixed $value) {
     try {
-        validateSalaryPayload(salaryPayloadRequest(['items' => [['user_id' => 1, 'recalculate_esi' => $value]]]));
+        validateSalaryPayload(salaryPayloadRequest(['items' => [['user_id' => 1, $field => $value]]]));
         $this->fail('Invalid recalculation flag accepted');
     } catch (ValidationException $exception) {
-        expect($exception->errors())->toHaveKey('items.0.recalculate_esi');
+        expect($exception->errors())->toHaveKey('items.0.'.$field);
     }
-})->with(['invalid', 2]);
+})->with(['recalculate_esi', 'recalculate_employer_esi'])->with(['invalid', 2]);

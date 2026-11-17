@@ -25,6 +25,9 @@ const cases = [
     [21001, 30, 21001, 200, 0],
     [20999, 30, 20999, 200, 157],
     [20000, 0, 0, 0, 0],
+    [30000, 31.50, 31500, 200, 0],
+    [30000, 26.25, 26250, 200, 0],
+    [30000, 33.75, 33750, 200, 0],
 ];
 
 for (const [fixed, days, gross, tax, esi] of cases) {
@@ -56,9 +59,12 @@ for (const [fixed, days, gross, tax, esi] of cases) {
     };
     vm.runInNewContext(helpers + calculations, { split, row, button: { data() {} } });
     assert.equal(values['.gross-salary'], gross);
+    assert.equal(values['.extra-days-worked'], Math.max(days - 30, 0));
     assert.equal(values['.pf'], Math.round(pf));
     assert.equal(values['.professional-tax'], tax);
     assert.equal(manual[0], esi);
+    assert.equal(values['.employer-esi'], fixed <= 21000 ? Math.round(gross * 0.0325) : 0);
+    assert.equal(values['.recalculate-employer-esi-flag'], 1);
     assert.equal(values['.deduction-input'], Math.round(templateDeduction * 100) / 100);
     const deduction = Math.round((templateDeduction + pf + tax + esi + 416) * 100) / 100;
     assert.equal(values['.total-deduction'], Math.round(deduction));
@@ -89,19 +95,77 @@ assert(!source.includes('<th class="text-center">Extra Duty Incentive</th>'));
 assert(!source.includes('<th class="text-center">Total Earned</th>'));
 console.log(`Passed ${cases.length} browser calculation scenarios.`);
 
+for (const [value, expected] of [[31, '31'], [31.5, '31.50'], [26.25, '26.25'], [33.75, '33.75'], [0, '0']]) {
+    const context = { value };
+    vm.runInNewContext(helpers + 'result = displayShifts(value);', context);
+    assert.equal(context.result, expected);
+    const contextRow = { row: { user_id: 7, name: 'Employee', salary_split: [], total_attendance_days: value, extra_days_worked: value }, escapeHtml: value => String(value ?? '') };
+    const render = source.slice(source.indexOf('function rowHtml'), source.indexOf('function reloadUsers'));
+    vm.runInNewContext(helpers + render + 'result = rowHtml(row, 0);', contextRow);
+    assert(contextRow.result.includes('text-center extra-days-worked">' + expected + '</td>'));
+    assert(contextRow.result.includes('text-center">' + expected + '</td>'));
+}
+
+const attendanceStart = source.indexOf("$(document).on('click', '.view-attendance'");
+const attendanceEnd = source.indexOf("$(document).on('click', '.view-user-details'", attendanceStart);
+const attendanceState = {};
+const attendanceDocument = {};
+const attendanceButton = {};
+vm.runInNewContext(helpers + source.slice(attendanceStart, attendanceEnd), {
+    document: attendanceDocument,
+    $(target) {
+        if (target === attendanceDocument) return { on(event, selector, handler) { attendanceState.click = handler; } };
+        if (target === attendanceButton) return { data() { return { present_days: 31.5, absent_days: 0, week_off_days: 4, wo_days: 35.5, per_day_salary: 1000 }; } };
+        return { html(value) { attendanceState.html = value; }, modal(value) { attendanceState.modal = value; } };
+    }
+});
+attendanceState.click.call(attendanceButton);
+assert(attendanceState.html.includes('Present Days</span><span class="attendance-summary-value">31.50'));
+assert(attendanceState.html.includes('Absent Days</span><span class="attendance-summary-value">0</span>'));
+assert(attendanceState.html.includes('Week Off</span><span class="attendance-summary-value">4</span>'));
+assert(attendanceState.html.includes('Total Days</span><span class="attendance-summary-value">35.50'));
+assert.equal(attendanceState.modal, 'show');
+
 for (const [value, expected] of [[1.49, '1'], [1.5, '2'], [1.51, '2'], [-1.49, '-1'], [-1.5, '-2'], [-1.51, '-2'], [1234.5, '1,235']]) {
     const context = { value };
     vm.runInNewContext(helpers + 'result = displayMoney(value);', context);
     assert.equal(context.result, expected);
 }
 
-const htmlContext = { row: { user_id: 7, name: 'Employee', salary_split: [], total_earned: 1000, total_deduction: 0 }, escapeHtml: value => String(value ?? '') };
+const htmlContext = { row: { user_id: 7, name: 'Employee', salary_split: [], employer_esi: 123.45, total_earned: 1000, total_deduction: 0 }, escapeHtml: value => String(value ?? '') };
 const rowFunction = source.slice(source.indexOf('function rowHtml'), source.indexOf('function reloadUsers'));
 vm.runInNewContext(helpers + rowFunction + 'result = rowHtml(row, 0);', htmlContext);
 for (const field of ['esi', 'tds', 'salary_advance', 'lwf', 'penalty']) {
     assert(htmlContext.result.includes(`name="items[0][${field}]" value="0"`));
 }
 console.log('Passed default input rendering and live deduction edit/clear checks.');
+assert(htmlContext.result.includes('name="items[0][employer_esi]" value="123"'));
+
+const employerHandlers = {};
+const employerRow = { find(selector) {
+    assert.equal(selector, '.recalculate-employer-esi-flag');
+    return { val(value) { employerRow.flag = value; } };
+} };
+const employerContext = {
+    document: {},
+    $(target) {
+        return target === employerContext.document
+            ? { on(event, selector, handler) { employerHandlers[event] = handler; } }
+            : { closest() { return employerRow; } };
+    },
+};
+const employerStart = source.indexOf("$(document).on('input', '.employer-esi'");
+const employerEnd = source.indexOf("$(document).on('click', '.view-split'", employerStart);
+vm.runInNewContext(manualHelpers + source.slice(employerStart, employerEnd), employerContext);
+for (const [value, expected] of [['123.45', '123'], ['123.50', '124'], ['123.51', '124'], ['0', '0'], ['', '0']]) {
+    const input = { value };
+    employerRow.flag = '1';
+    employerHandlers.input.call(input);
+    employerHandlers.blur.call(input);
+    assert.equal(input.value, expected);
+    assert.equal(employerRow.flag, '0');
+}
+console.log('Passed employer ESIC whole-rupee rounding, zero, and recalculation flag reset.');
 
 for (const [value, expected] of [['150.49', '150'], ['150.50', '151'], ['150.51', '151'], ['', '0'], ['abc12.50', '13']]) {
     const context = { input: { value } };

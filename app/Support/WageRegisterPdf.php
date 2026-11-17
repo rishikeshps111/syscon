@@ -65,7 +65,7 @@ class WageRegisterPdf
                 $cells = [];
                 foreach ($columns as $index => $column) {
                     $value = $row[$column];
-                    $cells[] = $wrap(is_float($value) ? number_format($value, 0) : (string) $value, $widths[$index] - 10);
+                    $cells[] = $wrap(WageRegister::formatCell($value, $column), $widths[$index] - 10);
                 }
                 $height = max(23, max(array_map('count', $cells)) * 10 + 10);
                 if ($y + $height > $canvas->get_height() - 32) {

@@ -809,11 +809,11 @@ class BulkImportController extends Controller
         return [$rows, $errors];
     }
 
-    private function readSpreadsheet(string $path, array $expected): array
+    protected function readSpreadsheet(string $path, array $expected, bool $preserveFormatting = false): array
     {
         try {
             $reader = IOFactory::createReaderForFile($path);
-            $reader->setReadDataOnly(true);
+            $reader->setReadDataOnly(! $preserveFormatting);
             $sheet = $reader->load($path)->getActiveSheet();
         } catch (\Throwable) {
             return [[], ['Unable to read the uploaded Excel file.']];
@@ -825,8 +825,14 @@ class BulkImportController extends Controller
             $header[] = $this->normalizeHeader($sheet->getCell([$column, 1])->getValue());
         }
 
+        if (count(array_unique($header)) !== count($header) || in_array('', $header, true)) {
+            $sheet->getParent()?->disconnectWorksheets();
+            return [[], ['Column headers must be non-empty and must not repeat.']];
+        }
+
         $missing = array_diff($expected, $header);
         if ($missing) {
+            $sheet->getParent()?->disconnectWorksheets();
             return [[], ['Missing column(s): '.implode(', ', $missing).'.']];
         }
 
@@ -834,7 +840,10 @@ class BulkImportController extends Controller
         for ($row = 2; $row <= $sheet->getHighestDataRow(); $row++) {
             $values = [];
             for ($column = 1; $column <= $highestColumn; $column++) {
-                $values[] = $sheet->getCell([$column, $row])->getFormattedValue();
+                $cell = $sheet->getCell([$column, $row]);
+                $values[] = $preserveFormatting && Date::isDateTime($cell)
+                    ? $cell->getCalculatedValue()
+                    : $cell->getFormattedValue();
             }
             if (count(array_filter($values, fn ($value) => trim((string) $value) !== '')) === 0) {
                 continue;
@@ -842,6 +851,7 @@ class BulkImportController extends Controller
             $rows[] = ['line' => $row, 'data' => array_combine($header, $values)];
         }
 
+        $sheet->getParent()?->disconnectWorksheets();
         return $rows ? [$rows, []] : [[], ['Excel file does not contain any data rows.']];
     }
 
@@ -878,7 +888,7 @@ class BulkImportController extends Controller
         };
     }
 
-    private function parseImportDate(mixed $value): ?Carbon
+    protected function parseImportDate(mixed $value): ?Carbon
     {
         if (! is_scalar($value)) {
             return null;
@@ -913,7 +923,7 @@ class BulkImportController extends Controller
         return $date->format('d-m-Y') === $value ? $date : null;
     }
 
-    private function booleanValue(mixed $value): mixed
+    protected function booleanValue(mixed $value): mixed
     {
         $value = Str::lower(trim((string) $value));
 

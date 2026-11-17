@@ -199,6 +199,9 @@ class PermissionSeeder extends Seeder
             'Salary Reports' => [
                 'salary-reports.view',
             ],
+            'PF Files' => [
+                'pf-files.view',
+            ],
             'Salary Files' => [
                 'salary-files.view',
             ],

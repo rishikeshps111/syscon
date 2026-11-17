@@ -27,6 +27,7 @@ class AttendanceConsolidateWorkbook
                     foreach (['C' => 'present_days', 'D' => 'week_off_days', 'E' => 'absent_days', 'F' => 'total_days'] as $column => $field) {
                         if (isset($row[$field])) {
                             $sheet->setCellValueExplicit($column.$line, (float) $row[$field], DataType::TYPE_NUMERIC);
+                            $sheet->getStyle($column.$line)->getNumberFormat()->setFormatCode(\App\Support\ShiftQuantity::excelFormat($row[$field]));
                         }
                     }
                     $line++;
@@ -42,9 +43,6 @@ class AttendanceConsolidateWorkbook
                 $sheet->getColumnDimension('B')->setWidth(45);
                 foreach (['C', 'D', 'E', 'F'] as $column) {
                     $sheet->getColumnDimension($column)->setWidth(12);
-                }
-                if ($last >= 3) {
-                    $sheet->getStyle('C3:F'.$last)->getNumberFormat()->setFormatCode('General');
                 }
                 $sheet->getRowDimension(1)->setRowHeight(32);
                 $sheet->getRowDimension(2)->setRowHeight(30);

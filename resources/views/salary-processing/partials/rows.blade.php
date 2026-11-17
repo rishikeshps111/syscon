@@ -10,8 +10,8 @@
     <tr data-pf-applicable="{{ ($row['pf_applicable'] ?? true) ? 1 : 0 }}" data-base-deduction="{{ (float) ($row['total_deduction'] ?? $row['deduction'] ?? 0) - (float) ($row['esi'] ?? 0) - (float) ($row['tds'] ?? 0) - (float) ($row['salary_advance'] ?? 0) - (float) ($row['lwf'] ?? 0) - (float) ($row['penalty'] ?? 0) }}" data-total-earned="{{ $row['total_earned'] ?? ((float) ($row['net_total'] ?? $row['net_salary'] ?? 0) + (float) ($row['total_deduction'] ?? $row['deduction'] ?? 0)) }}" data-basic="{{ $row['basic_salary'] }}" data-lop="{{ $row['lop'] ?? 0 }}" data-deduction="{{ $row['deduction'] }}" data-working-days="{{ $row['total_working_days'] }}" data-calendar-days="{{ $row['calendar_days'] ?? 0 }}" data-total-days="{{ $row['total_attendance_days'] }}" data-unpaid-leave-days="{{ $row['unpaid_leave_days'] ?? 0 }}">
         <td class="text-center">{{ $index + 1 }}<input type="hidden" name="items[{{ $index }}][user_id]" value="{{ $row['user_id'] }}"></td>
         <td class="text-center">{{ $row['name'] }} <button type="button" class="btn btn-link p-0 view-user-details" data-details='@json($row['user_details'])'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance='@json($attendanceDetails)'>[Attendance]</button></td>
-        <td class="text-center">{{ number_format((float) $row['total_attendance_days'], 2) }}</td>
-        <td class="text-center">{{ number_format((float) ($row['extra_days_worked'] ?? 0), 2) }}</td>
+        <td class="text-center">{{ \App\Support\ShiftQuantity::format($row['total_attendance_days']) }}</td>
+        <td class="text-center extra-days-worked">{{ \App\Support\ShiftQuantity::format($row['extra_days_worked'] ?? 0) }}</td>
         <td class="text-center"><span class="gross-salary">{{ number_format((float) ($row['gross_salary'] ?? $row['basic_salary']), 0) }}</span> <button type="button" class="btn btn-link p-0 view-split" data-split='@json($row['salary_split'])'>[View Split]</button>
             @foreach ($row['salary_split'] as $component)
                 @if ($component['selected'] ?? true)<input type="hidden" class="selected-component-input" name="items[{{ $index }}][selected_components][]" value="{{ $component['id'] }}">@endif
@@ -25,10 +25,15 @@
                     <input type="hidden" class="recalculate-esi-flag" name="items[{{ $index }}][recalculate_esi]" value="0">
                 @endif
             </td>
+            @if ($field === 'esi')
+                <td><input type="text" inputmode="numeric" pattern="[0-9]{1,10}([.][0-9]{1,2})?" maxlength="13" class="form-control employer-esi" aria-label="ESIC Employer Contribution" name="items[{{ $index }}][employer_esi]" value="{{ number_format((float) ($row['employer_esi'] ?? 0), 0, '.', '') }}">
+                    <input type="hidden" class="recalculate-employer-esi-flag" name="items[{{ $index }}][recalculate_employer_esi]" value="0">
+                </td>
+            @endif
         @endforeach
         <td class="text-center total-deduction">{{ number_format((float) ($row['total_deduction'] ?? $row['deduction']), 0) }}<input type="hidden" class="deduction-input" name="items[{{ $index }}][deduction]" value="{{ number_format((float) $row['deduction'], 2, '.', '') }}"><input type="hidden" name="items[{{ $index }}][unauthorized_leaves]" value="{{ $row['unpaid_leave_days'] ?? 0 }}"></td>
         <td class="text-center net-total">{{ number_format((float) ($row['net_total'] ?? $row['net_salary']), 0) }}</td>
     </tr>
 @empty
-    <tr><td colspan="14" class="text-center text-muted">Select a depot to load consolidated attendance.</td></tr>
+    <tr><td colspan="15" class="text-center text-muted">Select a depot to load consolidated attendance.</td></tr>
 @endforelse

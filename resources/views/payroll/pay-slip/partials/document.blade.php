@@ -1,6 +1,6 @@
 @php
     $money = fn ($value) => number_format((float) $value, 0);
-    $shifts = rtrim(rtrim(number_format($slip['present_shifts'], 2, '.', ''), '0'), '.');
+    $shifts = \App\Support\ShiftQuantity::format($slip['present_shifts']);
     $earningLabels = array_keys($slip['earnings']);
     $deductionLabels = array_keys($slip['deductions']);
 @endphp

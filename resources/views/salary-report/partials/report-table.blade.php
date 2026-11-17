@@ -15,7 +15,7 @@
             </thead>
             <tbody>
                 @foreach ($report['rows'] as $row)
-                    <tr>@foreach ($row as $value)<td class="{{ is_float($value) ? 'text-end' : '' }}">{{ is_float($value) ? number_format($value, 0) : $value }}</td>@endforeach</tr>
+                    <tr>@foreach ($row as $column => $value)<td class="{{ is_float($value) ? 'text-end' : '' }}">{{ \App\Support\WageRegister::formatCell($value, $column) }}</td>@endforeach</tr>
                 @endforeach
             </tbody>
         </table>

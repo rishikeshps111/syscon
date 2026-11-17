@@ -30,10 +30,10 @@
                         $weekOffDays = (float) $row['week_off_days'];
                         $absentDays = (float) $row['absent_days'];
                     @endphp
-                    <td>{{ number_format($presentDays, 2) }}</td>
-                    <td>{{ number_format($weekOffDays, 2) }}</td>
-                    <td>{{ number_format($absentDays, 2) }}</td>
-                    <td>{{ number_format($presentDays + $weekOffDays, 2) }}</td>
+                    <td>{{ \App\Support\ShiftQuantity::format($presentDays) }}</td>
+                    <td>{{ \App\Support\ShiftQuantity::format($weekOffDays) }}</td>
+                    <td>{{ \App\Support\ShiftQuantity::format($absentDays) }}</td>
+                    <td>{{ \App\Support\ShiftQuantity::format($presentDays + $weekOffDays) }}</td>
                     @if($showReview ?? false)
                         <td>@foreach($row['warnings'] ?? [] as $warning)
                         <div class="text-warning-emphasis">{{ $warning }}</div>@endforeach

@@ -100,6 +100,9 @@
                         <div class="btn-flex">
                             <a class="add-btn bg-filter" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="false" aria-controls="filterCollapse">Filters</a>
+                            @can('controller-management.edit')
+                                <a href="{{ route('bulk-update.form', 'controllers') }}" class="add-btn">Bulk Update</a>
+                            @endcan
                             @can('controller-management.create')
                                 <a href="{{ route('bulk-import.form', 'controllers') }}" class="add-btn">Import Controllers</a>
                                 <a href="{{ route('controller-management.create') }}" class="add-btn">Add New Controller</a>

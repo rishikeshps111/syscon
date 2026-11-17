@@ -220,6 +220,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'items' => ['required', 'array', 'min:1'],
             'items.*.user_id' => ['required', 'integer', 'exists:users,id'],
             'items.*.recalculate_esi' => ['nullable', 'boolean'],
+            'items.*.recalculate_employer_esi' => ['nullable', 'boolean'],
+            'items.*.employer_esi' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
             'items.*.esi' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
             'items.*.tds' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
             'items.*.salary_advance' => ['nullable', 'numeric', 'min:0', 'max:9999999999', 'decimal:0,2'],
@@ -276,6 +278,13 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             }
 
             $unauthorizedLeaves = (float) ($item['unauthorized_leaves'] ?? 0);
+            if (! empty($item['recalculate_employer_esi'])) {
+                unset($row['employer_esi_override']);
+            } elseif (array_key_exists('employer_esi', $item)) {
+                $row['employer_esi_override'] = (float) ($item['employer_esi'] ?? 0);
+            } elseif ($savedItems->get($userId)?->employer_esi !== null) {
+                $row['employer_esi_override'] = (float) $savedItems->get($userId)->employer_esi;
+            }
             $row = $this->applySelectedComponents($row, $item['selected_components'] ?? []);
             $calculated = $this->applyUnauthorizedLeave($row, $unauthorizedLeaves);
 
@@ -383,7 +392,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 : 0;
             $totalShifts = match ($roleName) {
                 'Driver' => $this->completedDriverShifts($user, $start, $end),
-                'Housekeeping' => (int) $attendance->total_days,
+                'Housekeeping' => (float) $attendance->total_days,
                 default => 0,
             };
             $row = [
@@ -403,7 +412,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
                 'total_leave_taken' => $leaveTaken,
                 'unpaid_leave_days' => $unpaidLeaveDays,
                 'total_shifts_completed' => $totalShifts,
-                'total_working_days' => (int) $attendance->total_days,
+                'total_working_days' => (float) $attendance->total_days,
                 'basic_salary' => $grossSalary,
                 'deduction' => $componentDeduction,
                 'template_deduction' => $componentDeduction,
@@ -640,7 +649,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'pf' => round($pf, 2),
             'professional_tax' => round($professionalTax, 2),
             'esi' => round($esi, 2),
-            'employer_esi' => $esic['employer_esi'],
+            'employer_esi' => round(array_key_exists('employer_esi_override', $row)
+                ? (float) $row['employer_esi_override']
+                : $esic['employer_esi']),
             'total_deduction' => round($totalDeduction, 2),
             'net_total' => round($totalEarned - $totalDeduction, 2),
         ]);
@@ -688,8 +699,8 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'template_deduction' => (float) ($item->template_deduction ?? 0),
             'lop_deduction' => (float) ($item->lop_deduction ?? 0),
             'unpaid_leave_days' => $unpaidLeaveDays,
-            'total_shifts_completed' => $item->total_shifts_completed,
-            'total_working_days' => $item->total_working_days,
+            'total_shifts_completed' => (float) $item->total_shifts_completed,
+            'total_working_days' => (float) $item->total_working_days,
             'lop' => (float) $item->lop,
             'basic_salary' => (float) $item->basic_salary,
             'gross_salary' => round(
@@ -702,7 +713,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'pf' => (float) ($item->pf ?? 0),
             'professional_tax' => (float) ($item->professional_tax ?? 0),
             'esi' => (float) ($item->esi ?? 0),
-            'employer_esi' => $item->employer_esi === null ? null : (float) $item->employer_esi,
+            'employer_esi' => $item->employer_esi === null
+                ? \App\Support\SalaryCalculation::esicContributions((float) $item->basic_salary, (float) $item->total_earned)['employer_esi']
+                : (float) $item->employer_esi,
             'tds' => (float) ($item->tds ?? 0),
             'salary_advance' => (float) ($item->salary_advance ?? 0),
             'lwf' => (float) ($item->lwf ?? 0),

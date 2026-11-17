@@ -274,6 +274,9 @@ div:where(.swal2-container) button:where(.swal2-styled){
                         <div class="btns-group-container">
                             <a class="filter-btnss" data-bs-toggle="collapse" href="#filterCollapse" role="button"
                                 aria-expanded="true" aria-controls="filterCollapse">Filters</a>
+                            @can('driver-management.edit')
+                                <a href="{{ route('bulk-update.form', 'drivers') }}" class="imp-btn">Bulk Update</a>
+                            @endcan
                             @can('driver-management.create')
                                 <a href="{{ route('bulk-import.form', 'drivers') }}" class="imp-btn">Import Drivers</a>
                                 <a href="{{ route('driver-management.create') }}" class="add-btn m-0">Add New Driver</a>

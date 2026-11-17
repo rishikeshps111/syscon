@@ -8,13 +8,13 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../../resources/views/bulk-import/form.blade.php'), 'utf8')
     .match(/<script>([\s\S]*?)<\/script>/)[1];
 
-function harness(responses) {
+function harness(responses, updating = false) {
     const nodes = new Map();
     let submit;
     let requestCount = 0;
     let redirect;
     const snapshots = [];
-    const form = { action: '/bulk-import/drivers', querySelector: () => ({ value: 'csrf' }) };
+    const form = { action: updating ? '/bulk-update/drivers' : '/bulk-import/drivers', dataset: { bulkUpdate: updating ? '1' : '0' }, querySelector: () => ({ value: 'csrf' }) };
     function node(key) {
         if (nodes.has(key)) return nodes.get(key);
         const state = { html: key === 'button[type="submit"]' ? '<span>Import</span>' : '', text: '', props: {}, attrs: {}, styles: {}, classes: new Set() };
@@ -45,7 +45,7 @@ function harness(responses) {
         fetch: async () => {
             assert.equal(node('button[type="submit"]').state.props.disabled, true);
             assert.match(node('button[type="submit"]').state.html, /spinner-border/);
-            assert.match(node('button[type="submit"]').state.html, /Importing/);
+            assert.match(node('button[type="submit"]').state.html, updating ? /Updating/ : /Importing/);
             assert.equal(node('form').state.attrs['aria-busy'], 'true');
             snapshots.push(node('.js-import-status').state.text);
             const index = requestCount++;
@@ -110,4 +110,27 @@ test('reading failure restores button before any rows are saved', async () => {
     await ui.run();
     assert.equal(ui.node('button[type="submit"]').state.props.disabled, false);
     assert.match(ui.node('.js-import-errors').state.text, /Upload failed\nNo records were saved/);
+});
+
+test('bulk update reports updated and unchanged rows through completion', async () => {
+    const ui = harness([prepared, validated,
+        { ...saved, created: 0, updated: 20, unchanged: 5 },
+        { ...saved, phase: 'done', processed: 26, saved: 26, created: 0, updated: 21, unchanged: 5,
+            message: 'Bulk update completed: 21 rows updated, 5 rows unchanged.', redirect: '/drivers' },
+    ], true);
+    await ui.run();
+    assert.equal(ui.requestCount, 4);
+    assert.equal(ui.redirect, '/drivers');
+    assert.equal(ui.node('.js-import-counts').state.text, '21 rows updated, 5 rows unchanged');
+    assert.equal(ui.node('.js-import-bar').state.attrs['aria-valuenow'], 100);
+    assert.equal(ui.node('button[type="submit"]').state.props.disabled, true);
+});
+
+test('bulk update failure reports confirmed partial completion and allows retry', async () => {
+    const ui = harness([prepared, validated, { ...saved, created: 0, updated: 20, unchanged: 5 }, new Error('Connection lost')], true);
+    await ui.run();
+    assert.match(ui.node('.js-import-errors').state.text, /25 rows were confirmed saved: 20 updated, 5 unchanged/);
+    assert.equal(ui.node('.js-import-counts').state.text, '20 rows updated, 5 rows unchanged');
+    assert.equal(ui.node('button[type="submit"]').state.props.disabled, false);
+    assert.equal(ui.redirect, undefined);
 });

@@ -8,6 +8,20 @@ use Carbon\Carbon;
 /** One A:BK schema shared by the screen, workbook and PDF. Null means unavailable. */
 class WageRegister
 {
+    public const QUANTITY_COLUMNS = [32, 33, 34, 35, 36, 37, 38, 39];
+
+    public static function formatCell(mixed $value, int $column): string
+    {
+        if ($value === null) {
+            return '';
+        }
+        if (in_array($column, self::QUANTITY_COLUMNS, true) && is_numeric($value)) {
+            return ShiftQuantity::format($value);
+        }
+
+        return is_float($value) ? number_format($value, 0) : (string) $value;
+    }
+
     public const GROUPS = [
         [0, 20, 'EMPLOYEE DATA', '92D050'], [20, 1, '', 'FFFFFF'],
         [21, 10, 'FIXED SALARY', 'BDD7EE'], [31, 1, '', 'FFFFFF'],

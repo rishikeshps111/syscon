@@ -415,6 +415,7 @@
                                 <th class="text-center">PF</th>
                                 <th class="text-center">Professional Tax</th>
                                 <th class="text-center">ESI</th>
+                                <th class="text-center">ESIC Employer Contribution</th>
                                 <th class="text-center">TDS</th>
                                 <th class="text-center">Salary Advance</th>
                                 <th class="text-center">LWF</th>
@@ -574,6 +575,14 @@
                     return rounded.toLocaleString('en-US', { maximumFractionDigits: 0 });
                 }
 
+                function displayShifts(value) {
+                    var quantity = roundMoney(Number(value) || 0);
+                    return quantity.toLocaleString('en-US', {
+                        minimumFractionDigits: Number.isInteger(quantity) ? 0 : 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+
                 function escapeHtml(value) {
                     return $('<div>').text(value == null ? '' : value).html();
                 }
@@ -616,13 +625,13 @@
                     return '<tr data-pf-applicable="' + ((row.pf_applicable === false || row.pf_applicable === 0) ? 0 : 1) + '" data-base-deduction="' + (Number(row.total_deduction ?? row.deduction ?? 0) - ['esi', 'tds', 'salary_advance', 'lwf', 'penalty'].reduce(function (sum, field) { return sum + Number(row[field] || 0); }, 0)) + '" data-total-earned="' + Number(row.total_earned ?? (Number(row.net_total ?? row.net_salary ?? 0) + Number(row.total_deduction ?? row.deduction ?? 0))) + '" data-basic="' + row.basic_salary + '" data-lop="' + Number(row.lop || 0) + '" data-deduction="' + row.deduction + '" data-incentive="' + row.incentive + '" data-working-days="' + row.total_working_days + '" data-calendar-days="' + row.calendar_days + '" data-total-days="' + row.total_attendance_days + '" data-unpaid-leave-days="' + Number(row.unpaid_leave_days || 0) + '">' +
                         '<td class="text-center">' + (index + 1) + '<input type="hidden" name="items[' + index + '][user_id]" value="' + row.user_id + '"></td>' +
                         '<td class="text-center">' + escapeHtml(row.name) + ' <button type="button" class="btn btn-link p-0 view-user-details" data-details=\'' + details + '\'>[Details]</button> <button type="button" class="btn btn-link p-0 view-attendance attendance-details-btn" data-attendance=\'' + JSON.stringify({ present_days: row.present_days, wo_days: row.total_attendance_days, absent_days: row.absent_days, week_off_days: row.week_off_days, per_day_salary: row.salary_day_rate }).replace(/'/g, '&#039;') + '\'>[Attendance]</button></td>' +
-                        '<td class="text-center">' + row.total_attendance_days + '</td>' +
-                        '<td class="text-center extra-days-worked">' + Number(row.extra_days_worked || 0).toFixed(2) + '</td>' +
+                        '<td class="text-center">' + displayShifts(row.total_attendance_days) + '</td>' +
+                        '<td class="text-center extra-days-worked">' + displayShifts(row.extra_days_worked || 0) + '</td>' +
                         '<td class="text-center"><span class="gross-salary">' + displayMoney(row.gross_salary ?? row.basic_salary) + '</span> <button type="button" class="btn btn-link p-0 view-split" data-split=\'' + split + '\'>[View Split]</button>' + selectedInputs + '</td>' +
                         '<td class="text-center pf">' + displayMoney(row.pf) + '</td>' +
                         '<td class="text-center professional-tax">' + displayMoney(row.professional_tax) + '</td>' +
                         ['esi', 'tds', 'salary_advance', 'lwf', 'penalty'].map(function (field, i) {
-                            return '<td><input type="text" inputmode="numeric" pattern="[0-9]{1,10}([.][0-9]{1,2})?" maxlength="13" class="form-control manual-deduction" aria-label="' + ['ESI', 'TDS', 'Salary Advance', 'LWF', 'Penalty'][i] + '" name="items[' + index + '][' + field + ']" value="' + Math.round(Number(row[field] || 0)) + '">' + (field === 'esi' ? '<input type="hidden" class="recalculate-esi-flag" name="items[' + index + '][recalculate_esi]" value="0">' : '') + '</td>';
+                            return '<td><input type="text" inputmode="numeric" pattern="[0-9]{1,10}([.][0-9]{1,2})?" maxlength="13" class="form-control manual-deduction" aria-label="' + ['ESI', 'TDS', 'Salary Advance', 'LWF', 'Penalty'][i] + '" name="items[' + index + '][' + field + ']" value="' + Math.round(Number(row[field] || 0)) + '">' + (field === 'esi' ? '<input type="hidden" class="recalculate-esi-flag" name="items[' + index + '][recalculate_esi]" value="0">' : '') + '</td>' + (field === 'esi' ? '<td><input type="text" inputmode="numeric" pattern="[0-9]{1,10}([.][0-9]{1,2})?" maxlength="13" class="form-control employer-esi" aria-label="ESIC Employer Contribution" name="items[' + index + '][employer_esi]" value="' + Math.round(Number(row.employer_esi || 0)) + '"><input type="hidden" class="recalculate-employer-esi-flag" name="items[' + index + '][recalculate_employer_esi]" value="0"></td>' : '');
                         }).join('') +
                         '<td class="text-center total-deduction">' + displayMoney(row.total_deduction ?? row.deduction) + '<input type="hidden" class="deduction-input" name="items[' + index + '][deduction]" value="' + Number(row.deduction || 0).toFixed(2) + '"><input type="hidden" name="items[' + index + '][unauthorized_leaves]" value="' + Number(row.unpaid_leave_days || 0) + '"></td>' +
                         '<td class="text-center net-total">' + displayMoney(row.net_total ?? row.net_salary) + '</td>' +
@@ -631,7 +640,7 @@
 
                 function reloadUsers() {
                     if (!$('#depot_id').val()) {
-                        $('#salaryRows').html('<tr><td colspan="14" class="text-center text-muted">Select a depot.</td></tr>');
+                        $('#salaryRows').html('<tr><td colspan="15" class="text-center text-muted">Select a depot.</td></tr>');
                         return;
                     }
 
@@ -645,7 +654,7 @@
                         }
                         $('#salaryRows').html(rows.length ? rows.map(function (row, index) {
                             return rowHtml(row, index);
-                        }).join('') : '<tr><td colspan="14" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
+                        }).join('') : '<tr><td colspan="15" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
                         labelPayrollCells();
                     }).fail(function () {
                         showToast('error', 'Unable to load users.');
@@ -689,6 +698,8 @@
                     var amount = fixedGross <= 21000 ? Math.round(earnedGross * 0.0075) : 0;
                     row.find('input[name$="[esi]"]').val(String(amount));
                     row.find('.recalculate-esi-flag').val('1');
+                    row.find('.employer-esi').val(String(fixedGross <= 21000 ? Math.round(earnedGross * 0.0325) : 0));
+                    row.find('.recalculate-employer-esi-flag').val('1');
                     recalculateManualDeductions(row);
                 }
 
@@ -697,6 +708,16 @@
                     var numericValue = numericDeductionValue(this.value);
                     if (this.value !== numericValue) this.value = numericValue;
                     recalculateManualDeductions($(this).closest('tr'));
+                });
+
+                $(document).on('input', '.employer-esi', function () {
+                    $(this).closest('tr').find('.recalculate-employer-esi-flag').val('0');
+                    var numericValue = numericDeductionValue(this.value);
+                    if (this.value !== numericValue) this.value = numericValue;
+                });
+
+                $(document).on('blur', '.employer-esi', function () {
+                    roundDeductionInput(this);
                 });
 
                 $(document).on('click', '.view-split', function () {
@@ -761,6 +782,7 @@
                     row.data('total-earned', totalEarned);
                     row.data('basic', baseGross);
                     row.find('.gross-salary').text(displayMoney(totalEarned));
+                    row.find('.extra-days-worked').text(displayShifts(extraDays));
                     row.find('.pf').text(displayMoney(pf));
                     row.find('.professional-tax').text(displayMoney(professionalTax));
                     row.find('.deduction-input').val(deduction.toFixed(2));
@@ -772,7 +794,7 @@
                     var data = $(this).data('attendance') || {};
                     var labels = { present_days: 'Present Days', absent_days: 'Absent Days', week_off_days: 'Week Off', wo_days: 'Total Days', per_day_salary: 'Salary Per Day' };
                     var html = '<div class="attendance-summary">' + Object.keys(labels).map(function (key) {
-                        var value = key === 'per_day_salary' ? '₹' + displayMoney(data[key]) : Number(data[key] || 0).toFixed(2);
+                        var value = key === 'per_day_salary' ? '₹' + displayMoney(data[key]) : displayShifts(data[key]);
                         return '<div class="attendance-summary-item"><span class="attendance-summary-label">' + labels[key] + '</span><span class="attendance-summary-value">' + value + '</span></div>';
                     }).join('') + '</div>';
                     $('#attendanceInfoContent').html(html);

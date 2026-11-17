@@ -33,7 +33,7 @@ test('payslip preview and PDF use earned gross ESIC saved by payroll', function 
     $before = $item->getAttributes();
     $slip = \App\Support\PaySlipData::build($processing, $item);
     expect($slip['employer_pf'])->toBe($row['pf'])
-        ->and($slip['employer_esi'])->toBe($fixed <= 21000 ? round($row['total_earned'] * .0325, 2) : 0.0);
+        ->and($slip['employer_esi'])->toBe($fixed <= 21000 ? round($row['total_earned'] * .0325) : 0.0);
     $html = view('payroll.pay-slip.partials.preview', ['processing' => $processing, 'item' => $item, 'monthName' => 'September'])->render();
     $pdf = (new ReflectionMethod(GeneratePaySlipController::class, 'buildPdf'))->invoke(new GeneratePaySlipController(), $processing, $item);
     foreach ([$esi, $row['total_deduction'], $row['net_total']] as $amount) {

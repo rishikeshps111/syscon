@@ -81,6 +81,12 @@ class SalaryReportExport extends DefaultValueBinder implements FromArray, WithSt
         $sheet->getStyle("A3:BK{$last}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         if ($last >= 5) {
             $sheet->getStyle("V5:BJ{$last}")->getNumberFormat()->setFormatCode('#,##0');
+            foreach ($this->report['rows'] as $index => $row) {
+                foreach (WageRegister::QUANTITY_COLUMNS as $column) {
+                    $cell = Coordinate::stringFromColumnIndex($column + 1).($index + 5);
+                    $sheet->getStyle($cell)->getNumberFormat()->setFormatCode(\App\Support\ShiftQuantity::excelFormat($row[$column]));
+                }
+            }
             $sheet->getStyle("A5:BK{$last}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
         }
         $sheet->freezePane('D5');

@@ -249,6 +249,48 @@ class AttendanceConsolidateTest extends TestCase
         $this->assertSame('23.75', AttendanceConsolidateRow::first()->total_days);
     }
 
+    public function test_fractional_shift_examples_survive_import_display_and_excel_download(): void
+    {
+        foreach ([['31.50', '31.50'], ['26.25', '26.25'], ['33.75', '33.75'], ['31.00', '31']] as [$quantity, $display]) {
+            $this->preview('0012,Employee,'.$quantity.',0,0,'.$quantity)->assertOk()
+                ->assertSee('<td>'.$display.'</td>', false)->assertSee('<td>0</td>', false);
+            $this->confirm()->assertRedirect('/attendance-consolidate');
+            $import = AttendanceConsolidateImport::firstOrFail();
+            $this->assertSame($quantity, $import->rows()->firstOrFail()->total_days);
+            $this->get('/attendance-consolidate/'.$import->id)->assertOk()->assertSee('<td>'.$display.'</td>', false);
+            $book = $this->readDownload('/attendance-consolidate/'.$import->id.'/download');
+            try {
+                $cell = $book->getActiveSheet()->getCell('F3');
+                $this->assertEquals((float) $quantity, $cell->getValue());
+                $this->assertSame($display, $cell->getFormattedValue());
+                $this->assertSame('0', $book->getActiveSheet()->getCell('D3')->getFormattedValue());
+            } finally { $book->disconnectWorksheets(); }
+        }
+    }
+
+    public function test_software_name_is_retained_in_preview_saved_rows_and_download(): void
+    {
+        $this->preview('0012,Uploaded Name,20,3,0,23')
+            ->assertOk()
+            ->assertSee('The software name will be retained.')
+            ->assertDontSee('Uploaded Name')
+            ->assertViewHas('rows', fn ($rows) => $rows[0]['employee_name'] === 'Employee');
+        $this->confirm()->assertOk()->assertSee('Please acknowledge');
+        $this->assertSame(0, AttendanceConsolidateImport::count());
+        $this->confirm(['acknowledge_mismatches' => 1])->assertRedirect('/attendance-consolidate');
+
+        $import = AttendanceConsolidateImport::firstOrFail();
+        $this->assertSame('Employee', $import->rows()->firstOrFail()->employee_name);
+        $this->get('/attendance-consolidate/'.$import->id)
+            ->assertOk()->assertSee('Employee')->assertDontSee('Uploaded Name');
+        $book = $this->readDownload('/attendance-consolidate/'.$import->id.'/download');
+        try {
+            $this->assertSame('Employee', $book->getActiveSheet()->getCell('B3')->getValue());
+        } finally {
+            $book->disconnectWorksheets();
+        }
+    }
+
     public function test_identical_and_corrected_imports_replace_the_batch_in_place(): void
     {
         $this->preview()->assertOk();

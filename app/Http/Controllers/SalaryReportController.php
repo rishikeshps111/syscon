@@ -86,8 +86,8 @@ class SalaryReportController extends Controller implements HasMiddleware
             'attendance' => [
                 'total_leave_taken' => (float) $salaryProcessingItem->total_leave_taken,
                 'unauthorized_leaves' => (float) $salaryProcessingItem->unauthorized_leaves,
-                'total_shifts_completed' => $salaryProcessingItem->total_shifts_completed,
-                'total_working_days' => $salaryProcessingItem->total_working_days,
+                'total_shifts_completed' => (float) $salaryProcessingItem->total_shifts_completed,
+                'total_working_days' => (float) $salaryProcessingItem->total_working_days,
             ],
             'register' => ['headings' => WageRegister::headings(), 'row' => $register, 'warnings' => WageRegister::warnings([$register])],
             'salary' => [

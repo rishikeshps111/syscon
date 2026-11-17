@@ -117,7 +117,7 @@ class AttendanceConsolidateCsv
             $user = $matches->first();
             $warnings = [];
             if ($this->name($row['employee_name']) !== $this->name($user->name)) {
-                $warnings[] = "Name differs from the user record ({$user->name}). The uploaded name will be retained.";
+                $warnings[] = "Name differs from the user record ({$user->name}). The software name will be retained.";
             }
             $depots = collect(['staffProfile', 'driverProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile'])
                 ->map(fn ($profile) => $user->{$profile}?->depot_id)->filter()->map(fn ($id) => (int) $id)->unique();
@@ -126,6 +126,7 @@ class AttendanceConsolidateCsv
             } elseif (! $depots->contains($depotId)) {
                 $warnings[] = 'The selected depot differs from the user’s current depot. Review before importing historical attendance.';
             }
+            $row['employee_name'] = $user->name;
             $row['user_id'] = $user->id;
             $row['warnings'] = $warnings;
         }

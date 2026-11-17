@@ -201,6 +201,7 @@ class DesignationSeeder extends Seeder
                         'salary-processing.view',
                         'salary-processing.approve',
                         'salary-reports.view',
+                        'pf-files.view',
                         'salary-files.view',
                     ]);
                 }
@@ -366,6 +367,7 @@ class DesignationSeeder extends Seeder
                         'salary-processing.view',
                         'salary-processing.approve',
                         'salary-reports.view',
+                        'pf-files.view',
                         'salary-files.view',
                         'dor-reports.view',
                         'license-expiry-reports.view',

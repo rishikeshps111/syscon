@@ -198,8 +198,8 @@ class SalaryReportRegisterTest extends TestCase
             $sync->invoke($controller, $payroll, $data + ['items' => [$manual + ['user_id' => $item->user_id,
                 'selected_components' => [1, 2, 3], 'unauthorized_leaves' => 0]]]);
             $saved = $item->fresh();
-            $this->assertSame('433.33', $saved->employer_esi);
-            $this->assertSame(433.33, \App\Support\WageRegister::row($saved, 0)[61]);
+            $this->assertSame('433.00', $saved->employer_esi);
+            $this->assertSame(433.0, \App\Support\WageRegister::row($saved, 0)[61]);
             $this->assertEquals($values[4], $saved->total_deduction);
             $this->assertEquals($values[5], $saved->net_total);
             $this->assertSame($saved->net_total, $saved->net_salary);
@@ -224,6 +224,23 @@ class SalaryReportRegisterTest extends TestCase
             $this->assertStringContainsString('name="items[0][esi]" value="'.number_format($expectedEsi, 0, '.', '').'"', $html);
             $register = \App\Support\WageRegister::row($saved, 0);
             $this->assertSame($expectedEsi, $register[52]);
+        }
+        // Employer contributions round to whole rupees and preserve zero without changing take-home pay.
+        foreach ([[['employer_esi' => 321.45], 321.0], [[], 321.0], [['employer_esi' => 321.50], 322.0], [['employer_esi' => 0], 0.0],
+            [[], 0.0], [['employer_esi' => 999999, 'recalculate_employer_esi' => true], 433.0],
+            [['employer_esi' => 321.45], 321.0]] as [$input, $expectedEmployerEsi]) {
+            $sync->invoke($controller, $payroll, $data + ['items' => [$input + ['user_id' => $item->user_id,
+                'selected_components' => [1, 2, 3], 'unauthorized_leaves' => 0]]]);
+            $saved = $item->fresh();
+            $this->assertEquals($expectedEmployerEsi, $saved->employer_esi);
+            $this->assertSame('100.00', $saved->esi);
+            $this->assertSame('980.00', $saved->total_deduction);
+            $this->assertSame('12353.33', $saved->net_total);
+            $row = (new \ReflectionMethod($controller, 'storedRow'))->invoke($controller, $saved);
+            $html = view('salary-processing.partials.rows', ['rows' => [$row]])->render();
+            $this->assertStringContainsString('name="items[0][employer_esi]" value="'.number_format($expectedEmployerEsi, 0, '.', '').'"', $html);
+            $this->assertSame($expectedEmployerEsi, \App\Support\WageRegister::row($saved, 0)[61]);
+            $this->assertSame($expectedEmployerEsi, \App\Support\PaySlipData::build($payroll, $saved)['employer_esi']);
         }
         // A new employee row from a legacy payload still receives automatic ESI.
         $item->delete();
@@ -251,12 +268,12 @@ class SalaryReportRegisterTest extends TestCase
         $this->assertSame('0.00', $saved->pf);
         $this->assertSame('100.00', $saved->total_deduction);
         $this->assertSame('13233.33', $saved->net_total);
-        $this->assertSame('433.33', $saved->employer_esi);
-        $this->getJson('/salary-reports/'.$saved->id)->assertOk()->assertJsonPath('register.row.61', 433.33);
+        $this->assertSame('433.00', $saved->employer_esi);
+        $this->getJson('/salary-reports/'.$saved->id)->assertOk()->assertJsonPath('register.row.61', 433);
         $response = $this->get('/salary-reports/export?'.http_build_query($this->filters()))->assertOk();
         \PhpOffice\PhpSpreadsheet\Cell\Cell::setValueBinder(new \PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder());
         $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->baseResponse->getFile()->getPathname());
-        $this->assertEquals(433.33, $book->getActiveSheet()->getCell('BJ5')->getValue());
+        $this->assertEquals(433.0, $book->getActiveSheet()->getCell('BJ5')->getValue());
         $book->disconnectWorksheets();
 
         $register = \App\Support\WageRegister::row($saved, 0);
@@ -280,6 +297,78 @@ class SalaryReportRegisterTest extends TestCase
         $this->getJson('/salary-reports/pdf?'.$query)->assertNotFound();
         $this->postJson('/salary-reports/send-mail', $this->filters())->assertNotFound();
         Mail::assertNothingSent();
+    }
+
+    public function test_fractional_attendance_survives_payroll_save_reopen_and_report_exports(): void
+    {
+        $payroll = $this->payroll();
+        $originalAmounts = $payroll->items()->get()->map->only(['id', 'total_earned', 'total_deduction', 'net_total'])->all();
+        (require database_path('migrations/2026_11_16_000001_preserve_fractional_salary_shifts.php'))->up();
+        $this->assertSame($originalAmounts, $payroll->items()->get()->map->only(['id', 'total_earned', 'total_deduction', 'net_total'])->all());
+        (require database_path('migrations/2026_09_24_000003_add_actual_worked_days_to_salary_items.php'))->up();
+        (require database_path('migrations/2026_09_24_000004_add_salary_calculation_fields.php'))->up();
+        (require database_path('migrations/2026_09_09_000001_create_attendance_consolidate_tables.php'))->up();
+        Schema::create('salary_templates', function (Blueprint $t) {
+            $t->id(); $t->unsignedBigInteger('role_id'); $t->unsignedBigInteger('designation_id')->nullable();
+        });
+        Schema::create('leaves', function (Blueprint $t) {
+            $t->id(); $t->unsignedBigInteger('user_id'); $t->unsignedBigInteger('leave_type_id')->nullable();
+            $t->string('status'); $t->date('leave_date')->nullable(); $t->date('from_date')->nullable();
+            $t->date('to_date')->nullable(); $t->decimal('number_of_days');
+        });
+        Schema::create('leave_types', function (Blueprint $t) { $t->id(); $t->string('leave_category'); });
+        $import = \App\Models\AttendanceConsolidateImport::create(['year' => 2026, 'month' => 9, 'depot_id' => 1,
+            'depot_name' => 'Register Depot', 'original_filename' => 'fractions.xlsx', 'file_path' => '',
+            'file_checksum' => str_repeat('b', 64), 'employee_count' => 2, 'imported_by_name' => 'Test', 'imported_at' => now()]);
+        $items = $payroll->items()->whereHas('user.roles', fn ($q) => $q->whereIn('name', ['Staff', 'Housekeeping']))->get();
+        foreach ($items as $item) {
+            $item->update(['salary_split' => [
+                ['id' => 1, 'name' => 'Basic', 'type' => 'earning', 'amount' => 10000, 'selected' => true],
+                ['id' => 2, 'name' => 'Allowance', 'type' => 'earning', 'amount' => 20000, 'selected' => true],
+            ]]);
+            $import->rows()->create(['user_id' => $item->user_id, 'employee_ref_code' => $item->user->ref_code,
+                'employee_name' => $item->user->name, 'present_days' => 30, 'week_off_days' => 0,
+                'absent_days' => 0, 'total_days' => 30, 'source_row' => $item->id + 2]);
+        }
+        $controller = new \App\Http\Controllers\SalaryProcessingController;
+        foreach ([[31.5, '31.50', 31500.0, 1.5, 1500.0, 30100.0], [26.25, '26.25', 26250.0, 0.0, 0.0, 25000.0],
+            [33.75, '33.75', 33750.0, 3.75, 3750.0, 32350.0], [30.0, '30', 30000.0, 0.0, 0.0, 28600.0]] as [$quantity, $display, $earned, $extra, $incentive, $net]) {
+            $import->rows()->update(['present_days' => $quantity, 'total_days' => $quantity]);
+            (new \ReflectionMethod($controller, 'syncItems'))->invoke($controller, $payroll, [
+                'year' => 2026, 'month' => 9, 'depot_id' => 1, 'attendance_consolidate_import_id' => $import->id,
+                'items' => $items->map(fn ($item) => ['user_id' => $item->user_id, 'selected_components' => [1, 2],
+                    'recalculate_esi' => true, 'recalculate_employer_esi' => true])->all(),
+            ]);
+            foreach ($items as $item) {
+                $saved = $item->fresh();
+                $this->assertEquals($quantity, $saved->total_working_days);
+                $this->assertEquals($quantity, $saved->total_attendance_days);
+                if ($saved->user->hasRole('Housekeeping')) $this->assertEquals($quantity, $saved->total_shifts_completed);
+                $this->assertEquals($earned, $saved->total_earned);
+                $this->assertEquals($extra, $saved->extra_days_worked);
+                $this->assertEquals($incentive, $saved->extra_duty_incentive);
+                $this->assertEquals($net, $saved->net_total);
+                $row = (new \ReflectionMethod($controller, 'storedRow'))->invoke($controller, $saved);
+                $this->assertSame($quantity, $row['total_working_days']);
+                $html = view('salary-processing.partials.rows', ['rows' => [$row]])->render();
+                $this->assertStringContainsString('class="text-center">'.$display.'</td>', $html);
+                $this->assertStringContainsString('extra-days-worked">'.\App\Support\ShiftQuantity::format($extra).'</td>', $html);
+                $this->assertEquals($quantity, \App\Support\PaySlipData::build($payroll, $saved)['present_shifts']);
+            }
+            $response = $this->get('/salary-reports/export?'.http_build_query($this->filters()))->assertOk();
+            \PhpOffice\PhpSpreadsheet\Cell\Cell::setValueBinder(new \PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder());
+            $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->baseResponse->getFile()->getPathname());
+            try {
+                $sheet = $book->getActiveSheet();
+                foreach ([5, 6] as $r) {
+                    $this->assertEquals($quantity, $sheet->getCell('AL'.$r)->getValue());
+                    $this->assertSame($display, $sheet->getCell('AL'.$r)->getFormattedValue());
+                    $this->assertSame(\App\Support\ShiftQuantity::format($extra), $sheet->getCell('AN'.$r)->getFormattedValue());
+                }
+            } finally { $book->disconnectWorksheets(); }
+            $this->getJson('/salary-reports?'.http_build_query($this->filters() + ['generate' => 1]), ['X-Requested-With' => 'XMLHttpRequest'])
+                ->assertOk()->assertJsonPath('html', fn ($html) => str_contains($html, '>'.$display.'</td>'));
+        }
     }
 
     public function test_excel_reconciliation_notes_keep_their_spacer_and_do_not_merge_employee_rows(): void

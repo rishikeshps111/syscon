@@ -5,6 +5,8 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceConsolidateController;
 use App\Http\Controllers\BranchLocationController;
 use App\Http\Controllers\BulkImportController;
+use App\Http\Controllers\BulkEmployeeUpdateController;
+use App\Http\Controllers\PfFileController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
@@ -241,6 +243,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/bulk-import/{module}', [BulkImportController::class, 'form'])->name('bulk-import.form');
     Route::post('/bulk-import/{module}', [BulkImportController::class, 'import'])->name('bulk-import.store');
     Route::get('/bulk-import/{module}/sample', [BulkImportController::class, 'sample'])->name('bulk-import.sample');
+    Route::get('/bulk-update/{module}', [BulkEmployeeUpdateController::class, 'form'])->name('bulk-update.form');
+    Route::get('/bulk-update/{module}/sample', [BulkEmployeeUpdateController::class, 'sample'])->name('bulk-update.sample');
+    Route::get('/bulk-update/{module}/users', [BulkEmployeeUpdateController::class, 'users'])->name('bulk-update.users');
+    Route::post('/bulk-update/{module}', [BulkEmployeeUpdateController::class, 'import'])->name('bulk-update.store')->block(60, 60);
     Route::resource('vehicles', VehicleController::class);
 
     Route::get('/financial-year-settings', [FinancialYearSettingController::class, 'index'])
@@ -455,6 +461,8 @@ Route::middleware('auth')->group(function () {
         ->name('salary-processing.approve');
     Route::resource('salary-processing', SalaryProcessingController::class)->except(['show']);
     Route::get('/salary-reports', [SalaryReportController::class, 'index'])->name('salary-reports.index');
+    Route::get('/pf-files', [PfFileController::class, 'index'])->name('pf-files.index');
+    Route::get('/pf-files/export', [PfFileController::class, 'export'])->name('pf-files.export');
     Route::get('/salary-reports/export', [SalaryReportController::class, 'export'])->name('salary-reports.export');
     Route::get('/salary-reports/pdf', [SalaryReportController::class, 'pdf'])->name('salary-reports.pdf');
     Route::post('/salary-reports/send-mail', [SalaryReportController::class, 'sendMail'])->name('salary-reports.send-mail');
