@@ -312,6 +312,9 @@ Route::middleware('auth')->group(function () {
         ->name('trips.roster.update');
     Route::post('/trips/{trip}/update-roster', [TripController::class, 'storeRosterUpdates'])
         ->name('trips.roster.store');
+    Route::get('/trips/{trip}/roster/rows', [\App\Http\Controllers\TripRosterFeedController::class, 'rows'])->name('trips.roster.rows');
+    Route::get('/trips/{trip}/roster/drivers', [\App\Http\Controllers\TripRosterFeedController::class, 'drivers'])->name('trips.roster.drivers');
+    Route::get('/trips/{trip}/roster/vehicles', [\App\Http\Controllers\TripRosterFeedController::class, 'vehicles'])->name('trips.roster.vehicles');
     Route::get('/trips/{trip}/roster/monthly-template', [\App\Http\Controllers\MonthlyRosterImportController::class, 'template'])
         ->name('trips.roster.monthly-template');
     Route::post('/trips/{trip}/roster/monthly-import', [\App\Http\Controllers\MonthlyRosterImportController::class, 'import'])

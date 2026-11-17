@@ -122,6 +122,7 @@
         const inputs = [...form.querySelectorAll('input, button'), ...modal.querySelectorAll('[data-bs-dismiss="modal"]'), ...document.querySelectorAll('.js-loading-form button[type="submit"]')];
         const disabled = inputs.map(input => input.disabled);
         inputs.forEach(input => { input.disabled = true; });
+        document.dispatchEvent(new CustomEvent('roster-import-busy', { detail: { busy: true } }));
         form.setAttribute('aria-busy', 'true');
         template.setAttribute('aria-disabled', 'true');
         busyButton.innerHTML = `<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>${label}`;
@@ -146,6 +147,7 @@
                 template.removeAttribute('aria-disabled');
                 bar.classList.remove('progress-bar-animated');
                 controls();
+                document.dispatchEvent(new CustomEvent('roster-import-busy', { detail: { busy: false } }));
             }
         }
     }

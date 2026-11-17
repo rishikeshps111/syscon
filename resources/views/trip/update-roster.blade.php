@@ -54,7 +54,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('trips.roster.store', $record) }}" class="js-loading-form">
+        <form id="rosterUpdateForm" method="POST" action="{{ route('trips.roster.store', $record) }}" class="js-loading-form">
             @csrf
             <div class="main-table-container">
                 @if (session('roster_update_summary'))
@@ -100,11 +100,15 @@
                     </div>
                 </div>
                
-                <div class="table-over">
-                    <table id="rosterTable" class="align-middle mb-0 table tble-cstm" style="width:100%">
+                <p id="rosterSelectionCount" role="status" aria-live="polite">0 duties selected. Selections are kept when filters change.</p>
+                <div id="rosterScroll" class="table-over" tabindex="0" aria-label="Roster duties. Scroll to load more."
+                    data-rows-url="{{ route('trips.roster.rows', $record) }}"
+                    data-drivers-url="{{ route('trips.roster.drivers', $record) }}"
+                    data-vehicles-url="{{ route('trips.roster.vehicles', $record) }}">
+                    <table id="rosterTable" class="align-middle mb-0 table tble-cstm" style="width:100%" aria-label="Roster duties">
                         <thead>
                             <tr>
-                                <th class="text-center"><input type="checkbox" id="checkAll"></th>
+                                <th class="text-center"><input type="checkbox" id="checkAll" aria-label="Select all loaded duties"></th>
                                 <th class="text-center">SL No</th>
                                 <th class="text-center">Date</th>
                                 <th class="text-center">Trip Code</th>
@@ -115,6 +119,11 @@
                         </thead>
                         <tbody></tbody>
                     </table>
+                    <div id="rosterLoadSentinel" class="p-3 text-center">
+                        <span id="rosterLoadingSpinner" class="spinner-border text-primary" aria-hidden="true" hidden></span>
+                        <span id="rosterLoadStatus" role="status" aria-live="polite">Loading duties…</span>
+                        <button type="button" id="rosterLoadMore" class="btn btn-outline-secondary btn-sm ms-2">Load more duties</button>
+                    </div>
                 </div>
             </div>
         </form>
@@ -122,6 +131,36 @@
     </section>
 
     <style>
+        #rosterScroll {
+            max-height: 65vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #237ca3 transparent;
+        }
+        #rosterScroll::-webkit-scrollbar { width: 5px; }
+        #rosterScroll::-webkit-scrollbar-track { background: transparent; }
+        #rosterScroll::-webkit-scrollbar-thumb { background: #237ca3; border-radius: 4px; }
+        #rosterLoadingSpinner[hidden] { display: none; }
+        #rosterTable { table-layout: fixed; }
+        #rosterTable th:nth-child(1) { width: 4%; }
+        #rosterTable th:nth-child(2) { width: 5%; }
+        #rosterTable th:nth-child(3) { width: 11%; }
+        #rosterTable th:nth-child(4) { width: 19%; }
+        #rosterTable th:nth-child(5) { width: 8%; }
+        #rosterTable th:nth-child(6) { width: 31%; }
+        #rosterTable th:nth-child(7) { width: 22%; }
+        #rosterTable th, #rosterTable td { white-space: normal !important; overflow-wrap: anywhere; }
+        #rosterTable thead th { position: sticky; top: 0; z-index: 2; background: linear-gradient(135deg, #082647 0%, #1c3e64 100%); color: #fff; }
+        #rosterTable .roster-select, #rosterTable .select2-container { min-width: 0; max-width: 100%; width: 100% !important; }
+        @media (max-width: 768px) {
+            #rosterTable th, #rosterTable td { padding: 10px 4px; }
+            #rosterTable th:nth-child(1), #rosterTable th:nth-child(2) { width: 7%; }
+            #rosterTable th:nth-child(3) { width: 12%; }
+            #rosterTable th:nth-child(4) { width: 18%; }
+            #rosterTable th:nth-child(5) { width: 9%; }
+            #rosterTable th:nth-child(6) { width: 25%; }
+        }
            .route-stops-horizontal {
     display: flex !important;
     align-items: center !important;
@@ -296,57 +335,6 @@
 
     @section('scripts')
         <script src="{{ asset('assets/js/monthly-roster-import.js') }}?v={{ filemtime(public_path('assets/js/monthly-roster-import.js')) }}"></script>
-        <script>
-            $(function () {
-                $('#rosterTable').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    ajax: {
-                        url: "{{ route('trips.roster.update', $record) }}",
-                        data: function (data) {
-                            data.date_from = $('#dateFromFilter').val();
-                            data.date_to = $('#dateToFilter').val();
-                            data.ser = $('#serFilter').val();
-                        }
-                    },
-                    pageLength: 1000,
-                    lengthMenu: [[10, 25, 50, 100, 1000], [10, 25, 50, 100, 1000]],
-                    order: [],
-                    columns: [
-                        { data: 'checkbox', name: 'checkbox', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'text-center' },
-                        { data: 'date_text', name: 'trip_sheets.date', className: 'text-center nowrap' },
-                        { data: 'trip_code', name: 'trip_sheet_entries.code', className: 'text-center nowrap' },
-                        { data: 'ser', name: 'trip_sheet_entries.service_code', className: 'text-center nowrap' },
-                        { data: 'driver_select', name: 'driver_select', orderable: false, searchable: false },
-                        { data: 'vehicle_select', name: 'vehicle_select', orderable: false, searchable: false }
-                    ],
-                    drawCallback: function () {
-                        $('.roster-select').select2({ allowClear: true, width: '100%', placeholder: function () { return $(this).data('placeholder'); } });
-                        $('#checkAll').prop('checked', false);
-                    }
-                });
-                $('#checkAll').on('change', function () { $('.row-check').prop('checked', this.checked); });
-                $(document).on('change', '.row-check', function () { $('#checkAll').prop('checked', $('.row-check').length === $('.row-check:checked').length); });
-                $(document).on('change', '.roster-select', function () { $(this).closest('tr').find('.row-check').prop('checked', true).trigger('change'); });
-                $('#dateFromFilter, #dateToFilter, #serFilter').on('change', function () { $('#rosterTable').DataTable().ajax.reload(); });
-                $('#resetRosterFilters').on('click', function () {
-                    $('#dateFromFilter, #dateToFilter, #serFilter').val('');
-                    $('#rosterTable').DataTable().ajax.reload();
-                });
-                $('.js-loading-form').on('submit', function () {
-                    var payload = {};
-                    $('.row-check:checked').each(function () {
-                        var row = $(this).closest('tr');
-                        payload[this.value] = {
-                            driver_profile_id: row.find('.roster-driver-select').val() || null,
-                            vehicle_id: row.find('.roster-vehicle-select').val() || null
-                        };
-                    });
-                    $('<input>', {type: 'hidden', name: 'roster_payload', value: JSON.stringify(payload)}).appendTo(this);
-                    $('.row-check, .roster-select').prop('disabled', true);
-                });
-            });
-        </script>
+        <script src="{{ asset('assets/js/trip-roster-scroll.js') }}?v={{ filemtime(public_path('assets/js/trip-roster-scroll.js')) }}"></script>
     @endsection
 </x-app-layout>
