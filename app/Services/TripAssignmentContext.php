@@ -27,7 +27,7 @@ class TripAssignmentContext
         }
         $roster = $rosters->first();
         abort_unless((int) $roster->depot_id === $depotId, 403);
-        if (! in_array($roster->status, ['assigned', 'in_progress'], true)) {
+        if (! in_array($roster->status, ['unassigned', 'assigned', 'in_progress'], true)) {
             $this->invalid($field, 'The trip roster is not active.');
         }
         $this->window($roster, $field);

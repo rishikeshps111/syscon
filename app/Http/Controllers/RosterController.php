@@ -194,10 +194,14 @@ class RosterController extends Controller implements HasMiddleware
             'status' => ['required', Rule::in(array_keys(Roster::STATUSES))],
         ]);
 
-        Roster::whereKey($validated['id'])->update([
-            'status' => $validated['status'],
-            'updated_by' => auth()->id(),
-        ]);
+        DB::transaction(function () use ($validated) {
+            $roster = Roster::whereKey($validated['id'])->lockForUpdate()->firstOrFail();
+            if (($validated['status'] === 'unassigned' && ($roster->driver_profile_id || $roster->vehicle_id))
+                || ($validated['status'] === 'assigned' && ! $roster->driver_profile_id && ! $roster->vehicle_id)) {
+                throw ValidationException::withMessages(['status' => 'Assign or clear the driver and vehicle before changing allocation status.']);
+            }
+            $roster->update(['status' => $validated['status'], 'updated_by' => auth()->id()]);
+        });
 
         return response()->json(['success' => true, 'message' => 'Roaster status updated successfully.']);
     }
@@ -440,6 +444,9 @@ class RosterController extends Controller implements HasMiddleware
         $data['trip_assignment_id'] = $assignment?->id;
         $data['driver_profile_id'] = ($data['driver_profile_id'] ?? null) ?: $assignment?->driver_profile_id;
         $data['vehicle_id'] = ($data['vehicle_id'] ?? null) ?: $assignment?->vehicle_id;
+        if (in_array($data['status'] ?? 'assigned', ['assigned', 'unassigned'], true)) {
+            $data['status'] = ($data['driver_profile_id'] || $data['vehicle_id']) ? 'assigned' : 'unassigned';
+        }
         unset($data['trip_sheet_entry_ids']);
 
         if ($data['driver_profile_id'] ?? null) {
@@ -498,6 +505,7 @@ class RosterController extends Controller implements HasMiddleware
 
     private function assignmentForEntry(TripSheetEntry $entry, ?string $date): ?TripAssignment
     {
+        if ($entry->blocksTripAssignmentDefaults()) return null;
         $trip = $entry->sheet?->trip;
         $date = $date ? Carbon::parse($date) : $entry->sheet?->date;
 

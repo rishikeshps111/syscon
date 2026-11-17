@@ -17,7 +17,7 @@ class StoreRosterRequest extends FormRequest
     {
         return [
             'state_id' => ['required', 'integer', 'exists:states,id'],
-            'oem_id' => ['required', 'integer', 'exists:oems,id'],
+            'oem_id' => ['nullable', 'integer', 'exists:oems,id'],
             'depot_id' => ['required', 'integer', 'exists:depots,id'],
             'duty_date' => ['required', 'date'],
             'shift_type' => ['required', Rule::in(array_keys(Roster::SHIFT_TYPES))],

@@ -150,14 +150,14 @@ class DorReportController extends Controller implements HasMiddleware
         $assignment = $entry ? TripController::assignmentForCompletedEntry($entry) : null;
 
         return $dor->bus_no
-            ?: ($entry?->vehicle?->vehicle_no ?: ($assignment?->vehicle?->vehicle_no ?: '-'));
+            ?: ($entry?->vehicle?->vehicle_no ?: ($entry?->roster?->vehicle?->vehicle_no ?: ($assignment?->vehicle?->vehicle_no ?: '-')));
     }
 
     private function driverName(TripSheetEntryDor $dor): string
     {
         $entry = $dor->tripSheetEntry;
         $assignment = $entry ? TripController::assignmentForCompletedEntry($entry) : null;
-        $driver = $entry?->driverProfile ?: $assignment?->driverProfile;
+        $driver = $entry?->driverProfile ?: ($entry?->roster?->driverProfile ?: $assignment?->driverProfile);
 
         return $driver?->user?->name ?: ($dor->driver_badge_no ?: '-');
     }

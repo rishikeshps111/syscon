@@ -31,7 +31,7 @@
                     <span class="text-danger error-text state_id_error">@error('state_id'){{ $message }}@enderror</span>
                 </div>
                 <div class="col-lg-4 o-f-inp mb-3">
-                    <label for="oem_id">Vendor <span class="text-danger">*</span></label>
+                    <label for="oem_id">Vendor</label>
                     <select class="form-select shadow-none select2" id="oem_id" name="oem_id">
                         <option value="">---Select---</option>
                         @foreach($oems as $oem)

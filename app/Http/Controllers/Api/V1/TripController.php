@@ -924,6 +924,7 @@ class TripController extends Controller
 
     private function assignmentForEntry(TripSheetEntry $entry)
     {
+        if ($entry->blocksTripAssignmentDefaults()) return null;
         $trip = $entry->sheet?->trip;
         $date = $entry->sheet?->date;
 

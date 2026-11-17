@@ -56,10 +56,10 @@
                                     <li>Side : <span>{{ ucfirst((string) $entry->side) }}</span></li>
                                     <li>Depot : <span>{{ $trip?->depot?->name ?: '-' }}</span></li>
                                     <li>Driver Name :
-                                        <span>{{ $entry->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-' }}</span>
+                                        <span>{{ $entry->driverProfile?->user?->name ?: $entry->roster?->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-' }}</span>
                                     </li>
                                     <li>Vehicle No :
-                                        <span>{{ $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span>
+                                        <span>{{ $entry->vehicle?->vehicle_no ?: $entry->roster?->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span>
                                     </li>
                                     <li>Status : <span>Completed</span></li>
                                     <li>Starting KM : <span>{{ $entry->starting_km ?? '-' }}</span></li>
@@ -92,7 +92,7 @@
                                 <h6>Vehicle Details</h6>
                                 <ul>
                                     <li><label>Vehicle No :</label>
-                                        <span>{{ $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span>
+                                        <span>{{ $entry->vehicle?->vehicle_no ?: $entry->roster?->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-' }}</span>
                                     </li>
                                     <li><label>Starting KM :</label> <span>{{ $entry->starting_km ?? '-' }}</span></li>
                                     <li><label>Ending KM :</label> <span>{{ $entry->ending_km ?? '-' }}</span></li>
@@ -117,7 +117,7 @@
                                 <h6>Driver Verification</h6>
                                 <ul>
                                     <li><label>Driver :</label>
-                                        <span>{{ $entry->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-' }}</span>
+                                        <span>{{ $entry->driverProfile?->user?->name ?: $entry->roster?->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-' }}</span>
                                     </li>
                                     <li><label>Driver Verified :</label>
                                         <span>{{ $entry->is_driver_verified ? 'Yes' : 'No' }}</span></li>

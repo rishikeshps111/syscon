@@ -155,9 +155,9 @@
                                 $destinationPoint = $entry->side === 'down'
                                     ? ($route?->startPoint?->name ?: '-')
                                     : ($route?->endPoint?->name ?: '-');
-                                $assignment = $entry->sheet?->trip?->assignments
-                                    ->first(fn($assignment) => $assignment->from_date?->lte($entry->sheet?->date) && $assignment->to_date?->gte($entry->sheet?->date));
+                                $assignment = \App\Http\Controllers\TripController::assignmentForCompletedEntry($entry);
                                 $driver = $entry->driverProfile?->user?->name
+                                    ?: $entry->roster?->driverProfile?->user?->name
                                     ?: $assignment?->driverProfile?->user?->name
                                     ?: '-';
                             @endphp

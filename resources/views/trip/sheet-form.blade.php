@@ -13,12 +13,14 @@
         $selectedDate = old('date', $entry?->sheet?->date?->format('Y-m-d'));
         $selectedStatus = old('status', $entry?->status ?? 'pending');
         $formStopTimes = old('stop_times', $stopTimes);
-        $defaultAssignment = $selectedDate
+        $existingRoster = $entry?->roster;
+        $isUnassigned = $entry && $entry->blocksTripAssignmentDefaults();
+        $defaultAssignment = $selectedDate && ! $isUnassigned
             ? $record->assignments->first(fn($assignment) => $assignment->from_date?->format('Y-m-d') <= $selectedDate && $assignment->to_date?->format('Y-m-d') >= $selectedDate)
             : null;
-        $selectedDriverId = old('driver_profile_id', $entry?->driver_profile_id ?: $defaultAssignment?->driver_profile_id);
-        $selectedVehicleId = old('vehicle_id', $entry?->vehicle_id ?: $defaultAssignment?->vehicle_id);
-        $assignmentDefaults = $record->assignments->map(fn($assignment) => [
+        $selectedDriverId = old('driver_profile_id', $entry?->driver_profile_id ?: ($existingRoster?->driver_profile_id ?: $defaultAssignment?->driver_profile_id));
+        $selectedVehicleId = old('vehicle_id', $entry?->vehicle_id ?: ($existingRoster?->vehicle_id ?: $defaultAssignment?->vehicle_id));
+        $assignmentDefaults = ($isUnassigned ? collect() : $record->assignments)->map(fn($assignment) => [
             'from_date' => $assignment->from_date?->format('Y-m-d'),
             'to_date' => $assignment->to_date?->format('Y-m-d'),
             'driver_profile_id' => $assignment->driver_profile_id,

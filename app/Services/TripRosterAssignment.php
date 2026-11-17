@@ -94,7 +94,7 @@ class TripRosterAssignment
         $this->require((bool) $trip->state_id, 'The trip has no state. Complete the trip details before importing.');
         $this->require(! isset($expected['code']) || (string) $entry->code === $expected['code'], 'The Trip Code changed since preview. Download a fresh sample.');
         $this->require(! $expected || ($entry->sheet->date?->toDateString() === $expected['date']
-            && (string) $entry->service_code === $expected['service']), 'The trip date or service code changed after upload.');
+            && (string) $entry->service_code === $expected['service']), 'The trip date or service code changed after upload. Download a fresh sample and upload again.');
         $this->require($trip->is_active && $entry->status === 'pending'
             && $entry->actual_start_time === null && $entry->actual_reach_time === null
             && ! $entry->is_initial_verified && ! $entry->is_final_verified
@@ -103,7 +103,7 @@ class TripRosterAssignment
         $rosters = $entry->rosters()->when($lock, fn ($query) => $query->lockForUpdate())->get();
         $this->require($rosters->count() <= 1, 'The entry has multiple rosters; resolve them before importing.');
         $existing = $rosters->first();
-        $this->require(! $existing || $existing->status === 'assigned', 'Started, completed or inactive rosters cannot be changed.');
+        $this->require(! $existing || in_array($existing->status, ['assigned', 'unassigned'], true), 'Started, completed or inactive rosters cannot be changed.');
         $vehicleId ??= $entry->vehicle_id ?: $existing?->vehicle_id;
         $vehicleId = $vehicleId ? (int) $vehicleId : null;
         $driver = DriverProfile::whereKey($driverId)->when($lock, fn ($query) => $query->lockForUpdate())->first();

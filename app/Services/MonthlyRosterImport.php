@@ -98,7 +98,7 @@ class MonthlyRosterImport
             ? 'No trip-sheet entry with this Trip Code belongs to the opened trip.' : 'Trip Code matches multiple trip entries.']);
         if (! $entry->sheet->date) return array_replace($preview, ['reason' => 'Trip-sheet entry '.$entry->code.' has no duty date. Complete the trip sheet before importing.']);
         if ($entry->sheet->date?->toDateString() !== $row['date'] || (string) $entry->service_code !== $row['service']) {
-            return array_replace($preview, ['reason' => 'Date or Service Code does not match Trip Code '.$row['trip_code'].'.']);
+            return array_replace($preview, ['reason' => 'Date or Service Code does not match Trip Code '.$row['trip_code'].'. Download a fresh sample and upload again.']);
         }
 
         $vehicleInput = trim((string) ($row['vehicle'] ?? ''));

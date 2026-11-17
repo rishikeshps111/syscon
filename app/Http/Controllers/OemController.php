@@ -392,6 +392,7 @@ class OemController extends Controller implements HasMiddleware
     private function entryDriverName(TripSheetEntry $entry): string
     {
         return $entry->driverProfile?->user?->name
+            ?: $entry->roster?->driverProfile?->user?->name
             ?: $this->assignmentForEntry($entry)?->driverProfile?->user?->name
             ?: '-';
     }
@@ -399,12 +400,14 @@ class OemController extends Controller implements HasMiddleware
     private function entryVehicleNo(TripSheetEntry $entry): string
     {
         return $entry->vehicle?->vehicle_no
+            ?: $entry->roster?->vehicle?->vehicle_no
             ?: $this->assignmentForEntry($entry)?->vehicle?->vehicle_no
             ?: '-';
     }
 
     private function assignmentForEntry(TripSheetEntry $entry)
     {
+        if ($entry->blocksTripAssignmentDefaults()) return null;
         $date = $entry->sheet?->date;
 
         if (! $date) {

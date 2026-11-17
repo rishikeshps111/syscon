@@ -168,7 +168,7 @@
                 <div class="main-table-container h-100  font-para">
                     <h5>1. Download the configured workbook</h5>
                     <p class="text-muted">
-                        Trip metadata, ED service codes, nature, kilometres per round, and round locations are generated
+                        Trip metadata, service codes based on the trip’s selected service code, nature, kilometres per round, and round locations are generated
                         automatically.
                         Only the time cells are left blank.
                     </p>

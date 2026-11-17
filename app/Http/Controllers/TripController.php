@@ -239,15 +239,29 @@ class TripController extends Controller implements HasMiddleware
 
     public function update(UpdateTripRequest $request, Trip $trip)
     {
-        $trip->update($this->tripPayload($request->validated()) + ['updated_by' => auth()->id()]);
+        $rescheduler = app(\App\Services\TripDateRescheduler::class);
+        $trip = $rescheduler->update(
+            $trip, $this->tripPayload($request->validated()) + ['updated_by' => auth()->id()]
+        );
+        $summary = $rescheduler->summary;
+        $message = 'Trip updated successfully. Duties moved: '.$summary['moved'].', generated: '.$summary['generated']
+            .', removed: '.$summary['removed'].'. Rosters generated: '.$summary['rosters'].'.';
+        $serviceSummary = $rescheduler->serviceSummary;
+        $message .= ' SER codes updated: '.$serviceSummary['updated'].'.';
+        if ($serviceSummary['protected'] || $serviceSummary['unrecognized']) {
+            $message .= ' Historical SER codes retained: '.$serviceSummary['protected']
+                .'; custom or unrecognized codes retained: '.$serviceSummary['unrecognized'].'.';
+        }
 
         if (! $request->expectsJson() && ! $request->ajax()) {
-            return redirect()->route('trips.index')->with('success', 'Trip updated successfully.');
+            return redirect()->route('trips.index')->with('success', $message);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Trip updated successfully.',
+            'message' => $message,
+            'date_summary' => $summary,
+            'service_summary' => $serviceSummary,
             'data' => $trip->fresh(),
         ]);
     }
@@ -920,6 +934,7 @@ class TripController extends Controller implements HasMiddleware
 
     private static function assignmentForEntryDate(TripSheetEntry $entry, ?string $date): ?TripAssignment
     {
+        if ($entry->blocksTripAssignmentDefaults()) return null;
         $trip = $entry->sheet?->trip;
         $date = $date ? Carbon::parse($date) : $entry->sheet?->date;
 
@@ -1216,6 +1231,7 @@ class TripController extends Controller implements HasMiddleware
         $assignment = self::assignmentForCompletedEntry($entry);
 
         return $entry->driverProfile?->user?->name
+            ?: $entry->roster?->driverProfile?->user?->name
             ?: $assignment?->driverProfile?->user?->name
             ?: '<span class="badge bg-danger">Not Assigned</span>';
     }
@@ -1225,6 +1241,7 @@ class TripController extends Controller implements HasMiddleware
         $assignment = self::assignmentForCompletedEntry($entry);
 
         return $entry->vehicle?->vehicle_no
+            ?: $entry->roster?->vehicle?->vehicle_no
             ?: $assignment?->vehicle?->vehicle_no
             ?: '<span class="badge bg-danger">Not Assigned</span>';
     }
@@ -1333,8 +1350,8 @@ class TripController extends Controller implements HasMiddleware
     {
         $assignment = self::assignmentForCompletedEntry($entry);
         $trip = $entry->sheet?->trip;
-        $driver = $entry->driverProfile ?: $assignment?->driverProfile;
-        $vehicle = $entry->vehicle ?: $assignment?->vehicle;
+        $driver = $entry->driverProfile ?: ($entry->roster?->driverProfile ?: $assignment?->driverProfile);
+        $vehicle = $entry->vehicle ?: ($entry->roster?->vehicle ?: $assignment?->vehicle);
         $account = ! empty($data['dor_account_responsible_id'])
             ? DorAccountResponsible::find($data['dor_account_responsible_id'])
             : null;
@@ -1972,7 +1989,7 @@ class TripController extends Controller implements HasMiddleware
 
         for ($index = 1; $index <= $totalTrips; $index++) {
             $column = Coordinate::stringFromColumnIndex($index + 1);
-            $sheet->setCellValue("{$column}5", 'ED'.str_pad((string) $index, 2, '0', STR_PAD_LEFT));
+            $sheet->setCellValueExplicit("{$column}5", app(\App\Services\TripServiceCodes::class)->format($trip, $index), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
             $sheet->setCellValue("{$column}6", $trip->tripNature?->title ?: '');
             $sheet->setCellValue("{$column}7", $entryScheduleKm);
         }
@@ -2091,7 +2108,7 @@ class TripController extends Controller implements HasMiddleware
 
         for ($tripIndex = 1; $tripIndex <= $totalTrips; $tripIndex++) {
             $column = Coordinate::stringFromColumnIndex($tripIndex + 1);
-            $serviceCode = 'ED'.str_pad((string) $tripIndex, 2, '0', STR_PAD_LEFT);
+            $serviceCode = app(\App\Services\TripServiceCodes::class)->format($trip, $tripIndex);
             if ((int) $sheet->getCell("{$column}4")->getValue() !== $tripIndex) {
                 $errors[] = "{$column}4 must contain serial number {$tripIndex}.";
             }
@@ -2437,6 +2454,10 @@ class TripController extends Controller implements HasMiddleware
 
     private function entryPayload(Trip $trip, array $data): array
     {
+        $isUnassigned = ! empty($data['entry_id']) && TripSheetEntry::whereKey($data['entry_id'])
+            ->whereHas('sheet', fn ($q) => $q->where('trip_id', $trip->id))
+            ->whereHas('rosters', fn ($q) => $q->where('status', 'unassigned')->orWhere('inherit_trip_assignment', false))->exists();
+        $assignment = $isUnassigned ? null : $this->assignmentForDate($trip, $data['date'] ?? null);
         return [
             'side' => null,
             'status' => $data['status'] ?? 'pending',
@@ -2444,8 +2465,8 @@ class TripController extends Controller implements HasMiddleware
             'arrival_time' => $data['arrival_time'] ?? null,
             'actual_start_time' => $this->normalizeOptionalTime($data['actual_start_time'] ?? null),
             'actual_reach_time' => $this->normalizeOptionalTime($data['actual_reach_time'] ?? null),
-            'driver_profile_id' => ($data['driver_profile_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->driver_profile_id,
-            'vehicle_id' => ($data['vehicle_id'] ?? null) ?: $this->assignmentForDate($trip, $data['date'] ?? null)?->vehicle_id,
+            'driver_profile_id' => ($data['driver_profile_id'] ?? null) ?: $assignment?->driver_profile_id,
+            'vehicle_id' => ($data['vehicle_id'] ?? null) ?: $assignment?->vehicle_id,
             'trip_order_sequence_no' => $data['trip_order_sequence_no'] ?? null,
             'service_code' => $data['service_code'] ?? null,
             'round_no' => $data['round_no'] ?? null,
@@ -2621,8 +2642,8 @@ class TripController extends Controller implements HasMiddleware
         $this->pdfSection($content, 'Route And Assignment', 40, 425, 515, [
             'From' => $trip?->route?->startPoint?->name ?: '-',
             'To' => $trip?->route?->endPoint?->name ?: '-',
-            'Vehicle No' => $entry->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-',
-            'Driver Name' => $entry->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-',
+            'Vehicle No' => $entry->vehicle?->vehicle_no ?: $entry->roster?->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no ?: '-',
+            'Driver Name' => $entry->driverProfile?->user?->name ?: $entry->roster?->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name ?: '-',
             'Departure Time' => $this->formatSheetTime($entry->departure_time) ?: '-',
             'Arrival Time' => $this->formatSheetTime($entry->arrival_time) ?: '-',
         ], 135);

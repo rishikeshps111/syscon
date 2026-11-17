@@ -106,6 +106,9 @@
         </select>
         <span
             class="text-danger error-text service_code_id_error">@error('service_code_id'){{ $message }}@enderror</span>
+        @isset($record)
+            {{-- <small class="text-muted">Update also synchronizes numbered SER codes on eligible pending duties. Historical and custom codes are retained.</small> --}}
+        @endisset
     </div>
 
     <div class="col-lg-4 o-f-inp mb-3">
@@ -143,6 +146,9 @@
         <input type="date" class="form-control shadow-none" id="to_date" name="to_date" required
             value="{{ old('to_date', isset($record) && $record->to_date ? $record->to_date->format('Y-m-d') : '') }}">
         <span class="text-danger error-text to_date_error">@error('to_date'){{ $message }}@enderror</span>
+        @isset($record)
+            {{-- <small class="text-muted">Update automatically synchronizes duties and rosters. New dates copy the latest saved day’s schedule with no driver or vehicle assigned. Existing assignments are kept.</small> --}}
+        @endisset
     </div>
 
 

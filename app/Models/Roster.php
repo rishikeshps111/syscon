@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'shift_start_time',
     'shift_end_time',
     'trip_assignment_id',
+    'inherit_trip_assignment',
     'driver_profile_id',
     'vehicle_id',
     'supervisor_profile_id',
@@ -45,6 +46,7 @@ class Roster extends Model
     ];
 
     public const STATUSES = [
+        'unassigned' => 'Unassigned',
         'assigned' => 'Assigned',
         'in_progress' => 'In Progress',
         'completed' => 'Completed',
@@ -58,10 +60,20 @@ class Roster extends Model
         'late' => 'Late',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (Roster $roster): void {
+            if ($roster->status === 'unassigned' && ($roster->driver_profile_id || $roster->vehicle_id)) {
+                $roster->status = 'assigned';
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
             'duty_date' => 'date',
+            'inherit_trip_assignment' => 'boolean',
         ];
     }
 

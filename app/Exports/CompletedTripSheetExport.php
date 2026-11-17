@@ -27,8 +27,8 @@ class CompletedTripSheetExport implements FromCollection, WithHeadings
                 'Date' => $entry->sheet?->date?->format('d M Y'),
                 'From' => $trip?->route?->startPoint?->name,
                 'To' => $trip?->route?->endPoint?->name,
-                'Driver Name' => $assignment?->driverProfile?->user?->name,
-                'Vehicle No' => $assignment?->vehicle?->vehicle_no,
+                'Driver Name' => $entry->driverProfile?->user?->name ?: ($entry->roster?->driverProfile?->user?->name ?: $assignment?->driverProfile?->user?->name),
+                'Vehicle No' => $entry->vehicle?->vehicle_no ?: ($entry->roster?->vehicle?->vehicle_no ?: $assignment?->vehicle?->vehicle_no),
                 'Status' => $entry->sheet?->status ? ucfirst($entry->sheet->status) : '',
             ];
         });

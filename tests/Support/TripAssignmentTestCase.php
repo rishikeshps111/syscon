@@ -137,6 +137,7 @@ abstract class TripAssignmentTestCase extends TestCase
             $table->time('shift_end_time');
             $table->string('status');
             $table->string('attendance_status')->nullable();
+            $table->boolean('inherit_trip_assignment')->default(true);
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->foreignId('updated_by')->nullable()->constrained('users');
             $table->timestamps();

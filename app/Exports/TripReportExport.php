@@ -8,18 +8,22 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\DefaultValueBinder;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class TripReportExport implements FromCollection, WithColumnFormatting, WithEvents, WithHeadings, WithTitle
+class TripReportExport extends DefaultValueBinder implements FromCollection, WithColumnFormatting, WithCustomValueBinder, WithEvents, WithHeadings, WithTitle
 {
     public function __construct(private $query) {}
 
@@ -37,10 +41,10 @@ class TripReportExport implements FromCollection, WithColumnFormatting, WithEven
             'Depot Name',
             "Date\n(dd-mm-yyyy)",
             'Bus No. (With full registration)',
-            'Route No',
+            'Route',
             'Duty',
             'Shift',
-            'Driver ID/Badge No.',
+            'Driver ID',
             "Schedule Start Time\n(hh:mm)",
             "Schedule End Time\n(hh:mm)",
             "Actual Start Time\n(hh:mm)",
@@ -87,6 +91,15 @@ class TripReportExport implements FromCollection, WithColumnFormatting, WithEven
     public function title(): string
     {
         return 'DOR';
+    }
+
+    public function bindValue(Cell $cell, $value)
+    {
+        if ($cell->getColumn() === 'H' && $cell->getRow() > 1) {
+            $cell->setValueExplicit((string) ($value ?? ''), DataType::TYPE_STRING);
+            return true;
+        }
+        return parent::bindValue($cell, $value);
     }
 
     public function columnFormats(): array
@@ -149,18 +162,18 @@ class TripReportExport implements FromCollection, WithColumnFormatting, WithEven
         $trip = $entry->sheet?->trip;
         $route = $trip?->route;
         $assignment = TripController::assignmentForCompletedEntry($entry);
-        $vehicle = $entry->vehicle ?: $assignment?->vehicle;
-        $driver = $entry->driverProfile ?: $assignment?->driverProfile;
+        $vehicle = $entry->vehicle ?: ($entry->roster?->vehicle ?: $assignment?->vehicle);
+        $driver = $entry->driverProfile ?: ($entry->roster?->driverProfile ?: $assignment?->driverProfile);
 
         return [
             $serial,
             $this->cell($dor?->depot_name ?: $trip?->depot?->name),
             $this->cell($dor?->dor_date?->format('d-m-Y') ?: $entry->sheet?->date?->format('d-m-Y')),
             $this->cell($dor?->bus_no ?: $vehicle?->vehicle_no),
-            $this->cell($dor?->route_no ?: $route?->route_code),
             $this->cell($dor?->duty ?: $trip?->trip_title),
+            $this->cell($entry->service_code),
             $this->cell($dor?->shift ? Str::title((string) $entry->side) : 'Morning'),
-            $this->cell($dor?->driver_badge_no ?: $driver?->badge_number ?: $driver?->user?->code),
+            $this->cell($driver?->user?->ref_code),
             $this->cell($dor?->schedule_start_time ?: $this->time($entry->departure_time)),
             $this->cell($dor?->schedule_end_time ?: $this->time($entry->arrival_time)),
             $this->cell($dor?->actual_start_time ?: $this->time($entry->actual_start_time)),

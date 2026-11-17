@@ -143,6 +143,12 @@ class TripSheetEntry extends Model
             ->withTimestamps();
     }
 
+    public function blocksTripAssignmentDefaults(): bool
+    {
+        return $this->rosters()->where(fn (Builder $q) => $q->where('status', 'unassigned')
+            ->orWhere('inherit_trip_assignment', false))->exists();
+    }
+
     public function scopeForDepot(Builder $query, int $depotId): Builder
     {
         return $query->whereHas('sheet.trip', function (Builder $tripQuery) use ($depotId): void {
@@ -170,6 +176,8 @@ class TripSheetEntry extends Model
                         $query->whereHas('rosters.vehicle', $matches)
                             ->orWhere(function (Builder $query) use ($matches): void {
                                 $query->whereDoesntHave('rosters', fn (Builder $roster) => $roster->whereNotNull('vehicle_id'))
+                                    ->whereDoesntHave('rosters', fn (Builder $roster) => $roster->where('status', 'unassigned')
+                                        ->orWhere('inherit_trip_assignment', false))
                                     ->whereHas('sheet', fn (Builder $sheet) => $sheet->whereHas('trip.assignments',
                                         fn (Builder $assignment) => $assignment
                                             ->whereColumn('from_date', '<=', 'trip_sheets.date')
