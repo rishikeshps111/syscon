@@ -232,23 +232,32 @@ class VehicleImageReadTest extends TestCase
 
     public static function odometerDisplays(): array
     {
-        return [['digital', 160648, 'ODO 160,648 km'], ['analog', 1234, '001234']];
+        return [
+            ['digital', 160648, 'ODO 160,648 km'],
+            ['analog', 1234, '001234'],
+            ['digital', 321797.6, 'km 321797.6'],
+            ['analog', 1234.5, '001234.5 km'],
+        ];
     }
 
     #[DataProvider('odometerDisplays')]
-    public function test_digital_and_mechanical_analog_odometers_keep_the_public_integer_contract(string $display, int $value, string $text): void
+    public function test_digital_and_mechanical_analog_odometers_preserve_whole_and_decimal_values(string $display, int|float $value, string $text): void
     {
         Http::fake([self::PROVIDER => Http::response($this->provider($value, $text, $display))]);
         $this->postJson(self::URL, ['photo' => $this->image(), 'type' => 'odometer'])->assertOk()
             ->assertExactJson(['success' => true, 'type' => 'odometer', 'value' => $value, 'ocr_text' => $text]);
         Http::assertSent(function ($request) {
             $schema = $request['text']['format']['schema'];
+            $this->assertSame(['number', 'null'], $schema['properties']['value']['type']);
             $this->assertSame(['digital', 'analog', 'unknown'], $schema['properties']['display_type']['enum']);
             $this->assertContains('display_type', $schema['required']);
             $prompt = $request['input'][0]['content'][0]['text'];
             $this->assertStringContainsString('classify the odometer counter itself', $prompt);
             $this->assertStringContainsString('mechanical odometer with numbered rolling wheels', $prompt);
             $this->assertStringContainsString('do not round or truncate', $prompt);
+            $this->assertStringContainsString('Include fractional wheels only when their position and scale are unambiguous', $prompt);
+            $this->assertStringContainsString('Preserve a clearly visible fractional part', $prompt);
+            $this->assertStringNotContainsString('If the reading is fractional, return null', $request['instructions']);
             return true;
         });
     }
@@ -274,6 +283,119 @@ class VehicleImageReadTest extends TestCase
         $sequence = Http::sequence()->push($this->provider(1234, 'ODO 1234'))
             ->push($this->provider(1234, 'ODO 1234', 'needle'));
         Http::fake([self::PROVIDER => $sequence]);
+        for ($index = 0; $index < 2; $index++) {
+            $this->postJson(self::URL, ['photo' => $this->image(), 'type' => 'odometer'])->assertStatus(502)
+                ->assertJsonPath('success', false);
+        }
+    }
+
+    public static function performanceReadings(): array
+    {
+        return [
+            'dp_zero' => ['dp', 0, 'DP 0.0%'],
+            'dp_whole' => ['dp', 12, 'DP 12%'],
+            'dp_decimal' => ['dp', 37.5, 'DP 37.50%'],
+            'vp_zero' => ['vp', 0, 'VP1: 0'],
+            'vp_integer_above_100' => ['vp', 1643, 'VP1: 1643'],
+            'vp_decimal' => ['vp', 1.643, 'VP1: 1.643'],
+            'vp_large_decimal' => ['vp', 1643.25, 'VP1: 1643.2500'],
+        ];
+    }
+
+    #[DataProvider('performanceReadings')]
+    public function test_dp_and_vp_accept_unscaled_numbers_and_preserve_visible_text(string $type, int|float $value, string $text): void
+    {
+        Http::fake([self::PROVIDER => Http::response($this->provider($value, $text))]);
+        $this->postJson(self::URL, ['photo' => $this->image(), 'type' => $type])->assertOk()
+            ->assertExactJson(['success' => true, 'type' => $type, 'value' => $value, 'ocr_text' => $text]);
+        Http::assertSent(function ($request) use ($type) {
+            $schema = $request['text']['format']['schema'];
+            $this->assertSame(['number', 'null'], $schema['properties']['value']['type']);
+            $this->assertSame(['value', 'ocr_text'], $schema['required']);
+            $this->assertArrayNotHasKey('display_type', $schema['properties']);
+            $this->assertStringContainsString('nonnegative JSON number', $request['instructions']);
+            $this->assertStringNotContainsString('If the reading is fractional, return null', $request['instructions']);
+            $prompt = $request['input'][0]['content'][0]['text'];
+            $this->assertStringContainsString('Ignore handwritten annotations', $prompt);
+            $this->assertStringContainsString($type === 'dp' ? 'DP (Driver Performance)' : 'VP1 (Vehicle Performance)', $prompt);
+            $this->assertStringContainsString($type === 'dp' ? 'SOC/battery charge' : 'Distinguish VP1 from VP2', $prompt);
+            return true;
+        });
+    }
+
+    public static function unreadablePerformanceReadings(): array
+    {
+        return [
+            ['dp', null, 'SOC 100%'], ['vp', null, 'VP2: 20'],
+            ['dp', null, 'DP ?.5%'], ['vp', null, ''],
+            ['dp', -0.5, 'DP -0.5%'], ['vp', -1, 'VP1: -1'],
+        ];
+    }
+
+    #[DataProvider('unreadablePerformanceReadings')]
+    public function test_dp_and_vp_reject_missing_ambiguous_or_negative_readings(string $type, int|float|null $value, string $text): void
+    {
+        Http::fake([self::PROVIDER => Http::response($this->provider($value, $text))]);
+        $this->postJson(self::URL, ['photo' => $this->image(), 'type' => $type])->assertUnprocessable()
+            ->assertExactJson(['success' => false, 'message' => 'Value not detected clearly',
+                'data' => ['type' => $type, 'value' => null, 'ocr_text' => $text]]);
+    }
+
+    public static function invalidPerformanceOutputs(): array
+    {
+        return [
+            ['dp', '37.5'], ['vp', '1643'], ['dp', true], ['vp', false],
+            ['dp', []], ['vp', (object) ['reading' => 1643]],
+        ];
+    }
+
+    #[DataProvider('invalidPerformanceOutputs')]
+    public function test_performance_values_must_be_real_json_numbers(string $type, mixed $value): void
+    {
+        Http::fake([self::PROVIDER => Http::response($this->provider($value, 'untrusted output'))]);
+        $this->postJson(self::URL, ['photo' => $this->image(), 'type' => $type])->assertStatus(502)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_performance_values_reject_nonfinite_numbers_and_malformed_output(): void
+    {
+        $payload = $this->provider(0);
+        $payload['output'][1]['content'][0]['text'] = '{"value":1e9999,"ocr_text":"VP1: unreadable"}';
+        $broken = $payload;
+        $broken['output'][1]['content'][0]['text'] = '{bad-json';
+        Http::fake([self::PROVIDER => Http::sequence()->push($payload)->push($broken)]);
+        foreach (['vp', 'dp'] as $type) {
+            $this->postJson(self::URL, ['photo' => $this->image(), 'type' => $type])->assertStatus(502)
+                ->assertJsonPath('success', false);
+        }
+    }
+
+    public function test_vp1_is_a_display_label_not_a_request_type(): void
+    {
+        Http::fake();
+        $this->postJson(self::URL, ['photo' => $this->image(), 'type' => 'vp1'])->assertUnprocessable()
+            ->assertJsonValidationErrors('type');
+        Http::assertNothingSent();
+    }
+
+    public function test_decimal_odometer_still_rejects_unknown_displays_and_negative_values(): void
+    {
+        Http::fake([self::PROVIDER => Http::sequence()
+            ->push($this->provider(321797.6, 'km 321797.6', 'unknown'))
+            ->push($this->provider(-0.1, 'ODO -0.1 km', 'digital'))
+            ->push($this->provider(null, 'Mechanical counter with unclear fractional scale', 'analog'))]);
+        for ($index = 0; $index < 3; $index++) {
+            $this->postJson(self::URL, ['photo' => $this->image(), 'type' => 'odometer'])->assertUnprocessable()
+                ->assertJsonPath('success', false)->assertJsonPath('data.value', null);
+        }
+    }
+
+    public function test_decimal_odometer_rejects_numeric_strings_and_nonfinite_numbers(): void
+    {
+        $nonfinite = $this->provider(0, '', 'digital');
+        $nonfinite['output'][1]['content'][0]['text'] = '{"value":1e9999,"ocr_text":"ODO unreadable","display_type":"digital"}';
+        Http::fake([self::PROVIDER => Http::sequence()
+            ->push($this->provider('321797.6', 'km 321797.6', 'digital'))->push($nonfinite)]);
         for ($index = 0; $index < 2; $index++) {
             $this->postJson(self::URL, ['photo' => $this->image(), 'type' => 'odometer'])->assertStatus(502)
                 ->assertJsonPath('success', false);
