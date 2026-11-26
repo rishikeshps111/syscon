@@ -1,0 +1,383 @@
+{
+  "info": {
+    "name": "Syscone Driver Management API",
+    "description": "Read-only Driver Management requests for an active Staff application user. Set baseUrl and accessToken (a Staff bearer token), then run the Driver requests. List responses save example IDs. Drivers outside the caller's depot return 404.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "driverId",
+      "value": ""
+    },
+    {
+      "key": "driverDocumentId",
+      "value": ""
+    },
+    {
+      "key": "driverLetterId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Driver filter options",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/filter-options",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "filter-options"
+          ]
+        },
+        "description": "Employment type, license type, verification status, active status, and expiry filter labels."
+      }
+    },
+    {
+      "name": "List Drivers",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers"
+          ],
+          "query": [
+            {
+              "key": "search_text",
+              "value": "Alex",
+              "disabled": true
+            },
+            {
+              "key": "employment_type",
+              "value": "permanent",
+              "disabled": true
+            },
+            {
+              "key": "license_type",
+              "value": "lmv",
+              "disabled": true
+            },
+            {
+              "key": "verification_status",
+              "value": "verified",
+              "disabled": true
+            },
+            {
+              "key": "status",
+              "value": "1",
+              "disabled": true
+            },
+            {
+              "key": "expiry_filter",
+              "value": "license_expiring",
+              "disabled": true
+            },
+            {
+              "key": "per_page",
+              "value": "10",
+              "disabled": true
+            },
+            {
+              "key": "page",
+              "value": "1",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Paginated Drivers in the logged-in Staff user's depot. Enable desired filters."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const first = pm.response.json().data?.[0];",
+              "  if (first) pm.collectionVariables.set('driverId', first.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Driver details",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}"
+          ]
+        },
+        "description": "Driver work profile."
+      }
+    },
+    {
+      "name": "List Driver documents",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/documents",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "documents"
+          ]
+        },
+        "description": "Driver document metadata."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const first = pm.response.json().data?.[0];",
+              "  if (first) pm.collectionVariables.set('driverDocumentId', first.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Preview Driver document",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/documents/{{driverDocumentId}}/preview",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "documents",
+            "{{driverDocumentId}}",
+            "preview"
+          ]
+        },
+        "description": "Inline authenticated document file."
+      }
+    },
+    {
+      "name": "Download Driver document",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/documents/{{driverDocumentId}}/download",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "documents",
+            "{{driverDocumentId}}",
+            "download"
+          ]
+        },
+        "description": "Authenticated document attachment."
+      }
+    },
+    {
+      "name": "List Driver letters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/letters",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "letters"
+          ]
+        },
+        "description": "Generated letter metadata."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const first = pm.response.json().data?.[0];",
+              "  if (first) pm.collectionVariables.set('driverLetterId', first.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "View Driver letter JSON",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/letters/{{driverLetterId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "letters",
+            "{{driverLetterId}}"
+          ]
+        },
+        "description": "Saved letter content and metadata."
+      }
+    },
+    {
+      "name": "Preview Driver letter PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/letters/{{driverLetterId}}/preview",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "letters",
+            "{{driverLetterId}}",
+            "preview"
+          ]
+        },
+        "description": "Inline PDF."
+      }
+    },
+    {
+      "name": "Download Driver letter PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/letters/{{driverLetterId}}/download",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "letters",
+            "{{driverLetterId}}",
+            "download"
+          ]
+        },
+        "description": "PDF attachment."
+      }
+    },
+    {
+      "name": "View Driver QR",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/qr",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "qr"
+          ]
+        },
+        "description": "Returns code, name, and QR SVG in JSON."
+      }
+    },
+    {
+      "name": "Download Driver QR SVG",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/drivers/{{driverId}}/qr/download",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "drivers",
+            "{{driverId}}",
+            "qr",
+            "download"
+          ]
+        },
+        "description": "Downloads the same QR as an SVG file."
+      }
+    }
+  ]
+}

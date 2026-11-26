@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DriverManagementController;
 use App\Http\Controllers\Api\V1\GeneralSettingController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\StaffController;
@@ -35,6 +36,19 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('/staff/{staff}/letters/{letter}/download', [StaffController::class, 'downloadLetter'])->name('staff.letters.download');
         Route::get('/staff/{staff}/letters/{letter}', [StaffController::class, 'showLetter'])->name('staff.letters.show');
         Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('staff.show');
+
+        Route::get('/drivers', [DriverManagementController::class, 'index'])->name('drivers.index');
+        Route::get('/drivers/filter-options', [DriverManagementController::class, 'filterOptions'])->name('drivers.filter-options');
+        Route::get('/drivers/{driver}/documents', [DriverManagementController::class, 'documents'])->name('drivers.documents');
+        Route::get('/drivers/{driver}/documents/{document}/preview', [DriverManagementController::class, 'previewDocument'])->name('drivers.documents.preview');
+        Route::get('/drivers/{driver}/documents/{document}/download', [DriverManagementController::class, 'downloadDocument'])->name('drivers.documents.download');
+        Route::get('/drivers/{driver}/letters', [DriverManagementController::class, 'letters'])->name('drivers.letters');
+        Route::get('/drivers/{driver}/letters/{letter}/preview', [DriverManagementController::class, 'previewLetter'])->name('drivers.letters.preview');
+        Route::get('/drivers/{driver}/letters/{letter}/download', [DriverManagementController::class, 'downloadLetter'])->name('drivers.letters.download');
+        Route::get('/drivers/{driver}/letters/{letter}', [DriverManagementController::class, 'showLetter'])->name('drivers.letters.show');
+        Route::get('/drivers/{driver}/qr/download', [DriverManagementController::class, 'downloadQr'])->name('drivers.qr.download');
+        Route::get('/drivers/{driver}/qr', [DriverManagementController::class, 'qr'])->name('drivers.qr');
+        Route::get('/drivers/{driver}', [DriverManagementController::class, 'show'])->name('drivers.show');
 
         Route::prefix('driver/trips')->name('driver.trips.')->group(function () {
             Route::get('/today', [TripController::class, 'driverToday'])->name('today');

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Depot;
+use App\Models\BranchLocation;
+use App\Models\DriverDocument;
 use App\Models\Designation;
 use App\Models\Department;
 use App\Models\District;
@@ -184,4 +186,131 @@ it('lists saved letters and serves JSON and PDF only for accessible Staff', func
         ->assertOk()->assertHeader('content-disposition', 'attachment; filename="HRL-LOCAL.pdf"');
     $this->getJson('/api/v1/staff/'.$local->id.'/letters/'.$remoteLetter->id)->assertNotFound();
     $this->getJson('/api/v1/staff/'.$remote->id.'/letters')->assertNotFound();
+});
+
+function directoryDriver(Depot $depot, string $name, array $profile = [], bool $active = true): User
+{
+    $location = $depot->location;
+    $branch = BranchLocation::create(['state_id' => $location->state_id,
+        'district_id' => $location->district_id, 'location_id' => $location->id, 'name' => 'Branch '.$name]);
+    $driver = User::factory()->create(['name' => $name, 'code' => 'DRV'.str_replace(' ', '', $name),
+        'phone' => '98'.str_pad((string) random_int(1, 99999999), 8, '0', STR_PAD_LEFT), 'is_active' => $active]);
+    $driver->assignRole(Role::findOrCreate('Driver', 'web'));
+    $driver->driverProfile()->create(array_merge([
+        'aadhaar_number' => 'AAD'.$driver->id,
+        'state_id' => $location->state_id,
+        'district_id' => $location->district_id,
+        'location_id' => $location->id,
+        'pincode' => '123456', 'address' => 'Test address',
+        'license_number' => 'LIC'.$driver->id,
+        'license_type' => 'lmv',
+        'issue_date' => '2025-01-01',
+        'expiry_date' => today()->addDays(10)->toDateString(),
+        'employment_type' => 'permanent',
+        'joining_date' => '2025-01-01',
+        'salary' => 25000,
+        'depot_id' => $depot->id,
+        'branch_location_id' => $branch->id,
+        'account_number' => '1234567890',
+        'ifsc_code' => 'BANK0001',
+        'emergency_contact_name' => 'Contact',
+        'emergency_contact_no' => '9876543210',
+        'medical_fitness_expiry' => today()->addDays(10)->toDateString(),
+        'verification_status' => 'verified',
+    ], $profile));
+
+    return $driver;
+}
+
+it('lists only depot Drivers and applies the admin search and status filters', function () {
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $caller = directoryStaff($depot, 'Caller');
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $local = directoryDriver($depot, 'Local Driver', [], false);
+    directoryDriver($otherDepot, 'Remote Driver');
+
+    $this->withToken(directoryToken($caller))
+        ->getJson('/api/v1/drivers?search_text=Local&status=0&employment_type=permanent&license_type=lmv&verification_status=verified&expiry_filter=license_expiring')
+        ->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', $local->id);
+    $this->getJson('/api/v1/drivers/filter-options')
+        ->assertOk()->assertJsonPath('data.license_type.lmv', 'LMV');
+    $this->getJson('/api/v1/drivers?expiry_filter=invalid')
+        ->assertUnprocessable()->assertJsonValidationErrors('expiry_filter');
+    $this->getJson('/api/v1/drivers/'.$local->id)
+        ->assertOk()->assertJsonMissingPath('data.profile.salary')
+        ->assertJsonMissingPath('data.profile.account_number')
+        ->assertJsonMissingPath('data.profile.aadhaar_number');
+});
+
+it('scopes Driver details and QR to the Staff callers depot', function () {
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $caller = directoryStaff($depot, 'Caller');
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $local = directoryDriver($depot, 'Local Driver');
+    $remote = directoryDriver($otherDepot, 'Remote Driver');
+
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/drivers/'.$local->id.'/qr')
+        ->assertOk()->assertJsonPath('code', $local->code)
+        ->assertJsonPath('success', true);
+    $this->get('/api/v1/drivers/'.$local->id.'/qr/download')
+        ->assertOk()->assertHeader('content-type', 'image/svg+xml')
+        ->assertHeader('content-disposition', 'attachment; filename="'.$local->code.'-qr.svg"');
+    $this->getJson('/api/v1/drivers/'.$remote->id)->assertNotFound();
+    $this->getJson('/api/v1/drivers/'.$remote->id.'/qr')->assertNotFound();
+    $local->update(['code' => null]);
+    $this->getJson('/api/v1/drivers/'.$local->id.'/qr')->assertUnprocessable();
+});
+
+it('scopes Driver documents and letters including binary responses', function () {
+    Storage::fake('public');
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $caller = directoryStaff($depot, 'Caller');
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $local = directoryDriver($depot, 'Local Driver');
+    $remote = directoryDriver($otherDepot, 'Remote Driver');
+    $type = HrmsDocumentType::create(['name' => 'License', 'applicable_for' => 'driver']);
+    Storage::disk('public')->put('driver-documents/local.pdf', '%PDF-1.4 test');
+    $document = DriverDocument::create(['user_id' => $local->id, 'hrms_document_type_id' => $type->id,
+        'file_path' => 'driver-documents/local.pdf', 'original_name' => 'license.pdf']);
+    $remoteDocument = DriverDocument::create(['user_id' => $remote->id, 'hrms_document_type_id' => $type->id,
+        'file_path' => 'driver-documents/remote.pdf', 'original_name' => 'remote.pdf']);
+    $letter = GeneratedHrLetter::create(['user_id' => $local->id, 'letter_number' => 'HRL-DRIVER',
+        'entity_type' => 'appointment_letter', 'language' => 'English', 'subject' => 'Welcome',
+        'content' => '<p>Driver letter</p>', 'generated_at' => now()]);
+    $remoteLetter = GeneratedHrLetter::create(['user_id' => $remote->id, 'letter_number' => 'HRL-REMOTE-DRIVER',
+        'entity_type' => 'appointment_letter', 'language' => 'English', 'subject' => 'Remote',
+        'content' => '<p>Remote letter</p>', 'generated_at' => now()]);
+
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/drivers/'.$local->id.'/documents')
+        ->assertOk()->assertJsonPath('data.0.id', $document->id);
+    $this->get('/api/v1/drivers/'.$local->id.'/documents/'.$document->id.'/preview')->assertOk();
+    $this->get('/api/v1/drivers/'.$local->id.'/documents/'.$document->id.'/download')->assertDownload('license.pdf');
+    $this->get('/api/v1/drivers/'.$local->id.'/documents/'.$remoteDocument->id.'/preview')->assertNotFound();
+    $this->getJson('/api/v1/drivers/'.$local->id.'/letters')
+        ->assertOk()->assertJsonPath('data.0.id', $letter->id);
+    $this->getJson('/api/v1/drivers/'.$local->id.'/letters/'.$letter->id)
+        ->assertOk()->assertJsonPath('data.content', '<p>Driver letter</p>');
+    $this->get('/api/v1/drivers/'.$local->id.'/letters/'.$letter->id.'/preview')->assertOk();
+    $this->get('/api/v1/drivers/'.$local->id.'/letters/'.$letter->id.'/download')->assertOk();
+    $this->getJson('/api/v1/drivers/'.$local->id.'/letters/'.$remoteLetter->id)->assertNotFound();
+    $this->getJson('/api/v1/drivers/'.$remote->id.'/documents')->assertNotFound();
+    $this->getJson('/api/v1/drivers/'.$remote->id.'/letters')->assertNotFound();
+    $this->getJson('/api/v1/drivers/'.$remote->id.'/letters/'.$letter->id)->assertNotFound();
+    Storage::disk('public')->delete($document->file_path);
+    $this->get('/api/v1/drivers/'.$local->id.'/documents/'.$document->id.'/preview')->assertNotFound();
+});
+
+it('returns no Drivers without a depot and rejects non Staff tokens', function () {
+    $caller = User::factory()->create(['is_active' => true, 'staff_api_enabled' => true]);
+    $caller->assignRole(Role::findOrCreate('Staff', 'web'));
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/drivers')
+        ->assertOk()->assertJsonPath('meta.total', 0);
+
+    $other = User::factory()->create(['is_active' => true]);
+    $other->assignRole(Role::findOrCreate('Controller', 'web'));
+    $this->withToken(directoryToken($other, 'type:controller'))
+        ->getJson('/api/v1/drivers')->assertForbidden();
 });
