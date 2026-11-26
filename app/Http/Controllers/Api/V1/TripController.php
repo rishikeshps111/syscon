@@ -425,23 +425,26 @@ class TripController extends Controller
             'trip_id' => ['required', 'integer'],
             'remarks' => ['nullable', 'string'],
         ];
-        $imageRule = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'];
+        $imageRule = ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'];
+        $requiredImageRule = ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'];
 
         $rules = match ($stage) {
             'pending' => $commonRules + [
+                'start_image' => $requiredImageRule,
                 'actual_start_time' => ['required', 'date_format:H:i'],
                 'odometer_start_reading' => ['required', 'numeric', 'min:0'],
                 'odometer_start_image_path' => $imageRule,
                 'route_start_soc_percent' => ['required', 'numeric', 'min:0', 'max:100'],
-                'route_start_soc_percent_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+                'route_start_soc_percent_image' => $imageRule,
                 'is_vehicle_verified' => ['required', 'boolean'],
             ],
             'initial_verification_completed' => $commonRules + [
+                'end_image' => $requiredImageRule,
                 'actual_end_time' => ['required', 'date_format:H:i'],
                 'odometer_end_reading' => ['required', 'numeric', 'min:0'],
                 'odometer_end_image_path' => $imageRule,
                 'route_end_soc_percent' => ['required', 'numeric', 'min:0', 'max:100'],
-                'route_end_soc_percent_image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+                'route_end_soc_percent_image' => $imageRule,
                 'start_punc' => ['nullable', 'string', 'max:255'],
                 'reason_for_kilometer_loss' => ['nullable', 'string'],
                 'vp1' => ['required', 'numeric', 'min:0'],
@@ -455,6 +458,8 @@ class TripController extends Controller
         };
 
         $validated = $request->validate($rules, [
+            'start_image.required' => 'Start trip image is required.',
+            'end_image.required' => 'End trip image is required.',
             // Common fields
             'trip_id.required' => 'Trip ID is required.',
             'trip_id.integer' => 'Trip ID must be a valid number.',
@@ -595,8 +600,8 @@ class TripController extends Controller
                     $record,
                     $dor,
                     $stage === 'pending'
-                        ? ['odometer_start_image_path', 'route_start_soc_percent_image']
-                        : ['odometer_end_image_path', 'route_end_soc_percent_image', 'vp1_image', 'dp_image']
+                        ? ['start_image', 'odometer_start_image_path', 'route_start_soc_percent_image']
+                        : ['end_image', 'odometer_end_image_path', 'route_end_soc_percent_image', 'vp1_image', 'dp_image']
                 );
 
             if ($dor) {

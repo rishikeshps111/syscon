@@ -1286,8 +1286,10 @@ class TripController extends Controller implements HasMiddleware
             'miss_trip' => ['nullable', 'integer', 'min:0'],
             'odometer_start_reading' => ['nullable', 'numeric', 'min:0'],
             'odometer_start_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'start_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'odometer_end_reading' => ['nullable', 'numeric', 'min:0'],
             'odometer_end_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'end_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'odometer_diff_km' => ['nullable', 'numeric', 'min:0'],
             'difference' => ['nullable', 'numeric'],
             'dor_account_responsible_id' => ['nullable', 'integer', 'exists:dor_account_responsibles,id'],
@@ -1435,7 +1437,9 @@ class TripController extends Controller implements HasMiddleware
         foreach (
             [
                 'odometer_start_image' => 'odometer_start_image_path',
+                'start_image' => 'start_image',
                 'odometer_end_image' => 'odometer_end_image_path',
+                'end_image' => 'end_image',
                 'route_start_soc_percent_image' => 'route_start_soc_percent_image',
                 'route_end_soc_percent_image' => 'route_end_soc_percent_image',
                 'vp1_image' => 'vp1_image',
@@ -1459,6 +1463,8 @@ class TripController extends Controller implements HasMiddleware
     private function dorImageUrls(?TripSheetEntryDor $dor): array
     {
         return [
+            'start_image' => $dor?->start_image ? Storage::disk('public')->url($dor->start_image) : null,
+            'end_image' => $dor?->end_image ? Storage::disk('public')->url($dor->end_image) : null,
             'odometer_start_image' => $dor?->odometer_start_image_path
                 ? Storage::disk('public')->url($dor->odometer_start_image_path)
                 : null,
@@ -1549,9 +1555,9 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Actual Trip', 'name' => 'actual_trip', 'type' => 'number', 'value' => $values['actual_trip']],
             ['label' => 'Miss Trip', 'name' => 'miss_trip', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['miss_trip']],
             ['label' => 'Odometer Start Reading (A)', 'name' => 'odometer_start_reading', 'type' => 'number', 'value' => $saved?->odometer_start_reading],
-            ['label' => 'Upload Start Odometer Image', 'name' => 'odometer_start_image', 'type' => 'file', 'target' => 'odometer_start_reading', 'image_url' => $this->dorImageUrls($saved)['odometer_start_image']],
+            ['label' => 'Start Trip Image', 'name' => 'start_image', 'type' => 'file', 'image_url' => $this->dorImageUrls($saved)['start_image']],
             ['label' => 'Odometer End Reading (B)', 'name' => 'odometer_end_reading', 'type' => 'number', 'value' => $saved?->odometer_end_reading],
-            ['label' => 'Upload End Odometer Image', 'name' => 'odometer_end_image', 'type' => 'file', 'target' => 'odometer_end_reading', 'image_url' => $this->dorImageUrls($saved)['odometer_end_image']],
+            ['label' => 'End Trip Image', 'name' => 'end_image', 'type' => 'file', 'image_url' => $this->dorImageUrls($saved)['end_image']],
             ['label' => 'Odometer Diff. Km', 'name' => 'odometer_diff_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['odometer_diff_km']],
             ['label' => 'Difference', 'name' => 'difference', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['difference']],
             ['label' => 'Account Responsible', 'name' => 'dor_account_responsible_id', 'type' => 'account_responsible', 'value' => $values['dor_account_responsible_id']],
@@ -1560,9 +1566,7 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Penalty Infraction', 'name' => 'penalty_infraction', 'type' => 'text', 'value' => $saved?->penalty_infraction],
             ['label' => 'Remarks', 'name' => 'remarks', 'type' => 'textarea', 'value' => $saved?->remarks],
             ['label' => 'Route Start SOC %', 'name' => 'route_start_soc_percent', 'type' => 'number', 'value' => $saved?->route_start_soc_percent],
-            ['label' => 'Upload Route Start SOC Image', 'name' => 'route_start_soc_percent_image', 'type' => 'file', 'target' => 'route_start_soc_percent', 'image_url' => $this->dorImageUrls($saved)['route_start_soc_percent_image']],
             ['label' => 'Route End SOC %', 'name' => 'route_end_soc_percent', 'type' => 'number', 'value' => $saved?->route_end_soc_percent],
-            ['label' => 'Upload Route End SOC Image', 'name' => 'route_end_soc_percent_image', 'type' => 'file', 'target' => 'route_end_soc_percent', 'image_url' => $this->dorImageUrls($saved)['route_end_soc_percent_image']],
             ['label' => 'SOC Consumption On Route %', 'name' => 'soc_consumption_on_route_percent', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_consumption_on_route_percent']],
             ['label' => 'SOC Per KM', 'name' => 'soc_per_km', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['soc_per_km']],
             ['label' => 'Run Kilometer Per SOC', 'name' => 'run_kilometer_per_soc', 'type' => 'number', 'disabled' => true, 'calculated' => true, 'value' => $values['run_kilometer_per_soc']],
@@ -1576,10 +1580,8 @@ class TripController extends Controller implements HasMiddleware
             ['label' => 'Energy Absorption', 'name' => 'energy_absorption', 'type' => 'number', 'manual_formula' => true, 'value' => $values['energy_absorption']],
             ['label' => 'Battery size In KWH', 'name' => 'battery_size_kwh', 'type' => 'number', 'value' => $saved?->battery_size_kwh],
             ['label' => 'VP1', 'name' => 'vp1', 'type' => 'number', 'manual_formula' => true, 'value' => $values['vp1']],
-            ['label' => 'Upload VP1 Image', 'name' => 'vp1_image', 'type' => 'file', 'image_url' => $this->dorImageUrls($saved)['vp1_image']],
             ['label' => 'VP2', 'name' => 'vp2', 'type' => 'number', 'manual_formula' => true, 'value' => $values['vp2']],
             ['label' => 'DP', 'name' => 'dp', 'type' => 'number', 'manual_formula' => true, 'value' => $values['dp']],
-            ['label' => 'Upload DP Image', 'name' => 'dp_image', 'type' => 'file', 'image_url' => $this->dorImageUrls($saved)['dp_image']],
             ['label' => 'Penalty', 'name' => 'penalty', 'type' => 'number', 'value' => $saved?->penalty],
             ['label' => 'Model 9M/12M', 'name' => 'model_9m_12m', 'type' => 'select', 'options' => ['9 meter' => '9 meter', '12 meter' => '12 meter'], 'value' => $saved?->model_9m_12m],
         ];

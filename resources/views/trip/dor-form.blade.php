@@ -115,8 +115,7 @@
                                                             class="btn btn-sm btn-outline-primary">View saved image</a>
                                                     @endif
                                                 </div>
-                                                <small class="text-muted d-block mt-2">Upload the meter photo for verification.
-                                                    If reading detection is not available, enter the reading manually.</small>
+                                                <small class="text-muted d-block mt-2">Upload the trip dashboard photo.</small>
                                             @elseif($type === 'textarea')
                                                 <textarea name="{{ $name }}" id="{{ $name }}" class="form-control" rows="3"
                                                     @disabled($disabled)>{{ $value }}</textarea>

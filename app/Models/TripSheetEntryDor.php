@@ -32,8 +32,10 @@ use Illuminate\Support\Facades\Storage;
     'miss_trip',
     'odometer_start_reading',
     'odometer_start_image_path',
+    'start_image',
     'odometer_end_reading',
     'odometer_end_image_path',
+    'end_image',
     'odometer_diff_km',
     'difference',
     'dor_account_responsible_id',
@@ -79,6 +81,8 @@ class TripSheetEntryDor extends Model
     {
         static::deleted(function (self $dor): void {
             Storage::disk('public')->delete(array_filter([
+                $dor->start_image,
+                $dor->end_image,
                 $dor->odometer_start_image_path,
                 $dor->odometer_end_image_path,
                 $dor->route_start_soc_percent_image,
