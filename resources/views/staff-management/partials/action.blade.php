@@ -45,6 +45,16 @@
                         <li><a class="dropdown-item regenerate-passcode" href="#" data-url="{{ route($module . '.regenerate-passcode', $row) }}">Regenerate Passcode</a></li>
                     @endif
                 @endif
+                @if($role === 'Staff' && $canEdit)
+                    @if($row->staff_api_enabled)
+                        @if($row->is_active)
+                            <li><a class="dropdown-item regenerate-passcode" href="#" data-url="{{ route('staff-management.regenerate-passcode', $row) }}">Regenerate Passcode</a></li>
+                        @endif
+                        <li><a class="dropdown-item staff-api-disable" href="#" data-url="{{ route('staff-management.disable-api', $row) }}">Disable Application Status</a></li>
+                    @elseif($row->is_active)
+                        <li><a class="dropdown-item staff-api-enable" href="#" data-url="{{ route('staff-management.enable-api', $row) }}">Enable Application Status</a></li>
+                    @endif
+                @endif
             </ul>
         </div>
     @endif

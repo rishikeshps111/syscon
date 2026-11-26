@@ -1,0 +1,454 @@
+{
+  "info": {
+    "name": "Syscone Staff API",
+    "description": "Staff application login and depot-scoped read-only Staff directory, documents, and letters. Set baseUrl, staffCode, and passcode, then run Login as Staff. The collection saves the bearer token and example IDs from list responses. Staff records outside the caller's depot return 404.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "staffCode",
+      "value": ""
+    },
+    {
+      "key": "passcode",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "staffId",
+      "value": ""
+    },
+    {
+      "key": "designationId",
+      "value": ""
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    },
+    {
+      "key": "letterId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login as Staff",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"phone\": \"{{staffCode}}\",\n  \"passcode\": \"{{passcode}}\",\n  \"type\": \"staff\",\n  \"device_name\": \"Postman\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "login"
+          ]
+        },
+        "description": "Use the Staff code in the phone field and the six digit application passcode. The account must be active and application status enabled."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const data = pm.response.json().data;",
+              "  pm.collectionVariables.set('accessToken', data.access_token);",
+              "  pm.collectionVariables.set('staffId', data.user.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "My profile",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "me"
+          ]
+        },
+        "description": "Returns the authenticated Staff user."
+      }
+    },
+    {
+      "name": "List Staff",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff"
+          ],
+          "query": [
+            {
+              "key": "search_text",
+              "value": "Alex",
+              "description": "Matches name, code, or ref code.",
+              "disabled": true
+            },
+            {
+              "key": "designation_id",
+              "value": "{{designationId}}",
+              "description": "Designation ID from the designation filter endpoint.",
+              "disabled": true
+            },
+            {
+              "key": "employment_type",
+              "value": "full_time",
+              "description": "full_time, part_time, or contract.",
+              "disabled": true
+            },
+            {
+              "key": "date_of_joining",
+              "value": "2026-01-10",
+              "description": "YYYY-MM-DD.",
+              "disabled": true
+            },
+            {
+              "key": "status",
+              "value": "1",
+              "description": "1 for active, 0 for inactive.",
+              "disabled": true
+            },
+            {
+              "key": "per_page",
+              "value": "10",
+              "description": "1 to 100; default 10.",
+              "disabled": true
+            },
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Pagination page.",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Paginated Staff records from the logged-in Staff user's depot, including inactive Staff. Enable optional query parameters as needed."
+      }
+    },
+    {
+      "name": "Designation filter options",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/designations",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "designations"
+          ]
+        },
+        "description": "Distinct designations currently assigned to Staff in the logged-in user's depot."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const first = pm.response.json().data?.[0];",
+              "  if (first) pm.collectionVariables.set('designationId', first.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Staff details",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}"
+          ]
+        },
+        "description": "Work profile for a Staff member in the caller's depot. Salary, bank, identity numbers, and documents are excluded."
+      }
+    },
+    {
+      "name": "List Staff documents",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/documents",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "documents"
+          ]
+        },
+        "description": "Document metadata for this Staff member. File content uses the preview or download request."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const first = pm.response.json().data?.[0];",
+              "  if (first) pm.collectionVariables.set('documentId', first.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Preview Staff document",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/documents/{{documentId}}/preview",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "documents",
+            "{{documentId}}",
+            "preview"
+          ]
+        },
+        "description": "Authenticated inline file response. Use Postman's Send and Download if viewing the binary response is inconvenient."
+      }
+    },
+    {
+      "name": "Download Staff document",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/documents/{{documentId}}/download",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "documents",
+            "{{documentId}}",
+            "download"
+          ]
+        },
+        "description": "Authenticated attachment response using the document's original filename."
+      }
+    },
+    {
+      "name": "List Staff letters",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/letters",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "letters"
+          ]
+        },
+        "description": "Saved generated HR letter metadata for this Staff member."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "  const first = pm.response.json().data?.[0];",
+              "  if (first) pm.collectionVariables.set('letterId', first.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "View Staff letter JSON",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/letters/{{letterId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "letters",
+            "{{letterId}}"
+          ]
+        },
+        "description": "Saved letter metadata and content as JSON."
+      }
+    },
+    {
+      "name": "Preview Staff letter PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/letters/{{letterId}}/preview",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "letters",
+            "{{letterId}}",
+            "preview"
+          ]
+        },
+        "description": "Authenticated inline PDF response."
+      }
+    },
+    {
+      "name": "Download Staff letter PDF",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/staff/{{staffId}}/letters/{{letterId}}/download",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "staff",
+            "{{staffId}}",
+            "letters",
+            "{{letterId}}",
+            "download"
+          ]
+        },
+        "description": "Authenticated PDF attachment response."
+      }
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/logout",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "logout"
+          ]
+        },
+        "description": "Deletes the current bearer token."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) pm.collectionVariables.unset('accessToken');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

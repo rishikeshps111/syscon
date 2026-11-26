@@ -19,6 +19,7 @@ class AuthController extends Controller
         'driverProfile.depot',
         'controllerProfile.depot',
         'supervisorProfile.depot',
+        'staffProfile.depot',
         'driverDocuments.documentType',
         'controllerDocuments.documentType',
         'supervisorDocuments.documentType',
@@ -28,6 +29,7 @@ class AuthController extends Controller
         'driver' => 'Driver',
         'controller' => 'Controller',
         'supervisor' => 'Supervisor',
+        'staff' => 'Staff',
     ];
 
     private const MAX_FAILED_LOGIN_ATTEMPTS = 3;
@@ -49,15 +51,27 @@ class AuthController extends Controller
             ]);
         }
 
-        if (! Hash::check($data['passcode'], $user->password)) {
+        if ($type === 'staff' && (! $user->is_active || ! $user->staff_api_enabled)) {
+            throw ValidationException::withMessages([
+                'phone' => ['This staff account is not enabled for API login.'],
+            ]);
+        }
+
+        $storedPasscode = $type === 'staff' ? $user->staff_api_passcode : $user->password;
+
+        if (! $storedPasscode || ! Hash::check($data['passcode'], $storedPasscode)) {
             $failedAttempts = (int) $user->failed_login_attempts + 1;
 
             $user->forceFill([
                 'failed_login_attempts' => min($failedAttempts, self::MAX_FAILED_LOGIN_ATTEMPTS),
-                'is_active' => $failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS ? false : $user->is_active,
+                'is_active' => $failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS && $type !== 'staff' ? false : $user->is_active,
+                'staff_api_enabled' => $failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS && $type === 'staff' ? false : $user->staff_api_enabled,
             ])->save();
 
             if ($failedAttempts >= self::MAX_FAILED_LOGIN_ATTEMPTS) {
+                if ($type === 'staff') {
+                    $user->tokens()->whereJsonContains('abilities', 'type:staff')->delete();
+                }
                 throw ValidationException::withMessages([
                     'passcode' => ['3 attempts already done with wrong passcode, so your account has been blocked.'],
                 ]);

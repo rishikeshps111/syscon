@@ -6,8 +6,7 @@ use App\Models\GeneratedHrLetter;
 use App\Models\HrLetterTemplate;
 use App\Models\User;
 use App\Support\HrLetterRenderer;
-use Dompdf\Dompdf;
-use Dompdf\Options;
+use App\Support\HrLetterPdf;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
@@ -68,14 +67,8 @@ class HrLetterController extends Controller implements HasMiddleware
 
     public function show(GeneratedHrLetter $hrLetter) { return view('hr-letter.show', compact('hrLetter')); }
 
-    public function pdf(GeneratedHrLetter $hrLetter)
+    public function pdf(GeneratedHrLetter $hrLetter, HrLetterPdf $pdf)
     {
-        $options = new Options();
-        $options->set('isRemoteEnabled', true);
-        $options->set('defaultFont', 'DejaVu Sans');
-        $chroot = [base_path(), storage_path(), resource_path('fonts')];
-        $options->setChroot($chroot);
-        $dompdf = new Dompdf($options); $dompdf->loadHtml(view('hr-letter.pdf', compact('hrLetter'))->render()); $dompdf->setPaper('A4'); $dompdf->render();
-        return response($dompdf->output())->header('Content-Type', 'application/pdf')->header('Content-Disposition', 'attachment; filename="' . $hrLetter->letter_number . '.pdf"');
+        return $pdf->response($hrLetter);
     }
 }

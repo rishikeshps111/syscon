@@ -565,6 +565,12 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/staff-management/status', [StaffManagementController::class, 'status'])
         ->name('staff-management.status');
+    Route::post('/staff-management/{staff_management}/enable-api', [StaffManagementController::class, 'enableApi'])
+        ->name('staff-management.enable-api');
+    Route::post('/staff-management/{staff_management}/disable-api', [StaffManagementController::class, 'disableApi'])
+        ->name('staff-management.disable-api');
+    Route::post('/staff-management/{staff_management}/regenerate-passcode', [StaffManagementController::class, 'regeneratePasscode'])
+        ->name('staff-management.regenerate-passcode');
     Route::post('/staff-management/export', [StaffManagementController::class, 'export'])
         ->name('staff-management.export');
     Route::get('/staff-management/states-by-country', [StaffManagementController::class, 'statesByCountry'])

@@ -30,7 +30,7 @@ class LoginRequest extends FormRequest
         return [
             'phone' => ['required', 'string', 'max:255'],
             'passcode' => ['required', 'digits:6'],
-            'type' => ['required', 'string', Rule::in(['driver', 'controller', 'supervisor'])],
+            'type' => ['required', 'string', Rule::in(['driver', 'controller', 'supervisor', 'staff'])],
             'device_name' => ['nullable', 'string', 'max:255'],
             'fcm_token' => ['nullable', 'string', 'max:4096'],
             'platform' => ['nullable', 'string', Rule::in(['android', 'ios', 'web'])],
@@ -43,6 +43,7 @@ class LoginRequest extends FormRequest
             'driver' => 'Driver',
             'controller' => 'Controller',
             'supervisor' => 'Supervisor',
+            'staff' => 'Staff',
             default => 'User',
         };
 

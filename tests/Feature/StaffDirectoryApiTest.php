@@ -1,0 +1,187 @@
+<?php
+
+use App\Models\Depot;
+use App\Models\Designation;
+use App\Models\Department;
+use App\Models\District;
+use App\Models\GeneratedHrLetter;
+use App\Models\HrmsDocumentType;
+use App\Models\Level;
+use App\Models\Location;
+use App\Models\State;
+use App\Models\StaffDocument;
+use App\Models\User;
+use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
+
+function directoryDepot(string $suffix): Depot
+{
+    $state = State::create(['name' => 'State '.$suffix]);
+    $district = District::create(['state_id' => $state->id, 'name' => 'District '.$suffix, 'code' => 'D'.$suffix]);
+    $location = Location::create(['state_id' => $state->id, 'district_id' => $district->id, 'name' => 'Location '.$suffix]);
+
+    return Depot::create(['location_id' => $location->id, 'name' => 'Depot '.$suffix]);
+}
+
+function directoryDesignation(string $name): Designation
+{
+    $department = Department::create(['name' => 'Department '.$name]);
+    $level = Level::create(['name' => 'Level '.$name]);
+    $role = Role::findOrCreate('Staff', 'web');
+
+    return Designation::create([
+        'department_id' => $department->id,
+        'level_id' => $level->id,
+        'reporting_to' => $role->id,
+        'name' => $name,
+        'role_type' => 'Staff',
+    ]);
+}
+
+function directoryStaff(Depot $depot, string $name, ?Designation $designation = null, bool $active = true): User
+{
+    $staff = User::factory()->create(['name' => $name, 'code' => 'MNGT'.str_replace(' ', '', $name), 'is_active' => $active]);
+    $staff->assignRole(Role::findOrCreate('Staff', 'web'));
+    $staff->staffProfile()->create([
+        'depot_id' => $depot->id,
+        'designation_id' => $designation?->id,
+        'employment_type' => 'full_time',
+        'date_of_joining' => '2026-01-10',
+        'basic' => 25000,
+        'bank_account_number' => '123456789',
+        'aadhaar_number' => '123412341234',
+    ]);
+
+    return $staff;
+}
+
+function directoryToken(User $user, string $ability = 'type:staff'): string
+{
+    return $user->createToken('Staff App', [$ability])->plainTextToken;
+}
+
+it('lists and filters only Staff in the token holders depot', function () {
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $designation = directoryDesignation('Coordinator');
+    $caller = directoryStaff($depot, 'Caller', $designation);
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $active = directoryStaff($depot, 'Active One', $designation);
+    $inactive = directoryStaff($depot, 'Inactive One', $designation, false);
+    directoryStaff($otherDepot, 'Other Depot', $designation);
+
+    $this->withToken(directoryToken($caller))
+        ->getJson('/api/v1/staff?per_page=2')
+        ->assertOk()->assertJsonPath('meta.total', 3);
+
+    $this->getJson('/api/v1/staff?search_text=Inactive&status=0&designation_id='.$designation->id.'&employment_type=full_time&date_of_joining=2026-01-10')
+        ->assertOk()->assertJsonPath('meta.total', 1)
+        ->assertJsonPath('data.0.id', $inactive->id);
+
+    $this->getJson('/api/v1/staff?search_text=Active%20One&status=1')
+        ->assertOk()->assertJsonPath('data.0.id', $active->id);
+});
+
+it('returns only designations assigned to Staff in the callers depot', function () {
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $local = directoryDesignation('Local');
+    $remote = directoryDesignation('Remote');
+    $caller = directoryStaff($depot, 'Caller', $local);
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    directoryStaff($depot, 'Second Local', $local);
+    directoryStaff($otherDepot, 'Remote Person', $remote);
+
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/staff/designations')
+        ->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $local->id)
+        ->assertJsonPath('data.0.name', 'Local');
+});
+
+it('restricts Staff details by depot and excludes private profile fields', function () {
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $caller = directoryStaff($depot, 'Caller');
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $local = directoryStaff($depot, 'Local Person');
+    $remote = directoryStaff($otherDepot, 'Remote Person');
+
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/staff/'.$local->id)
+        ->assertOk()->assertJsonPath('data.id', $local->id)
+        ->assertJsonMissingPath('data.profile.basic')
+        ->assertJsonMissingPath('data.profile.bank_account_number')
+        ->assertJsonMissingPath('data.profile.aadhaar_number')
+        ->assertJsonMissingPath('data.documents');
+
+    $this->getJson('/api/v1/staff/'.$remote->id)->assertNotFound();
+});
+
+it('returns empty lists without a depot and rejects invalid filters and non Staff tokens', function () {
+    $caller = User::factory()->create(['is_active' => true, 'staff_api_enabled' => true]);
+    $caller->assignRole(Role::findOrCreate('Staff', 'web'));
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/staff')->assertOk()->assertJsonPath('meta.total', 0);
+    $this->getJson('/api/v1/staff/designations')->assertOk()->assertJsonCount(0, 'data');
+    $this->getJson('/api/v1/staff?status=invalid')->assertUnprocessable()->assertJsonValidationErrors('status');
+
+    $other = User::factory()->create(['is_active' => true]);
+    $other->assignRole(Role::findOrCreate('Controller', 'web'));
+    $this->withToken(directoryToken($other, 'type:controller'))->getJson('/api/v1/staff')->assertForbidden();
+});
+
+it('lists and streams only documents belonging to accessible Staff', function () {
+    Storage::fake('public');
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $caller = directoryStaff($depot, 'Caller');
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $local = directoryStaff($depot, 'Local Person');
+    $remote = directoryStaff($otherDepot, 'Remote Person');
+    $type = HrmsDocumentType::create(['name' => 'Identity Card', 'applicable_for' => 'staff']);
+    Storage::disk('public')->put('staff-documents/local.pdf', '%PDF-1.4 test');
+    Storage::disk('public')->put('staff-documents/remote.pdf', '%PDF-1.4 remote');
+    $document = StaffDocument::create(['user_id' => $local->id, 'hrms_document_type_id' => $type->id,
+        'file_path' => 'staff-documents/local.pdf', 'original_name' => 'local.pdf', 'is_verified' => true]);
+    $remoteDocument = StaffDocument::create(['user_id' => $remote->id, 'hrms_document_type_id' => $type->id,
+        'file_path' => 'staff-documents/remote.pdf', 'original_name' => 'remote.pdf']);
+
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/staff/'.$local->id.'/documents')
+        ->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.document_type', 'Identity Card')
+        ->assertJsonMissingPath('data.0.file_path');
+    $this->get('/api/v1/staff/'.$local->id.'/documents/'.$document->id.'/preview')
+        ->assertOk()->assertHeader('content-type', 'application/pdf');
+    $this->get('/api/v1/staff/'.$local->id.'/documents/'.$document->id.'/download')
+        ->assertOk()->assertDownload('local.pdf');
+    $this->get('/api/v1/staff/'.$local->id.'/documents/'.$remoteDocument->id.'/preview')->assertNotFound();
+    $this->getJson('/api/v1/staff/'.$remote->id.'/documents')->assertNotFound();
+    Storage::disk('public')->delete($document->file_path);
+    $this->get('/api/v1/staff/'.$local->id.'/documents/'.$document->id.'/preview')->assertNotFound();
+});
+
+it('lists saved letters and serves JSON and PDF only for accessible Staff', function () {
+    $depot = directoryDepot('A');
+    $otherDepot = directoryDepot('B');
+    $caller = directoryStaff($depot, 'Caller');
+    $caller->forceFill(['staff_api_enabled' => true])->save();
+    $local = directoryStaff($depot, 'Local Person');
+    $remote = directoryStaff($otherDepot, 'Remote Person');
+    $letter = GeneratedHrLetter::create(['user_id' => $local->id, 'letter_number' => 'HRL-LOCAL',
+        'entity_type' => 'appointment_letter', 'language' => 'English', 'subject' => 'Welcome',
+        'content' => '<p>Saved content</p>', 'generated_at' => now()]);
+    $remoteLetter = GeneratedHrLetter::create(['user_id' => $remote->id, 'letter_number' => 'HRL-REMOTE',
+        'entity_type' => 'appointment_letter', 'language' => 'English', 'subject' => 'Remote',
+        'content' => '<p>Remote content</p>', 'generated_at' => now()]);
+
+    $this->withToken(directoryToken($caller))->getJson('/api/v1/staff/'.$local->id.'/letters')
+        ->assertOk()->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $letter->id)
+        ->assertJsonMissingPath('data.0.content');
+    $this->getJson('/api/v1/staff/'.$local->id.'/letters/'.$letter->id)
+        ->assertOk()->assertJsonPath('data.content', '<p>Saved content</p>');
+    $this->get('/api/v1/staff/'.$local->id.'/letters/'.$letter->id.'/preview')
+        ->assertOk()->assertHeader('content-type', 'application/pdf');
+    $this->get('/api/v1/staff/'.$local->id.'/letters/'.$letter->id.'/download')
+        ->assertOk()->assertHeader('content-disposition', 'attachment; filename="HRL-LOCAL.pdf"');
+    $this->getJson('/api/v1/staff/'.$local->id.'/letters/'.$remoteLetter->id)->assertNotFound();
+    $this->getJson('/api/v1/staff/'.$remote->id.'/letters')->assertNotFound();
+});

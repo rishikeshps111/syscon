@@ -36,6 +36,7 @@ class UserResource extends JsonResource
             'driver' => $this->driverProfile,
             'controller' => $this->controllerProfile,
             'supervisor' => $this->supervisorProfile,
+            'staff' => $this->staffProfile,
             default => null,
         };
 

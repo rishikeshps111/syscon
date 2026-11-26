@@ -39,6 +39,7 @@ class StaffManagementController extends Controller implements HasMiddleware
             new Middleware(PermissionMiddleware::using('staff-management.view|housekeeping-management.view|controller-management.view|supervisor-management.view'), ['index', 'show', 'export', 'downloadPdf', 'statesByCountry', 'districtsByState', 'locationsByDistrict', 'reportingManagers']),
             new Middleware(PermissionMiddleware::using('staff-management.create|housekeeping-management.create|controller-management.create|supervisor-management.create'), ['create', 'store']),
             new Middleware(PermissionMiddleware::using('staff-management.edit|housekeeping-management.edit|controller-management.edit|supervisor-management.edit'), ['edit', 'update', 'status']),
+            new Middleware(PermissionMiddleware::using('staff-management.edit'), ['enableApi', 'disableApi', 'regeneratePasscode']),
             new Middleware(PermissionMiddleware::using('staff-management.delete|housekeeping-management.delete|controller-management.delete|supervisor-management.delete'), ['destroy']),
         ];
     }
@@ -234,7 +235,58 @@ class StaffManagementController extends Controller implements HasMiddleware
         $staff->is_active = $request->status;
         $staff->save();
 
+        if (! $staff->is_active && $staff->hasRole('Staff')) {
+            $this->revokeStaffApiTokens($staff);
+        }
+
         return response()->json(['success' => true, 'message' => 'Status updated successfully.']);
+    }
+
+    public function enableApi(User $staff_management)
+    {
+        abort_unless($staff_management->hasRole('Staff'), 404);
+        abort_unless($staff_management->is_active && ! $staff_management->staff_api_enabled, 422);
+
+        $passcode = $this->newStaffPasscode($staff_management);
+        $staff_management->forceFill(['staff_api_enabled' => true])->save();
+
+        return response()->json(['success' => true, 'message' => 'Application status enabled.', 'passcode' => $passcode]);
+    }
+
+    public function disableApi(User $staff_management)
+    {
+        abort_unless($staff_management->hasRole('Staff'), 404);
+
+        $staff_management->forceFill(['staff_api_enabled' => false])->save();
+        $this->revokeStaffApiTokens($staff_management);
+
+        return response()->json(['success' => true, 'message' => 'Application status disabled.']);
+    }
+
+    public function regeneratePasscode(User $staff_management)
+    {
+        abort_unless($staff_management->hasRole('Staff'), 404);
+        abort_unless($staff_management->is_active && $staff_management->staff_api_enabled, 422);
+
+        $passcode = $this->newStaffPasscode($staff_management);
+        $this->revokeStaffApiTokens($staff_management);
+
+        return response()->json(['success' => true, 'message' => 'Passcode regenerated successfully.', 'passcode' => $passcode]);
+    }
+
+    private function newStaffPasscode(User $staff): string
+    {
+        do {
+            $passcode = (string) random_int(100000, 999999);
+        } while ($staff->staff_api_passcode && \Illuminate\Support\Facades\Hash::check($passcode, $staff->staff_api_passcode));
+        $staff->forceFill(['staff_api_passcode' => $passcode, 'failed_login_attempts' => 0])->save();
+
+        return $passcode;
+    }
+
+    private function revokeStaffApiTokens(User $staff): void
+    {
+        $staff->tokens()->whereJsonContains('abilities', 'type:staff')->delete();
     }
 
     public function districtsByState(Request $request)

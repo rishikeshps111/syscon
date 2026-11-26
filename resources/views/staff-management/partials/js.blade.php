@@ -136,10 +136,34 @@
             });
         });
 
-        function showPasscodePopup(passcode) {
+        $(document).on('click', '.staff-api-enable, .staff-api-disable', function (event) {
+            event.preventDefault();
+            const url = $(this).data('url');
+            const enabling = $(this).hasClass('staff-api-enable');
+            Swal.fire({
+                title: enabling ? 'Enable Application Status?' : 'Disable Application Status?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: enabling ? 'Enable' : 'Disable'
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+                $.post(url, { _token: "{{ csrf_token() }}" }).done(function (res) {
+                    table.ajax.reload(null, false);
+                    if (enabling) {
+                        showPasscodePopup(res.passcode, 'Application Status Enabled');
+                    } else {
+                        showToast('success', res.message);
+                    }
+                }).fail(function (xhr) {
+                    showToast('error', xhr.responseJSON?.message || 'Unable to update application status.');
+                });
+            });
+        });
+
+        function showPasscodePopup(passcode, title = 'Passcode Regenerated') {
             Swal.fire({
                 icon: 'success',
-                title: 'Passcode Regenerated',
+                title: title,
                 html: '<p class="mb-2">The new passcode is:</p>' +
                     '<input id="generatedPasscode" class="swal2-input text-center fw-bold" value="' + passcode + '" readonly>',
                 showCancelButton: true,

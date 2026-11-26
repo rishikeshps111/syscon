@@ -3,13 +3,14 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GeneralSettingController;
 use App\Http\Controllers\Api\V1\NotificationController;
+use App\Http\Controllers\Api\V1\StaffController;
+use App\Http\Controllers\Api\V1\TripCancellationController;
 use App\Http\Controllers\Api\V1\TripController;
 use App\Http\Controllers\Api\V1\TripDriverController;
 use App\Http\Controllers\Api\V1\TripVehicleController;
-use App\Http\Controllers\Api\V1\TripCancellationController;
 use App\Http\Controllers\Api\V1\VehicleController;
-use App\Http\Controllers\Api\V1\VehicleImageReadController;
 use App\Http\Controllers\Api\V1\VehicleDashboardImageReadController;
+use App\Http\Controllers\Api\V1\VehicleImageReadController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
@@ -17,12 +18,23 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::get('/free-no', [GeneralSettingController::class, 'freeNo'])->name('free-no');
     Route::post('/read-vehicle-image', [VehicleImageReadController::class, 'read']);
     Route::post('/read-vehicle-dashboard-image', [VehicleDashboardImageReadController::class, 'read']);
-    
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::put('/device-token', [AuthController::class, 'updateDeviceToken'])->name('device-token.update');
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+
+        Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
+        Route::get('/staff/designations', [StaffController::class, 'designations'])->name('staff.designations');
+        Route::get('/staff/{staff}/documents', [StaffController::class, 'documents'])->name('staff.documents');
+        Route::get('/staff/{staff}/documents/{document}/preview', [StaffController::class, 'previewDocument'])->name('staff.documents.preview');
+        Route::get('/staff/{staff}/documents/{document}/download', [StaffController::class, 'downloadDocument'])->name('staff.documents.download');
+        Route::get('/staff/{staff}/letters', [StaffController::class, 'letters'])->name('staff.letters');
+        Route::get('/staff/{staff}/letters/{letter}/preview', [StaffController::class, 'previewLetter'])->name('staff.letters.preview');
+        Route::get('/staff/{staff}/letters/{letter}/download', [StaffController::class, 'downloadLetter'])->name('staff.letters.download');
+        Route::get('/staff/{staff}/letters/{letter}', [StaffController::class, 'showLetter'])->name('staff.letters.show');
+        Route::get('/staff/{staff}', [StaffController::class, 'show'])->name('staff.show');
 
         Route::prefix('driver/trips')->name('driver.trips.')->group(function () {
             Route::get('/today', [TripController::class, 'driverToday'])->name('today');
