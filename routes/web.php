@@ -1,12 +1,11 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
-use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceConsolidateController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BranchLocationController;
-use App\Http\Controllers\BulkImportController;
 use App\Http\Controllers\BulkEmployeeUpdateController;
-use App\Http\Controllers\PfFileController;
+use App\Http\Controllers\BulkImportController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ComplaintCategoryController;
 use App\Http\Controllers\ComplaintController;
@@ -22,15 +21,14 @@ use App\Http\Controllers\DocumentTypeController;
 use App\Http\Controllers\DorAccountResponsibleController;
 use App\Http\Controllers\DorKilometerLossReasonController;
 use App\Http\Controllers\DorReportController;
-use App\Http\Controllers\TripEntryReportController;
+use App\Http\Controllers\DriverChangeReasonController;
 use App\Http\Controllers\DriverDocumentController;
 use App\Http\Controllers\DriverManagementController;
-use App\Http\Controllers\DriverChangeReasonController;
 use App\Http\Controllers\FinancialYearSettingController;
 use App\Http\Controllers\GeneratePaySlipController;
 use App\Http\Controllers\HolidayController;
-use App\Http\Controllers\HousekeepingManagementController;
 use App\Http\Controllers\HousekeepingDocumentController;
+use App\Http\Controllers\HousekeepingManagementController;
 use App\Http\Controllers\HrLetterController;
 use App\Http\Controllers\HrLetterTemplateController;
 use App\Http\Controllers\HrmsDocumentTypeController;
@@ -39,12 +37,14 @@ use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\LevelController;
 use App\Http\Controllers\LicenseExpiryReportController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\MonthlyRosterImportController;
 use App\Http\Controllers\OemBankDetailController;
 use App\Http\Controllers\OemController;
 use App\Http\Controllers\OemDepotController;
 use App\Http\Controllers\OemDocumentController;
 use App\Http\Controllers\OemStateMappingController;
 use App\Http\Controllers\OemTypeController;
+use App\Http\Controllers\PfFileController;
 use App\Http\Controllers\PrefixController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RolePermissionController;
@@ -53,26 +53,28 @@ use App\Http\Controllers\RouteAssignmentController;
 use App\Http\Controllers\RouteController;
 use App\Http\Controllers\RouteScheduleController;
 use App\Http\Controllers\RouteStopController;
+use App\Http\Controllers\SalaryArchiveController;
 use App\Http\Controllers\SalaryComponentController;
 use App\Http\Controllers\SalaryFilesController;
 use App\Http\Controllers\SalaryProcessingController;
 use App\Http\Controllers\SalaryReportController;
+use App\Http\Controllers\SalaryTemplateController;
+use App\Http\Controllers\ServiceCodeController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\ShiftSettingController;
 use App\Http\Controllers\StaffDocumentController;
 use App\Http\Controllers\StaffManagementController;
-use App\Http\Controllers\SalaryTemplateController;
-use App\Http\Controllers\SalaryArchiveController;
 use App\Http\Controllers\StateController;
 use App\Http\Controllers\SupervisorDocumentController;
 use App\Http\Controllers\SupervisorManagementController;
 use App\Http\Controllers\TripAssignmentController;
 use App\Http\Controllers\TripController;
+use App\Http\Controllers\TripEntryReportController;
+use App\Http\Controllers\TripNatureController;
+use App\Http\Controllers\TripRosterFeedController;
 use App\Http\Controllers\UserLogController;
 use App\Http\Controllers\VehicleAssignmentController;
 use App\Http\Controllers\VehicleClassificationController;
-use App\Http\Controllers\TripNatureController;
-use App\Http\Controllers\ServiceCodeController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\VehicleDocumentController;
 use App\Http\Controllers\VehicleFuelLogController;
@@ -312,12 +314,12 @@ Route::middleware('auth')->group(function () {
         ->name('trips.roster.update');
     Route::post('/trips/{trip}/update-roster', [TripController::class, 'storeRosterUpdates'])
         ->name('trips.roster.store');
-    Route::get('/trips/{trip}/roster/rows', [\App\Http\Controllers\TripRosterFeedController::class, 'rows'])->name('trips.roster.rows');
-    Route::get('/trips/{trip}/roster/drivers', [\App\Http\Controllers\TripRosterFeedController::class, 'drivers'])->name('trips.roster.drivers');
-    Route::get('/trips/{trip}/roster/vehicles', [\App\Http\Controllers\TripRosterFeedController::class, 'vehicles'])->name('trips.roster.vehicles');
-    Route::get('/trips/{trip}/roster/monthly-template', [\App\Http\Controllers\MonthlyRosterImportController::class, 'template'])
+    Route::get('/trips/{trip}/roster/rows', [TripRosterFeedController::class, 'rows'])->name('trips.roster.rows');
+    Route::get('/trips/{trip}/roster/drivers', [TripRosterFeedController::class, 'drivers'])->name('trips.roster.drivers');
+    Route::get('/trips/{trip}/roster/vehicles', [TripRosterFeedController::class, 'vehicles'])->name('trips.roster.vehicles');
+    Route::get('/trips/{trip}/roster/monthly-template', [MonthlyRosterImportController::class, 'template'])
         ->name('trips.roster.monthly-template');
-    Route::post('/trips/{trip}/roster/monthly-import', [\App\Http\Controllers\MonthlyRosterImportController::class, 'import'])
+    Route::post('/trips/{trip}/roster/monthly-import', [MonthlyRosterImportController::class, 'import'])
         ->name('trips.roster.monthly-import');
     Route::get('/trips/{trip}/sheet/import', [TripController::class, 'importSheetForm'])
         ->name('trips.sheet.import.form');
@@ -460,6 +462,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/hr-letters/{hrLetter}/pdf', [HrLetterController::class, 'pdf'])->name('hr-letters.pdf');
     Route::get('/salary-processing/users', [SalaryProcessingController::class, 'users'])
         ->name('salary-processing.users');
+    Route::get('/salary-processing/{salaryProcessing}/users', [SalaryProcessingController::class, 'editUsers'])
+        ->name('salary-processing.edit-users');
     Route::post('/salary-processing/{salaryProcessing}/approve', [SalaryProcessingController::class, 'approve'])
         ->name('salary-processing.approve');
     Route::resource('salary-processing', SalaryProcessingController::class)->except(['show']);
@@ -750,11 +754,11 @@ Route::get('/clear-all', function () {
 
 Route::get('system/migrate/{filename}', function ($filename) {
     Artisan::call('migrate', [
-        '--path' => 'database/migrations/' . $filename . '.php',
+        '--path' => 'database/migrations/'.$filename.'.php',
         '--force' => true,
     ]);
 
-    return '<pre>' . Artisan::output() . '</pre>';
+    return '<pre>'.Artisan::output().'</pre>';
 });
 
 Route::get('system/migrate-fresh', function () {
@@ -853,4 +857,4 @@ Route::get('system/driver-license-expiry-alerts', function () {
     ], $successful ? 200 : 422);
 })->name('system.driver-license-expiry-alerts');
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

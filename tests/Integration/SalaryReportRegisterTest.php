@@ -81,6 +81,41 @@ class SalaryReportRegisterTest extends TestCase
         return ['year' => 2026, 'month' => 9, 'depot_id' => 1, 'role_id' => 'all'];
     }
 
+    public function test_salary_edit_users_are_paged_and_keep_saved_deductions(): void
+    {
+        Schema::create('leave_types', function (Blueprint $table) {
+            $table->id(); $table->string('leave_category');
+        });
+        Schema::create('leaves', function (Blueprint $table) {
+            $table->id(); $table->unsignedBigInteger('user_id'); $table->unsignedBigInteger('leave_type_id');
+            $table->string('status'); $table->date('leave_date')->nullable();
+            $table->date('from_date')->nullable(); $table->date('to_date')->nullable();
+            $table->decimal('number_of_days', 10, 2);
+        });
+        $payroll = $this->payroll('Completed');
+        $first = $payroll->items()->firstOrFail();
+        $first->update(['tds' => 321, 'salary_advance' => 45]);
+        $staffRole = Role::where('name', 'Staff')->firstOrFail();
+        for ($index = 0; $index < 46; $index++) {
+            $user = User::factory()->create(['name' => sprintf('Paged Employee %02d', $index)]);
+            $user->assignRole($staffRole);
+            DB::table('staff_profiles')->insert(['user_id' => $user->id, 'depot_id' => 1]);
+            $payroll->items()->create(['user_id' => $user->id, 'basic_salary' => 20000,
+                'total_attendance_days' => 20, 'salary_split' => []]);
+        }
+
+        $url = '/salary-processing/'.$payroll->id.'/users';
+        $firstPage = $this->getJson($url.'?page=1')->assertOk()->assertJsonPath('has_more', true);
+        $secondPage = $this->getJson($url.'?page=2')->assertOk()->assertJsonPath('has_more', false);
+        $this->assertCount(50, $firstPage->json('rows'));
+        $this->assertCount(1, $secondPage->json('rows'));
+        $rows = array_merge($firstPage->json('rows'), $secondPage->json('rows'));
+        $this->assertCount(51, array_unique(array_column($rows, 'user_id')));
+        $saved = collect($rows)->firstWhere('user_id', $first->user_id);
+        $this->assertEquals(321, $saved['tds']);
+        $this->assertEquals(45, $saved['salary_advance']);
+    }
+
     public function test_approved_depot_payroll_generates_all_roles_and_employee_role_filters(): void
     {
         $payroll = $this->payroll();

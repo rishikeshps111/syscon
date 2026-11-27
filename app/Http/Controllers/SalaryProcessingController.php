@@ -28,7 +28,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'auth',
             new Middleware(PermissionMiddleware::using('salary-processing.view'), ['index', 'show', 'users']),
             new Middleware(PermissionMiddleware::using('salary-processing.create'), ['create', 'store']),
-            new Middleware(PermissionMiddleware::using('salary-processing.edit'), ['edit', 'update']),
+            new Middleware(PermissionMiddleware::using('salary-processing.edit'), ['edit', 'update', 'editUsers']),
             new Middleware(PermissionMiddleware::using('salary-processing.delete'), ['destroy']),
             new Middleware(PermissionMiddleware::using('salary-processing.approve'), ['approve']),
         ];
@@ -68,11 +68,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     public function create(Request $request)
     {
         $filters = $this->validatedFilters($request, false);
-        $rows = $this->salaryRows($filters);
-
         return view('salary-processing.form', $this->commonData() + [
             'record' => null,
-            'rows' => $rows,
+            'rows' => collect(),
             'filters' => $filters,
         ]);
     }
@@ -102,15 +100,9 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
     public function edit(SalaryProcessing $salaryProcessing)
     {
-        $salaryProcessing->load(['items.user', 'items.salaryProcessing.attendanceImport', 'depot', 'attendanceImport']);
-        $rows = $salaryProcessing->items
-            ->map(fn ($item) => $this->storedRow($item))
-            ->sortBy('name', SORT_STRING | SORT_FLAG_CASE)
-            ->values();
-
         return view('salary-processing.form', $this->commonData() + [
             'record' => $salaryProcessing,
-            'rows' => $rows,
+            'rows' => collect(),
             'filters' => [
                 'year' => $salaryProcessing->year,
                 'month' => $salaryProcessing->month,
@@ -164,8 +156,28 @@ class SalaryProcessingController extends Controller implements HasMiddleware
     public function users(Request $request)
     {
         $filters = $this->validatedFilters($request, true);
+        $page = $request->validate(['page' => ['sometimes', 'integer', 'min:1']])['page'] ?? 1;
+        $hasMore = false;
+        $rows = $this->salaryRows($filters, (int) $page, $hasMore);
 
-        return response()->json($this->salaryRows($filters)->values());
+        return response()->json(['rows' => $rows, 'has_more' => $hasMore,
+            'attendance_import_id' => $filters['attendance_consolidate_import_id']]);
+    }
+
+    public function editUsers(Request $request, SalaryProcessing $salaryProcessing)
+    {
+        $page = $request->validate(['page' => ['sometimes', 'integer', 'min:1']])['page'] ?? 1;
+        $items = $salaryProcessing->items()->with(['user.roles', 'user.driverProfile.depot', 'user.driverProfile.designation',
+            'user.housekeepingProfile.depot', 'user.housekeepingProfile.designation', 'user.staffProfile.depot',
+            'user.staffProfile.designation', 'user.controllerProfile.depot', 'user.controllerProfile.designation',
+            'user.supervisorProfile.depot', 'user.supervisorProfile.designation', 'salaryProcessing'])
+            ->leftJoin('users', 'users.id', '=', 'salary_processing_items.user_id')
+            ->orderBy('users.name')->orderBy('salary_processing_items.id')
+            ->select('salary_processing_items.*')->simplePaginate(50, ['*'], 'page', (int) $page);
+
+        return response()->json(['rows' => $items->getCollection()->map(fn ($item) => $this->storedRow($item))->values(),
+            'has_more' => $items->hasMorePages(),
+            'attendance_import_id' => $salaryProcessing->attendance_consolidate_import_id]);
     }
 
     private function validatedFilters(Request $request, bool $requireUserSelection): array
@@ -333,7 +345,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         $processing->items()->whereNotIn('id', $keptIds)->delete();
     }
 
-    private function salaryRows(array $filters)
+    private function salaryRows(array $filters, ?int $page = null, ?bool &$hasMore = null)
     {
         if (empty($filters['depot_id'])) {
             return collect();
@@ -354,7 +366,13 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             return collect();
         }
 
-        $users = $this->usersForDepot((int) $filters['depot_id']);
+        if ($page !== null) {
+            $usersPage = $this->usersForDepot((int) $filters['depot_id'], $page);
+            $hasMore = $usersPage->hasMorePages();
+            $users = $usersPage->getCollection();
+        } else {
+            $users = $this->usersForDepot((int) $filters['depot_id']);
+        }
         $attendanceRowsByUser = $import->rows->whereNotNull('user_id')->keyBy('user_id');
         $attendanceRowsByRef = $import->rows->keyBy('employee_ref_code');
         $start = Carbon::create((int) $filters['year'], (int) $filters['month'], 1)->startOfMonth();
@@ -427,17 +445,20 @@ class SalaryProcessingController extends Controller implements HasMiddleware
         })->filter()->values();
     }
 
-    private function usersForDepot(int $depotId)
+    private function usersForDepot(int $depotId, ?int $page = null)
     {
-        return User::query()
+        $query = User::query()
             ->with(['roles', 'driverProfile.depot', 'driverProfile.designation', 'housekeepingProfile.depot', 'housekeepingProfile.designation', 'staffProfile.depot', 'staffProfile.designation', 'controllerProfile.depot', 'controllerProfile.designation', 'supervisorProfile.depot', 'supervisorProfile.designation'])
             ->where(function ($query) use ($depotId) {
                 foreach (['driverProfile', 'housekeepingProfile', 'controllerProfile', 'supervisorProfile', 'staffProfile'] as $profile) {
                     $query->orWhereHas($profile, fn ($profileQuery) => $profileQuery->where('depot_id', $depotId));
                 }
             })
-            ->orderBy('name')
-            ->get(['id', 'ref_code', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active']);
+            ->orderBy('name')->orderBy('id');
+
+        $columns = ['id', 'ref_code', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active'];
+
+        return $page === null ? $query->get($columns) : $query->simplePaginate(50, $columns, 'page', $page);
     }
 
     private function salarySplit(User $user, string $roleName): array

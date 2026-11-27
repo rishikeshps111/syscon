@@ -430,6 +430,9 @@
                     </table>
                 </div>
 
+                <div id="salaryLoadStatus" class="text-center text-muted mt-2" role="status" aria-live="polite"></div>
+                <button type="button" id="salaryLoadRetry" class="btn btn-link d-none">Retry loading employees</button>
+
                 <div class="row mt-2">
 
                     <div class="col-lg-6 o-f-inp mb-2">
@@ -455,7 +458,7 @@
 
                 <div class="col-lg-12 mt-3 modal-btns-last">
                     <a href="{{ route('salary-processing.index') }}" class="modal-btn-1">Cancel</a>
-                    <button type="submit" class="modal-btn-2" data-loading-text="Loading...">Submit</button>
+                    <button type="submit" class="modal-btn-2" data-loading-text="Loading..." disabled>Submit</button>
                 </div>
             </div>
         </form>
@@ -510,6 +513,7 @@
                     }
                 });
                 var usersUrl = "{{ route('salary-processing.users') }}";
+                var editUsersUrl = @json($record ? route('salary-processing.edit-users', $record->id) : null);
                 var csrf = "{{ csrf_token() }}";
 
                 // Mirror the table header while the payroll rows scroll vertically.
@@ -638,30 +642,102 @@
                         '</tr>';
                 }
 
-                function reloadUsers() {
-                    if (!$('#depot_id').val()) {
-                        $('#salaryRows').html('<tr><td colspan="15" class="text-center text-muted">Select a depot.</td></tr>');
-                        return;
-                    }
+                var salaryPage = 1;
+                var salaryLoaded = 0;
+                var salaryHasMore = false;
+                var salaryLoading = false;
+                var salaryFailed = false;
+                var salaryGeneration = 0;
+                var salaryRequest = null;
+                var useSavedRows = !!editUsersUrl;
 
-                    $.get(usersUrl, {
-                        depot_id: $('#depot_id').val(),
-                        year: $('#salary_year').val(),
-                        month: $('#salary_month').val()
-                    }).done(function (rows) {
-                        if (rows.length && rows[0].attendance_import_id) {
-                            $('input[name="attendance_consolidate_import_id"]').val(rows[0].attendance_import_id);
+                function updateSalarySubmit() {
+                    var complete = !salaryLoading && !salaryFailed && !salaryHasMore && salaryLoaded > 0;
+                    $('#salaryProcessingForm button[type="submit"]').prop('disabled', !complete);
+                }
+
+                function nearSalaryEnd() {
+                    return payrollTable.getBoundingClientRect().bottom < window.innerHeight + 400;
+                }
+
+                function loadSalaryPage() {
+                    if (salaryLoading || salaryFailed || !salaryHasMore || !$('#depot_id').val()) return;
+                    salaryLoading = true;
+                    updateSalarySubmit();
+                    $('#salaryLoadStatus').text('Loading employees...');
+                    var generation = salaryGeneration;
+                    salaryRequest = $.get(useSavedRows ? editUsersUrl : usersUrl, {
+                        depot_id: $('#depot_id').val(), year: $('#salary_year').val(),
+                        month: $('#salary_month').val(), page: salaryPage
+                    }).done(function (result) {
+                        if (generation !== salaryGeneration) return;
+                        var rows = result.rows || [];
+                        if (result.attendance_import_id) {
+                            $('input[name="attendance_consolidate_import_id"]').val(result.attendance_import_id);
                         }
-                        $('#salaryRows').html(rows.length ? rows.map(function (row, index) {
-                            return rowHtml(row, index);
-                        }).join('') : '<tr><td colspan="15" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
-                        labelPayrollCells();
-                    }).fail(function () {
-                        showToast('error', 'Unable to load users.');
+                        if (rows.length) {
+                            $('#salaryRows .salary-placeholder').remove();
+                            $('#salaryRows').append(rows.map(function (row, index) {
+                                return rowHtml(row, salaryLoaded + index);
+                            }).join(''));
+                            salaryLoaded += rows.length;
+                            labelPayrollCells();
+                            schedulePayrollHeader();
+                        }
+                        salaryHasMore = !!result.has_more;
+                        salaryPage++;
+                        $('#salaryLoadStatus').text(salaryHasMore ? salaryLoaded + ' employees loaded. Scroll for more.' : salaryLoaded + ' employees loaded.');
+                        if (!salaryLoaded && !salaryHasMore) {
+                            $('#salaryRows').html('<tr class="salary-placeholder"><td colspan="15" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
+                        }
+                    }).fail(function (_xhr, status) {
+                        if (generation !== salaryGeneration || status === 'abort') return;
+                        salaryFailed = true;
+                        $('#salaryLoadStatus').text('Unable to load employees.');
+                        $('#salaryLoadRetry').removeClass('d-none');
+                    }).always(function () {
+                        if (generation !== salaryGeneration) return;
+                        salaryLoading = false;
+                        salaryRequest = null;
+                        updateSalarySubmit();
+                        if (salaryHasMore && !salaryFailed && nearSalaryEnd()) loadSalaryPage();
                     });
                 }
 
+                function reloadUsers() {
+                    salaryGeneration++;
+                    if (salaryRequest) salaryRequest.abort();
+                    useSavedRows = !!editUsersUrl &&
+                        String($('#depot_id').val()) === @json((string) ($record?->depot_id ?? '')) &&
+                        String($('#salary_year').val()) === @json((string) ($record?->year ?? '')) &&
+                        String($('#salary_month').val()) === @json((string) ($record?->month ?? ''));
+                    salaryPage = 1;
+                    salaryLoaded = 0;
+                    salaryHasMore = !!$('#depot_id').val();
+                    salaryLoading = false;
+                    salaryFailed = false;
+                    $('#salaryLoadRetry').addClass('d-none');
+                    $('input[name="attendance_consolidate_import_id"]').val('');
+                    $('#salaryRows').html('<tr class="salary-placeholder"><td colspan="15" class="text-center text-muted">' +
+                        (salaryHasMore ? 'Loading employees...' : 'Select a depot.') + '</td></tr>');
+                    $('#salaryLoadStatus').text('');
+                    updateSalarySubmit();
+                    loadSalaryPage();
+                }
+
                 $(document).on('change', '.salary-filter', reloadUsers);
+                $('#salaryLoadRetry').on('click', function () {
+                    salaryFailed = false;
+                    $(this).addClass('d-none');
+                    loadSalaryPage();
+                });
+                window.addEventListener('scroll', function () {
+                    if (nearSalaryEnd()) loadSalaryPage();
+                }, { passive: true });
+                window.addEventListener('resize', function () {
+                    if (nearSalaryEnd()) loadSalaryPage();
+                });
+                reloadUsers();
 
                 function manualDeductionTotal(row) {
                     var total = 0;
@@ -813,7 +889,11 @@
                     $('#userDetailsModal').modal('show');
                 });
 
-                $('#salaryProcessingForm').on('submit', function () {
+                $('#salaryProcessingForm').on('submit', function (event) {
+                    if (salaryLoading || salaryFailed || salaryHasMore || !salaryLoaded) {
+                        event.preventDefault();
+                        return;
+                    }
                     var form = $(this);
                     form.find('.manual-deduction').each(function () { roundDeductionInput(this); });
                     var itemInputs = form.find(':input[name^="items["]');
