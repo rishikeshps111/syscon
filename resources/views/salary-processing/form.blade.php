@@ -430,7 +430,10 @@
                     </table>
                 </div>
 
-                <div id="salaryLoadStatus" class="text-center text-muted mt-2" role="status" aria-live="polite"></div>
+                <div id="salaryLoadStatus" class="salary-load-status mt-2" role="status" aria-live="polite">
+                    <span class="salary-load-spinner" aria-hidden="true"></span>
+                    <span class="salary-load-message"></span>
+                </div>
                 <button type="button" id="salaryLoadRetry" class="btn btn-link d-none">Retry loading employees</button>
 
                 <div class="row mt-2">
@@ -660,11 +663,16 @@
                     return payrollTable.getBoundingClientRect().bottom < window.innerHeight + 400;
                 }
 
+                function setSalaryStatus(message, loading) {
+                    $('#salaryLoadStatus').toggleClass('is-loading', loading);
+                    $('#salaryLoadStatus .salary-load-message').text(message);
+                }
+
                 function loadSalaryPage() {
                     if (salaryLoading || salaryFailed || !salaryHasMore || !$('#depot_id').val()) return;
                     salaryLoading = true;
                     updateSalarySubmit();
-                    $('#salaryLoadStatus').text('Loading employees...');
+                    setSalaryStatus(salaryLoaded ? 'Loading more employees...' : 'Loading employees...', true);
                     var generation = salaryGeneration;
                     salaryRequest = $.get(useSavedRows ? editUsersUrl : usersUrl, {
                         depot_id: $('#depot_id').val(), year: $('#salary_year').val(),
@@ -686,14 +694,14 @@
                         }
                         salaryHasMore = !!result.has_more;
                         salaryPage++;
-                        $('#salaryLoadStatus').text(salaryHasMore ? salaryLoaded + ' employees loaded. Scroll for more.' : salaryLoaded + ' employees loaded.');
+                        setSalaryStatus(salaryHasMore ? salaryLoaded + ' employees loaded. Scroll for more.' : salaryLoaded + ' employees loaded.', false);
                         if (!salaryLoaded && !salaryHasMore) {
                             $('#salaryRows').html('<tr class="salary-placeholder"><td colspan="15" class="text-center text-muted">No consolidated attendance rows found for this depot and month.</td></tr>');
                         }
                     }).fail(function (_xhr, status) {
                         if (generation !== salaryGeneration || status === 'abort') return;
                         salaryFailed = true;
-                        $('#salaryLoadStatus').text('Unable to load employees.');
+                        setSalaryStatus('Unable to load employees.', false);
                         $('#salaryLoadRetry').removeClass('d-none');
                     }).always(function () {
                         if (generation !== salaryGeneration) return;
@@ -719,8 +727,8 @@
                     $('#salaryLoadRetry').addClass('d-none');
                     $('input[name="attendance_consolidate_import_id"]').val('');
                     $('#salaryRows').html('<tr class="salary-placeholder"><td colspan="15" class="text-center text-muted">' +
-                        (salaryHasMore ? 'Loading employees...' : 'Select a depot.') + '</td></tr>');
-                    $('#salaryLoadStatus').text('');
+                        (salaryHasMore ? 'Employees will appear here as they load.' : 'Select a depot.') + '</td></tr>');
+                    setSalaryStatus('', false);
                     updateSalarySubmit();
                     loadSalaryPage();
                 }
@@ -934,6 +942,34 @@
                 overflow-x: visible;
                 width: 100%;
                 -webkit-overflow-scrolling: touch;
+            }
+
+            .salary-load-status {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                min-height: 38px;
+                color: #52657a;
+                font-size: 14px;
+            }
+
+            .salary-load-spinner {
+                display: none;
+                width: 22px;
+                height: 22px;
+                border: 3px solid #dbe8f5;
+                border-top-color: #1c3e64;
+                border-radius: 50%;
+                animation: salary-spinner-rotate .75s linear infinite;
+            }
+
+            .salary-load-status.is-loading .salary-load-spinner { display: inline-block; }
+
+            @keyframes salary-spinner-rotate { to { transform: rotate(360deg); } }
+
+            @media (prefers-reduced-motion: reduce) {
+                .salary-load-spinner { animation-duration: 1.5s; }
             }
 
             .salary-floating-header {

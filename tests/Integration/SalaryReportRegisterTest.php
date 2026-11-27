@@ -96,7 +96,7 @@ class SalaryReportRegisterTest extends TestCase
         $first = $payroll->items()->firstOrFail();
         $first->update(['tds' => 321, 'salary_advance' => 45]);
         $staffRole = Role::where('name', 'Staff')->firstOrFail();
-        for ($index = 0; $index < 46; $index++) {
+        for ($index = 0; $index < 6; $index++) {
             $user = User::factory()->create(['name' => sprintf('Paged Employee %02d', $index)]);
             $user->assignRole($staffRole);
             DB::table('staff_profiles')->insert(['user_id' => $user->id, 'depot_id' => 1]);
@@ -107,10 +107,10 @@ class SalaryReportRegisterTest extends TestCase
         $url = '/salary-processing/'.$payroll->id.'/users';
         $firstPage = $this->getJson($url.'?page=1')->assertOk()->assertJsonPath('has_more', true);
         $secondPage = $this->getJson($url.'?page=2')->assertOk()->assertJsonPath('has_more', false);
-        $this->assertCount(50, $firstPage->json('rows'));
+        $this->assertCount(10, $firstPage->json('rows'));
         $this->assertCount(1, $secondPage->json('rows'));
         $rows = array_merge($firstPage->json('rows'), $secondPage->json('rows'));
-        $this->assertCount(51, array_unique(array_column($rows, 'user_id')));
+        $this->assertCount(11, array_unique(array_column($rows, 'user_id')));
         $saved = collect($rows)->firstWhere('user_id', $first->user_id);
         $this->assertEquals(321, $saved['tds']);
         $this->assertEquals(45, $saved['salary_advance']);

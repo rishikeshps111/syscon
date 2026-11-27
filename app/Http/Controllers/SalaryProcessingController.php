@@ -173,7 +173,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
             'user.supervisorProfile.depot', 'user.supervisorProfile.designation', 'salaryProcessing'])
             ->leftJoin('users', 'users.id', '=', 'salary_processing_items.user_id')
             ->orderBy('users.name')->orderBy('salary_processing_items.id')
-            ->select('salary_processing_items.*')->simplePaginate(50, ['*'], 'page', (int) $page);
+            ->select('salary_processing_items.*')->simplePaginate(10, ['*'], 'page', (int) $page);
 
         return response()->json(['rows' => $items->getCollection()->map(fn ($item) => $this->storedRow($item))->values(),
             'has_more' => $items->hasMorePages(),
@@ -458,7 +458,7 @@ class SalaryProcessingController extends Controller implements HasMiddleware
 
         $columns = ['id', 'ref_code', 'code', 'name', 'email', 'phone', 'country_code', 'avatar', 'is_active'];
 
-        return $page === null ? $query->get($columns) : $query->simplePaginate(50, $columns, 'page', $page);
+        return $page === null ? $query->get($columns) : $query->simplePaginate(10, $columns, 'page', $page);
     }
 
     private function salarySplit(User $user, string $roleName): array
